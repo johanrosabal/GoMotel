@@ -189,6 +189,7 @@ export default function RegisterPage() {
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
+                                locale={es}
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
