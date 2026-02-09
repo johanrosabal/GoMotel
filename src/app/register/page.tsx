@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Eye, EyeOff, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { Eye, EyeOff } from 'lucide-react';
 import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
@@ -24,9 +23,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { register } from '@/lib/actions/auth.actions';
 import AppLogo from '@/components/AppLogo';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.'),
@@ -48,6 +46,10 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -61,6 +63,30 @@ export default function RegisterPage() {
       whatsappNumber: '',
     },
   });
+
+  useEffect(() => {
+    if (birthDay && birthMonth && birthYear) {
+      const day = parseInt(birthDay, 10);
+      const month = parseInt(birthMonth, 10) - 1; // JS months are 0-indexed
+      const year = parseInt(birthYear, 10);
+      const date = new Date(year, month, day);
+
+      if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+        form.setValue('birthDate', date, { shouldValidate: true });
+      } else {
+        form.setError('birthDate', { type: 'manual', message: 'Fecha no válida.' });
+      }
+    }
+  }, [birthDay, birthMonth, birthYear, form]);
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - 18 - i);
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
+  }));
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
 
   const onSubmit = (values: z.infer<typeof registerSchema>) => {
     startTransition(async () => {
@@ -165,40 +191,46 @@ export default function RegisterPage() {
                       control={form.control}
                       name="birthDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem>
                           <FormLabel>Fecha de Nacimiento</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP", { locale: es })
-                                  ) : (
-                                    <span>Seleccione una fecha</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                locale={es}
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date > new Date() || date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <div className="grid grid-cols-3 gap-2">
+                             <Select onValueChange={setDay} value={birthDay}>
+                               <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Día" />
+                                </SelectTrigger>
+                               </FormControl>
+                               <SelectContent>
+                                {days.map((d) => (
+                                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                               </SelectContent>
+                             </Select>
+                              <Select onValueChange={setMonth} value={birthMonth}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Mes" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {months.map((m) => (
+                                    <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select onValueChange={setYear} value={birthYear}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Año" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {years.map((y) => (
+                                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
