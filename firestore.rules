@@ -30,29 +30,29 @@ service cloud.firestore {
     // Collection Rules
     // -------------------------------------------------------------------------
 
-    // Read/write access for authenticated users during development
+    // Admin-only access for core data collections
     match /rooms/{roomId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     match /services/{serviceId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     match /orders/{orderId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     match /transactions/{transactionId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     match /roomTypes/{roomTypeId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     match /stays/{stayId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     // Rules for the 'roles_admin' collection
