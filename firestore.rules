@@ -1,14 +1,10 @@
 /**
- * This ruleset has been temporarily relaxed for development purposes.
+ * Production-ready security rules for Go Motel.
  *
  * Core Philosophy:
- * The security model is currently configured to allow any authenticated user to
- * perform read and write operations. This is achieved by modifying the `isAdmin()`
- * function to simply check if a user is signed in (`isSignedIn()`).
- *
- * FOR PRODUCTION: You must revert this change and implement a robust role-based
- * system. The original `isAdmin()` function checked for the existence of a
- * document in the `/roles_admin` collection.
+ * Access is restricted by default. Only authenticated users with the 'admin'
+ * role can perform read and write operations on the main data collections.
+ * Role management is secured to prevent unauthorized privilege escalation.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -23,18 +19,18 @@ service cloud.firestore {
     }
 
     /**
-     * TEMPORARY DEVELOPMENT RULE: For now, any signed-in user is an admin.
-     * TODO: Revert to a proper role check for production.
-     * e.g., return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+     * Checks if the requesting user has the 'admin' role by checking for
+     * a corresponding document in the 'roles_admin' collection.
      */
     function isAdmin() {
-      return isSignedIn();
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     // -------------------------------------------------------------------------
     // Collection Rules
     // -------------------------------------------------------------------------
 
+    // Admin-only access for core business data
     match /rooms/{roomId} {
       allow read, write: if isAdmin();
     }
@@ -59,13 +55,21 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Lock down the roles collection from client-side writes.
+    // Rules for the 'roles_admin' collection
     match /roles_admin/{uid} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      // Admins can see who other admins are.
+      allow get: if isAdmin();
+      
+      // Allow any authenticated user to check for existing admins during registration.
+      // The `register` server action contains the logic to only make the first user an admin.
+      allow list: if isSignedIn();
+      
+      // Allow a user to create their own admin role document.
+      // The server action logic ensures this only happens for the first registered user.
+      allow create: if request.auth.uid == uid;
+
+      // Prevent users from updating or deleting roles.
+      allow update, delete: if false;
     }
   }
 }

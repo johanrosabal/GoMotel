@@ -2,19 +2,65 @@
 
 import { useEffect } from 'react';
 import { useFirebase } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { usePathname, useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const publicRoutes = ['/login', '/register'];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const { auth, user, isUserLoading } = useFirebase();
+  const { user, isUserLoading } = useFirebase();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Only attempt to sign in if auth is available, loading is finished, and there's no user.
-    if (auth && !isUserLoading && !user) {
-      signInAnonymously(auth).catch(error => {
-        console.error("Anonymous sign-in failed:", error);
-      });
+    if (isUserLoading) {
+      return; // Wait until user status is determined
     }
-  }, [auth, user, isUserLoading]);
+
+    const isPublicRoute = publicRoutes.includes(pathname);
+
+    if (!user && !isPublicRoute) {
+      // If user is not logged in and not on a public route, redirect to login
+      router.push('/login');
+    } else if (user && isPublicRoute) {
+      // If user is logged in and on a public route (login/register), redirect to home
+      router.push('/');
+    }
+  }, [user, isUserLoading, router, pathname]);
+
+  // While loading auth state, show a loading screen to prevent flicker
+  if (isUserLoading) {
+    return (
+        <div className="flex flex-col min-h-screen">
+            <header className="sticky top-0 z-30 w-full border-b bg-background">
+                <div className="container flex h-16 items-center">
+                    <Skeleton className="h-8 w-32" />
+                    <div className="ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            </header>
+            <main className="flex-1 container py-8">
+                <Skeleton className="h-40 w-full" />
+                <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                </div>
+            </main>
+      </div>
+    );
+  }
+
+  // If user is not logged in and not on a public page, we are about to redirect, so show nothing.
+  if (!user && !publicRoutes.includes(pathname)) {
+      return null;
+  }
+  
+  // If user is logged in and on a public page, we are about to redirect, show nothing.
+  if(user && publicRoutes.includes(pathname)) {
+      return null;
+  }
 
   return <>{children}</>;
 }

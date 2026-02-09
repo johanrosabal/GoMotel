@@ -5,7 +5,7 @@ import { BedDouble } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-6">
+    <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
         <div className='space-y-1.5'>
             <CardTitle>Ajustes del Sistema</CardTitle>
             <CardDescription>Administre las configuraciones de su motel.</CardDescription>

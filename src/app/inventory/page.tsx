@@ -8,7 +8,7 @@ export default async function InventoryPage() {
   const allServices = await getServices();
 
   return (
-    <div className="space-y-6">
+    <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
       <Card>
         <CardHeader>
             <div className="flex items-center justify-between">

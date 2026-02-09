@@ -31,7 +31,7 @@ export default function RootLayout({
           <AuthWrapper>
             <div className="flex flex-col min-h-screen">
               <TopNav />
-              <main className="flex-1 container py-4 sm:py-6 lg:py-8">{children}</main>
+              <main className="flex-1">{children}</main>
             </div>
             <Toaster />
           </AuthWrapper>

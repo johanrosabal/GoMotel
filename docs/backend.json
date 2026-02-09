@@ -158,12 +158,24 @@
         "totalAmount",
         "orderIds"
       ]
+    },
+    "roles_admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "roles_admin",
+      "type": "object",
+      "description": "Defines admin roles for users. The existence of a document with a user's UID grants them admin privileges.",
+      "properties": {
+        "admin": {
+          "type": "boolean",
+          "description": "Must be true to grant admin access."
+        }
+      },
+      "required": ["admin"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {

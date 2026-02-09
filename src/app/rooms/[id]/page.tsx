@@ -116,21 +116,25 @@ export default function RoomDetailsPage() {
 
     if (loading) {
         return (
-            <div className="space-y-6">
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-64 w-full" />
+            <div className="container py-4 sm:py-6 lg:py-8">
+                <div className="space-y-6">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
             </div>
         )
     }
 
     if (!room) {
         return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Habitación No Encontrada</CardTitle>
-                    <CardDescription>La habitación que busca no existe.</CardDescription>
-                </CardHeader>
-            </Card>
+            <div className="container py-4 sm:py-6 lg:py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Habitación No Encontrada</CardTitle>
+                        <CardDescription>La habitación que busca no existe.</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
         )
     }
 
@@ -173,75 +177,77 @@ export default function RoomDetailsPage() {
 
 
     return (
-        <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-1 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <CardTitle className="text-4xl">Habitación {room.number}</CardTitle>
-                                <CardDescription>Tarifa: ${room.ratePerHour}/hora</CardDescription>
-                            </div>
-                            <StatusBadge status={room.status} />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-4">
-                            <InfoRow label="Tipo" value={room.type} icon={Bed} />
-                            <InfoRow label="Capacidad" value={`${room.capacity} persona(s)`} icon={Users} />
-                            {room.description && <InfoRow label="Descripción" value={room.description} icon={Info} />}
-                        </div>
-
-                        {stay && (
-                            <div className="space-y-4 border-t pt-4 mt-4">
-                                <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
-                                <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
-                            </div>
-                        )}
-                        <div className="pt-4">{renderRoomActions()}</div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="md:col-span-2 space-y-6">
-                 {room.status === 'Occupied' && stay && (
+        <div className="container py-4 sm:py-6 lg:py-8">
+            <div className="grid gap-6 md:grid-cols-3">
+                <div className="md:col-span-1 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Detalles de la Estancia Actual</CardTitle>
-                            <CardDescription>Servicios y pedidos para el huésped actual.</CardDescription>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-4xl">Habitación {room.number}</CardTitle>
+                                    <CardDescription>Tarifa: ${room.ratePerHour}/hora</CardDescription>
+                                </div>
+                                <StatusBadge status={room.status} />
+                            </div>
                         </CardHeader>
-                        <CardContent>
-                             {orders.length > 0 ? (
-                                <ul className="space-y-4">
-                                    {orders.map(order => (
-                                        <li key={order.id} className="p-3 border rounded-lg bg-muted/50">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <div className='flex items-center gap-2'>
-                                                     <History className="w-4 h-4 text-muted-foreground" />
-                                                    <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'p', { locale: es })}</p>
-                                                </div>
-                                                <Button variant="ghost" size="sm" onClick={() => checkAiOrderStatus(order)}>Consultar Estado IA</Button>
-                                            </div>
-                                            <ul className="pl-6 space-y-1 text-sm">
-                                                {order.items.map(item => (
-                                                    <li key={item.serviceId} className="flex justify-between">
-                                                        <span>{item.quantity}x {item.name}</span>
-                                                        <span>${(item.price * item.quantity).toFixed(2)}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                             <div className="text-right font-semibold mt-2 pt-2 border-t">Total: ${order.total.toFixed(2)}</div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    <ConciergeBell className="mx-auto h-12 w-12" />
-                                    <p className="mt-2">Aún no se han pedido servicios para esta estancia.</p>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-4">
+                                <InfoRow label="Tipo" value={room.type} icon={Bed} />
+                                <InfoRow label="Capacidad" value={`${room.capacity} persona(s)`} icon={Users} />
+                                {room.description && <InfoRow label="Descripción" value={room.description} icon={Info} />}
+                            </div>
+
+                            {stay && (
+                                <div className="space-y-4 border-t pt-4 mt-4">
+                                    <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
+                                    <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
                                 </div>
                             )}
+                            <div className="pt-4">{renderRoomActions()}</div>
                         </CardContent>
                     </Card>
-                )}
+                </div>
+                <div className="md:col-span-2 space-y-6">
+                    {room.status === 'Occupied' && stay && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Detalles de la Estancia Actual</CardTitle>
+                                <CardDescription>Servicios y pedidos para el huésped actual.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {orders.length > 0 ? (
+                                    <ul className="space-y-4">
+                                        {orders.map(order => (
+                                            <li key={order.id} className="p-3 border rounded-lg bg-muted/50">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <div className='flex items-center gap-2'>
+                                                        <History className="w-4 h-4 text-muted-foreground" />
+                                                        <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'p', { locale: es })}</p>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" onClick={() => checkAiOrderStatus(order)}>Consultar Estado IA</Button>
+                                                </div>
+                                                <ul className="pl-6 space-y-1 text-sm">
+                                                    {order.items.map(item => (
+                                                        <li key={item.serviceId} className="flex justify-between">
+                                                            <span>{item.quantity}x {item.name}</span>
+                                                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                <div className="text-right font-semibold mt-2 pt-2 border-t">Total: ${order.total.toFixed(2)}</div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <ConciergeBell className="mx-auto h-12 w-12" />
+                                        <p className="mt-2">Aún no se han pedido servicios para esta estancia.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             </div>
         </div>
     )
