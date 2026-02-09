@@ -5,7 +5,7 @@ import { useFirebase } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const publicRoutes = ['/login', '/register'];
+const publicRoutes = ['/', '/register'];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useFirebase();
@@ -21,10 +21,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
     if (!user && !isPublicRoute) {
       // If user is not logged in and not on a public route, redirect to login
-      router.push('/login');
+      router.push('/');
     } else if (user && isPublicRoute) {
       // If user is logged in and on a public route (login/register), redirect to home
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, isUserLoading, router, pathname]);
 

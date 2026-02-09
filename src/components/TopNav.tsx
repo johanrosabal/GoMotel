@@ -13,7 +13,7 @@ const menuItems = [
   { href: '/settings', label: 'Ajustes' },
 ];
 
-const publicRoutes = ['/login', '/register'];
+const publicRoutes = ['/', '/register'];
 
 export default function TopNav() {
   const pathname = usePathname();
@@ -23,7 +23,7 @@ export default function TopNav() {
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background">
         <div className="container flex h-16 items-center">
-            <Link href="/" className="mr-8 flex items-center space-x-2">
+            <Link href={user ? '/dashboard' : '/'} className="mr-8 flex items-center space-x-2">
               <AppLogo className="h-6 w-6 text-primary" />
               <span className="font-bold text-lg">Go Motel</span>
             </Link>

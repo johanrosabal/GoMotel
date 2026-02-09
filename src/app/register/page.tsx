@@ -60,7 +60,7 @@ export default function RegisterPage() {
           title: '¡Registro Exitoso!',
           description: 'Su cuenta ha sido creada.',
         });
-        router.push('/');
+        router.push('/dashboard');
       }
     });
   };
@@ -76,7 +76,7 @@ export default function RegisterPage() {
             <CardTitle className="text-2xl">Cree una cuenta nueva</CardTitle>
             <CardDescription>
               ¿Ya tiene una cuenta?{' '}
-              <Link href="/login" className="font-medium text-primary hover:underline">
+              <Link href="/" className="font-medium text-primary hover:underline">
                 Inicie sesión
               </Link>
             </CardDescription>

@@ -26,7 +26,7 @@ export default function UserMenu() {
     return (
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm">
-          <Link href="/login">Iniciar Sesión</Link>
+          <Link href="/">Iniciar Sesión</Link>
         </Button>
         <Button asChild size="sm">
           <Link href="/register">Registrarse</Link>

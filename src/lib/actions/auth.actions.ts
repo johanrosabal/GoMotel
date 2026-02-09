@@ -42,7 +42,7 @@ export async function login(values: z.infer<typeof loginSchema>) {
     }
   }
   revalidatePath('/');
-  redirect('/');
+  redirect('/dashboard');
 }
 
 const registerSchema = z.object({
@@ -81,7 +81,7 @@ export async function register(values: z.infer<typeof registerSchema>) {
         }
     }
     revalidatePath('/');
-    redirect('/');
+    redirect('/dashboard');
 }
 
 export async function logout() {
@@ -92,5 +92,5 @@ export async function logout() {
         return { error: 'Error al cerrar sesión.' };
     }
     revalidatePath('/');
-    redirect('/login');
+    redirect('/');
 }

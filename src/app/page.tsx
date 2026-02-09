@@ -1,58 +1,127 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+'use client';
+
+import { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Package, Cog } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { login } from '@/lib/actions/auth.actions';
+import AppLogo from '@/components/AppLogo';
 
-const sections = [
-    {
-        title: 'Panel de Habitaciones',
-        description: 'Visualice y gestione el estado de todas las habitaciones en tiempo real.',
-        href: '/dashboard',
-        icon: LayoutDashboard,
-    },
-    {
-        title: 'Inventario y Servicios',
-        description: 'Administre los productos y servicios disponibles para los huéspedes.',
-        href: '/inventory',
-        icon: Package,
-    },
-    {
-        title: 'Ajustes del Sistema',
-        description: 'Configure los parámetros de la aplicación, como los tipos de habitación.',
-        href: '/settings',
-        icon: Cog,
-    }
-]
+const loginSchema = z.object({
+  email: z.string().email('Por favor ingrese un correo electrónico válido.'),
+  password: z.string().min(1, 'La contraseña es requerida.'),
+});
 
-export default function HubPage() {
+export default function HomePage() {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    startTransition(async () => {
+      const result = await login(values);
+      if (result?.error) {
+        toast({
+          title: 'Error de Inicio de Sesión',
+          description: result.error,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '¡Bienvenido!',
+          description: 'Ha iniciado sesión exitosamente.',
+        });
+        router.push('/dashboard');
+      }
+    });
+  };
+
   return (
-    <div className="container py-4 sm:py-6 lg:py-8">
-        <div className="space-y-8">
-            <div className="text-center max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Panel de Control de Go Motel</h1>
-                <p className="text-muted-foreground mt-3 text-lg">
-                    Bienvenido al centro de operaciones de su motel. Seleccione una sección para comenzar.
-                </p>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
-                {sections.map(section => (
-                    <Card key={section.href} className="flex flex-col">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="flex items-center gap-3 text-xl">
-                                <section.icon className="h-6 w-6 text-primary" />
-                                {section.title}
-                            </CardTitle>
-                            <CardDescription className="pt-2">{section.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow flex items-end">
-                            <Link href={section.href} className="w-full">
-                                <Button className='w-full'>Administrar</Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </div>
+    <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <Card>
+          <CardHeader className="items-center text-center">
+            <Link href="/" className="flex items-center justify-center gap-2">
+                <AppLogo className="h-8 w-8 text-primary" />
+            </Link>
+            <CardTitle className="text-2xl">Inicie sesión en su cuenta</CardTitle>
+            <CardDescription>
+              O{' '}
+              <Link href="/register" className="font-medium text-primary hover:underline">
+                cree una cuenta nueva
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo Electrónico</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="nombre@ejemplo.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contraseña</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isPending}>
+                  {isPending ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
