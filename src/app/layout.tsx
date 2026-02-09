@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import TopNav from '@/components/TopNav';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -25,11 +26,13 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <div className="flex flex-col min-h-screen">
-          <TopNav />
-          <main className="flex-1 container py-4 sm:py-6 lg:py-8">{children}</main>
-        </div>
-        <Toaster />
+        <FirebaseClientProvider>
+          <div className="flex flex-col min-h-screen">
+            <TopNav />
+            <main className="flex-1 container py-4 sm:py-6 lg:py-8">{children}</main>
+          </div>
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );
