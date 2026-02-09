@@ -25,9 +25,9 @@ const initialStatuses: Record<string, RoomStatus> = {
 }
 
 const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
-    { name: 'Sencilla' },
-    { name: 'Doble' },
-    { name: 'Suite' },
+    { name: 'Sencilla', features: ['Wi-Fi', 'TV', 'Baño Privado'] },
+    { name: 'Doble', features: ['Wi-Fi', 'TV de Pantalla Plana', 'Escritorio'] },
+    { name: 'Suite', features: ['Cama King Size', 'Jacuzzi', 'Minibar', 'Wi-Fi de Alta Velocidad'] },
 ];
 
 const servicesToSeed: Omit<Service, 'id'>[] = [
