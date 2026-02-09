@@ -33,7 +33,7 @@ const registerSchema = z.object({
   birthDate: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
-  idCard: z.string().min(1, 'La cédula de identidad es requerida.'),
+  idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
   phoneNumber: z.string().min(1, 'El número de teléfono es requerido.'),
   whatsappNumber: z.string().optional(),
   email: z.string().email('Por favor ingrese un correo electrónico válido.'),
@@ -86,6 +86,23 @@ export default function RegisterPage() {
     label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
   }));
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
+  const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    const maxLength = 9;
+    const value = rawValue.slice(0, maxLength);
+
+    let maskedValue = '';
+    if (value.length > 5) {
+      maskedValue = `${value.slice(0, 1)}-${value.slice(1, 5)}-${value.slice(5)}`;
+    } else if (value.length > 1) {
+      maskedValue = `${value.slice(0, 1)}-${value.slice(1)}`;
+    } else {
+      maskedValue = value;
+    }
+
+    fieldOnChange(maskedValue);
+  };
 
 
   const onSubmit = (values: z.infer<typeof registerSchema>) => {
@@ -242,7 +259,11 @@ export default function RegisterPage() {
                         <FormItem>
                           <FormLabel>Cédula de Identidad</FormLabel>
                           <FormControl>
-                            <Input placeholder="12345678-9" {...field} />
+                            <Input
+                              placeholder="0-0000-0000"
+                              {...field}
+                              onChange={(e) => handleIdCardChange(e, field.onChange)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
