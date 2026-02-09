@@ -1,36 +1,14 @@
 /**
- * This ruleset enforces a strict, role-based security model where all data
- * access and modification are restricted to authenticated users with administrative
- * privileges.
+ * This ruleset has been temporarily relaxed for development purposes.
  *
  * Core Philosophy:
- * The security model is admin-only. Standard users, authenticated or not, are
- * denied all access to the data. Administrative status is determined by the
- * existence of a document in the `/roles_admin` collection whose ID matches the
- * user's UID.
+ * The security model is currently configured to allow any authenticated user to
+ * perform read and write operations. This is achieved by modifying the `isAdmin()`
+ * function to simply check if a user is signed in (`isSignedIn()`).
  *
- * Data Structure:
- * The data is organized into several top-level collections: `/rooms`, `/services`,
- * `/orders`, and `/transactions`. There are no user-specific subcollections, as
- * all data is considered system-level and managed centrally by administrators.
- *
- * Key Security Decisions:
- * - Admin-Only Access: All collections (`rooms`, `services`, `orders`, `transactions`)
- *   require admin privileges for any read or write operation. This is enforced
- *   by the `isAdmin()` helper function.
- * - Server-Side Role Management: The `/roles_admin` collection, which grants
- *   admin privileges, is completely locked down from client-side modification.
- *   This prevents any user from escalating their own privileges. Admin roles must
- *   be assigned out-of-band using the Firebase Admin SDK or the Firebase Console.
- * - No User Data Ownership: The concept of data ownership by individual users
- *   does not apply to this data model. All data is managed by the system via
- *   admin accounts.
- *
- * Denormalization for Authorization:
- * This ruleset uses a dedicated collection, `/roles_admin`, to manage authorization.
- * Checking for the existence of a document in this collection (`exists(...)`) is a
- * highly performant and scalable way to verify a user's role without needing to
- * inspect a custom claims token or a field on a user profile document.
+ * FOR PRODUCTION: You must revert this change and implement a robust role-based
+ * system. The original `isAdmin()` function checked for the existence of a
+ * document in the `/roles_admin` collection.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -40,93 +18,48 @@ service cloud.firestore {
     // Helper Functions
     // -------------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Checks if the authenticated user has admin privileges.
-     * Admin status is granted if a document with the user's UID exists in the
-     * `/roles_admin` collection.
+     * TEMPORARY DEVELOPMENT RULE: For now, any signed-in user is an admin.
+     * TODO: Revert to a proper role check for production.
+     * e.g., return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn();
     }
 
     // -------------------------------------------------------------------------
     // Collection Rules
     // -------------------------------------------------------------------------
 
-    /**
-     * @description Manages motel room information. Only admins can view or modify rooms.
-     * @path /rooms/{roomId}
-     * @allow (get) An admin user reads a single room document. auth.uid is in /roles_admin.
-     * @deny (create) A non-admin user attempts to create a new room.
-     * @principle Enforces admin-only access for a core data collection.
-     */
     match /rooms/{roomId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
     }
 
-    /**
-     * @description Manages motel service offerings. Only admins can view or modify services.
-     * @path /services/{serviceId}
-     * @allow (list) An admin user lists all available services. auth.uid is in /roles_admin.
-     * @deny (update) A regular authenticated user attempts to change a service price.
-     * @principle Enforces admin-only access for a core data collection.
-     */
     match /services/{serviceId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
     }
 
-    /**
-     * @description Manages service orders for rooms. Only admins can view or modify orders.
-     * @path /orders/{orderId}
-     * @allow (create) An admin user creates a new order for a room. auth.uid is in /roles_admin.
-     * @deny (get) An anonymous user attempts to read an order document.
-     * @principle Enforces admin-only access for a core data collection.
-     */
     match /orders/{orderId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
     }
 
-    /**
-     * @description Manages billing transactions. Only admins can view or modify transactions.
-     * @path /transactions/{transactionId}
-     * @allow (delete) An admin user deletes a transaction record. auth.uid is in /roles_admin.
-     * @deny (list) A non-admin authenticated user attempts to list all transactions.
-     * @principle Enforces admin-only access for sensitive financial data.
-     */
     match /transactions/{transactionId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow read, write: if isAdmin();
     }
 
-    /**
-     * @description Grants admin privileges. This collection is intentionally locked down.
-     * @path /roles_admin/{uid}
-     * @allow (none) No client-side operations are permitted.
-     * @deny (create) An admin user attempts to make another user an admin from the client app.
-     * @principle Prevents privilege escalation. Roles must be managed via the Admin SDK or Firebase Console.
-     */
+    match /roomTypes/{roomTypeId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /stays/{stayId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Lock down the roles collection from client-side writes.
     match /roles_admin/{uid} {
       allow get: if false;
       allow list: if false;
