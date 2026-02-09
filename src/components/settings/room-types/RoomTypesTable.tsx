@@ -66,6 +66,7 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
         <Table>
         <TableHeader>
             <TableRow>
+            <TableHead className="w-[80px]">Código</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Características</TableHead>
             <TableHead>
@@ -76,6 +77,7 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
         <TableBody>
             {roomTypes.map((roomType) => (
             <TableRow key={roomType.id}>
+                <TableCell><Badge variant="outline">{roomType.code}</Badge></TableCell>
                 <TableCell className="font-medium">{roomType.name}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">

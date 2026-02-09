@@ -5,6 +5,7 @@ export type RoomStatus = 'Available' | 'Occupied' | 'Cleaning' | 'Maintenance';
 export interface RoomType {
   id: string;
   name: string;
+  code: string;
   features?: string[];
 }
 

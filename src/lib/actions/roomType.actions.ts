@@ -20,6 +20,7 @@ const toRoomTypeObject = (doc: any): RoomType => {
   return {
     id: doc.id,
     name: data.name,
+    code: data.code,
     features: data.features || [],
   };
 };
@@ -41,11 +42,17 @@ export async function getRoomTypes(): Promise<RoomType[]> {
 const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
-  features: z.string().optional(),
+  features: z.array(z.string()).optional(),
 });
 
 export async function saveRoomType(formData: FormData) {
-  const rawData = Object.fromEntries(formData.entries());
+  const id = formData.get('id')?.toString();
+  const rawData = {
+    id: id,
+    name: formData.get('name')?.toString() || '',
+    features: formData.getAll('features').map(f => f.toString()),
+  };
+  
   const validatedFields = roomTypeSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
@@ -54,11 +61,11 @@ export async function saveRoomType(formData: FormData) {
     };
   }
 
-  const { id, name, features } = validatedFields.data;
+  const { name, features } = validatedFields.data;
 
   const dataToSave = {
     name,
-    features: features ? features.split(',').map(f => f.trim()).filter(Boolean) : [],
+    features: features || [],
   };
 
   try {
@@ -66,7 +73,13 @@ export async function saveRoomType(formData: FormData) {
       const roomTypeRef = doc(db, 'roomTypes', id);
       await updateDoc(roomTypeRef, dataToSave);
     } else {
-      await addDoc(collection(db, 'roomTypes'), dataToSave);
+      // Generate new code for new room types
+      const roomTypes = await getRoomTypes();
+      const existingCodes = roomTypes.map(rt => parseInt(rt.code, 10)).filter(c => !isNaN(c));
+      const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+      const newCode = String(nextCodeNumber).padStart(2, '0');
+
+      await addDoc(collection(db, 'roomTypes'), { ...dataToSave, code: newCode });
     }
     revalidatePath('/settings/room-types');
     return { success: true };
