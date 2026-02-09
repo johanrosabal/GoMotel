@@ -36,9 +36,10 @@ const toRoomObject = (doc: any): Room => {
 export async function getRooms(): Promise<Room[]> {
   try {
     const roomsCollection = collection(db, 'rooms');
-    const q = query(roomsCollection, orderBy('number'));
+    const q = query(roomsCollection);
     const roomsSnapshot = await getDocs(q);
     const roomsList = roomsSnapshot.docs.map(toRoomObject);
+    roomsList.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     return roomsList;
   } catch (error) {
     console.error('Error fetching rooms:', error);

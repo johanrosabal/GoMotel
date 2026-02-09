@@ -16,12 +16,13 @@ export default function RoomGrid({ initialRooms }: RoomGridProps) {
   const [loading, setLoading] = useState(initialRooms.length === 0);
 
   useEffect(() => {
-    const q = query(collection(db, 'rooms'), orderBy('number'));
+    const q = query(collection(db, 'rooms'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const roomsData: Room[] = [];
       querySnapshot.forEach((doc) => {
         roomsData.push({ id: doc.id, ...doc.data() } as Room);
       });
+      roomsData.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
       setRooms(roomsData);
       setLoading(false);
     });
