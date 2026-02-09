@@ -4,7 +4,6 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
   doc,
   addDoc,
   updateDoc,
@@ -28,9 +27,11 @@ const toRoomTypeObject = (doc: any): RoomType => {
 export async function getRoomTypes(): Promise<RoomType[]> {
   try {
     const roomTypesCollection = collection(db, 'roomTypes');
-    const q = query(roomTypesCollection, orderBy('name'));
+    const q = query(roomTypesCollection);
     const roomTypesSnapshot = await getDocs(q);
-    return roomTypesSnapshot.docs.map(toRoomTypeObject);
+    const roomTypes = roomTypesSnapshot.docs.map(toRoomTypeObject);
+    roomTypes.sort((a, b) => a.name.localeCompare(b.name));
+    return roomTypes;
   } catch (error) {
     console.error('Error fetching room types:', error);
     return [];

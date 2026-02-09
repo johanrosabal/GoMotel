@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { RoomType } from '@/types';
 import {
@@ -35,12 +35,13 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
   const [loading, setLoading] = useState(initialRoomTypes.length === 0);
 
   useEffect(() => {
-    const q = query(collection(db, 'roomTypes'), orderBy('name'));
+    const q = query(collection(db, 'roomTypes'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const data: RoomType[] = [];
       querySnapshot.forEach((doc) => {
         data.push({ id: doc.id, ...doc.data() } as RoomType);
       });
+      data.sort((a, b) => a.name.localeCompare(b.name));
       setRoomTypes(data);
       setLoading(false);
     });
