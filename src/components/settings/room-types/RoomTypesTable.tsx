@@ -39,7 +39,13 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const data: RoomType[] = [];
       querySnapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() } as RoomType);
+        const docData = doc.data();
+        data.push({
+            id: doc.id,
+            name: docData.name || 'Sin Nombre',
+            code: docData.code || 'N/A',
+            features: docData.features || [],
+        });
       });
       data.sort((a, b) => a.name.localeCompare(b.name));
       setRoomTypes(data);

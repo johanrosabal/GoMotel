@@ -19,8 +19,8 @@ const toRoomTypeObject = (doc: any): RoomType => {
   const data = doc.data();
   return {
     id: doc.id,
-    name: data.name,
-    code: data.code,
+    name: data.name || 'Sin Nombre',
+    code: data.code || 'N/A',
     features: data.features || [],
   };
 };
@@ -74,8 +74,12 @@ export async function saveRoomType(formData: FormData) {
       await updateDoc(roomTypeRef, dataToSave);
     } else {
       // Generate new code for new room types
-      const roomTypes = await getRoomTypes();
-      const existingCodes = roomTypes.map(rt => parseInt(rt.code, 10)).filter(c => !isNaN(c));
+      const roomTypesCollection = collection(db, 'roomTypes');
+      const roomTypesSnapshot = await getDocs(roomTypesCollection);
+      const existingCodes = roomTypesSnapshot.docs
+        .map(doc => parseInt(doc.data().code, 10))
+        .filter(c => !isNaN(c));
+      
       const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
       const newCode = String(nextCodeNumber).padStart(2, '0');
 
