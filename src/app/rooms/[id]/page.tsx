@@ -85,9 +85,10 @@ export default function RoomDetailsPage() {
             }
         })
         
-        const ordersQuery = query(collection(db, 'orders'), where('stayId', '==', room.currentStayId), orderBy('createdAt', 'desc'));
+        const ordersQuery = query(collection(db, 'orders'), where('stayId', '==', room.currentStayId));
         const ordersUnsub = onSnapshot(ordersQuery, (snapshot) => {
             const newOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+            newOrders.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
             setOrders(newOrders);
         });
 

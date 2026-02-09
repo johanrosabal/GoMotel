@@ -77,13 +77,17 @@ export async function getOrdersForStay(stayId: string): Promise<Order[]> {
     if (!stayId) return [];
     try {
         const ordersCollection = collection(db, 'orders');
-        const q = query(ordersCollection, where('stayId', '==', stayId), orderBy('createdAt', 'desc'));
+        const q = query(ordersCollection, where('stayId', '==', stayId));
         const ordersSnapshot = await getDocs(q);
 
-        return ordersSnapshot.docs.map(doc => ({
+        const orders = ordersSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         } as Order));
+
+        orders.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+        return orders;
 
     } catch (error) {
         console.error('Error fetching orders for stay:', error);

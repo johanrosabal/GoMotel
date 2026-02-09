@@ -44,14 +44,18 @@ export default function InventoryTable({ initialServices, allServices }: Invento
 
   useEffect(() => {
     const q = query(
-      collection(db, 'services'),
-      orderBy('category'),
-      orderBy('name')
+      collection(db, 'services')
     );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const servicesData: Service[] = [];
       querySnapshot.forEach((doc) => {
         servicesData.push({ id: doc.id, ...doc.data() } as Service);
+      });
+      servicesData.sort((a, b) => {
+        if (a.category.localeCompare(b.category) !== 0) {
+            return a.category.localeCompare(b.category);
+        }
+        return a.name.localeCompare(b.name);
       });
       setServices(servicesData);
       setLoading(false);

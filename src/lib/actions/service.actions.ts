@@ -31,9 +31,16 @@ const toServiceObject = (doc: any): Service => {
 export async function getServices(): Promise<Service[]> {
   try {
     const servicesCollection = collection(db, 'services');
-    const q = query(servicesCollection, orderBy('category'), orderBy('name'));
+    const q = query(servicesCollection);
     const servicesSnapshot = await getDocs(q);
-    return servicesSnapshot.docs.map(toServiceObject);
+    const services = servicesSnapshot.docs.map(toServiceObject);
+    services.sort((a, b) => {
+        if (a.category.localeCompare(b.category) !== 0) {
+            return a.category.localeCompare(b.category);
+        }
+        return a.name.localeCompare(b.name);
+    });
+    return services;
   } catch (error) {
     console.error('Error fetching services:', error);
     return [];
