@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "logo",
+      "description": "Go Motel Manager logo",
+      "imageUrl": "placeholder for svg",
+      "imageHint": "motel logo"
+    }
+  ]
 }

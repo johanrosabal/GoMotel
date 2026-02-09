@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/realtime-order-status-updates.ts';
+import '@/ai/flows/realtime-inventory-updates.ts';
+import '@/ai/flows/realtime-room-availability-updates.ts';
