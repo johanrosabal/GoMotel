@@ -171,6 +171,57 @@
         }
       },
       "required": ["admin"]
+    },
+    "PricePlan": {
+      "title": "Price Plan",
+      "type": "object",
+      "description": "Defines a pricing plan based on duration.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the price plan (e.g., Nightly Rate)."
+        },
+        "hours": {
+          "type": "number",
+          "description": "Duration of the plan in hours."
+        },
+        "price": {
+          "type": "number",
+          "description": "The cost of this plan."
+        }
+      },
+      "required": ["name", "hours", "price"]
+    },
+    "RoomType": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Room Type",
+      "type": "object",
+      "description": "Defines a category of room with specific features and pricing.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the room type (e.g., Single, Double, Suite)."
+        },
+        "code": {
+            "type": "string",
+            "description": "A unique code for the room type (e.g., 01, 02)."
+        },
+        "features": {
+          "type": "array",
+          "description": "A list of features for this room type.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pricePlans": {
+          "type": "array",
+          "description": "A list of pricing plans for this room type.",
+          "items": {
+            "$ref": "#/backend/entities/PricePlan"
+          }
+        }
+      },
+      "required": ["name", "code"]
     }
   },
   "auth": {
@@ -256,6 +307,22 @@
             {
               "name": "uid",
               "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roomTypes/{roomTypeId}",
+        "definition": {
+          "entityName": "RoomType",
+          "schema": {
+            "$ref": "#/backend/entities/RoomType"
+          },
+          "description": "Stores information about the types of rooms available.",
+          "params": [
+            {
+              "name": "roomTypeId",
+              "description": "The unique identifier for the room type."
             }
           ]
         }
