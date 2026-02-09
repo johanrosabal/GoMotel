@@ -2,8 +2,7 @@
 
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
@@ -82,15 +81,4 @@ export async function register(values: z.infer<typeof registerSchema>) {
     }
     revalidatePath('/');
     redirect('/dashboard');
-}
-
-export async function logout() {
-    try {
-        await signOut(auth);
-    } catch (error) {
-        console.error('Error signing out:', error);
-        return { error: 'Error al cerrar sesión.' };
-    }
-    revalidatePath('/');
-    redirect('/');
 }
