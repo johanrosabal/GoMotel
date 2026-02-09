@@ -222,6 +222,66 @@
         }
       },
       "required": ["name", "code"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "type": "object",
+      "description": "Represents a user's profile information.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "User's unique ID from Firebase Auth."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's primary last name."
+        },
+        "secondLastName": {
+          "type": "string",
+          "description": "User's secondary last name."
+        },
+        "birthDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "User's date of birth."
+        },
+        "idCard": {
+          "type": "string",
+          "description": "User's national identity card number."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "User's primary phone number."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "User's WhatsApp number, if different from phone."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the profile was created."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "firstName",
+        "lastName",
+        "birthDate",
+        "idCard",
+        "phoneNumber",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -323,6 +383,22 @@
             {
               "name": "roomTypeId",
               "description": "The unique identifier for the room type."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Users can create and manage their own profile. Admins can manage all profiles.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user."
             }
           ]
         }

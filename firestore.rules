@@ -30,6 +30,13 @@ service cloud.firestore {
     // Collection Rules
     // -------------------------------------------------------------------------
 
+    match /users/{userId} {
+      // Admins can manage all profiles
+      allow read, write: if isAdmin();
+      // Users can create, read and update their own profile
+      allow create, get, update: if request.auth.uid == userId;
+    }
+
     // Admin-only access for core data collections
     match /rooms/{roomId} {
       allow read, write: if isAdmin();

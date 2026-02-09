@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db, auth } from '../firebase';
-import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, Timestamp } from 'firebase/firestore';
 
 // HACK: This is a hacky way to get the auth instance on the server.
 // In a real app, you would use the Firebase Admin SDK for server-side auth.
@@ -47,18 +47,40 @@ export async function login(values: z.infer<typeof loginSchema>) {
 const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
+    firstName: z.string().min(1, 'El nombre es requerido.'),
+    lastName: z.string().min(1, 'El primer apellido es requerido.'),
+    secondLastName: z.string().optional(),
+    birthDate: z.coerce.date(),
+    idCard: z.string().min(1, 'La cédula de identidad es requerida.'),
+    phoneNumber: z.string().min(1, 'El número de teléfono es requerido.'),
+    whatsappNumber: z.string().optional(),
 });
 
 export async function register(values: z.infer<typeof registerSchema>) {
     try {
         const validatedFields = registerSchema.safeParse(values);
         if (!validatedFields.success) {
-            return { error: 'Campos inválidos.' };
+             const errorMessages = Object.values(validatedFields.error.flatten().fieldErrors).join(' ');
+            return { error: errorMessages || 'Campos inválidos.' };
         }
         const { email, password } = validatedFields.data;
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
         const user = userCredential.user;
+
+        // Create user profile in Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: values.email,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            secondLastName: values.secondLastName || '',
+            birthDate: Timestamp.fromDate(values.birthDate),
+            idCard: values.idCard,
+            phoneNumber: values.phoneNumber,
+            whatsappNumber: values.whatsappNumber || '',
+            createdAt: Timestamp.now(),
+        });
         
         // Check if this is the first user
         const adminRolesQuery = await getDocs(collection(db, 'roles_admin'));

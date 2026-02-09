@@ -61,3 +61,17 @@ export interface Order {
   createdAt: Timestamp;
   status: 'Pending' | 'Delivered';
 }
+
+export interface UserProfile {
+  id: string;
+  uid: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  secondLastName?: string;
+  birthDate: Timestamp;
+  idCard: string;
+  phoneNumber: string;
+  whatsappNumber?: string;
+  createdAt: Timestamp;
+}
