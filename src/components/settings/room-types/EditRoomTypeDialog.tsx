@@ -25,19 +25,28 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoomType } from '@/lib/actions/roomType.actions';
-import type { RoomType } from '@/types';
+import type { RoomType, PricePlan } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 
 interface EditRoomTypeDialogProps {
   children: ReactNode;
   roomType?: RoomType;
 }
 
+const pricePlanSchema = z.object({
+  name: z.string().min(1, 'El nombre del plan es requerido.'),
+  hours: z.coerce.number().positive('Las horas deben ser un número positivo.'),
+  price: z.coerce.number().positive('El precio debe ser un número positivo.'),
+});
+
 const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
   features: z.array(z.string()).optional(),
+  pricePlans: z.array(pricePlanSchema).optional(),
 });
 
 export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeDialogProps) {
@@ -45,19 +54,25 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [newFeature, setNewFeature] = useState('');
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanHours, setNewPlanHours] = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState('');
 
   const form = useForm<z.infer<typeof roomTypeSchema>>({
     resolver: zodResolver(roomTypeSchema),
     defaultValues: roomType ? {
         ...roomType,
         features: roomType.features || [],
+        pricePlans: roomType.pricePlans || [],
     } : {
       name: '',
       features: [],
+      pricePlans: [],
     },
   });
 
   const features = form.watch('features', roomType?.features || []);
+  const pricePlans = form.watch('pricePlans', roomType?.pricePlans || []);
 
   const handleAddFeature = () => {
     if (newFeature.trim() && !features.includes(newFeature.trim())) {
@@ -70,6 +85,30 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     const newFeatures = features.filter((_, index) => index !== indexToRemove);
     form.setValue('features', newFeatures);
   };
+  
+  const handleAddPlan = () => {
+    const hoursNum = parseInt(newPlanHours, 10);
+    const priceNum = parseFloat(newPlanPrice);
+
+    if (newPlanName.trim() && !isNaN(hoursNum) && hoursNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
+      const newPlan = { name: newPlanName.trim(), hours: hoursNum, price: priceNum };
+      if (!pricePlans.some(p => p.name === newPlan.name)) {
+        form.setValue('pricePlans', [...pricePlans, newPlan]);
+        setNewPlanName('');
+        setNewPlanHours('');
+        setNewPlanPrice('');
+      } else {
+        toast({ title: "Error", description: "El nombre del plan de precios ya existe.", variant: 'destructive'});
+      }
+    } else {
+        toast({ title: "Error", description: "Por favor, complete todos los campos del plan de precios con valores válidos.", variant: 'destructive'});
+    }
+  };
+
+  const handleRemovePlan = (indexToRemove: number) => {
+    const newPlans = pricePlans.filter((_, index) => index !== indexToRemove);
+    form.setValue('pricePlans', newPlans);
+  };
 
   const onSubmit = (values: z.infer<typeof roomTypeSchema>) => {
     const formData = new FormData();
@@ -77,6 +116,9 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     formData.append('name', values.name);
     if(values.features) {
       values.features.forEach(feature => formData.append('features', feature));
+    }
+    if (values.pricePlans) {
+        formData.append('pricePlans', JSON.stringify(values.pricePlans));
     }
 
     startTransition(async () => {
@@ -102,11 +144,11 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
-            form.reset(roomType ? { ...roomType, features: roomType.features || [] } : { name: '', features: [] });
+            form.reset(roomType ? { ...roomType, features: roomType.features || [], pricePlans: roomType.pricePlans || [] } : { name: '', features: [], pricePlans: [] });
         }
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{roomType ? 'Editar Tipo de Habitación' : 'Añadir Nuevo Tipo de Habitación'}</DialogTitle>
           <DialogDescription>
@@ -172,6 +214,69 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                 )}
               </div>
             </FormItem>
+
+            <Separator className="my-4" />
+            
+            <FormItem>
+              <FormLabel>Planes de Precios</FormLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                <div className="space-y-1 sm:col-span-2">
+                    <Label htmlFor="plan-name" className="text-xs">Nombre</Label>
+                    <Input 
+                      id="plan-name"
+                      placeholder="p.ej. Tarifa Nocturna"
+                      value={newPlanName}
+                      onChange={(e) => setNewPlanName(e.target.value)}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="plan-hours" className="text-xs">Horas</Label>
+                    <Input
+                      id="plan-hours"
+                      type="number"
+                      placeholder="8"
+                      value={newPlanHours}
+                      onChange={(e) => setNewPlanHours(e.target.value)}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="plan-price" className="text-xs">Precio ($)</Label>
+                    <Input
+                      id="plan-price"
+                      type="number"
+                      placeholder="120"
+                      value={newPlanPrice}
+                      onChange={(e) => setNewPlanPrice(e.target.value)}
+                    />
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddPlan} className="mt-2">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Añadir Plan
+              </Button>
+              <div className="space-y-2 pt-2">
+                {pricePlans.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {pricePlans.map((plan, index) => (
+                      <Badge key={index} variant="secondary" className="pl-2 pr-1 py-0.5 text-sm">
+                        {plan.name} ({plan.hours}hs) - ${plan.price}
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemovePlan(index)}
+                          className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
+                          aria-label={`Eliminar ${plan.name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground px-1">Aún no se han añadido planes de precios.</p>
+                )}
+              </div>
+            </FormItem>
+
 
             <DialogFooter>
               <Button type="submit" disabled={isPending}>

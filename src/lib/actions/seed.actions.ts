@@ -25,9 +25,9 @@ const initialStatuses: Record<string, RoomStatus> = {
 }
 
 const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
-    { name: 'Sencilla', code: '01', features: ['Wi-Fi', 'TV', 'Baño Privado'] },
-    { name: 'Doble', code: '02', features: ['Wi-Fi', 'TV de Pantalla Plana', 'Escritorio'] },
-    { name: 'Suite', code: '03', features: ['Cama King Size', 'Jacuzzi', 'Minibar', 'Wi-Fi de Alta Velocidad'] },
+    { name: 'Sencilla', code: '01', features: ['Wi-Fi', 'TV', 'Baño Privado'], pricePlans: [{name: 'Tarifa por Hora', hours: 1, price: 20}, {name: 'Estadía Corta (3hs)', hours: 3, price: 55}, { name: 'Noche (8hs)', hours: 8, price: 140 }] },
+    { name: 'Doble', code: '02', features: ['Wi-Fi', 'TV de Pantalla Plana', 'Escritorio'], pricePlans: [{name: 'Tarifa por Hora', hours: 1, price: 25}, {name: 'Noche (8hs)', hours: 8, price: 180}] },
+    { name: 'Suite', code: '03', features: ['Cama King Size', 'Jacuzzi', 'Minibar', 'Wi-Fi de Alta Velocidad'], pricePlans: [{name: 'Tarifa por Hora', hours: 1, price: 40}, {name: 'Noche de Lujo (10hs)', hours: 10, price: 350}] },
 ];
 
 const servicesToSeed: Omit<Service, 'id'>[] = [

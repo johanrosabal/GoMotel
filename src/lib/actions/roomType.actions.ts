@@ -22,6 +22,7 @@ const toRoomTypeObject = (doc: any): RoomType => {
     name: data.name || 'Sin Nombre',
     code: data.code || 'N/A',
     features: data.features || [],
+    pricePlans: data.pricePlans || [],
   };
 };
 
@@ -39,10 +40,17 @@ export async function getRoomTypes(): Promise<RoomType[]> {
   }
 }
 
+const pricePlanSchema = z.object({
+  name: z.string().min(1, 'El nombre del plan es requerido.'),
+  hours: z.coerce.number().positive('Las horas deben ser un número positivo.'),
+  price: z.coerce.number().positive('El precio debe ser un número positivo.'),
+});
+
 const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
   features: z.array(z.string()).optional(),
+  pricePlans: z.array(pricePlanSchema).optional(),
 });
 
 export async function saveRoomType(formData: FormData) {
@@ -51,6 +59,7 @@ export async function saveRoomType(formData: FormData) {
     id: id,
     name: formData.get('name')?.toString() || '',
     features: formData.getAll('features').map(f => f.toString()),
+    pricePlans: formData.get('pricePlans') ? JSON.parse(formData.get('pricePlans') as string) : [],
   };
   
   const validatedFields = roomTypeSchema.safeParse(rawData);
@@ -61,11 +70,12 @@ export async function saveRoomType(formData: FormData) {
     };
   }
 
-  const { name, features } = validatedFields.data;
+  const { name, features, pricePlans } = validatedFields.data;
 
   const dataToSave = {
     name,
     features: features || [],
+    pricePlans: pricePlans || [],
   };
 
   try {

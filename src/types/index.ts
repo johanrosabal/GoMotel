@@ -2,11 +2,18 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type RoomStatus = 'Available' | 'Occupied' | 'Cleaning' | 'Maintenance';
 
+export interface PricePlan {
+  name: string;
+  hours: number;
+  price: number;
+}
+
 export interface RoomType {
   id: string;
   name: string;
   code: string;
   features?: string[];
+  pricePlans?: PricePlan[];
 }
 
 export interface Room {

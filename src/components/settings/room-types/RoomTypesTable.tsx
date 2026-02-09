@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import EditRoomTypeDialog from './EditRoomTypeDialog';
 import DeleteRoomTypeAlert from './DeleteRoomTypeAlert';
 import type { RoomType } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface RoomTypesTableProps {
   initialRoomTypes: RoomType[];
@@ -46,6 +47,7 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
             <TableHead className="w-[80px]">Código</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Características</TableHead>
+            <TableHead>Planes de Precios</TableHead>
             <TableHead>
                 <span className="sr-only">Acciones</span>
             </TableHead>
@@ -60,6 +62,15 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
                   <div className="flex flex-wrap gap-1">
                     {roomType.features?.map(feature => (
                         <Badge key={feature} variant="secondary">{feature}</Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1 items-start">
+                    {roomType.pricePlans?.map(plan => (
+                        <Badge key={plan.name} variant="outline" className="font-normal whitespace-nowrap">
+                          {`${plan.name} (${plan.hours}hs): ${formatCurrency(plan.price)}`}
+                        </Badge>
                     ))}
                   </div>
                 </TableCell>
