@@ -1,9 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { RoomType } from '@/types';
 import {
   Table,
   TableBody,
@@ -25,39 +21,14 @@ import {
 import { Button } from '@/components/ui/button';
 import EditRoomTypeDialog from './EditRoomTypeDialog';
 import DeleteRoomTypeAlert from './DeleteRoomTypeAlert';
+import type { RoomType } from '@/types';
 
 interface RoomTypesTableProps {
   initialRoomTypes: RoomType[];
 }
 
 export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps) {
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(initialRoomTypes);
-  const [loading, setLoading] = useState(initialRoomTypes.length === 0);
-
-  useEffect(() => {
-    const q = query(collection(db, 'roomTypes'));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const data: RoomType[] = [];
-      querySnapshot.forEach((doc) => {
-        const docData = doc.data();
-        data.push({
-            id: doc.id,
-            name: docData.name || 'Sin Nombre',
-            code: docData.code || 'N/A',
-            features: docData.features || [],
-        });
-      });
-      data.sort((a, b) => a.name.localeCompare(b.name));
-      setRoomTypes(data);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  if (loading && roomTypes.length === 0) {
-    return <div className="text-center text-muted-foreground py-8">Cargando tipos de habitación...</div>;
-  }
+  const roomTypes = initialRoomTypes;
 
   if (roomTypes.length === 0) {
     return (
