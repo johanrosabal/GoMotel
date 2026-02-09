@@ -190,11 +190,6 @@ export default function RegisterPage() {
                               <Calendar
                                 mode="single"
                                 locale={es}
-                                formatters={{
-                                  formatWeekdayName: (day, options) => {
-                                    return format(day, 'EEEEE', { locale: options?.locale }).toUpperCase();
-                                  }
-                                }}
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
