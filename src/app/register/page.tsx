@@ -6,15 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -66,24 +60,43 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Card>
-          <CardHeader className="items-center text-center">
-             <Link href="/" className="flex items-center justify-center gap-2">
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className="hidden bg-muted lg:block relative">
+        <Image
+            src="https://picsum.photos/seed/register/1200/1800"
+            alt="Recepción del hotel"
+            data-ai-hint="hotel reception"
+            fill
+            className="object-cover"
+        />
+        <div className="absolute inset-0 bg-primary/60" />
+         <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
+            <Link href="/" className="flex items-center gap-3">
+                <AppLogo className="h-8 w-8" />
+                <span className="text-xl font-bold">Go Motel</span>
+            </Link>
+            <div className="text-lg">
+                <p className="font-semibold">"Desde que usamos Go Motel, nuestra eficiencia ha aumentado en un 40%. ¡No podríamos estar más contentos!"</p>
+                <footer className="mt-4 text-base font-normal">- Dueño de Cadena Hotelera</footer>
+            </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+          <div className="grid gap-2 text-center">
+             <Link href="/" className="flex items-center justify-center gap-2 mb-4">
                 <AppLogo className="h-8 w-8 text-primary" />
             </Link>
-            <CardTitle className="text-2xl">Cree una cuenta nueva</CardTitle>
-            <CardDescription>
+            <h1 className="text-3xl font-bold">Cree una cuenta nueva</h1>
+            <p className="text-balance text-muted-foreground">
               ¿Ya tiene una cuenta?{' '}
               <Link href="/" className="font-medium text-primary hover:underline">
                 Inicie sesión
               </Link>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            </p>
+          </div>
+          <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
                 <FormField
                   control={form.control}
                   name="email"
@@ -119,8 +132,7 @@ export default function RegisterPage() {
                 </Button>
               </form>
             </Form>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );
