@@ -21,6 +21,7 @@ const toRoomTypeObject = (doc: any): RoomType => {
   return {
     id: doc.id,
     name: data.name,
+    features: data.features || [],
   };
 };
 
@@ -39,6 +40,7 @@ export async function getRoomTypes(): Promise<RoomType[]> {
 const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
+  features: z.string().optional(),
 });
 
 export async function saveRoomType(formData: FormData) {
@@ -51,14 +53,19 @@ export async function saveRoomType(formData: FormData) {
     };
   }
 
-  const { id, ...roomTypeData } = validatedFields.data;
+  const { id, name, features } = validatedFields.data;
+
+  const dataToSave = {
+    name,
+    features: features ? features.split(',').map(f => f.trim()).filter(Boolean) : [],
+  };
 
   try {
     if (id) {
       const roomTypeRef = doc(db, 'roomTypes', id);
-      await updateDoc(roomTypeRef, roomTypeData);
+      await updateDoc(roomTypeRef, dataToSave);
     } else {
-      await addDoc(collection(db, 'roomTypes'), roomTypeData);
+      await addDoc(collection(db, 'roomTypes'), dataToSave);
     }
     revalidatePath('/settings/room-types');
     return { success: true };

@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
         <TableHeader>
             <TableRow>
             <TableHead>Nombre</TableHead>
+            <TableHead>Características</TableHead>
             <TableHead>
                 <span className="sr-only">Acciones</span>
             </TableHead>
@@ -74,6 +76,13 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
             {roomTypes.map((roomType) => (
             <TableRow key={roomType.id}>
                 <TableCell className="font-medium">{roomType.name}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {roomType.features?.map(feature => (
+                        <Badge key={feature} variant="secondary">{feature}</Badge>
+                    ))}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
