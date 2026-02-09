@@ -11,6 +11,7 @@ import {
   orderBy,
   updateDoc,
   where,
+  addDoc,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -194,4 +195,52 @@ export async function getStayById(stayId: string): Promise<Stay | null> {
         console.error('Error fetching stay by ID:', error);
         return null;
     }
+}
+
+const roomSchema = z.object({
+  id: z.string().optional(),
+  number: z.string().min(1, 'El número de habitación es requerido.'),
+  ratePerHour: z.coerce.number().min(0, 'La tarifa no puede ser negativa.'),
+});
+
+export async function saveRoom(formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validatedFields = roomSchema.safeParse(rawData);
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { id, ...roomData } = validatedFields.data;
+
+  const dataToSave = {
+      ...roomData,
+      status: 'Available', // New rooms are always available
+  };
+
+  try {
+    if (id) {
+      // Update existing room
+      const roomRef = doc(db, 'rooms', id);
+      await updateDoc(roomRef, dataToSave);
+    } else {
+      // Add new room
+      const q = query(collection(db, 'rooms'), where('number', '==', dataToSave.number));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+          return { error: 'El número de habitación ya existe.' };
+      }
+      await addDoc(collection(db, 'rooms'), dataToSave);
+    }
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save room:', error);
+    if (error instanceof Error) {
+        return { error: error.message };
+    }
+    return { error: 'Ocurrió un error inesperado.' };
+  }
 }
