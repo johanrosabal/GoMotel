@@ -2,10 +2,12 @@ import RoomGrid from '@/components/dashboard/RoomGrid';
 import SeedDataButton from '@/components/SeedDataButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getRooms } from '@/lib/actions/room.actions';
+import { getRoomTypes } from '@/lib/actions/roomType.actions';
 import AddRoomButton from '@/components/dashboard/AddRoomButton';
 
 export default async function DashboardPage() {
   const rooms = await getRooms();
+  const roomTypes = await getRoomTypes();
 
   return (
     <div className="space-y-6">
@@ -18,7 +20,7 @@ export default async function DashboardPage() {
                 Vista en vivo de todas las habitaciones. Haga clic en una habitación para administrarla.
               </CardDescription>
             </div>
-            <AddRoomButton />
+            <AddRoomButton roomTypes={roomTypes} />
           </div>
         </CardHeader>
         {rooms.length === 0 && (

@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order, RoomType } from '@/types';
+import type { Room, RoomStatus, Stay, Order } from '@/types';
 import { z } from 'zod';
 
 // Helper to convert Firestore doc to Room object
@@ -204,7 +204,7 @@ const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
   ratePerHour: z.coerce.number().min(0, 'La tarifa no puede ser negativa.'),
-  type: z.enum(['Sencilla', 'Doble', 'Suite'], { required_error: 'El tipo de habitación es requerido.'}),
+  type: z.string({ required_error: 'El tipo de habitación es requerido.' }).min(1, 'El tipo de habitación es requerido.'),
   capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
 });

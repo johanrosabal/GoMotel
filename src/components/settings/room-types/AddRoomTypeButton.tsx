@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import AddRoomDialog from './AddRoomDialog';
-import type { RoomType } from '@/types';
+import EditRoomTypeDialog from './EditRoomTypeDialog';
 
-export default function AddRoomButton({ roomTypes }: { roomTypes: RoomType[] }) {
+export default function AddRoomTypeButton() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -17,17 +16,17 @@ export default function AddRoomButton({ roomTypes }: { roomTypes: RoomType[] }) 
     return (
       <Button size="sm" disabled>
         <PlusCircle className="mr-2 h-4 w-4" />
-        Añadir Habitación
+        Añadir Tipo de Habitación
       </Button>
     );
   }
 
   return (
-    <AddRoomDialog roomTypes={roomTypes}>
+    <EditRoomTypeDialog>
         <Button size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Añadir Habitación
+            Añadir Tipo de Habitación
         </Button>
-    </AddRoomDialog>
+    </EditRoomTypeDialog>
   );
 }

@@ -33,32 +33,36 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoom } from '@/lib/actions/room.actions';
-import type { Room } from '@/types';
+import type { Room, RoomType } from '@/types';
 
 interface AddRoomDialogProps {
   children: ReactNode;
   room?: Room;
+  roomTypes: RoomType[];
 }
 
 const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
-  type: z.enum(['Sencilla', 'Doble', 'Suite'], { required_error: 'El tipo de habitación es requerido.'}),
+  type: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
   capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   ratePerHour: z.coerce.number().min(0, 'La tarifa por hora no puede ser negativa.'),
   description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
 });
 
-export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
+export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof roomSchema>>({
     resolver: zodResolver(roomSchema),
-    defaultValues: room || {
+    defaultValues: room ? {
+      ...room,
+      description: room.description || '',
+    } : {
       number: '',
-      type: 'Sencilla',
+      type: roomTypes[0]?.name || '',
       capacity: 1,
       ratePerHour: 20,
       description: '',
@@ -96,7 +100,7 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) form.reset(room || { number: '', type: 'Sencilla', capacity: 1, ratePerHour: 20, description: '' });
+        if (!isOpen) form.reset(room ? {...room, description: room.description || ''} : { number: '', type: roomTypes[0]?.name || '', capacity: 1, ratePerHour: 20, description: '' });
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
@@ -137,9 +141,9 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Sencilla">Sencilla</SelectItem>
-                        <SelectItem value="Doble">Doble</SelectItem>
-                        <SelectItem value="Suite">Suite</SelectItem>
+                        {roomTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

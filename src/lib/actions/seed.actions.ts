@@ -3,7 +3,7 @@
 import { collection, writeBatch, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
-import type { Room, Service, RoomStatus } from '@/types';
+import type { Room, Service, RoomStatus, RoomType } from '@/types';
 
 const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status'>[] = [
   { number: '101', ratePerHour: 20, type: 'Sencilla', capacity: 1, description: 'Habitación acogedora con cama individual, perfecta para viajeros solos.' },
@@ -24,6 +24,12 @@ const initialStatuses: Record<string, RoomStatus> = {
     '202': 'Maintenance',
 }
 
+const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
+    { name: 'Sencilla' },
+    { name: 'Doble' },
+    { name: 'Suite' },
+];
+
 const servicesToSeed: Omit<Service, 'id'>[] = [
   { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage' },
   { name: 'Coca-Cola', price: 3, stock: 80, category: 'Beverage' },
@@ -38,6 +44,13 @@ const servicesToSeed: Omit<Service, 'id'>[] = [
 export async function seedDatabase() {
   try {
     const batch = writeBatch(db);
+
+    // Seed Room Types
+    const roomTypesCollection = collection(db, 'roomTypes');
+    roomTypesToSeed.forEach(roomType => {
+        const docRef = doc(roomTypesCollection);
+        batch.set(docRef, roomType);
+    });
 
     // Seed Rooms
     const roomsCollection = collection(db, 'rooms');
@@ -54,7 +67,7 @@ export async function seedDatabase() {
             roomId: docRef.id,
             roomNumber: room.number,
             guestName: 'Juan Pérez',
-            checkIn: Timestamp.fromDate(new Date()),
+            checkIn: Timestamp.now(),
             total: 0,
             isPaid: false
         });
@@ -75,6 +88,7 @@ export async function seedDatabase() {
 
     revalidatePath('/');
     revalidatePath('/inventory');
+    revalidatePath('/settings/room-types');
     
     return { success: '¡Base de datos cargada exitosamente!' };
   } catch (error) {
