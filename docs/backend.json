@@ -1,0 +1,254 @@
+{
+  "entities": {
+    "Room": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Room",
+      "type": "object",
+      "description": "Represents a room in the motel.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Room entity."
+        },
+        "roomNumber": {
+          "type": "string",
+          "description": "The room number or identifier."
+        },
+        "roomType": {
+          "type": "string",
+          "description": "The type of room (e.g., single, double, suite). This could be a reference to a RoomType entity, but we will define it as a string for simplicity."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the room (e.g., available, occupied, out of service)."
+        },
+        "rate": {
+          "type": "number",
+          "description": "The hourly rate for the room."
+        }
+      },
+      "required": [
+        "id",
+        "roomNumber",
+        "roomType",
+        "status",
+        "rate"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a service offered by the motel (e.g., food, drinks).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Service entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the service (e.g., bottled water, sandwich)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the service."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The current available quantity of the service"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "quantity"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order for services placed for a room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Reference to Room. (Relationship: Room 1:N Order)"
+        },
+        "serviceIds": {
+          "type": "array",
+          "description": "References to Services. (Relationship: Order 1:N Service)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "orderTime": {
+          "type": "string",
+          "description": "The date and time the order was placed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the order (e.g., pending, processing, completed)."
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "The total price of the order."
+        }
+      },
+      "required": [
+        "id",
+        "roomId",
+        "serviceIds",
+        "orderTime",
+        "status",
+        "totalPrice"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a transaction for a room stay and services.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Reference to Room. (Relationship: Room 1:N Transaction)"
+        },
+        "checkInTime": {
+          "type": "string",
+          "description": "The date and time the room was checked in.",
+          "format": "date-time"
+        },
+        "checkOutTime": {
+          "type": "string",
+          "description": "The date and time the room was checked out.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount for the transaction."
+        },
+        "orderIds": {
+          "type": "array",
+          "description": "References to Orders associated with the transaction. (Relationship: Transaction 1:N Order)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "roomId",
+        "checkInTime",
+        "checkOutTime",
+        "totalAmount",
+        "orderIds"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/rooms/{roomId}",
+        "definition": {
+          "entityName": "Room",
+          "schema": {
+            "$ref": "#/backend/entities/Room"
+          },
+          "description": "Stores information about rooms. Requires admin privileges to create, read, update, or delete.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The unique identifier of the room."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores information about services offered. Requires admin privileges to create, read, update, or delete.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "The unique identifier of the service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores information about orders. Requires admin privileges to create, read, update, or delete. Includes `roomId` to associate orders with rooms.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores information about transactions. Requires admin privileges to create, read, update, or delete. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{uid}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/roles_admin"
+          },
+          "description": "Grants admin access to a user if a document with their UID exists in this collection. Existence over content.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to manage a motel's operations, including room check-in/out, service orders, inventory, and billing. The structure prioritizes authorization independence and supports secure list operations.\n\n**Authorization Independence and QAPs:**\n\n*   Path-based ownership is used for private user data (none in the current data model, but can be easily extended). This avoids the need for `get()` calls in security rules and enables atomic operations.\n*   Since all the collections requires Admin privileges, no additional attributes are denormalized as no user-level authorization rules are needed, simplifying security rules and improving performance.\n*   Structural segregation ensures all documents in each collection share the same security requirements (admin-only access).  This simplifies security rules.\n\n**Explanation of Collections:**\n\n*   `/rooms`: Stores room information. All operations require admin privileges.\n*   `/services`: Stores service information. All operations require admin privileges.\n*   `/orders`: Stores order information. All operations require admin privileges. Includes `roomId` to associate orders with rooms.\n*   `/transactions`: Stores transaction information. All operations require admin privileges. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.\n*   `/roles_admin/{uid}`: Used to grant admin access. The existence of a document in this collection grants admin privileges to the corresponding user.\n\nThis design enables robust security rules. For example, listing rooms is secure because no user-generated content is involved. All write operations are restricted to admins, which can be enforced by checking the existence of a document in `/roles_admin/{uid}`."
+  }
+}
