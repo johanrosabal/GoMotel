@@ -1,6 +1,6 @@
 'use server';
 
-import { collection, writeBatch } from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import type { Room, Service } from '@/types';
@@ -36,10 +36,10 @@ export async function seedDatabase() {
     // Seed Rooms
     const roomsCollection = collection(db, 'rooms');
     roomsToSeed.forEach(room => {
-      const docRef = collection(roomsCollection).doc();
+      const docRef = doc(roomsCollection);
       if(room.status === 'Occupied') {
         // We will create a dummy stay for this room
-        const stayRef = collection(db, 'stays').doc();
+        const stayRef = doc(collection(db, 'stays'));
         batch.set(stayRef, {
             roomId: docRef.id,
             roomNumber: room.number,
@@ -57,7 +57,7 @@ export async function seedDatabase() {
     // Seed Services
     const servicesCollection = collection(db, 'services');
     servicesToSeed.forEach(service => {
-      const docRef = collection(servicesCollection).doc();
+      const docRef = doc(servicesCollection);
       batch.set(docRef, service);
     });
 
