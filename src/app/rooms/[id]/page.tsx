@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -48,7 +48,17 @@ export default function RoomDetailsPage() {
 
         const roomUnsub = onSnapshot(doc(db, 'rooms', roomId), (doc) => {
             if (doc.exists()) {
-                const roomData = { id: doc.id, ...doc.data() } as Room
+                const data = doc.data()
+                const roomData: Room = { 
+                    id: doc.id,
+                    ...data,
+                    number: data.number,
+                    status: data.status,
+                    ratePerHour: data.ratePerHour,
+                    type: data.type || 'Sencilla',
+                    capacity: data.capacity || 1,
+                    description: data.description || '',
+                } as Room;
                 setRoom(roomData)
                 if (!roomData.currentStayId) {
                     setStay(null)
@@ -175,13 +185,19 @@ export default function RoomDetailsPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-4">
+                            <InfoRow label="Tipo" value={room.type} icon={Bed} />
+                            <InfoRow label="Capacidad" value={`${room.capacity} persona(s)`} icon={Users} />
+                            {room.description && <InfoRow label="Descripción" value={room.description} icon={Info} />}
+                        </div>
+
                         {stay && (
-                            <div className="space-y-4">
+                            <div className="space-y-4 border-t pt-4 mt-4">
                                 <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
                                 <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
                             </div>
                         )}
-                        {renderRoomActions()}
+                        <div className="pt-4">{renderRoomActions()}</div>
                     </CardContent>
                 </Card>
             </div>

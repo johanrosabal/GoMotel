@@ -22,6 +22,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoom } from '@/lib/actions/room.actions';
@@ -35,7 +43,10 @@ interface AddRoomDialogProps {
 const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
+  type: z.enum(['Sencilla', 'Doble', 'Suite'], { required_error: 'El tipo de habitación es requerido.'}),
+  capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   ratePerHour: z.coerce.number().min(0, 'La tarifa por hora no puede ser negativa.'),
+  description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
 });
 
 export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
@@ -47,7 +58,10 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
     resolver: zodResolver(roomSchema),
     defaultValues: room || {
       number: '',
+      type: 'Sencilla',
+      capacity: 1,
       ratePerHour: 20,
+      description: '',
     },
   });
 
@@ -55,7 +69,10 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
     const formData = new FormData();
     if(values.id) formData.append('id', values.id);
     formData.append('number', values.number);
+    formData.append('type', values.type);
+    formData.append('capacity', String(values.capacity));
     formData.append('ratePerHour', String(values.ratePerHour));
+    if (values.description) formData.append('description', values.description);
 
     startTransition(async () => {
       const result = await saveRoom(formData);
@@ -77,45 +94,100 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) form.reset(room || { number: '', type: 'Sencilla', capacity: 1, ratePerHour: 20, description: '' });
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{room ? 'Editar Habitación' : 'Añadir Nueva Habitación'}</DialogTitle>
           <DialogDescription>
             {room
               ? `Actualizar detalles para la habitación ${room.number}.`
-              : 'Añadir una nueva habitación a su motel.'}
+              : 'Añada los detalles de la nueva habitación a su motel.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número de Habitación</FormLabel>
-                  <FormControl>
-                    <Input placeholder="p.ej., 101" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="ratePerHour"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tarifa por Hora</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Habitación</FormLabel>
+                    <FormControl>
+                      <Input placeholder="p.ej., 101" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Sencilla">Sencilla</SelectItem>
+                        <SelectItem value="Doble">Doble</SelectItem>
+                        <SelectItem value="Suite">Suite</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="capacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Capacidad</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ratePerHour"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tarifa por Hora ($)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+             <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Describa las características de la habitación..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}

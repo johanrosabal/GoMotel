@@ -3,20 +3,26 @@
 import { collection, writeBatch, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
-import type { Room, Service } from '@/types';
+import type { Room, Service, RoomStatus } from '@/types';
 
-const roomsToSeed: Omit<Room, 'id' | 'currentStayId'>[] = [
-  { number: '101', status: 'Available', ratePerHour: 20 },
-  { number: '102', status: 'Available', ratePerHour: 20 },
-  { number: '103', status: 'Occupied', ratePerHour: 20 },
-  { number: '104', status: 'Cleaning', ratePerHour: 20 },
-  { number: '201', status: 'Available', ratePerHour: 25 },
-  { number: '202', status: 'Maintenance', ratePerHour: 25 },
-  { number: '203', status: 'Available', ratePerHour: 25 },
-  { number: '204', status: 'Available', ratePerHour: 25 },
-  { number: '301', status: 'Available', ratePerHour: 35 },
-  { number: '302', status: 'Available', ratePerHour: 35 },
+const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status'>[] = [
+  { number: '101', ratePerHour: 20, type: 'Sencilla', capacity: 1, description: 'Habitación acogedora con cama individual, perfecta para viajeros solos.' },
+  { number: '102', ratePerHour: 22, type: 'Sencilla', capacity: 2, description: 'Habitación estándar con dos camas individuales.' },
+  { number: '103', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con una cómoda cama doble.' },
+  { number: '104', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con cama doble y vista a la ciudad.' },
+  { number: '201', ratePerHour: 35, type: 'Suite', capacity: 2, description: 'Suite de lujo con cama king size, jacuzzi privado y minibar.' },
+  { number: '202', ratePerHour: 35, type: 'Suite', capacity: 3, description: 'Suite familiar con área de estar separada y sofá cama.' },
+  { number: '203', ratePerHour: 22, type: 'Sencilla', capacity: 2, description: 'Habitación estándar con dos camas individuales y escritorio.' },
+  { number: '204', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con cama doble y balcón privado.' },
+  { number: '301', ratePerHour: 40, type: 'Suite', capacity: 4, description: 'Amplia suite en el último piso con vistas panorámicas de la ciudad.' },
+  { number: '302', ratePerHour: 40, type: 'Suite', capacity: 4, description: 'Nuestra Suite Presidencial, con dos dormitorios y todas las comodidades.' },
 ];
+
+const initialStatuses: Record<string, RoomStatus> = {
+    '103': 'Occupied',
+    '104': 'Cleaning',
+    '202': 'Maintenance',
+}
 
 const servicesToSeed: Omit<Service, 'id'>[] = [
   { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage' },
@@ -37,20 +43,24 @@ export async function seedDatabase() {
     const roomsCollection = collection(db, 'rooms');
     roomsToSeed.forEach(room => {
       const docRef = doc(roomsCollection);
-      if(room.status === 'Occupied') {
+      const status = initialStatuses[room.number] || 'Available';
+      
+      const roomData = { ...room, status };
+
+      if(status === 'Occupied') {
         // We will create a dummy stay for this room
         const stayRef = doc(collection(db, 'stays'));
         batch.set(stayRef, {
             roomId: docRef.id,
             roomNumber: room.number,
             guestName: 'Juan Pérez',
-            checkIn: Timestamp.now(),
+            checkIn: Timestamp.fromDate(new Date()),
             total: 0,
             isPaid: false
         });
-        batch.set(docRef, {...room, currentStayId: stayRef.id});
+        batch.set(docRef, {...roomData, currentStayId: stayRef.id});
       } else {
-        batch.set(docRef, room);
+        batch.set(docRef, roomData);
       }
     });
 

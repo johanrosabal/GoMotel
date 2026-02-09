@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order } from '@/types';
+import type { Room, RoomStatus, Stay, Order, RoomType } from '@/types';
 import { z } from 'zod';
 
 // Helper to convert Firestore doc to Room object
@@ -26,6 +26,9 @@ const toRoomObject = (doc: any): Room => {
     number: data.number,
     status: data.status,
     ratePerHour: data.ratePerHour,
+    type: data.type || 'Sencilla',
+    capacity: data.capacity || 1,
+    description: data.description || '',
     currentStayId: data.currentStayId || null,
   };
 };
@@ -201,6 +204,9 @@ const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
   ratePerHour: z.coerce.number().min(0, 'La tarifa no puede ser negativa.'),
+  type: z.enum(['Sencilla', 'Doble', 'Suite'], { required_error: 'El tipo de habitación es requerido.'}),
+  capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
+  description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
 });
 
 export async function saveRoom(formData: FormData) {
@@ -222,9 +228,10 @@ export async function saveRoom(formData: FormData) {
 
   try {
     if (id) {
-      // Update existing room
+      // Update existing room - don't change status on edit
+      const { status, ...updateData } = dataToSave;
       const roomRef = doc(db, 'rooms', id);
-      await updateDoc(roomRef, dataToSave);
+      await updateDoc(roomRef, updateData);
     } else {
       // Add new room
       const q = query(collection(db, 'rooms'), where('number', '==', dataToSave.number));
