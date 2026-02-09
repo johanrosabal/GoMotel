@@ -1,6 +1,6 @@
 'use server';
 
-import { collection, writeBatch, doc } from 'firebase/firestore';
+import { collection, writeBatch, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import type { Room, Service } from '@/types';
@@ -44,7 +44,7 @@ export async function seedDatabase() {
             roomId: docRef.id,
             roomNumber: room.number,
             guestName: 'Juan Pérez',
-            checkIn: new Date(),
+            checkIn: Timestamp.now(),
             total: 0,
             isPaid: false
         });
