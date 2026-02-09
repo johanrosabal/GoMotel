@@ -194,7 +194,7 @@ export default function RegisterPage() {
                         <FormItem>
                           <FormLabel>Fecha de Nacimiento</FormLabel>
                           <div className="grid grid-cols-3 gap-2">
-                             <Select onValueChange={setDay} value={birthDay}>
+                             <Select onValueChange={setBirthDay} value={birthDay}>
                                <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Día" />
@@ -206,7 +206,7 @@ export default function RegisterPage() {
                                 ))}
                                </SelectContent>
                              </Select>
-                              <Select onValueChange={setMonth} value={birthMonth}>
+                              <Select onValueChange={setBirthMonth} value={birthMonth}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Mes" />
@@ -218,7 +218,7 @@ export default function RegisterPage() {
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <Select onValueChange={setYear} value={birthYear}>
+                              <Select onValueChange={setBirthYear} value={birthYear}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Año" />
