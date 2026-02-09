@@ -42,9 +42,9 @@ interface EditServiceDialogProps {
 
 const serviceSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, 'Service name is too short.'),
-  price: z.coerce.number().min(0, 'Price cannot be negative.'),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative.'),
+  name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
+  price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
+  stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
 });
 
@@ -76,13 +76,13 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
       if (result.error) {
         toast({
           title: 'Error',
-          description: 'Failed to save service.',
+          description: 'No se pudo guardar el servicio.',
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Success!',
-          description: `Service "${values.name}" has been saved.`,
+          title: '¡Éxito!',
+          description: `El servicio "${values.name}" ha sido guardado.`,
         });
         setOpen(false);
         form.reset();
@@ -95,11 +95,11 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{service ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+          <DialogTitle>{service ? 'Editar Servicio' : 'Añadir Nuevo Servicio'}</DialogTitle>
           <DialogDescription>
             {service
-              ? `Update details for ${service.name}.`
-              : 'Add a new service to your inventory.'}
+              ? `Actualizar detalles para ${service.name}.`
+              : 'Añadir un nuevo servicio a su inventario.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,9 +109,9 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Service Name</FormLabel>
+                  <FormLabel>Nombre del Servicio</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Water Bottle" {...field} />
+                    <Input placeholder="p.ej., Botella de Agua" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,20 +122,20 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Categoría</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder="Seleccione una categoría" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Beverage">Beverage</SelectItem>
-                      <SelectItem value="Food">Food</SelectItem>
-                      <SelectItem value="Amenity">Amenity</SelectItem>
+                      <SelectItem value="Beverage">Bebida</SelectItem>
+                      <SelectItem value="Food">Comida</SelectItem>
+                      <SelectItem value="Amenity">Amenidad</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -148,7 +148,7 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price</FormLabel>
+                    <FormLabel>Precio</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
@@ -161,7 +161,7 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
                 name="stock"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stock</FormLabel>
+                    <FormLabel>Existencias</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -172,7 +172,7 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
             </div>
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
-                {isPending ? 'Saving...' : 'Save Service'}
+                {isPending ? 'Guardando...' : 'Guardar Servicio'}
               </Button>
             </DialogFooter>
           </form>

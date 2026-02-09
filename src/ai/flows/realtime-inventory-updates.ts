@@ -1,30 +1,30 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for real-time inventory updates in a motel management application.
+ * @fileOverview Este archivo define un flujo de Genkit para actualizaciones de inventario en tiempo real en una aplicación de gestión de motel.
  *
- * - `updateInventory`: A function that updates the inventory based on service orders.
- * - `UpdateInventoryInput`: The input type for the `updateInventory` function.
- * - `UpdateInventoryOutput`: The return type for the `updateInventory` function.
+ * - `updateInventory`: Una función que actualiza el inventario en función de los pedidos de servicio.
+ * - `UpdateInventoryInput`: El tipo de entrada para la función `updateInventory`.
+ * - `UpdateInventoryOutput`: El tipo de retorno para la función `updateInventory`.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const UpdateInventoryInputSchema = z.object({
-  roomNumber: z.string().describe('The room number for the service order.'),
+  roomNumber: z.string().describe('El número de habitación para el pedido de servicio.'),
   serviceOrders: z.array(
     z.object({
-      serviceName: z.string().describe('The name of the service ordered.'),
-      quantity: z.number().int().positive().describe('The quantity of the service ordered.'),
+      serviceName: z.string().describe('El nombre del servicio pedido.'),
+      quantity: z.number().int().positive().describe('La cantidad del servicio pedido.'),
     })
-  ).describe('An array of service orders for the room.'),
+  ).describe('Un array de pedidos de servicio para la habitación.'),
 });
 export type UpdateInventoryInput = z.infer<typeof UpdateInventoryInputSchema>;
 
 const UpdateInventoryOutputSchema = z.object({
-  success: z.boolean().describe('Indicates whether the inventory update was successful.'),
-  message: z.string().describe('A message providing details about the update result.'),
+  success: z.boolean().describe('Indica si la actualización del inventario fue exitosa.'),
+  message: z.string().describe('Un mensaje que proporciona detalles sobre el resultado de la actualización.'),
 });
 export type UpdateInventoryOutput = z.infer<typeof UpdateInventoryOutputSchema>;
 
@@ -36,14 +36,14 @@ const updateInventoryPrompt = ai.definePrompt({
   name: 'updateInventoryPrompt',
   input: {schema: UpdateInventoryInputSchema},
   output: {schema: UpdateInventoryOutputSchema},
-  prompt: `You are a motel inventory management expert. Based on the service orders provided for a specific room, you will determine if the inventory can be successfully updated.
+  prompt: `Eres un experto en gestión de inventario de motel. Basado en los pedidos de servicio proporcionados para una habitación específica, determinarás si el inventario se puede actualizar con éxito.
 
-Service Orders for Room {{{roomNumber}}}:
+Pedidos de Servicio para la Habitación {{{roomNumber}}}:
 {{#each serviceOrders}}
-- Service: {{{serviceName}}}, Quantity: {{{quantity}}}
+- Servicio: {{{serviceName}}}, Cantidad: {{{quantity}}}
 {{/each}}
 
-Determine if the inventory update is successful based on available stock. Return a success status (true or false) and a descriptive message.`,
+Determina si la actualización del inventario es exitosa según las existencias disponibles. Devuelve un estado de éxito (verdadero o falso) y un mensaje descriptivo.`,
 });
 
 const updateInventoryFlow = ai.defineFlow(

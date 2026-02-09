@@ -31,13 +31,13 @@ export default function DeleteServiceAlert({ children, serviceId }: DeleteServic
       if (result.error) {
         toast({
           title: 'Error',
-          description: 'Failed to delete service.',
+          description: 'No se pudo eliminar el servicio.',
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Success!',
-          description: 'Service has been deleted.',
+          title: '¡Éxito!',
+          description: 'El servicio ha sido eliminado.',
         });
       }
     });
@@ -48,20 +48,20 @@ export default function DeleteServiceAlert({ children, serviceId }: DeleteServic
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the service
-            from your inventory.
+            Esta acción no se puede deshacer. Esto eliminará permanentemente el servicio
+            de su inventario.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isPending ? 'Deleting...' : 'Delete'}
+            {isPending ? 'Eliminando...' : 'Eliminar'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,12 +1,12 @@
 'use server';
 /**
- * @fileOverview This file defines a Genkit flow for real-time room availability updates in a motel management application.
+ * @fileOverview Este archivo define un flujo de Genkit para actualizaciones de disponibilidad de habitaciones en tiempo real en una aplicación de gestión de motel.
  *
- * The flow uses a tool to get the latest status of all rooms in the motel, and then updates Firestore with any changes.  This ensures that the UI always reflects the current room status.
+ * El flujo utiliza una herramienta para obtener el último estado de todas las habitaciones del motel y luego actualiza Firestore con cualquier cambio. Esto asegura que la interfaz de usuario siempre refleje el estado actual de la habitación.
  *
- * - `realtimeRoomAvailabilityUpdates`:  A function that triggers the room availability update flow.
- * - `RealtimeRoomAvailabilityUpdatesInput`:  The input type for the `realtimeRoomAvailabilityUpdates` function (currently empty).
- * - `RealtimeRoomAvailabilityUpdatesOutput`:  The output type for the `realtimeRoomAvailabilityUpdates` function (currently empty).
+ * - `realtimeRoomAvailabilityUpdates`:  Una función que activa el flujo de actualización de disponibilidad de habitaciones.
+ * - `RealtimeRoomAvailabilityUpdatesInput`:  El tipo de entrada para la función `realtimeRoomAvailabilityUpdates` (actualmente vacío).
+ * - `RealtimeRoomAvailabilityUpdatesOutput`:  El tipo de salida para la función `realtimeRoomAvailabilityUpdates` (actualmente vacío).
  */
 
 import {ai} from '@/ai/genkit';
@@ -25,7 +25,7 @@ export async function realtimeRoomAvailabilityUpdates(input: RealtimeRoomAvailab
 
 const updateRoomAvailabilityTool = ai.defineTool({
   name: 'getRoomStatuses',
-  description: 'Gets the current statuses of all rooms in the motel.',
+  description: 'Obtiene los estados actuales de todas las habitaciones del motel.',
   inputSchema: z.object({}),
   outputSchema: z.record(z.string(), z.string()),
 }, async () => {
@@ -38,7 +38,7 @@ const updateRoomAvailabilityTool = ai.defineTool({
 const roomAvailabilityPrompt = ai.definePrompt({
   name: 'roomAvailabilityPrompt',
   tools: [updateRoomAvailabilityTool],
-  prompt: `Update the room availabilities based on the current room statuses from the database.  The current room statuses are: {{await updateRoomAvailabilityTool}}`,
+  prompt: `Actualiza la disponibilidad de las habitaciones según los estados actuales de las habitaciones de la base de datos. Los estados actuales de las habitaciones son: {{await updateRoomAvailabilityTool}}`,
 });
 
 const realtimeRoomAvailabilityUpdatesFlow = ai.defineFlow(

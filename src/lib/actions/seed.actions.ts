@@ -19,14 +19,14 @@ const roomsToSeed: Omit<Room, 'id' | 'currentStayId'>[] = [
 ];
 
 const servicesToSeed: Omit<Service, 'id'>[] = [
-  { name: 'Water Bottle', price: 2, stock: 100, category: 'Beverage' },
+  { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage' },
   { name: 'Coca-Cola', price: 3, stock: 80, category: 'Beverage' },
-  { name: 'Orange Juice', price: 4, stock: 50, category: 'Beverage' },
-  { name: 'Club Sandwich', price: 12, stock: 20, category: 'Food' },
-  { name: 'Caesar Salad', price: 10, stock: 15, category: 'Food' },
-  { name: 'Cheeseburger', price: 15, stock: 25, category: 'Food' },
-  { name: 'Extra Towel', price: 1, stock: 200, category: 'Amenity' },
-  { name: 'Dental Kit', price: 2.5, stock: 150, category: 'Amenity' },
+  { name: 'Jugo de Naranja', price: 4, stock: 50, category: 'Beverage' },
+  { name: 'Club Sándwich', price: 12, stock: 20, category: 'Food' },
+  { name: 'Ensalada César', price: 10, stock: 15, category: 'Food' },
+  { name: 'Hamburguesa con Queso', price: 15, stock: 25, category: 'Food' },
+  { name: 'Toalla Extra', price: 1, stock: 200, category: 'Amenity' },
+  { name: 'Kit Dental', price: 2.5, stock: 150, category: 'Amenity' },
 ];
 
 export async function seedDatabase() {
@@ -43,7 +43,7 @@ export async function seedDatabase() {
         batch.set(stayRef, {
             roomId: docRef.id,
             roomNumber: room.number,
-            guestName: 'John Doe',
+            guestName: 'Juan Pérez',
             checkIn: new Date(),
             total: 0,
             isPaid: false
@@ -66,12 +66,12 @@ export async function seedDatabase() {
     revalidatePath('/');
     revalidatePath('/inventory');
     
-    return { success: 'Database seeded successfully!' };
+    return { success: '¡Base de datos cargada exitosamente!' };
   } catch (error) {
     console.error('Error seeding database:', error);
     if (error instanceof Error) {
         return { error: error.message };
     }
-    return { error: 'An unknown error occurred while seeding the database.' };
+    return { error: 'Ocurrió un error desconocido al cargar la base de datos.' };
   }
 }

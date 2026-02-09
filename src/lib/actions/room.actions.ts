@@ -9,7 +9,8 @@ import {
   writeBatch,
   query,
   orderBy,
-  limit,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -55,7 +56,7 @@ export async function getRoomById(roomId: string): Promise<Room | null> {
 }
 
 const checkInSchema = z.object({
-  guestName: z.string().min(2, 'Guest name must be at least 2 characters.'),
+  guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
 });
 
 export async function checkIn(roomId: string, formData: FormData) {
@@ -73,7 +74,7 @@ export async function checkIn(roomId: string, formData: FormData) {
 
   const room = await getRoomById(roomId);
   if (!room || room.status !== 'Available') {
-    return { error: 'Room is not available for check-in.' };
+    return { error: 'La habitación no está disponible para check-in.' };
   }
 
   const batch = writeBatch(db);
@@ -101,20 +102,20 @@ export async function checkIn(roomId: string, formData: FormData) {
     return { success: true, stayId: stayRef.id };
   } catch (error) {
     console.error('Check-in failed:', error);
-    return { error: 'An unexpected error occurred during check-in.' };
+    return { error: 'Ocurrió un error inesperado durante el check-in.' };
   }
 }
 
 export async function checkOut(stayId: string, roomId: string) {
   if (!stayId || !roomId) {
-    return { error: 'Invalid stay or room ID.' };
+    return { error: 'ID de estancia o habitación no válido.' };
   }
 
   const stayDoc = await getDoc(doc(db, 'stays', stayId));
   const roomDoc = await getDoc(doc(db, 'rooms', roomId));
 
   if (!stayDoc.exists() || !roomDoc.exists()) {
-    return { error: 'Stay or room not found.' };
+    return { error: 'Estancia o habitación no encontrada.' };
   }
 
   const stay = { id: stayDoc.id, ...stayDoc.data() } as Stay;
@@ -159,13 +160,13 @@ export async function checkOut(stayId: string, roomId: string) {
     return { success: true };
   } catch (error) {
     console.error('Check-out failed:', error);
-    return { error: 'An unexpected error occurred during check-out.' };
+    return { error: 'Ocurrió un error inesperado durante el check-out.' };
   }
 }
 
 export async function updateRoomStatus(roomId: string, status: RoomStatus) {
   if (!roomId || !status) {
-    return { error: 'Invalid room ID or status.' };
+    return { error: 'ID de habitación o estado no válido.' };
   }
 
   try {
@@ -176,7 +177,7 @@ export async function updateRoomStatus(roomId: string, status: RoomStatus) {
     return { success: true };
   } catch (error) {
     console.error('Failed to update room status:', error);
-    return { error: 'An unexpected error occurred.' };
+    return { error: 'Ocurrió un error inesperado.' };
   }
 }
 

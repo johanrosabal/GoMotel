@@ -74,16 +74,16 @@ export default function OrderServiceDialog({ children, stayId, availableServices
     startTransition(async () => {
       const result = await createOrder(stayId, cart);
       if (result.error) {
-        toast({ title: 'Order Failed', description: result.error, variant: 'destructive' });
+        toast({ title: 'Pedido Fallido', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: 'Success!', description: 'Order has been placed.' });
+        toast({ title: '¡Éxito!', description: 'El pedido ha sido realizado.' });
         
         // Call AI for inventory update simulation
         const aiResult = await updateInventory({
             roomNumber: 'current',
             serviceOrders: cart.map(item => ({ serviceName: item.service.name, quantity: item.quantity })),
         });
-        toast({ title: "AI Inventory Check", description: aiResult.message });
+        toast({ title: "Verificación de Inventario IA", description: aiResult.message });
         
         setCart([]);
         setOpen(false);
@@ -96,22 +96,22 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Order Services</DialogTitle>
+          <DialogTitle>Pedir Servicios</DialogTitle>
           <DialogDescription>
-            Select services to add to the room's bill.
+            Seleccione servicios para agregar a la factura de la habitación.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid md:grid-cols-2 gap-6 flex-1 min-h-0">
             <div className='flex flex-col'>
-                <h3 className="font-semibold mb-2">Available Services</h3>
+                <h3 className="font-semibold mb-2">Servicios Disponibles</h3>
                 <ScrollArea className="flex-1 pr-4 border rounded-lg">
                     <div className='p-2 space-y-2'>
                     {availableServices.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-2 rounded-md border">
                             <div>
                                 <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - Stock: {service.stock}</p>
+                                <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - Existencias: {service.stock}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
@@ -128,12 +128,12 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 </ScrollArea>
             </div>
             <div className='flex flex-col'>
-                <h3 className="font-semibold mb-2">Current Order</h3>
+                <h3 className="font-semibold mb-2">Pedido Actual</h3>
                 <div className="border rounded-lg p-4 flex-1 flex flex-col">
                     {cart.length === 0 ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                             <ShoppingCart className="h-12 w-12" />
-                            <p className="mt-2">Your cart is empty.</p>
+                            <p className="mt-2">Su carrito está vacío.</p>
                         </div>
                     ) : (
                         <>
@@ -162,7 +162,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
 
         <DialogFooter>
           <Button onClick={handleSubmitOrder} disabled={isPending || cart.length === 0}>
-            {isPending ? 'Placing Order...' : 'Submit Order'}
+            {isPending ? 'Enviando Pedido...' : 'Enviar Pedido'}
           </Button>
         </DialogFooter>
       </DialogContent>

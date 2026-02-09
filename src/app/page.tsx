@@ -10,17 +10,17 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Room Dashboard</CardTitle>
+          <CardTitle>Panel de Habitaciones</CardTitle>
           <CardDescription>
-            Live overview of all rooms. Click a room to manage it.
+            Vista en vivo de todas las habitaciones. Haga clic en una habitación para administrarla.
           </CardDescription>
         </CardHeader>
         {rooms.length === 0 && (
           <CardContent>
             <div className="text-center py-12 border-2 border-dashed rounded-lg">
-              <h3 className="text-lg font-medium text-muted-foreground">No rooms found.</h3>
+              <h3 className="text-lg font-medium text-muted-foreground">No se encontraron habitaciones.</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Seed your database with initial data to get started.
+                Cargue su base de datos con datos iniciales para comenzar.
               </p>
               <SeedDataButton />
             </div>

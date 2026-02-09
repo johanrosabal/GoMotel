@@ -22,7 +22,7 @@ type CartItem = {
 
 export async function createOrder(stayId: string, cart: CartItem[]) {
   if (!stayId || cart.length === 0) {
-    return { error: 'Invalid stay ID or empty cart.' };
+    return { error: 'ID de estancia no válido o carrito vacío.' };
   }
 
   const batch = writeBatch(db);
@@ -36,7 +36,7 @@ export async function createOrder(stayId: string, cart: CartItem[]) {
     const newStock = item.service.stock - item.quantity;
     
     if (newStock < 0) {
-        return { error: `Not enough stock for ${item.service.name}.` };
+        return { error: `No hay suficientes existencias para ${item.service.name}.` };
     }
     
     batch.update(serviceRef, { stock: newStock });
@@ -69,7 +69,7 @@ export async function createOrder(stayId: string, cart: CartItem[]) {
     return { success: true };
   } catch (error) {
     console.error('Failed to create order:', error);
-    return { error: 'An unexpected error occurred while placing the order.' };
+    return { error: 'Ocurrió un error inesperado al realizar el pedido.' };
   }
 }
 

@@ -32,7 +32,7 @@ interface CheckInDialogProps {
 }
 
 const checkInSchema = z.object({
-  guestName: z.string().min(2, 'Guest name must be at least 2 characters.'),
+  guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
 });
 
 export default function CheckInDialog({ children, roomId }: CheckInDialogProps) {
@@ -55,14 +55,14 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
       const result = await checkIn(roomId, formData);
       if (result?.error) {
         toast({
-          title: 'Check-In Failed',
-          description: typeof result.error === 'string' ? result.error : 'Please check the form fields.',
+          title: 'Falló el Check-In',
+          description: typeof result.error === 'string' ? result.error : 'Por favor revise los campos del formulario.',
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Success!',
-          description: `Guest "${values.guestName}" has been checked in.`,
+          title: '¡Éxito!',
+          description: `El huésped "${values.guestName}" ha sido registrado.`,
         });
         setOpen(false);
         form.reset();
@@ -75,9 +75,9 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Guest Check-In</DialogTitle>
+          <DialogTitle>Check-In de Huésped</DialogTitle>
           <DialogDescription>
-            Enter the guest's name to check them into this room.
+            Ingrese el nombre del huésped para registrarlo en esta habitación.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -87,9 +87,9 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
               name="guestName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Guest Name</FormLabel>
+                  <FormLabel>Nombre del Huésped</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="Juan Pérez" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -97,7 +97,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
             />
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
-                {isPending ? 'Checking In...' : 'Confirm Check-In'}
+                {isPending ? 'Registrando...' : 'Confirmar Check-In'}
               </Button>
             </DialogFooter>
           </form>

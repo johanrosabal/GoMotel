@@ -12,7 +12,7 @@ export default function AddService({ allServices }: AddServiceProps) {
     <EditServiceDialog allServices={allServices}>
         <Button size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Service
+            Añadir Servicio
         </Button>
     </EditServiceDialog>
   );

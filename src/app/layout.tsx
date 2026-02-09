@@ -10,8 +10,8 @@ import PageHeader from '@/components/PageHeader';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Go Motel Manager',
-  description: 'Manage your motel with ease.',
+  title: 'Administrador de Go Motel',
+  description: 'Administre su motel con facilidad.',
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',

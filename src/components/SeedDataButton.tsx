@@ -15,7 +15,7 @@ export default function SeedDataButton() {
       const result = await seedDatabase();
       if (result.success) {
         toast({
-          title: 'Success',
+          title: 'Éxito',
           description: result.success,
         });
       } else if (result.error) {
@@ -31,7 +31,7 @@ export default function SeedDataButton() {
   return (
     <Button onClick={handleSeed} disabled={isPending}>
       <Database className="mr-2 h-4 w-4" />
-      {isPending ? 'Seeding...' : 'Seed Database'}
+      {isPending ? 'Cargando...' : 'Cargar Datos Iniciales'}
     </Button>
   );
 }

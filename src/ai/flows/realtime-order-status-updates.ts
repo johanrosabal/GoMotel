@@ -1,23 +1,23 @@
 'use server';
 /**
- * @fileOverview This file defines a Genkit flow for providing real-time updates on the status of service orders in a motel setting.
+ * @fileOverview Este archivo define un flujo de Genkit para proporcionar actualizaciones en tiempo real sobre el estado de los pedidos de servicio en un entorno de motel.
  *
- * - `realtimeOrderStatusUpdates`: A function that takes a room number as input and returns the latest order status for that room.
- * - `RealtimeOrderStatusUpdatesInput`: The input type for the realtimeOrderStatusUpdates function.
- * - `RealtimeOrderStatusUpdatesOutput`: The return type for the realtimeOrderStatusUpdates function.
+ * - `realtimeOrderStatusUpdates`: Una función que toma un número de habitación como entrada y devuelve el último estado del pedido para esa habitación.
+ * - `RealtimeOrderStatusUpdatesInput`: El tipo de entrada para la función realtimeOrderStatusUpdates.
+ * - `RealtimeOrderStatusUpdatesOutput`: El tipo de retorno para la función realtimeOrderStatusUpdates.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const RealtimeOrderStatusUpdatesInputSchema = z.object({
-  roomNumber: z.string().describe('The room number for which to retrieve the order status.'),
+  roomNumber: z.string().describe('El número de habitación para el cual obtener el estado del pedido.'),
 });
 export type RealtimeOrderStatusUpdatesInput = z.infer<typeof RealtimeOrderStatusUpdatesInputSchema>;
 
 const RealtimeOrderStatusUpdatesOutputSchema = z.object({
-  orderStatus: z.string().describe('The current status of the service order for the specified room (e.g., pending, preparing, delivered).'),
-  items: z.string().describe('The items that were ordered.'),
+  orderStatus: z.string().describe('El estado actual del pedido de servicio para la habitación especificada (p. ej., pendiente, en preparación, entregado).'),
+  items: z.string().describe('Los artículos que se pidieron.'),
 });
 export type RealtimeOrderStatusUpdatesOutput = z.infer<typeof RealtimeOrderStatusUpdatesOutputSchema>;
 
@@ -29,11 +29,11 @@ const prompt = ai.definePrompt({
   name: 'realtimeOrderStatusUpdatesPrompt',
   input: {schema: RealtimeOrderStatusUpdatesInputSchema},
   output: {schema: RealtimeOrderStatusUpdatesOutputSchema},
-  prompt: `You are a motel service coordinator providing real-time updates on service orders.
+  prompt: `Eres un coordinador de servicios de motel que proporciona actualizaciones en tiempo real sobre los pedidos de servicio.
 
-  Provide the current status of the service order for room number {{{roomNumber}}}. Return the status (e.g., pending, preparing, delivered) and list the items requested in the response.
-  Be concise and provide only the current status.
-  Do not add extra text outside of the output schema.
+  Proporciona el estado actual del pedido de servicio para la habitación número {{{roomNumber}}}. Devuelve el estado (p. ej., pendiente, en preparación, entregado) y enumera los artículos solicitados en la respuesta.
+  Sé conciso y proporciona solo el estado actual.
+  No agregues texto adicional fuera del esquema de salida.
   `,
 });
 

@@ -14,13 +14,20 @@ const statusStyles: Record<RoomStatus, string> = {
   Maintenance: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50',
 };
 
+const statusMap: Record<RoomStatus, string> = {
+  Available: 'Disponible',
+  Occupied: 'Ocupada',
+  Cleaning: 'Limpieza',
+  Maintenance: 'Mantenimiento',
+};
+
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
       className={cn('font-semibold', statusStyles[status], className)}
     >
-      {status}
+      {statusMap[status] || status}
     </Badge>
   );
 }

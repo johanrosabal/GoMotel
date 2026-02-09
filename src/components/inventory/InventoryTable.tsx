@@ -32,6 +32,12 @@ interface InventoryTableProps {
   allServices: Service[];
 }
 
+const categoryMap: Record<Service['category'], string> = {
+  Food: 'Comida',
+  Beverage: 'Bebida',
+  Amenity: 'Amenidad',
+};
+
 export default function InventoryTable({ initialServices, allServices }: InventoryTableProps) {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [loading, setLoading] = useState(initialServices.length === 0);
@@ -55,13 +61,13 @@ export default function InventoryTable({ initialServices, allServices }: Invento
   }, []);
 
   if (loading && services.length === 0) {
-    return <div className="text-center text-muted-foreground py-8">Loading inventory...</div>;
+    return <div className="text-center text-muted-foreground py-8">Cargando inventario...</div>;
   }
 
   if (services.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">
-        No services found. Click 'Add Service' to get started.
+        No se encontraron servicios. Haga clic en 'Añadir Servicio' para comenzar.
       </div>
     );
   }
@@ -71,12 +77,12 @@ export default function InventoryTable({ initialServices, allServices }: Invento
         <Table>
         <TableHeader>
             <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">Stock</TableHead>
+            <TableHead>Nombre</TableHead>
+            <TableHead>Categoría</TableHead>
+            <TableHead className="text-right">Precio</TableHead>
+            <TableHead className="text-right">Existencias</TableHead>
             <TableHead>
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">Acciones</span>
             </TableHead>
             </TableRow>
         </TableHeader>
@@ -85,7 +91,7 @@ export default function InventoryTable({ initialServices, allServices }: Invento
             <TableRow key={service.id}>
                 <TableCell className="font-medium">{service.name}</TableCell>
                 <TableCell>
-                <Badge variant="secondary">{service.category}</Badge>
+                <Badge variant="secondary">{categoryMap[service.category]}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                 {formatCurrency(service.price)}
@@ -100,13 +106,13 @@ export default function InventoryTable({ initialServices, allServices }: Invento
                     </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <EditServiceDialog service={service} allServices={allServices}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Editar</DropdownMenuItem>
                     </EditServiceDialog>
                     <DeleteServiceAlert serviceId={service.id}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
                     </DeleteServiceAlert>
                     </DropdownMenuContent>
                 </DropdownMenu>

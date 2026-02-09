@@ -14,8 +14,8 @@ import AppLogo from './AppLogo';
 import { LayoutDashboard, Package } from 'lucide-react';
 
 const menuItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/inventory', label: 'Inventory', icon: Package },
+  { href: '/', label: 'Panel', icon: LayoutDashboard },
+  { href: '/inventory', label: 'Inventario', icon: Package },
 ];
 
 export default function AppSidebar() {

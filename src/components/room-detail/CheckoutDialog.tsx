@@ -17,6 +17,7 @@ import type { Room, Stay, Order } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface CheckoutDialogProps {
   children: ReactNode;
@@ -35,9 +36,9 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     startTransition(async () => {
       const result = await checkOut(stay.id, room.id);
       if (result.error) {
-        toast({ title: 'Check-Out Failed', description: result.error, variant: 'destructive' });
+        toast({ title: 'Falló el Check-Out', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: 'Success!', description: 'Guest has been checked out.' });
+        toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
         setOpen(false);
       }
     });
@@ -45,14 +46,14 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
 
   const { duration, roomTotal, servicesTotal, finalTotal } = useMemo(() => {
     if (!stay || !room) {
-      return { duration: 'N/A', roomTotal: 0, servicesTotal: 0, finalTotal: 0 };
+      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, finalTotal: 0 };
     }
     const checkInTime = stay.checkIn.toDate();
     const checkOutTime = new Date();
     const durationMs = checkOutTime.getTime() - checkInTime.getTime();
     const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
 
-    const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false });
+    const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
     const roomTotalCalc = durationHours * room.ratePerHour;
     const servicesTotalCalc = orders.reduce((sum, order) => sum + order.total, 0);
     const finalTotalCalc = roomTotalCalc + servicesTotalCalc;
@@ -70,20 +71,20 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirm Check-Out</DialogTitle>
-          <DialogDescription>Review the final bill before checking out the guest.</DialogDescription>
+          <DialogTitle>Confirmar Check-Out</DialogTitle>
+          <DialogDescription>Revise la factura final antes de realizar el check-out del huésped.</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-96 pr-4">
             <div className="space-y-4">
                 <div className="p-4 rounded-lg border bg-muted/50">
-                    <h3 className="font-semibold mb-2">Billing Summary</h3>
+                    <h3 className="font-semibold mb-2">Resumen de Facturación</h3>
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Guest:</span>
+                            <span className="text-muted-foreground">Huésped:</span>
                             <span>{stay?.guestName}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Stay Duration:</span>
+                            <span className="text-muted-foreground">Duración de la Estancia:</span>
                             <span>~{duration}</span>
                         </div>
                     </div>
@@ -91,25 +92,25 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
 
                 <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Room Charge</span>
+                        <span className="text-muted-foreground">Cargo de Habitación</span>
                         <span>{formatCurrency(roomTotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Services & Orders</span>
+                        <span className="text-muted-foreground">Servicios y Pedidos</span>
                         <span>{formatCurrency(servicesTotal)}</span>
                     </div>
                 </div>
 
                 <div className="!mt-4 pt-4 border-t flex justify-between font-bold text-xl">
-                    <span>Total Bill</span>
+                    <span>Factura Total</span>
                     <span>{formatCurrency(finalTotal)}</span>
                 </div>
             </div>
         </ScrollArea>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={handleCheckout} disabled={isPending} variant="destructive">
-            {isPending ? 'Processing...' : 'Confirm & Check-Out'}
+            {isPending ? 'Procesando...' : 'Confirmar y Realizar Check-Out'}
           </Button>
         </DialogFooter>
       </DialogContent>

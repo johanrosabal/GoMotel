@@ -42,9 +42,9 @@ export async function getServices(): Promise<Service[]> {
 
 const serviceSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, 'Service name is too short.'),
-  price: z.coerce.number().min(0, 'Price cannot be negative.'),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative.'),
+  name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
+  price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
+  stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
 });
 
@@ -73,13 +73,13 @@ export async function saveService(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error('Failed to save service:', error);
-    return { error: 'An unexpected error occurred.' };
+    return { error: 'Ocurrió un error inesperado.' };
   }
 }
 
 export async function deleteService(serviceId: string) {
     if (!serviceId) {
-        return { error: 'Invalid service ID.' };
+        return { error: 'ID de servicio no válido.' };
     }
 
     try {
@@ -88,6 +88,6 @@ export async function deleteService(serviceId: string) {
         return { success: true };
     } catch (error) {
         console.error('Failed to delete service:', error);
-        return { error: 'An unexpected error occurred.' };
+        return { error: 'Ocurrió un error inesperado.' };
     }
 }
