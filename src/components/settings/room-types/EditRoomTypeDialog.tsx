@@ -23,7 +23,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoomType } from '@/lib/actions/roomType.actions';
@@ -115,7 +114,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                 <FormItem>
                   <FormLabel>Características</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="p.ej., Wi-Fi, Aire Acondicionado, TV..." {...field} />
+                    <Input placeholder="p.ej., Wi-Fi, Aire Acondicionado, TV..." {...field} />
                   </FormControl>
                    <FormDescription>
                     Separe las características con comas.
