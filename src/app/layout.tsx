@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import TopNav from '@/components/TopNav';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import AuthWrapper from '@/components/AuthWrapper';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -27,15 +28,22 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <FirebaseClientProvider>
-          <AuthWrapper>
-            <div className="flex flex-col min-h-screen">
-              <TopNav />
-              <main className="flex-1">{children}</main>
-            </div>
-            <Toaster />
-          </AuthWrapper>
-        </FirebaseClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <FirebaseClientProvider>
+            <AuthWrapper>
+              <div className="flex flex-col min-h-screen">
+                <TopNav />
+                <main className="flex-1">{children}</main>
+              </div>
+              <Toaster />
+            </AuthWrapper>
+          </FirebaseClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

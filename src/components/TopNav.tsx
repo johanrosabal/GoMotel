@@ -6,6 +6,7 @@ import AppLogo from './AppLogo';
 import { cn } from '@/lib/utils';
 import UserMenu from './UserMenu';
 import { useFirebase } from '@/firebase';
+import { ThemeToggle } from './ThemeToggle';
 
 const menuItems = [
   { href: '/dashboard', label: 'Panel de Habitaciones' },
@@ -44,6 +45,7 @@ export default function TopNav() {
               </nav>
             )}
             <div className="ml-auto flex items-center space-x-4">
+              <ThemeToggle />
               <UserMenu />
             </div>
         </div>
