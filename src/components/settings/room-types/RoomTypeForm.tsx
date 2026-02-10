@@ -157,11 +157,16 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
     }
 
     startTransition(async () => {
-      await saveRoomType(formData);
-      toast({
-        title: '¡Éxito!',
-        description: `El tipo de habitación "${values.name}" ha sido guardado.`,
-      });
+      const result = await saveRoomType(formData);
+      if (result?.error) {
+        toast({
+          title: 'Error al Guardar',
+          description: typeof result.error === 'string' ? result.error : 'Por favor, revise los errores en el formulario.',
+          variant: 'destructive',
+        });
+      }
+      // On success, the server action will redirect the user.
+      // No need to show a toast here.
     });
   };
 
