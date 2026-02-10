@@ -270,6 +270,11 @@
             "type": "string",
             "format": "date-time",
             "description": "Timestamp of when the profile was created."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the application.",
+          "enum": ["Administrador", "Recepcion"]
         }
       },
       "required": [
@@ -280,7 +285,8 @@
         "birthDate",
         "idCard",
         "phoneNumber",
-        "createdAt"
+        "createdAt",
+        "role"
       ]
     }
   },

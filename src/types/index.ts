@@ -62,6 +62,8 @@ export interface Order {
   status: 'Pending' | 'Delivered';
 }
 
+export type UserRole = 'Administrador' | 'Recepcion';
+
 export interface UserProfile {
   id: string;
   uid: string;
@@ -74,4 +76,5 @@ export interface UserProfile {
   phoneNumber: string;
   whatsappNumber?: string;
   createdAt: Timestamp;
+  role: UserRole;
 }

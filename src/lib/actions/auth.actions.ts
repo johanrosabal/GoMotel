@@ -76,6 +76,16 @@ export async function register(values: z.infer<typeof registerSchema>) {
         
         const user = userCredential.user;
 
+        // Check if this is the first user to assign roles
+        const adminRolesQuery = await getDocs(collection(db, 'roles_admin'));
+        const isFirstUser = adminRolesQuery.empty;
+        const userRole = isFirstUser ? 'Administrador' : 'Recepcion';
+
+        if (isFirstUser) {
+            // This is the first user, make them an admin.
+            await setDoc(doc(db, 'roles_admin', user.uid), { admin: true });
+        }
+
         // Create user profile in Firestore
         await setDoc(doc(db, 'users', user.uid), {
             uid: user.uid,
@@ -88,14 +98,9 @@ export async function register(values: z.infer<typeof registerSchema>) {
             phoneNumber: values.phoneNumber,
             whatsappNumber: values.whatsappNumber || '',
             createdAt: Timestamp.now(),
+            role: userRole,
         });
         
-        // Check if this is the first user
-        const adminRolesQuery = await getDocs(collection(db, 'roles_admin'));
-        if (adminRolesQuery.empty) {
-            // This is the first user, make them an admin.
-            await setDoc(doc(db, 'roles_admin', user.uid), { admin: true });
-        }
 
     } catch (error: any) {
         switch (error.code) {

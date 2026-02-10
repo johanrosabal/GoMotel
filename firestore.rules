@@ -33,8 +33,16 @@ service cloud.firestore {
     match /users/{userId} {
       // Admins can manage all profiles
       allow read, write: if isAdmin();
-      // Users can create, read and update their own profile
-      allow create, get, update: if request.auth.uid == userId;
+      
+      // The rules below apply to non-admins managing their own profile
+      allow get: if request.auth.uid == userId;
+      
+      // Allow create for non-admins only with 'Recepcion' role.
+      // Admin creation is handled by the 'allow write' rule above.
+      allow create: if request.auth.uid == userId && request.resource.data.role == 'Recepcion';
+
+      // Allow updates for non-admins on their own profile, but they cannot change their role.
+      allow update: if request.auth.uid == userId && request.resource.data.role == resource.data.role;
     }
 
     // Admin-only access for core data collections
