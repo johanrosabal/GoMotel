@@ -51,9 +51,17 @@ const registerSchema = z.object({
     lastName: z.string().min(1, 'El primer apellido es requerido.'),
     secondLastName: z.string().optional(),
     birthDate: z.coerce.date(),
-    idCard: z.string().min(1, 'La cédula de identidad es requerida.'),
-    phoneNumber: z.string().min(1, 'El número de teléfono es requerido.'),
+    idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
+    phoneNumber: z.string().length(16, 'Formato de teléfono inválido. Use (XXX) XXXX-XXXXX.'),
     whatsappNumber: z.string().optional(),
+}).refine(data => {
+    if (data.whatsappNumber && data.whatsappNumber.length > 0) {
+        return data.whatsappNumber.length === 16;
+    }
+    return true;
+}, {
+    message: 'Formato de WhatsApp inválido. Use (XXX) XXXX-XXXXX.',
+    path: ['whatsappNumber'],
 });
 
 export async function register(values: z.infer<typeof registerSchema>) {

@@ -34,11 +34,20 @@ const registerSchema = z.object({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
   idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
-  phoneNumber: z.string().min(1, 'El número de teléfono es requerido.'),
+  phoneNumber: z.string().length(16, 'Formato de teléfono inválido. Use (XXX) XXXX-XXXXX.'),
   whatsappNumber: z.string().optional(),
   email: z.string().email('Por favor ingrese un correo electrónico válido.'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+}).refine(data => {
+    if (data.whatsappNumber && data.whatsappNumber.length > 0) {
+        return data.whatsappNumber.length === 16;
+    }
+    return true;
+}, {
+    message: 'Formato de WhatsApp inválido. Use (XXX) XXXX-XXXXX.',
+    path: ['whatsappNumber'],
 });
+
 
 export default function RegisterPage() {
   const [isPending, startTransition] = useTransition();
@@ -99,6 +108,25 @@ export default function RegisterPage() {
       maskedValue = `${value.slice(0, 1)}-${value.slice(1)}`;
     } else {
       maskedValue = value;
+    }
+
+    fieldOnChange(maskedValue);
+  };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    const maxLength = 12; // 3 for area code + 4 for next part + 5 for last part
+    const value = rawValue.slice(0, maxLength);
+
+    let maskedValue = '';
+    if (value.length > 7) {
+      maskedValue = `(${value.slice(0, 3)}) ${value.slice(3, 7)}-${value.slice(7)}`;
+    } else if (value.length > 3) {
+      maskedValue = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+    } else if (value.length > 0) {
+      maskedValue = `(${value.slice(0, 3)})`;
+    } else {
+        maskedValue = value;
     }
 
     fieldOnChange(maskedValue);
@@ -278,7 +306,11 @@ export default function RegisterPage() {
                         <FormItem>
                           <FormLabel>Número de Teléfono</FormLabel>
                           <FormControl>
-                            <Input placeholder="+591 12345678" {...field} />
+                            <Input 
+                              placeholder="(506) 0000-00000" 
+                              {...field}
+                              onChange={(e) => handlePhoneChange(e, field.onChange)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -291,7 +323,11 @@ export default function RegisterPage() {
                         <FormItem>
                           <FormLabel>WhatsApp (Opcional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="+591 12345678" {...field} />
+                            <Input
+                              placeholder="(506) 0000-00000"
+                              {...field}
+                              onChange={(e) => handlePhoneChange(e, field.onChange)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
