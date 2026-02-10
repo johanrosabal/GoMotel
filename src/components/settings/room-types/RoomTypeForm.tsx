@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveRoomType } from '@/lib/actions/roomType.actions';
 import type { RoomType, PricePlan } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Pencil } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,6 +61,7 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
   const [newPlanDuration, setNewPlanDuration] = useState('');
   const [newPlanUnit, setNewPlanUnit] = useState<PricePlan['unit']>('Hours');
   const [newPlanPrice, setNewPlanPrice] = useState('');
+  const [editingPlanIndex, setEditingPlanIndex] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof roomTypeSchema>>({
     resolver: zodResolver(roomTypeSchema),
@@ -91,24 +92,52 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
     form.setValue('features', newFeatures);
   };
   
-  const handleAddPlan = () => {
+  const handleSavePlan = () => {
     const durationNum = parseInt(newPlanDuration, 10);
     const priceNum = parseFloat(newPlanPrice);
 
     if (newPlanName.trim() && !isNaN(durationNum) && durationNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
       const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
-      if (!pricePlans.some(p => p.name === newPlan.name)) {
-        form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
-        setNewPlanName('');
-        setNewPlanDuration('');
-        setNewPlanPrice('');
-        setNewPlanUnit('Hours');
-      } else {
+      
+      if (pricePlans.some((p, i) => p.name.toLowerCase() === newPlan.name.toLowerCase() && i !== editingPlanIndex)) {
         toast({ title: "Error", description: "El nombre del plan de precios ya existe.", variant: 'destructive'});
+        return;
       }
+      
+      if (editingPlanIndex !== null) {
+        const updatedPlans = [...pricePlans];
+        updatedPlans[editingPlanIndex] = newPlan;
+        form.setValue('pricePlans', updatedPlans, { shouldValidate: true });
+      } else {
+        form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
+      }
+
+      setEditingPlanIndex(null);
+      setNewPlanName('');
+      setNewPlanDuration('');
+      setNewPlanPrice('');
+      setNewPlanUnit('Hours');
+
     } else {
         toast({ title: "Error", description: "Por favor, complete todos los campos del plan de precios con valores válidos.", variant: 'destructive'});
     }
+  };
+
+  const handleEditPlan = (index: number) => {
+    const plan = pricePlans[index];
+    setEditingPlanIndex(index);
+    setNewPlanName(plan.name);
+    setNewPlanDuration(String(plan.duration));
+    setNewPlanUnit(plan.unit);
+    setNewPlanPrice(String(plan.price));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlanIndex(null);
+    setNewPlanName('');
+    setNewPlanDuration('');
+    setNewPlanPrice('');
+    setNewPlanUnit('Hours');
   };
 
   const handleRemovePlan = (indexToRemove: number) => {
@@ -129,7 +158,6 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
 
     startTransition(async () => {
       await saveRoomType(formData);
-      // The action handles the redirect, so we only need to show a toast.
       toast({
         title: '¡Éxito!',
         description: `El tipo de habitación "${values.name}" ha sido guardado.`,
@@ -279,16 +307,25 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
                       />
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddPlan}
-                    className="w-full sm:w-auto"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Añadir Plan
-                  </Button>
+                   <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        onClick={handleSavePlan}
+                        className="w-full sm:w-auto"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
+                    </Button>
+                    {editingPlanIndex !== null && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
+                        >
+                            Cancelar
+                        </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -300,9 +337,7 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
                           <TableHead>Nombre</TableHead>
                           <TableHead>Duración</TableHead>
                           <TableHead className="text-right">Precio</TableHead>
-                          <TableHead className="w-[50px]">
-                            <span className="sr-only">Acciones</span>
-                          </TableHead>
+                          <TableHead className="text-right w-[100px]">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -315,7 +350,17 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
                                 : unitMap[plan.unit]
                             }`}</TableCell>
                             <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
-                            <TableCell>
+                            <TableCell className="text-right">
+                               <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => handleEditPlan(index)}
+                                aria-label={`Editar ${plan.name}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 type="button"
                                 variant="ghost"
