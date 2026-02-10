@@ -189,7 +189,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
         }
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{roomType ? 'Editar Tipo de Habitación' : 'Añadir Nuevo Tipo de Habitación'}</DialogTitle>
           <DialogDescription>
@@ -199,8 +199,8 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="max-h-[60vh] pr-6">
+          <form id="edit-room-type-form" onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0">
+            <ScrollArea className="h-full pr-6">
               <div className="space-y-4 py-1">
                 <FormField
                   control={form.control}
@@ -345,14 +345,16 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                 </FormItem>
               </div>
             </ScrollArea>
-
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending}>
-                {isPending ? 'Guardando...' : 'Guardar'}
-              </Button>
-            </DialogFooter>
           </form>
         </Form>
+        <DialogFooter className="pt-4 mt-auto">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="edit-room-type-form" disabled={isPending}>
+            {isPending ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
