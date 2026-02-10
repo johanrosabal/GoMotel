@@ -259,6 +259,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                         placeholder="8"
                         value={newPlanDuration}
                         onChange={(e) => setNewPlanDuration(e.target.value)}
+                        className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                     </div>
                      <div className="space-y-1 sm:col-span-2">
@@ -285,6 +286,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                         placeholder="120"
                         value={newPlanPrice}
                         onChange={(e) => setNewPlanPrice(e.target.value)}
+                        className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                     </div>
                 </div>

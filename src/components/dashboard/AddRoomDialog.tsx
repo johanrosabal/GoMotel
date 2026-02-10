@@ -159,7 +159,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                   <FormItem>
                     <FormLabel>Capacidad</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" {...field} />
+                      <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -172,7 +172,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                   <FormItem>
                     <FormLabel>Tarifa por Hora ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
