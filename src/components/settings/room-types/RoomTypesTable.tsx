@@ -25,7 +25,7 @@ import type { RoomType, PricePlan } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface RoomTypesTableProps {
-  initialRoomTypes: RoomType[];
+  roomTypes: RoomType[];
 }
 
 const unitMap: Record<PricePlan['unit'], string> = {
@@ -36,9 +36,7 @@ const unitMap: Record<PricePlan['unit'], string> = {
 };
 
 
-export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps) {
-  const roomTypes = initialRoomTypes;
-
+export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
   if (roomTypes.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">

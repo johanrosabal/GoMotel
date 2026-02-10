@@ -13,7 +13,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deleteRoomType } from '@/lib/actions/roomType.actions';
+import { useRouter } from 'next/navigation';
+import { useFirebase } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 interface DeleteRoomTypeAlertProps {
   children: ReactNode;
@@ -23,20 +25,23 @@ interface DeleteRoomTypeAlertProps {
 export default function DeleteRoomTypeAlert({ children, roomTypeId }: DeleteRoomTypeAlertProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const router = useRouter();
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteRoomType(roomTypeId);
-      if (result.error) {
-        toast({
-          title: 'Error',
-          description: 'No se pudo eliminar el tipo de habitación.',
-          variant: 'destructive',
-        });
-      } else {
+      try {
+        await deleteDoc(doc(firestore, 'roomTypes', roomTypeId));
         toast({
           title: '¡Éxito!',
           description: 'El tipo de habitación ha sido eliminado.',
+        });
+        router.refresh();
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: error.message || 'No se pudo eliminar el tipo de habitación.',
+          variant: 'destructive',
         });
       }
     });
