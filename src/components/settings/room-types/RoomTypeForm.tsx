@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface RoomTypeFormProps {
   roomType?: RoomType;
@@ -291,41 +292,57 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  {pricePlans.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {pricePlans.map((plan, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="pl-2 pr-1 py-0.5 text-sm"
-                        >
-                          {plan.name} ({plan.duration}{' '}
-                          {plan.duration === 1
-                            ? unitMap[plan.unit].replace(/s$/, '')
-                            : unitMap[plan.unit]}
-                          ) - {formatCurrency(plan.price)}
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePlan(index)}
-                            className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                            aria-label={`Eliminar ${plan.name}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground px-1 pt-2">
-                      Aún no se han añadido planes de precios.
-                    </p>
-                  )}
-                  {errors.pricePlans && (
-                    <p className="text-sm font-medium text-destructive px-1 pt-1">
-                      {errors.pricePlans.message}
-                    </p>
-                  )}
-                </div>
+                {pricePlans.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Duración</TableHead>
+                          <TableHead className="text-right">Precio</TableHead>
+                          <TableHead className="w-[50px]">
+                            <span className="sr-only">Acciones</span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pricePlans.map((plan, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{plan.name}</TableCell>
+                            <TableCell>{`${plan.duration} ${
+                              plan.duration === 1
+                                ? unitMap[plan.unit].replace(/s$/, '')
+                                : unitMap[plan.unit]
+                            }`}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleRemovePlan(index)}
+                                aria-label={`Eliminar ${plan.name}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground px-1 pt-2">
+                    Aún no se han añadido planes de precios.
+                  </p>
+                )}
+                {errors.pricePlans && (
+                  <p className="text-sm font-medium text-destructive px-1 pt-1">
+                    {errors.pricePlans.message}
+                  </p>
+                )}
+              </div>
               </FormItem>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
