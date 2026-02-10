@@ -24,6 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 
 interface RoomTypeFormProps {
   roomType?: RoomType;
