@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface EditRoomTypeDialogProps {
   children: ReactNode;
@@ -38,7 +39,8 @@ interface EditRoomTypeDialogProps {
 
 const pricePlanSchema = z.object({
   name: z.string().min(1, 'El nombre del plan es requerido.'),
-  hours: z.coerce.number().positive('Las horas deben ser un número positivo.'),
+  duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
+  unit: z.enum(['Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().positive('El precio debe ser un número positivo.'),
 });
 
@@ -49,13 +51,22 @@ const roomTypeSchema = z.object({
   pricePlans: z.array(pricePlanSchema).optional(),
 });
 
+const unitMap: Record<PricePlan['unit'], string> = {
+    Hours: 'hs',
+    Days: 'días',
+    Weeks: 'semanas',
+    Months: 'meses'
+};
+
 export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [newFeature, setNewFeature] = useState('');
+  
   const [newPlanName, setNewPlanName] = useState('');
-  const [newPlanHours, setNewPlanHours] = useState('');
+  const [newPlanDuration, setNewPlanDuration] = useState('');
+  const [newPlanUnit, setNewPlanUnit] = useState<PricePlan['unit']>('Hours');
   const [newPlanPrice, setNewPlanPrice] = useState('');
 
   const form = useForm<z.infer<typeof roomTypeSchema>>({
@@ -87,16 +98,17 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
   };
   
   const handleAddPlan = () => {
-    const hoursNum = parseInt(newPlanHours, 10);
+    const durationNum = parseInt(newPlanDuration, 10);
     const priceNum = parseFloat(newPlanPrice);
 
-    if (newPlanName.trim() && !isNaN(hoursNum) && hoursNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
-      const newPlan = { name: newPlanName.trim(), hours: hoursNum, price: priceNum };
+    if (newPlanName.trim() && !isNaN(durationNum) && durationNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
+      const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
       if (!pricePlans.some(p => p.name === newPlan.name)) {
         form.setValue('pricePlans', [...pricePlans, newPlan]);
         setNewPlanName('');
-        setNewPlanHours('');
+        setNewPlanDuration('');
         setNewPlanPrice('');
+        setNewPlanUnit('Hours');
       } else {
         toast({ title: "Error", description: "El nombre del plan de precios ya existe.", variant: 'destructive'});
       }
@@ -139,16 +151,25 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
       }
     });
   };
+  
+  const resetFormState = () => {
+    form.reset(roomType ? { ...roomType, features: roomType.features || [], pricePlans: roomType.pricePlans || [] } : { name: '', features: [], pricePlans: [] });
+    setNewFeature('');
+    setNewPlanName('');
+    setNewPlanDuration('');
+    setNewPlanUnit('Hours');
+    setNewPlanPrice('');
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
-            form.reset(roomType ? { ...roomType, features: roomType.features || [], pricePlans: roomType.pricePlans || [] } : { name: '', features: [], pricePlans: [] });
+            resetFormState();
         }
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{roomType ? 'Editar Tipo de Habitación' : 'Añadir Nuevo Tipo de Habitación'}</DialogTitle>
           <DialogDescription>
@@ -219,47 +240,66 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
             
             <FormItem>
               <FormLabel>Planes de Precios</FormLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-                <div className="space-y-1 sm:col-span-2">
-                    <Label htmlFor="plan-name" className="text-xs">Nombre</Label>
-                    <Input 
-                      id="plan-name"
-                      placeholder="p.ej. Tarifa Nocturna"
-                      value={newPlanName}
-                      onChange={(e) => setNewPlanName(e.target.value)}
-                    />
+              <div className="p-4 border rounded-lg space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
+                    <div className="space-y-1 sm:col-span-4">
+                        <Label htmlFor="plan-name" className="text-xs">Nombre</Label>
+                        <Input 
+                        id="plan-name"
+                        placeholder="p.ej. Tarifa Nocturna"
+                        value={newPlanName}
+                        onChange={(e) => setNewPlanName(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-duration" className="text-xs">Duración</Label>
+                        <Input
+                        id="plan-duration"
+                        type="number"
+                        placeholder="8"
+                        value={newPlanDuration}
+                        onChange={(e) => setNewPlanDuration(e.target.value)}
+                        />
+                    </div>
+                     <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-unit" className="text-xs">Unidad</Label>
+                        <Select value={newPlanUnit} onValueChange={(value) => setNewPlanUnit(value as any)}>
+                            <FormControl>
+                                <SelectTrigger id="plan-unit">
+                                    <SelectValue />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Hours">Horas</SelectItem>
+                                <SelectItem value="Days">Días</SelectItem>
+                                <SelectItem value="Weeks">Semanas</SelectItem>
+                                <SelectItem value="Months">Meses</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-price" className="text-xs">Precio ($)</Label>
+                        <Input
+                        id="plan-price"
+                        type="number"
+                        placeholder="120"
+                        value={newPlanPrice}
+                        onChange={(e) => setNewPlanPrice(e.target.value)}
+                        />
+                    </div>
                 </div>
-                <div className="space-y-1">
-                    <Label htmlFor="plan-hours" className="text-xs">Horas</Label>
-                    <Input
-                      id="plan-hours"
-                      type="number"
-                      placeholder="8"
-                      value={newPlanHours}
-                      onChange={(e) => setNewPlanHours(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <Label htmlFor="plan-price" className="text-xs">Precio ($)</Label>
-                    <Input
-                      id="plan-price"
-                      type="number"
-                      placeholder="120"
-                      value={newPlanPrice}
-                      onChange={(e) => setNewPlanPrice(e.target.value)}
-                    />
-                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddPlan} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir Plan
+                </Button>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddPlan} className="mt-2">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir Plan
-              </Button>
+
               <div className="space-y-2 pt-2">
                 {pricePlans.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {pricePlans.map((plan, index) => (
                       <Badge key={index} variant="secondary" className="pl-2 pr-1 py-0.5 text-sm">
-                        {plan.name} ({plan.hours}hs) - ${plan.price}
+                        {plan.name} ({plan.duration} {plan.duration === 1 ? unitMap[plan.unit].replace(/s$/, '') : unitMap[plan.unit]}) - ${plan.price}
                         <button 
                           type="button" 
                           onClick={() => handleRemovePlan(index)}
@@ -272,13 +312,13 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground px-1">Aún no se han añadido planes de precios.</p>
+                  <p className="text-xs text-muted-foreground px-1 pt-2">Aún no se han añadido planes de precios.</p>
                 )}
               </div>
             </FormItem>
 
 
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>

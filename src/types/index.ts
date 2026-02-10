@@ -4,7 +4,8 @@ export type RoomStatus = 'Available' | 'Occupied' | 'Cleaning' | 'Maintenance';
 
 export interface PricePlan {
   name: string;
-  hours: number;
+  duration: number;
+  unit: 'Hours' | 'Days' | 'Weeks' | 'Months';
   price: number;
 }
 

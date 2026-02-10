@@ -42,7 +42,8 @@ export async function getRoomTypes(): Promise<RoomType[]> {
 
 const pricePlanSchema = z.object({
   name: z.string().min(1, 'El nombre del plan es requerido.'),
-  hours: z.coerce.number().positive('Las horas deben ser un número positivo.'),
+  duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
+  unit: z.enum(['Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().positive('El precio debe ser un número positivo.'),
 });
 

@@ -21,12 +21,20 @@ import {
 import { Button } from '@/components/ui/button';
 import EditRoomTypeDialog from './EditRoomTypeDialog';
 import DeleteRoomTypeAlert from './DeleteRoomTypeAlert';
-import type { RoomType } from '@/types';
+import type { RoomType, PricePlan } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface RoomTypesTableProps {
   initialRoomTypes: RoomType[];
 }
+
+const unitMap: Record<PricePlan['unit'], string> = {
+    Hours: 'hs',
+    Days: 'días',
+    Weeks: 'semanas',
+    Months: 'meses'
+};
+
 
 export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps) {
   const roomTypes = initialRoomTypes;
@@ -69,7 +77,7 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
                   <div className="flex flex-col gap-1 items-start">
                     {roomType.pricePlans?.map(plan => (
                         <Badge key={plan.name} variant="outline" className="font-normal whitespace-nowrap">
-                          {`${plan.name} (${plan.hours}hs): ${formatCurrency(plan.price)}`}
+                          {`${plan.name} (${plan.duration} ${plan.duration === 1 ? unitMap[plan.unit].replace(/s$/, '') : unitMap[plan.unit]}): ${formatCurrency(plan.price)}`}
                         </Badge>
                     ))}
                   </div>

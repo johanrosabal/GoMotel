@@ -181,16 +181,21 @@
           "type": "string",
           "description": "Name of the price plan (e.g., Nightly Rate)."
         },
-        "hours": {
+        "duration": {
           "type": "number",
-          "description": "Duration of the plan in hours."
+          "description": "The value for the duration unit (e.g., 8 for 8 hours)."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit of time for the duration.",
+          "enum": ["Hours", "Days", "Weeks", "Months"]
         },
         "price": {
           "type": "number",
           "description": "The cost of this plan."
         }
       },
-      "required": ["name", "hours", "price"]
+      "required": ["name", "duration", "unit", "price"]
     },
     "RoomType": {
       "$schema": "http://json-schema.org/draft-07/schema#",
