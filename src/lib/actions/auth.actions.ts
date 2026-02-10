@@ -6,7 +6,6 @@ import {
 } from 'firebase/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { db, auth } from '../firebase';
 import { doc, setDoc, getDocs, collection, Timestamp } from 'firebase/firestore';
 
@@ -41,7 +40,6 @@ export async function login(values: z.infer<typeof loginSchema>) {
     }
   }
   revalidatePath('/');
-  redirect('/dashboard');
 }
 
 const registerSchema = z.object({
@@ -115,5 +113,4 @@ export async function register(values: z.infer<typeof registerSchema>) {
         }
     }
     revalidatePath('/');
-    redirect('/dashboard');
 }

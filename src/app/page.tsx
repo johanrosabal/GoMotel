@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { login } from '@/lib/actions/auth.actions';
 import AppLogo from '@/components/AppLogo';
+import { useFirebase } from '@/firebase';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor ingrese un correo electrónico válido.'),
@@ -33,6 +35,7 @@ export default function HomePage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { auth } = useFirebase();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -52,11 +55,32 @@ export default function HomePage() {
           variant: 'destructive',
         });
       } else {
-        toast({
-          title: '¡Bienvenido!',
-          description: 'Ha iniciado sesión exitosamente.',
-        });
-        router.push('/dashboard');
+        try {
+          // Also sign in on client to establish session
+          await signInWithEmailAndPassword(auth, values.email, values.password);
+          toast({
+            title: '¡Bienvenido!',
+            description: 'Ha iniciado sesión exitosamente.',
+          });
+          router.push('/dashboard');
+        } catch (error: any) {
+           let errorMessage = 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.';
+            switch (error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    errorMessage = 'Correo electrónico o contraseña incorrectos.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'El formato del correo electrónico no es válido.';
+                    break;
+            }
+             toast({
+                title: 'Error de Inicio de Sesión',
+                description: errorMessage,
+                variant: 'destructive',
+            });
+        }
       }
     });
   };

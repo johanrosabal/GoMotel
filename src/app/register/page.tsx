@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
 import { es } from 'date-fns/locale';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { register } from '@/lib/actions/auth.actions';
 import AppLogo from '@/components/AppLogo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFirebase } from '@/firebase';
 
 
 const registerSchema = z.object({
@@ -54,6 +56,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { auth } = useFirebase();
 
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
@@ -115,18 +118,16 @@ export default function RegisterPage() {
   
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
     const rawValue = e.target.value.replace(/\D/g, '');
-    const maxLength = 11; // 3 for area code + 8 for number
+    const maxLength = 8;
     const value = rawValue.slice(0, maxLength);
 
     let maskedValue = '';
-    if (value.length > 7) {
-      maskedValue = `(${value.slice(0, 3)}) ${value.slice(3, 7)}-${value.slice(7)}`;
-    } else if (value.length > 3) {
-      maskedValue = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+     if (value.length > 4) {
+      maskedValue = `(506) ${value.slice(0, 4)}-${value.slice(4)}`;
     } else if (value.length > 0) {
-      maskedValue = `(${value.slice(0, 3)})`;
+      maskedValue = `(506) ${value}`;
     } else {
-        maskedValue = value;
+        maskedValue = '';
     }
 
     fieldOnChange(maskedValue);
@@ -143,6 +144,8 @@ export default function RegisterPage() {
           variant: 'destructive',
         });
       } else {
+        // Also sign in on client to establish session
+        await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({
           title: '¡Registro Exitoso!',
           description: 'Su cuenta ha sido creada.',
