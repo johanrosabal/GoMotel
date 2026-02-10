@@ -59,6 +59,8 @@ const unitMap: Record<PricePlan['unit'], string> = {
     Months: 'meses'
 };
 
+const FORM_ID = 'edit-room-type-form';
+
 export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -198,10 +200,14 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
               : 'Añadir un nuevo tipo de habitación a su sistema.'}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 gap-4">
-            <ScrollArea className="flex-1 pr-6 -mr-6">
-              <div className="space-y-4 py-1 pr-6">
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full pr-6">
+            <Form {...form}>
+              <form
+                id={FORM_ID}
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4 py-4"
+              >
                 <FormField
                   control={form.control}
                   name="name"
@@ -209,17 +215,20 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                     <FormItem>
                       <FormLabel>Nombre del Tipo de Habitación</FormLabel>
                       <FormControl>
-                        <Input placeholder="p.ej., Suite Presidencial" {...field} />
+                        <Input
+                          placeholder="p.ej., Suite Presidencial"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormItem>
                   <FormLabel>Características</FormLabel>
                   <div className="flex items-center gap-2">
-                    <Input 
+                    <Input
                       placeholder="p.ej. Wi-Fi de alta velocidad"
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
@@ -230,7 +239,12 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                         }
                       }}
                     />
-                    <Button type="button" variant="outline" size="icon" onClick={handleAddFeature}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleAddFeature}
+                    >
                       <Plus className="h-4 w-4" />
                       <span className="sr-only">Añadir Característica</span>
                     </Button>
@@ -239,10 +253,14 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                     {features.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {features.map((feature, index) => (
-                          <Badge key={index} variant="secondary" className="pl-2 pr-1 py-0.5 text-sm">
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="pl-2 pr-1 py-0.5 text-sm"
+                          >
                             {feature}
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => handleRemoveFeature(index)}
                               className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
                               aria-label={`Eliminar ${feature}`}
@@ -253,68 +271,89 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground px-1">Aún no se han añadido características.</p>
+                      <p className="text-xs text-muted-foreground px-1">
+                        Aún no se han añadido características.
+                      </p>
                     )}
                   </div>
                 </FormItem>
 
                 <Separator className="my-4" />
-                
+
                 <FormItem>
                   <FormLabel>Planes de Precios</FormLabel>
                   <div className="p-4 border rounded-lg space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
-                        <div className="space-y-1 sm:col-span-4">
-                            <Label htmlFor="plan-name" className="text-xs">Nombre</Label>
-                            <Input 
-                            id="plan-name"
-                            placeholder="p.ej. Tarifa Nocturna"
-                            value={newPlanName}
-                            onChange={(e) => setNewPlanName(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-duration" className="text-xs">Duración</Label>
-                            <Input
-                            id="plan-duration"
-                            type="number"
-                            placeholder="8"
-                            value={newPlanDuration}
-                            onChange={(e) => setNewPlanDuration(e.target.value)}
-                            className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                        </div>
-                         <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-unit" className="text-xs">Unidad</Label>
-                            <Select value={newPlanUnit} onValueChange={(value) => setNewPlanUnit(value as any)}>
-                                <FormControl>
-                                    <SelectTrigger id="plan-unit">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Hours">Horas</SelectItem>
-                                    <SelectItem value="Days">Días</SelectItem>
-                                    <SelectItem value="Weeks">Semanas</SelectItem>
-                                    <SelectItem value="Months">Meses</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-price" className="text-xs">Precio ($)</Label>
-                            <Input
-                            id="plan-price"
-                            type="number"
-                            placeholder="120"
-                            value={newPlanPrice}
-                            onChange={(e) => setNewPlanPrice(e.target.value)}
-                            className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                        </div>
+                      <div className="space-y-1 sm:col-span-4">
+                        <Label htmlFor="plan-name" className="text-xs">
+                          Nombre
+                        </Label>
+                        <Input
+                          id="plan-name"
+                          placeholder="p.ej. Tarifa Nocturna"
+                          value={newPlanName}
+                          onChange={(e) => setNewPlanName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-duration" className="text-xs">
+                          Duración
+                        </Label>
+                        <Input
+                          id="plan-duration"
+                          type="number"
+                          placeholder="8"
+                          value={newPlanDuration}
+                          onChange={(e) => setNewPlanDuration(e.target.value)}
+                          className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-unit" className="text-xs">
+                          Unidad
+                        </Label>
+                        <Select
+                          value={newPlanUnit}
+                          onValueChange={(value) =>
+                            setNewPlanUnit(value as any)
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger id="plan-unit">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Hours">Horas</SelectItem>
+                            <SelectItem value="Days">Días</SelectItem>
+                            <SelectItem value="Weeks">Semanas</SelectItem>
+                            <SelectItem value="Months">Meses</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label htmlFor="plan-price" className="text-xs">
+                          Precio ($)
+                        </Label>
+                        <Input
+                          id="plan-price"
+                          type="number"
+                          placeholder="120"
+                          value={newPlanPrice}
+                          onChange={(e) => setNewPlanPrice(e.target.value)}
+                          className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddPlan} className="w-full sm:w-auto">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Añadir Plan
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddPlan}
+                      className="w-full sm:w-auto"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Añadir Plan
                     </Button>
                   </div>
 
@@ -322,10 +361,18 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                     {pricePlans.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {pricePlans.map((plan, index) => (
-                          <Badge key={index} variant="secondary" className="pl-2 pr-1 py-0.5 text-sm">
-                            {plan.name} ({plan.duration} {plan.duration === 1 ? unitMap[plan.unit].replace(/s$/, '') : unitMap[plan.unit]}) - ${plan.price}
-                            <button 
-                              type="button" 
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="pl-2 pr-1 py-0.5 text-sm"
+                          >
+                            {plan.name} ({plan.duration}{' '}
+                            {plan.duration === 1
+                              ? unitMap[plan.unit].replace(/s$/, '')
+                              : unitMap[plan.unit]}
+                            ) - ${plan.price}
+                            <button
+                              type="button"
                               onClick={() => handleRemovePlan(index)}
                               className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
                               aria-label={`Eliminar ${plan.name}`}
@@ -336,25 +383,33 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground px-1 pt-2">Aún no se han añadido planes de precios.</p>
+                      <p className="text-xs text-muted-foreground px-1 pt-2">
+                        Aún no se han añadido planes de precios.
+                      </p>
                     )}
-                     {errors.pricePlans && (
-                      <p className="text-sm font-medium text-destructive px-1 pt-1">{errors.pricePlans.message}</p>
+                    {errors.pricePlans && (
+                      <p className="text-sm font-medium text-destructive px-1 pt-1">
+                        {errors.pricePlans.message}
+                      </p>
                     )}
                   </div>
                 </FormItem>
-              </div>
-            </ScrollArea>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? 'Guardando...' : 'Guardar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              </form>
+            </Form>
+          </ScrollArea>
+        </div>
+        <DialogFooter className="pt-4 border-t">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" form={FORM_ID} disabled={isPending}>
+            {isPending ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
