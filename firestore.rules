@@ -37,9 +37,9 @@ service cloud.firestore {
       // The rules below apply to non-admins managing their own profile
       allow get: if request.auth.uid == userId;
       
-      // Allow create for non-admins only with 'Recepcion' role.
-      // Admin creation is handled by the 'allow write' rule above.
-      allow create: if request.auth.uid == userId && request.resource.data.role == 'Recepcion';
+      // Allow a user to create their own profile document.
+      // The server action is responsible for setting the correct role and data.
+      allow create: if request.auth.uid == userId;
 
       // Allow updates for non-admins on their own profile, but they cannot change their role.
       allow update: if request.auth.uid == userId && request.resource.data.role == resource.data.role;
