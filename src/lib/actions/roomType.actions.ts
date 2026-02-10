@@ -8,8 +8,10 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '../firebase';
 import type { RoomType } from '@/types';
@@ -37,6 +39,19 @@ export async function getRoomTypes(): Promise<RoomType[]> {
   } catch (error) {
     console.error('Error fetching room types:', error);
     return [];
+  }
+}
+
+export async function getRoomTypeById(id: string): Promise<RoomType | null> {
+  try {
+    const roomTypeDoc = await getDoc(doc(db, 'roomTypes', id));
+    if (roomTypeDoc.exists()) {
+      return toRoomTypeObject(roomTypeDoc);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching room type by ID:', error);
+    return null;
   }
 }
 
@@ -96,8 +111,6 @@ export async function saveRoomType(formData: FormData) {
 
       await addDoc(collection(db, 'roomTypes'), { ...dataToSave, code: newCode });
     }
-    revalidatePath('/settings/room-types');
-    return { success: true };
   } catch (error) {
     console.error('Failed to save room type:', error);
     if (error instanceof Error) {
@@ -105,6 +118,9 @@ export async function saveRoomType(formData: FormData) {
     }
     return { error: 'Ocurrió un error inesperado.' };
   }
+
+  revalidatePath('/settings/room-types');
+  redirect('/settings/room-types');
 }
 
 export async function deleteRoomType(roomTypeId: string) {

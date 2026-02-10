@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import EditRoomTypeDialog from './EditRoomTypeDialog';
+import Link from 'next/link';
 import DeleteRoomTypeAlert from './DeleteRoomTypeAlert';
 import type { RoomType, PricePlan } from '@/types';
 import { formatCurrency } from '@/lib/utils';
@@ -93,9 +93,9 @@ export default function RoomTypesTable({ initialRoomTypes }: RoomTypesTableProps
                     <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <EditRoomTypeDialog roomType={roomType}>
+                    <Link href={`/settings/room-types/edit/${roomType.id}`}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Editar</DropdownMenuItem>
-                    </EditRoomTypeDialog>
+                    </Link>
                     <DeleteRoomTypeAlert roomTypeId={roomType.id}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
                     </DeleteRoomTypeAlert>

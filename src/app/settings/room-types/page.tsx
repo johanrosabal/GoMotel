@@ -1,7 +1,9 @@
 import RoomTypesTable from '@/components/settings/room-types/RoomTypesTable';
-import AddRoomTypeButton from '@/components/settings/room-types/AddRoomTypeButton';
 import { getRoomTypes } from '@/lib/actions/roomType.actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { PlusCircle } from 'lucide-react';
 
 export default async function RoomTypesPage() {
   const initialRoomTypes = await getRoomTypes();
@@ -17,7 +19,12 @@ export default async function RoomTypesPage() {
                     Añada, edite o elimine los tipos de habitación para su motel.
                     </CardDescription>
                 </div>
-                <AddRoomTypeButton />
+                <Button asChild size="sm">
+                  <Link href="/settings/room-types/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Tipo de Habitación
+                  </Link>
+                </Button>
             </div>
         </CardHeader>
         <CardContent>
