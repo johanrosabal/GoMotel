@@ -27,9 +27,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 
 const registerSchema = z.object({
-  firstName: z.string().min(1, 'El nombre es requerido.'),
-  lastName: z.string().min(1, 'El primer apellido es requerido.'),
-  secondLastName: z.string().optional(),
+  firstName: z.string().min(1, 'El nombre es requerido.').max(25, 'El nombre no debe exceder los 25 caracteres.'),
+  lastName: z.string().min(1, 'El primer apellido es requerido.').max(25, 'El primer apellido no debe exceder los 25 caracteres.'),
+  secondLastName: z.string().max(25, 'El segundo apellido no debe exceder los 25 caracteres.').optional(),
   birthDate: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),

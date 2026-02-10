@@ -47,9 +47,9 @@ export async function login(values: z.infer<typeof loginSchema>) {
 const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
-    firstName: z.string().min(1, 'El nombre es requerido.'),
-    lastName: z.string().min(1, 'El primer apellido es requerido.'),
-    secondLastName: z.string().optional(),
+    firstName: z.string().min(1, 'El nombre es requerido.').max(25, 'El nombre no debe exceder los 25 caracteres.'),
+    lastName: z.string().min(1, 'El primer apellido es requerido.').max(25, 'El primer apellido no debe exceder los 25 caracteres.'),
+    secondLastName: z.string().max(25, 'El segundo apellido no debe exceder los 25 caracteres.').optional(),
     birthDate: z.coerce.date(),
     idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
     phoneNumber: z.string().length(16, 'Formato de teléfono inválido. Use (XXX) XXXX-XXXXX.'),
