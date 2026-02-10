@@ -117,17 +117,20 @@ export default function RegisterPage() {
   };
   
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    const maxLength = 8;
-    const value = rawValue.slice(0, maxLength);
+    let numbers = e.target.value.replace(/\D/g, '');
+    
+    if (numbers.startsWith('506')) {
+      numbers = numbers.substring(3);
+    }
+
+    const value = numbers.slice(0, 8);
 
     let maskedValue = '';
-     if (value.length > 4) {
-      maskedValue = `(506) ${value.slice(0, 4)}-${value.slice(4)}`;
-    } else if (value.length > 0) {
-      maskedValue = `(506) ${value}`;
-    } else {
-        maskedValue = '';
+    if (value.length > 0) {
+      maskedValue = `(506) ${value.slice(0, 4)}`;
+      if (value.length > 4) {
+        maskedValue += `-${value.slice(4)}`;
+      }
     }
 
     fieldOnChange(maskedValue);
@@ -144,13 +147,21 @@ export default function RegisterPage() {
           variant: 'destructive',
         });
       } else {
-        // Also sign in on client to establish session
-        await signInWithEmailAndPassword(auth, values.email, values.password);
-        toast({
-          title: '¡Registro Exitoso!',
-          description: 'Su cuenta ha sido creada.',
-        });
-        router.push('/dashboard');
+        try {
+          // Also sign in on client to establish session
+          await signInWithEmailAndPassword(auth, values.email, values.password);
+          toast({
+            title: '¡Registro Exitoso!',
+            description: 'Su cuenta ha sido creada.',
+          });
+          router.push('/dashboard');
+        } catch (error: any) {
+          toast({
+              title: 'Error de Inicio de Sesión',
+              description: 'Ocurrió un error al iniciar sesión después del registro.',
+              variant: 'destructive',
+          });
+        }
       }
     });
   };
