@@ -48,7 +48,7 @@ const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
   features: z.array(z.string()).optional(),
-  pricePlans: z.array(pricePlanSchema).optional(),
+  pricePlans: z.array(pricePlanSchema).min(1, 'Debe agregar al menos un plan de precios.'),
 });
 
 const unitMap: Record<PricePlan['unit'], string> = {
@@ -82,6 +82,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     },
   });
 
+  const { formState: { errors } } = form;
   const features = form.watch('features', roomType?.features || []);
   const pricePlans = form.watch('pricePlans', roomType?.pricePlans || []);
 
@@ -104,7 +105,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     if (newPlanName.trim() && !isNaN(durationNum) && durationNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
       const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
       if (!pricePlans.some(p => p.name === newPlan.name)) {
-        form.setValue('pricePlans', [...pricePlans, newPlan]);
+        form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
         setNewPlanName('');
         setNewPlanDuration('');
         setNewPlanPrice('');
@@ -119,7 +120,7 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
 
   const handleRemovePlan = (indexToRemove: number) => {
     const newPlans = pricePlans.filter((_, index) => index !== indexToRemove);
-    form.setValue('pricePlans', newPlans);
+    form.setValue('pricePlans', newPlans, { shouldValidate: true });
   };
 
   const onSubmit = (values: z.infer<typeof roomTypeSchema>) => {
@@ -136,11 +137,29 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
     startTransition(async () => {
       const result = await saveRoomType(formData);
       if (result.error) {
-        toast({
-          title: 'Error',
-          description: 'No se pudo guardar el tipo de habitación.',
-          variant: 'destructive',
-        });
+        if (typeof result.error === 'object') {
+          // Validation error object from Zod
+          Object.entries(result.error).forEach(([field, messages]) => {
+            if (messages) {
+              form.setError(field as keyof z.infer<typeof roomTypeSchema>, {
+                type: 'server',
+                message: Array.isArray(messages) ? messages.join(', ') : String(messages),
+              });
+            }
+          });
+          toast({
+            title: 'Error de Validación',
+            description: 'Por favor corrija los campos marcados.',
+            variant: 'destructive',
+          });
+        } else {
+          // Generic error string from the action
+          toast({
+            title: 'Error',
+            description: result.error,
+            variant: 'destructive',
+          });
+        }
       } else {
         toast({
           title: '¡Éxito!',
@@ -315,6 +334,9 @@ export default function EditRoomTypeDialog({ children, roomType }: EditRoomTypeD
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground px-1 pt-2">Aún no se han añadido planes de precios.</p>
+                )}
+                 {errors.pricePlans && (
+                  <p className="text-sm font-medium text-destructive px-1 pt-1">{errors.pricePlans.message}</p>
                 )}
               </div>
             </FormItem>

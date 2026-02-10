@@ -51,7 +51,7 @@ const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
   features: z.array(z.string()).optional(),
-  pricePlans: z.array(pricePlanSchema).optional(),
+  pricePlans: z.array(pricePlanSchema).min(1, 'Debe agregar al menos un plan de precios.'),
 });
 
 export async function saveRoomType(formData: FormData) {
@@ -100,6 +100,9 @@ export async function saveRoomType(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error('Failed to save room type:', error);
+    if (error instanceof Error) {
+        return { error: error.message };
+    }
     return { error: 'Ocurrió un error inesperado.' };
   }
 }
