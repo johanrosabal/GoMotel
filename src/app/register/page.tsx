@@ -34,17 +34,17 @@ const registerSchema = z.object({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
   idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
-  phoneNumber: z.string().length(16, 'Formato de teléfono inválido. Use (XXX) XXXX-XXXXX.'),
+  phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
   whatsappNumber: z.string().optional(),
   email: z.string().email('Por favor ingrese un correo electrónico válido.'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
 }).refine(data => {
     if (data.whatsappNumber && data.whatsappNumber.length > 0) {
-        return data.whatsappNumber.length === 16;
+        return data.whatsappNumber.length === 15;
     }
     return true;
 }, {
-    message: 'Formato de WhatsApp inválido. Use (XXX) XXXX-XXXXX.',
+    message: 'Formato de WhatsApp inválido. Use (506) XXXX-XXXX.',
     path: ['whatsappNumber'],
 });
 
@@ -115,7 +115,7 @@ export default function RegisterPage() {
   
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
     const rawValue = e.target.value.replace(/\D/g, '');
-    const maxLength = 12; // 3 for area code + 4 for next part + 5 for last part
+    const maxLength = 11; // 3 for area code + 8 for number
     const value = rawValue.slice(0, maxLength);
 
     let maskedValue = '';
@@ -307,7 +307,7 @@ export default function RegisterPage() {
                           <FormLabel>Número de Teléfono</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="(506) 0000-00000" 
+                              placeholder="(506) 8888-8888" 
                               {...field}
                               onChange={(e) => handlePhoneChange(e, field.onChange)}
                             />
@@ -324,7 +324,7 @@ export default function RegisterPage() {
                           <FormLabel>WhatsApp (Opcional)</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="(506) 0000-00000"
+                              placeholder="(506) 8888-8888"
                               {...field}
                               onChange={(e) => handlePhoneChange(e, field.onChange)}
                             />

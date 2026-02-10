@@ -52,15 +52,15 @@ const registerSchema = z.object({
     secondLastName: z.string().max(25, 'El segundo apellido no debe exceder los 25 caracteres.').optional(),
     birthDate: z.coerce.date(),
     idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
-    phoneNumber: z.string().length(16, 'Formato de teléfono inválido. Use (XXX) XXXX-XXXXX.'),
+    phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
     whatsappNumber: z.string().optional(),
 }).refine(data => {
     if (data.whatsappNumber && data.whatsappNumber.length > 0) {
-        return data.whatsappNumber.length === 16;
+        return data.whatsappNumber.length === 15;
     }
     return true;
 }, {
-    message: 'Formato de WhatsApp inválido. Use (XXX) XXXX-XXXXX.',
+    message: 'Formato de WhatsApp inválido. Use (506) XXXX-XXXX.',
     path: ['whatsappNumber'],
 });
 
