@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Room, Stay } from '@/types';
+import type { Room, Reservation } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Bell, BedDouble, Sparkles } from 'lucide-react';
@@ -21,42 +21,31 @@ export default function Notifications() {
     return () => clearInterval(timer);
   }, []);
 
-  const roomsQuery = useMemoFirebase(() => {
+  // Query for rooms that need cleaning
+  const cleaningRoomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'rooms'));
+    return query(collection(firestore, 'rooms'), where('status', '==', 'Cleaning'));
   }, [firestore]);
-  const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
+  const { data: cleaningRooms, isLoading: isLoadingCleaningRooms } = useCollection<Room>(cleaningRoomsQuery);
 
-  const activeStaysQuery = useMemoFirebase(() => {
+  // Query for reservations that are currently checked-in
+  const checkedInReservationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'stays'), where('checkOut', '==', null));
+    return query(collection(firestore, 'reservations'), where('status', '==', 'Checked-in'));
   }, [firestore]);
-  const { data: activeStays, isLoading: isLoadingStays } = useCollection<Stay>(activeStaysQuery);
+  const { data: checkedInReservations, isLoading: isLoadingCheckedIn } = useCollection<Reservation>(checkedInReservationsQuery);
 
-  const { overdueRooms, cleaningRooms } = useMemo(() => {
-    if (!rooms || !activeStays) {
-      return { overdueRooms: [], cleaningRooms: [] };
+  // Now, calculate overdue rooms from the checked-in reservations
+  const overdueReservations = useMemo(() => {
+    if (!checkedInReservations) {
+      return [];
     }
+    return checkedInReservations.filter(res => res.checkOutDate.toDate() < now);
+  }, [checkedInReservations, now]);
 
-    const overdueRoomIds = new Set<string>();
-    for (const stay of activeStays) {
-        if(stay.expectedCheckOut.toDate() < now) {
-            const room = rooms.find(r => r.id === stay.roomId);
-            if(room && room.status === 'Occupied') {
-                overdueRoomIds.add(stay.roomId);
-            }
-        }
-    }
+  const totalNotifications = (overdueReservations?.length || 0) + (cleaningRooms?.length || 0);
+  const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn;
 
-    const overdue = rooms.filter(room => overdueRoomIds.has(room.id));
-    const cleaning = rooms.filter(room => room.status === 'Cleaning');
-    
-    return { overdueRooms: overdue, cleaningRooms: cleaning };
-
-  }, [rooms, activeStays, now]);
-
-  const totalNotifications = overdueRooms.length + cleaningRooms.length;
-  const isLoading = isLoadingRooms || isLoadingStays;
 
   return (
     <Popover>
@@ -89,24 +78,24 @@ export default function Notifications() {
           ) : (
             <ScrollArea className="max-h-80">
               <div className="space-y-4">
-                {overdueRooms.length > 0 && (
+                {overdueReservations.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">
                         <BedDouble className="h-4 w-4" />
-                        Estancias Vencidas ({overdueRooms.length})
+                        Estancias Vencidas ({overdueReservations.length})
                     </p>
                     <div className="space-y-1">
-                      {overdueRooms.map(room => (
-                        <Link key={room.id} href={`/rooms/${room.id}`} passHref>
+                      {overdueReservations.map(res => (
+                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref>
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
-                              Habitación <span className="font-bold">{room.number}</span>
+                              Habitación <span className="font-bold">{res.roomNumber}</span>
                           </div>
                         </Link>
                       ))}
                     </div>
                   </div>
                 )}
-                 {cleaningRooms.length > 0 && (
+                 {cleaningRooms && cleaningRooms.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-yellow-600 flex items-center gap-2">
                         <Sparkles className="h-4 w-4" />
