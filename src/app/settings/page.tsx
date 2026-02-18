@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble } from 'lucide-react';
+import { BedDouble, Bell } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -19,6 +19,17 @@ export default function SettingsPage() {
                 <CardContent>
                     <Link href="/settings/room-types">
                         <Button>Administrar</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><Bell /> Sonido de Alarma</CardTitle>
+                    <CardDescription>Seleccione el sonido para las notificaciones de estancias vencidas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/sounds">
+                        <Button>Seleccionar Sonido</Button>
                     </Link>
                 </CardContent>
             </Card>
