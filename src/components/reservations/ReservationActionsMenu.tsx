@@ -2,15 +2,16 @@
 
 import { useTransition, useState } from 'react';
 import type { Reservation } from '@/types';
-import { MoreHorizontal, LogIn, XCircle, LogOut, UserX } from 'lucide-react';
+import { MoreHorizontal, LogIn, XCircle, LogOut, UserX, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation, markAsNoShow } from '@/lib/actions/reservation.actions';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 export default function ReservationActionsMenu({ reservation, className }: { reservation: Reservation, className?: string }) {
     const { toast } = useToast();
@@ -18,8 +19,10 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
     const [isCheckoutAlertOpen, setIsCheckoutAlertOpen] = useState(false);
     const [isNoShowAlertOpen, setIsNoShowAlertOpen] = useState(false);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [checkoutReason, setCheckoutReason] = useState('');
     const [checkoutNotes, setCheckoutNotes] = useState('');
+    const { userProfile } = useUserProfile();
 
     const handleCheckIn = () => {
         startTransition(async () => {
@@ -35,24 +38,24 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     const handleCancel = () => {
         startTransition(async () => {
             const result = await cancelReservation(reservation.id);
+            setIsCancelAlertOpen(false);
             if (result?.error) {
                 toast({ title: 'Error', description: 'No se pudo cancelar la reservación.', variant: 'destructive' });
             } else {
                 toast({ title: 'Reservación Cancelada', description: 'La reservación ha sido cancelada.' });
             }
-            setIsCancelAlertOpen(false);
         });
     }
     
     const handleNoShow = () => {
         startTransition(async () => {
             const result = await markAsNoShow(reservation.id);
+            setIsNoShowAlertOpen(false);
             if (result?.error) {
                 toast({ title: 'Error', description: 'No se pudo anular la reservación.', variant: 'destructive' });
             } else {
                 toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como No-show.' });
             }
-            setIsNoShowAlertOpen(false);
         });
     }
 
@@ -68,14 +71,26 @@ export default function ReservationActionsMenu({ reservation, className }: { res
 
         startTransition(async () => {
             const result = await checkOutEarlyFromReservation(reservation.id, checkoutReason, checkoutNotes);
+            setIsCheckoutAlertOpen(false);
+            setCheckoutReason('');
+            setCheckoutNotes('');
             if (result?.error) {
                 toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
             }
-            setIsCheckoutAlertOpen(false);
-            setCheckoutReason('');
-            setCheckoutNotes('');
+        });
+    };
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const result = await deleteReservation(reservation.id);
+            setIsDeleteAlertOpen(false);
+            if (result?.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Reservación Eliminada', description: 'La reservación ha sido eliminada permanentemente.' });
+            }
         });
     };
 
@@ -112,6 +127,17 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Check-out Anticipado</span>
                         </DropdownMenuItem>
+                    )}
+                    {userProfile?.role === 'Administrador' && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsDeleteAlertOpen(true);}} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar (Admin)
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                        </>
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -190,6 +216,23 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                         <AlertDialogCancel onClick={() => { setCheckoutReason(''); setCheckoutNotes(''); }}>Cerrar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleEarlyCheckOut} disabled={isPending || !checkoutReason}>
                             {isPending ? "Procesando..." : "Confirmar Check-out"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente la reservación para {reservation.guestName}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {isPending ? "Eliminando..." : "Confirmar Eliminación"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

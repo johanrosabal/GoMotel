@@ -10,7 +10,8 @@ import {
   where,
   addDoc,
   getDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -278,5 +279,34 @@ export async function markAsNoShow(reservationId: string) {
     } catch (error) {
         console.error("Error marking reservation as no-show: ", error);
         return { error: 'No se pudo anular la reservación.' };
+    }
+}
+
+export async function deleteReservation(reservationId: string) {
+    if (!reservationId) {
+        return { error: 'ID de reservación no válido.' };
+    }
+
+    try {
+        const reservationRef = doc(db, 'reservations', reservationId);
+        const reservationSnap = await getDoc(reservationRef);
+
+        if (!reservationSnap.exists()) {
+            return { error: 'Reservación no encontrada.' };
+        }
+        
+        const reservation = reservationSnap.data() as Reservation;
+
+        if (reservation.status === 'Checked-in') {
+            return { error: 'No se puede eliminar una reservación con check-in realizado. Realice el check-out primero.' };
+        }
+
+        await deleteDoc(reservationRef);
+
+        revalidatePath('/reservations');
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting reservation: ", error);
+        return { error: 'No se pudo eliminar la reservación.' };
     }
 }
