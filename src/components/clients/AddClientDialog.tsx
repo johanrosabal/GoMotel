@@ -108,7 +108,7 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
   }, [birthDay, birthMonth, birthYear, form]);
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - 18 - i);
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
     label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
