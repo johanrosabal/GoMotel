@@ -17,8 +17,8 @@ import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
 import type { Room, RoomStatus, Stay, Order, RoomType } from '@/types';
 import { z } from 'zod';
-import { formatDistance } from 'date-fns';
-import { es, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
+import { formatDistance, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Helper to convert Firestore doc to Room object
 const toRoomObject = (doc: any): Room => {
