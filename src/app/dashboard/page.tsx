@@ -215,18 +215,22 @@ export default async function DashboardPage() {
                 <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
                 <p className="text-sm text-muted-foreground">{section.description}</p>
                 <Separator className="my-4" />
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {section.links.map((link) => (
-                    <Link key={link.title} href={link.href} className="group">
-                        <Card className="h-full hover:border-primary transition-colors">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-base font-semibold">
-                                    {link.title}
-                                </CardTitle>
-                                <link.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">{link.description}</p>
+                    <Link key={link.title} href={link.href} className="group block">
+                        <Card className="h-full hover:bg-card/70 dark:hover:bg-muted/50 transition-colors duration-200">
+                            <CardContent className="p-5 flex flex-col items-start gap-4">
+                                <div className="bg-muted p-3 rounded-lg flex items-center justify-center">
+                                    <link.icon className="h-6 w-6 text-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-base font-semibold text-foreground">
+                                        {link.title}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {link.description}
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
                     </Link>
