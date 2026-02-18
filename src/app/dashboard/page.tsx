@@ -21,6 +21,7 @@ import {
   BookOpen,
   HelpCircle,
   ArrowRight,
+  CalendarPlus,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -94,6 +95,12 @@ export default async function DashboardPage() {
       scope: 'Flujo de trabajo diario y atención al cliente.',
       description: 'Gestión de habitaciones, servicios y inventario.',
       links: [
+        {
+          href: '/reservations',
+          title: 'Crear Reservaciones',
+          description: 'Agenda futuras estancias para los huéspedes.',
+          icon: CalendarPlus,
+        },
         {
           href: '/inventory',
           title: 'Inventario de Servicios',

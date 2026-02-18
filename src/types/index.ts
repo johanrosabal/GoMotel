@@ -51,6 +51,19 @@ export interface Stay {
   isPaid: boolean;
 }
 
+export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';
+
+export interface Reservation {
+  id: string;
+  roomId: string;
+  guestName: string;
+  guestId?: string;
+  checkInDate: Timestamp;
+  checkOutDate: Timestamp;
+  status: ReservationStatus;
+  createdAt: Timestamp;
+}
+
 export interface OrderItem {
   serviceId: string;
   name: string;

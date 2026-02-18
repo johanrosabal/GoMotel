@@ -1,5 +1,63 @@
 {
   "entities": {
+    "Reservation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reservation",
+      "type": "object",
+      "description": "Represents a future booking for a room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Reservation entity."
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Reference to the Room being reserved."
+        },
+        "guestName": {
+          "type": "string",
+          "description": "Name of the primary guest."
+        },
+        "guestId": {
+          "type": "string",
+          "description": "Reference to the UserProfile of the guest, if available."
+        },
+        "checkInDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The expected check-in date and time."
+        },
+        "checkOutDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The expected check-out date and time."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the reservation.",
+          "enum": [
+            "Confirmed",
+            "Checked-in",
+            "Cancelled",
+            "No-show"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the reservation was created."
+        }
+      },
+      "required": [
+        "id",
+        "roomId",
+        "guestName",
+        "checkInDate",
+        "checkOutDate",
+        "status",
+        "createdAt"
+      ]
+    },
     "Room": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Room",
@@ -444,6 +502,22 @@
             {
               "name": "userId",
               "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reservations/{reservationId}",
+        "definition": {
+          "entityName": "Reservation",
+          "schema": {
+            "$ref": "#/backend/entities/Reservation"
+          },
+          "description": "Stores reservation information. Requires admin or reception privileges to manage.",
+          "params": [
+            {
+              "name": "reservationId",
+              "description": "The unique identifier of the reservation."
             }
           ]
         }
