@@ -33,15 +33,9 @@ const reservationSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
+  checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.'}),
   guestId: z.string().optional(),
   checkInNow: z.boolean().default(false),
-  checkInDate: z.date().optional(),
-}).refine(data => {
-    // If we are not checking in now, we need a check-in date.
-    return data.checkInNow || !!data.checkInDate;
-}, {
-    message: "La fecha de check-in es requerida para futuras reservaciones.",
-    path: ["checkInDate"],
 }).refine(data => {
     // If it's a future reservation, the guest must be a registered client (have a guestId).
     if (!data.checkInNow) {
@@ -273,17 +267,19 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                               )}
                             </CommandGroup>
                           </ScrollArea>
-                          <CommandGroup className="border-t">
+                           <CommandGroup className="border-t">
                             <CommandItem
-                              onSelect={() => {
+                                onSelect={() => {
                                 setPopoverOpen(false);
-                                setAddClientOpen(true);
-                              }}
+                                setTimeout(() => {
+                                    setAddClientOpen(true);
+                                }, 100);
+                                }}
                             >
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Añadir Nuevo Cliente
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Añadir Nuevo Cliente
                             </CommandItem>
-                          </CommandGroup>
+                            </CommandGroup>
                         </CommandList>
                       </Command>
                     </PopoverContent>
