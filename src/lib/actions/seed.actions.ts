@@ -5,17 +5,17 @@ import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import type { Room, Service, RoomStatus, RoomType } from '@/types';
 
-const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status' | 'ratePerHour' | 'description' | 'roomTypeId' | 'roomTypeName'>[] = [
-  { number: '101', type: 'Sencilla', capacity: 1 },
-  { number: '102', type: 'Sencilla', capacity: 2 },
-  { number: '103', type: 'Doble', capacity: 2 },
-  { number: '104', type: 'Doble', capacity: 2 },
-  { number: '201', type: 'Suite', capacity: 2 },
-  { number: '202', type: 'Suite', capacity: 3 },
-  { number: '203', type: 'Sencilla', capacity: 2 },
-  { number: '204', type: 'Doble', capacity: 2 },
-  { number: '301', type: 'Suite', capacity: 4 },
-  { number: '302', type: 'Suite', capacity: 4 },
+const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status' | 'ratePerHour' | 'description' | 'roomTypeId' | 'roomTypeName' | 'capacity'>[] = [
+  { number: '101', type: 'Sencilla' },
+  { number: '102', type: 'Sencilla' },
+  { number: '103', type: 'Doble' },
+  { number: '104', type: 'Doble' },
+  { number: '201', type: 'Suite' },
+  { number: '202', type: 'Suite' },
+  { number: '203', type: 'Sencilla' },
+  { number: '204', type: 'Doble' },
+  { number: '301', type: 'Suite' },
+  { number: '302', type: 'Suite' },
 ];
 
 const initialStatuses: Record<string, RoomStatus> = {
@@ -28,6 +28,7 @@ const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
     { 
         name: 'Sencilla', 
         code: '01', 
+        capacity: 2,
         features: ['Wi-Fi', 'TV', 'Baño Privado'], 
         pricePlans: [
             {name: 'Tarifa por Hora', duration: 1, unit: 'Hours', price: 20}, 
@@ -37,7 +38,8 @@ const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
     },
     { 
         name: 'Doble', 
-        code: '02', 
+        code: '02',
+        capacity: 2,
         features: ['Wi-Fi', 'TV de Pantalla Plana', 'Escritorio'], 
         pricePlans: [
             {name: 'Tarifa por Hora', duration: 1, unit: 'Hours', price: 25}, 
@@ -48,6 +50,7 @@ const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
     { 
         name: 'Suite', 
         code: '03', 
+        capacity: 4,
         features: ['Cama King Size', 'Jacuzzi', 'Minibar', 'Wi-Fi de Alta Velocidad'], 
         pricePlans: [
             {name: 'Tarifa por Hora', duration: 1, unit: 'Hours', price: 40}, 
@@ -96,7 +99,7 @@ export async function seedDatabase() {
 
       const roomData = { 
           number: room.number,
-          capacity: room.capacity,
+          capacity: roomType.capacity,
           type: room.type,
           status,
           roomTypeId: roomType.id,

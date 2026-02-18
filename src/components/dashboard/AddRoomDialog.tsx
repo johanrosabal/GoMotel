@@ -48,7 +48,6 @@ const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
   roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
-  capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
 });
 
 export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDialogProps) {
@@ -62,11 +61,9 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
       id: room.id,
       number: room.number,
       roomTypeId: room.roomTypeId,
-      capacity: room.capacity
     } : {
       number: '',
       roomTypeId: undefined,
-      capacity: 1,
     },
   });
 
@@ -82,6 +79,10 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
         toast({ title: 'Error', description: 'Por favor seleccione un tipo de habitación válido.', variant: 'destructive' });
         return; 
     }
+     if (!rt.capacity) {
+      toast({ title: 'Error', description: 'El tipo de habitación seleccionado no tiene una capacidad definida.', variant: 'destructive' });
+      return;
+    }
 
     const hourlyRatePlan = rt.pricePlans?.find(p => p.unit === 'Hours' && p.duration === 1) || rt.pricePlans?.[0];
     const ratePerHour = hourlyRatePlan ? hourlyRatePlan.price : 0;
@@ -89,7 +90,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
     const formData = new FormData();
     if(values.id) formData.append('id', values.id);
     formData.append('number', values.number);
-    formData.append('capacity', String(values.capacity));
+    formData.append('capacity', String(rt.capacity));
     formData.append('roomTypeId', values.roomTypeId);
     formData.append('roomTypeName', rt.name);
     formData.append('type', rt.name);
@@ -118,7 +119,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) form.reset(room ? { id: room.id, number: room.number, roomTypeId: room.roomTypeId, capacity: room.capacity } : { number: '', roomTypeId: undefined, capacity: 1 });
+        if (!isOpen) form.reset(room ? { id: room.id, number: room.number, roomTypeId: room.roomTypeId } : { number: '', roomTypeId: undefined });
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -132,7 +133,6 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="number"
@@ -146,20 +146,6 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Capacidad</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
             <FormField
               control={form.control}
               name="roomTypeId"
@@ -187,13 +173,19 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
               <div className="space-y-4 pt-2">
                 <Separator />
                 <div className="p-4 rounded-lg border bg-muted/50 space-y-4">
-                    <div>
-                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Tag className="h-4 w-4" />Características</h4>
-                        {selectedRoomType.features && selectedRoomType.features.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {selectedRoomType.features.map(feature => <Badge key={feature} variant="secondary">{feature}</Badge>)}
-                            </div>
-                        ) : <p className="text-sm text-muted-foreground">Sin características definidas.</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" />Capacidad</h4>
+                            <p className="font-semibold">{selectedRoomType.capacity} persona(s)</p>
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Tag className="h-4 w-4" />Características</h4>
+                            {selectedRoomType.features && selectedRoomType.features.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedRoomType.features.map(feature => <Badge key={feature} variant="secondary">{feature}</Badge>)}
+                                </div>
+                            ) : <p className="text-sm text-muted-foreground">Sin características.</p>}
+                        </div>
                     </div>
                     <div>
                         <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" />Planes de Precios</h4>

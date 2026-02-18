@@ -17,6 +17,7 @@ const toRoomTypeObject = (doc: any): RoomType => {
         id: doc.id,
         name: data.name,
         code: data.code,
+        capacity: data.capacity || 1,
         features: data.features || [],
         pricePlans: data.pricePlans || [],
     };

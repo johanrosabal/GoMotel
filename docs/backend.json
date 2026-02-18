@@ -230,6 +230,10 @@
             "type": "string",
             "description": "A unique code for the room type (e.g., 01, 02)."
         },
+        "capacity": {
+          "type": "number",
+          "description": "Maximum number of occupants for this room type."
+        },
         "features": {
           "type": "array",
           "description": "A list of features for this room type.",
@@ -245,7 +249,7 @@
           }
         }
       },
-      "required": ["name", "code"]
+      "required": ["name", "code", "capacity"]
     },
     "UserProfile": {
       "title": "User Profile",

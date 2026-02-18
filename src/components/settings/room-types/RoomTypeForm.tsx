@@ -44,6 +44,7 @@ const pricePlanSchema = z.object({
 const roomTypeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es demasiado corto.'),
+  capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   features: z.array(z.string()).optional(),
   pricePlans: z.array(pricePlanSchema).min(1, 'Debe agregar al menos un plan de precios.'),
 });
@@ -83,10 +84,12 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     resolver: zodResolver(roomTypeSchema),
     defaultValues: roomType ? {
         ...roomType,
+        capacity: roomType.capacity || 1,
         features: roomType.features || [],
         pricePlans: roomType.pricePlans || [],
     } : {
       name: '',
+      capacity: 1,
       features: [],
       pricePlans: [],
     },
@@ -257,6 +260,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
       try {
         const dataToSave: Omit<RoomType, 'id' | 'code'> & { code?: string } = {
           name: values.name,
+          capacity: values.capacity,
           features: values.features || [],
           pricePlans: values.pricePlans || [],
         };
@@ -308,11 +312,12 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 space-y-8">
+                <div className="grid md:grid-cols-3 gap-4">
                   <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                           <FormLabel>Nombre del Tipo de Habitación</FormLabel>
                           <FormControl>
                           <Input
@@ -324,6 +329,20 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       </FormItem>
                       )}
                   />
+                   <FormField
+                      control={form.control}
+                      name="capacity"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Capacidad</FormLabel>
+                          <FormControl>
+                          <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  </div>
 
                   <Separator />
 

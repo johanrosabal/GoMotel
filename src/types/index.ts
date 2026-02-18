@@ -14,6 +14,7 @@ export interface RoomType {
   id: string;
   name: string;
   code: string;
+  capacity: number;
   features?: string[];
   pricePlans?: PricePlan[];
 }
