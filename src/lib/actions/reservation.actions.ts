@@ -16,6 +16,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../firebase';
 import type { Reservation, Stay } from '@/types';
+import { checkOut } from './room.actions';
 
 const reservationActionSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
@@ -193,5 +194,40 @@ export async function checkInFromReservation(reservationId: string) {
     } catch (error) {
         console.error("Check-in from reservation failed: ", error);
         return { error: 'Ocurrió un error inesperado.' };
+    }
+}
+
+export async function checkOutEarlyFromReservation(reservationId: string) {
+    if (!reservationId) {
+        return { error: 'ID de reservación no válido.' };
+    }
+
+    try {
+        // Find the active stay associated with this reservation
+        const staysRef = collection(db, 'stays');
+        const q = query(staysRef, where('reservationId', '==', reservationId), where('checkOut', '==', null));
+        const staySnapshot = await getDocs(q);
+
+        if (staySnapshot.empty) {
+            return { error: 'No se encontró una estancia activa para esta reservación.' };
+        }
+
+        const stayDoc = staySnapshot.docs[0];
+        const stayId = stayDoc.id;
+        const roomId = stayDoc.data().roomId;
+
+        // Use the existing checkOut logic
+        const result = await checkOut(stayId, roomId);
+
+        if (result.error) {
+            return { error: result.error };
+        }
+
+        revalidatePath('/reservations');
+        return { success: true };
+
+    } catch (error) {
+        console.error("Early check-out from reservation failed: ", error);
+        return { error: 'Ocurrió un error inesperado durante el check-out anticipado.' };
     }
 }
