@@ -12,11 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import ExtendStayDialog from '../room-detail/ExtendStayDialog';
 
-interface RoomGridProps {
-  initialRooms: Room[];
-}
-
-export default function RoomGrid({ initialRooms }: RoomGridProps) {
+export default function RoomGrid() {
   const { firestore } = useFirebase();
   const [overdueRooms, setOverdueRooms] = useState<Set<string>>(new Set());
   const notifiedOverdueRooms = useRef(new Set<string>());

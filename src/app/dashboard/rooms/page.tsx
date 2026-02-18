@@ -44,7 +44,7 @@ export default async function DashboardRoomsPage() {
           </CardContent>
         ) : (
             <CardContent>
-                <RoomGrid initialRooms={rooms} />
+                <RoomGrid />
             </CardContent>
         )}
       </Card>
