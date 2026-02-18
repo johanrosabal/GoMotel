@@ -38,6 +38,32 @@ const categoryMap: Record<Service['category'], string> = {
   Amenity: 'Amenidad',
 };
 
+function ActionsCell({ service, allServices }: { service: Service, allServices: Service[] }) {
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button aria-haspopup="true" size="icon" variant="ghost">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Toggle menu</span>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>Editar</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <EditServiceDialog service={service} allServices={allServices} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+            <DeleteServiceAlert serviceId={service.id} open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} />
+        </>
+    );
+}
+
 export default function InventoryTable({ initialServices, allServices }: InventoryTableProps) {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [loading, setLoading] = useState(initialServices.length === 0);
@@ -102,24 +128,7 @@ export default function InventoryTable({ initialServices, allServices }: Invento
                 </TableCell>
                 <TableCell className="text-right">{service.stock}</TableCell>
                 <TableCell>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <EditServiceDialog service={service} allServices={allServices}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Editar</DropdownMenuItem>
-                    </EditServiceDialog>
-                    <DeleteServiceAlert serviceId={service.id}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
-                    </DeleteServiceAlert>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    <ActionsCell service={service} allServices={allServices} />
                 </TableCell>
             </TableRow>
             ))}

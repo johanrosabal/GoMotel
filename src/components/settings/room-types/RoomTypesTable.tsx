@@ -25,31 +25,35 @@ import type { RoomType } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
 
 interface RoomTypesTableProps {
   roomTypes: RoomType[];
 }
 
 function ActionsMenu({ roomType }: { roomType: RoomType }) {
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button aria-haspopup="true" size="icon" variant="ghost">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <Link href={`/settings/room-types/edit/${roomType.id}`}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Editar</DropdownMenuItem>
-                </Link>
-                <DeleteRoomTypeAlert roomTypeId={roomType.id}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
-                </DeleteRoomTypeAlert>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Toggle menu</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href={`/settings/room-types/edit/${roomType.id}`}>Editar</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <DeleteRoomTypeAlert roomTypeId={roomType.id} open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} />
+        </>
     );
 }
 

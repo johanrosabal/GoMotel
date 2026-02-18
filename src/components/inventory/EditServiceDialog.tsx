@@ -35,9 +35,11 @@ import { saveService } from '@/lib/actions/service.actions';
 import type { Service } from '@/types';
 
 interface EditServiceDialogProps {
-  children: ReactNode;
+  children?: ReactNode;
   service?: Service;
   allServices: Service[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const serviceSchema = z.object({
@@ -48,8 +50,11 @@ const serviceSchema = z.object({
   category: z.enum(['Food', 'Beverage', 'Amenity']),
 });
 
-export default function EditServiceDialog({ children, service, allServices }: EditServiceDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function EditServiceDialog({ children, service, allServices, open: controlledOpen, onOpenChange: setControlledOpen }: EditServiceDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
+  
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -92,7 +97,7 @@ export default function EditServiceDialog({ children, service, allServices }: Ed
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{service ? 'Editar Servicio' : 'Añadir Nuevo Servicio'}</DialogTitle>

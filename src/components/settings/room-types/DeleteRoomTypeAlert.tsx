@@ -18,18 +18,24 @@ import { useFirebase } from '@/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 
 interface DeleteRoomTypeAlertProps {
-  children: ReactNode;
+  children?: ReactNode;
   roomTypeId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function DeleteRoomTypeAlert({ children, roomTypeId }: DeleteRoomTypeAlertProps) {
-  const [open, setOpen] = useState(false);
+export default function DeleteRoomTypeAlert({ children, roomTypeId, open: controlledOpen, onOpenChange: setControlledOpen }: DeleteRoomTypeAlertProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
+
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const router = useRouter();
 
   const handleDelete = () => {
+    setOpen(false);
     startTransition(async () => {
       try {
         await deleteDoc(doc(firestore, 'roomTypes', roomTypeId));
@@ -44,15 +50,13 @@ export default function DeleteRoomTypeAlert({ children, roomTypeId }: DeleteRoom
           description: error.message || 'No se pudo eliminar el tipo de habitación.',
           variant: 'destructive',
         });
-      } finally {
-        setOpen(false);
       }
     });
   };
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      {children && <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>

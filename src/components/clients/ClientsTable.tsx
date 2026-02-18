@@ -21,18 +21,16 @@ function ActionsMenu({ client }: { client: Client }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const handleDelete = () => {
+        setIsDeleteDialogOpen(false);
         startTransition(async () => {
-            try {
-                const result = await deleteClient(client.id);
-                if (result.error) {
-                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
-                } else {
-                    toast({ title: 'Cliente Eliminado', description: 'El cliente ha sido eliminado exitosamente.' });
-                }
-            } finally {
-                setIsDeleteDialogOpen(false);
+            const result = await deleteClient(client.id);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Cliente Eliminado', description: 'El cliente ha sido eliminado exitosamente.' });
             }
         });
     }
@@ -48,19 +46,20 @@ function ActionsMenu({ client }: { client: Client }) {
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <AddClientDialog client={client}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar Ficha
-                        </DropdownMenuItem>
-                    </AddClientDialog>
+                    <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Ficha
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsDeleteDialogOpen(true); }} className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Eliminar Cliente
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            
+            <AddClientDialog client={client} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

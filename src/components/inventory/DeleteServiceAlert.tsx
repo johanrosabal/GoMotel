@@ -17,40 +17,42 @@ import { useToast } from '@/hooks/use-toast';
 import { deleteService } from '@/lib/actions/service.actions';
 
 interface DeleteServiceAlertProps {
-  children: ReactNode;
+  children?: ReactNode;
   serviceId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function DeleteServiceAlert({ children, serviceId }: DeleteServiceAlertProps) {
-  const [open, setOpen] = useState(false);
+export default function DeleteServiceAlert({ children, serviceId, open: controlledOpen, onOpenChange: setControlledOpen }: DeleteServiceAlertProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
+  
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleDelete = () => {
+    setOpen(false);
     startTransition(async () => {
-      try {
-        const result = await deleteService(serviceId);
-        if (result.error) {
-          toast({
-            title: 'Error',
-            description: 'No se pudo eliminar el servicio.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: '¡Éxito!',
-            description: 'El servicio ha sido eliminado.',
-          });
-        }
-      } finally {
-        setOpen(false);
+      const result = await deleteService(serviceId);
+      if (result.error) {
+        toast({
+          title: 'Error',
+          description: 'No se pudo eliminar el servicio.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '¡Éxito!',
+          description: 'El servicio ha sido eliminado.',
+        });
       }
     });
   };
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      {children && <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>

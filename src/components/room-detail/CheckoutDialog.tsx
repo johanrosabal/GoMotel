@@ -33,16 +33,13 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
 
   const handleCheckout = () => {
     if (!stay || !room) return;
+    setOpen(false);
     startTransition(async () => {
-      try {
-        const result = await checkOut(stay.id, room.id);
-        if (result.error) {
-          toast({ title: 'Falló el Check-Out', description: result.error, variant: 'destructive' });
-        } else {
-          toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
-        }
-      } finally {
-        setOpen(false);
+      const result = await checkOut(stay.id, room.id);
+      if (result.error) {
+        toast({ title: 'Falló el Check-Out', description: result.error, variant: 'destructive' });
+      } else {
+        toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
       }
     });
   };
