@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type ReactNode, useMemo, useEffect } from 'react';
+import { useState, useTransition, type ReactNode, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,11 +38,12 @@ import { DollarSign, Tag, Users } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import Link from 'next/link';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
 
 interface AddRoomDialogProps {
   children: ReactNode;
   room?: Room;
-  roomTypes: RoomType[];
 }
 
 const roomSchema = z.object({
@@ -51,10 +52,17 @@ const roomSchema = z.object({
   roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
 });
 
-export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDialogProps) {
+export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  const { firestore } = useFirebase();
+  const roomTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'roomTypes'), fbOrderBy('name'));
+  }, [firestore]);
+  const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
 
   const form = useForm<z.infer<typeof roomSchema>>({
     resolver: zodResolver(roomSchema),
@@ -71,11 +79,11 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
   const selectedRoomTypeId = form.watch('roomTypeId');
 
   const selectedRoomType = useMemo(() => {
-    return roomTypes.find(rt => rt.id === selectedRoomTypeId);
+    return roomTypes?.find(rt => rt.id === selectedRoomTypeId);
   }, [selectedRoomTypeId, roomTypes]);
 
   const onSubmit = (values: z.infer<typeof roomSchema>) => {
-    const rt = roomTypes.find(rt => rt.id === values.roomTypeId);
+    const rt = roomTypes?.find(rt => rt.id === values.roomTypeId);
     if (!rt) { 
         toast({ title: 'Error', description: 'Por favor seleccione un tipo de habitación válido.', variant: 'destructive' });
         return; 
@@ -90,7 +98,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
     
     const formData = new FormData();
     if(values.id) formData.append('id', values.id);
-    formData.append('number', values.number.padStart(3, '0')); // Pad before saving
+    formData.append('number', values.number.padStart(3, '0'));
     formData.append('capacity', String(rt.capacity));
     formData.append('roomTypeId', values.roomTypeId);
     formData.append('roomTypeName', rt.name);
@@ -142,8 +150,8 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                   <FormLabel>Tipo de Habitación</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un tipo" />
+                      <SelectTrigger disabled={isLoadingRoomTypes}>
+                        <SelectValue placeholder={isLoadingRoomTypes ? "Cargando tipos..." : "Seleccione un tipo"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -225,7 +233,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
             )}
            
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || isLoadingRoomTypes}>
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}
               </Button>
             </DialogFooter>
