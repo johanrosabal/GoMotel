@@ -16,9 +16,12 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut } from 'lucide-react';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { Skeleton } from './ui/skeleton';
 
 export default function UserMenu() {
-  const { user, isUserLoading, auth } = useFirebase();
+  const { user, auth, isUserLoading } = useFirebase();
+  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -40,8 +43,18 @@ export default function UserMenu() {
     }
   };
 
-  if (isUserLoading) {
-    return <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />;
+  const isLoading = isUserLoading || (user && isProfileLoading);
+
+  if (isLoading) {
+    return (
+        <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="hidden md:flex flex-col gap-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+            </div>
+        </div>
+    );
   }
 
   if (!user) {
@@ -57,25 +70,36 @@ export default function UserMenu() {
     );
   }
 
-  const getInitials = (email: string | null) => {
-    if (!email) return 'U';
-    return email[0].toUpperCase();
+  const getInitials = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName[0]}${userProfile.lastName[0]}`;
+    }
+    if (user.email) return user.email[0].toUpperCase();
+    return 'U';
   };
+  
+  const fullName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user.email;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-             <AvatarImage src={user.photoURL || ''} alt={user.email || ''} />
-            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-          </Avatar>
-        </Button>
+        <button className="flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all hover:bg-muted p-1 md:pr-3 text-left">
+            <Avatar className="h-8 w-8 border shadow-sm">
+                <AvatarImage src={userProfile?.photoURL || user.photoURL || ''} alt={fullName || ''} />
+                <AvatarFallback>{getInitials()}</AvatarFallback>
+            </Avatar>
+            <div className="hidden text-left text-xs md:block">
+                <p className="font-bold leading-none">{fullName}</p>
+                {userProfile?.role && (
+                    <p className="mt-1 text-[10px] font-semibold uppercase text-primary/70">{userProfile.role}</p>
+                )}
+            </div>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Mi Cuenta</p>
+            <p className="text-sm font-medium leading-none">{fullName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
