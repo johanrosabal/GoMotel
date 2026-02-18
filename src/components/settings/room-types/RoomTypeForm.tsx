@@ -66,10 +66,13 @@ const numberToCrcString = (num: number): string => {
     if (isNaN(num)) return '';
     // Format to a string like "1.234,56"
     return new Intl.NumberFormat('es-CR', {
+        style: 'currency',
+        currency: 'CRC',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }).format(num);
+    }).format(num).replace('CRC', '').trim();
 };
+
 
 export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFormProps) {
   const [isPending, startTransition] = useTransition();
@@ -114,17 +117,34 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
-    if (newFeature.trim()) {
-      const filtered = allGlobalFeatures.filter(
-        (f) =>
-          f.toLowerCase().includes(newFeature.toLowerCase()) &&
-          !features.includes(f)
-      );
-      setSuggestions(filtered);
+    const trimmedInput = newFeature.trim();
+    if (trimmedInput) {
+        // Find existing global features that match the input
+        const filteredGlobalSuggestions = allGlobalFeatures.filter(f => 
+            f.toLowerCase().includes(trimmedInput.toLowerCase()) && 
+            !features.includes(f) // Exclude features already added to this room type
+        );
+        
+        // Check if the user's exact input is already in the list of added features
+        const isAlreadyAdded = features.some(f => f.toLowerCase() === trimmedInput.toLowerCase());
+        
+        // Check if the user's exact input is already in the filtered suggestions list
+        const exactMatchExists = filteredGlobalSuggestions.some(f => f.toLowerCase() === trimmedInput.toLowerCase());
+
+        // If the user's input is something new (not added, not an existing global feature)
+        if (!isAlreadyAdded && !exactMatchExists) {
+            // Prepend the new feature to the suggestions list to be rendered as "Create..."
+            setSuggestions([trimmedInput, ...filteredGlobalSuggestions]);
+        } else {
+            // Otherwise, just show the filtered existing features
+            setSuggestions(filteredGlobalSuggestions);
+        }
     } else {
-      setSuggestions([]);
+        // Clear suggestions if input is empty
+        setSuggestions([]);
     }
   }, [newFeature, allGlobalFeatures, features]);
+
 
   const handleAddFeature = (featureToAdd?: string) => {
     const feature = (featureToAdd || newFeature).trim();
@@ -142,30 +162,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
-
-    // 1. Sanitize: Remove anything that's not a digit or a comma
-    let sanitizedValue = rawValue.replace(/[^\d,]/g, '');
-    
-    // 2. Ensure only one comma exists
-    const parts = sanitizedValue.split(',');
-    if (parts.length > 2) {
-        sanitizedValue = parts[0] + ',' + parts.slice(1).join('');
-    }
-
-    // 3. Limit decimals to 2 digits
-    if (parts[1] && parts[1].length > 2) {
-        sanitizedValue = parts[0] + ',' + parts[1].substring(0, 2);
-    }
-
-    // 4. Format integer part with thousand separators
-    const [integerPart, decimalPart] = sanitizedValue.split(',');
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    
-    const finalValue = decimalPart !== undefined 
-        ? `${formattedInteger},${decimalPart}`
-        : formattedInteger;
-
-    setNewPlanPrice(finalValue);
+    const sanitizedValue = rawValue.replace(/[^\d,.]/g, '').replace(/\./g, '');
+    setNewPlanPrice(sanitizedValue);
   };
 
   const handleSavePlan = () => {
@@ -250,10 +248,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
           await addDoc(collection(firestore, 'roomTypes'), dataToSave);
         }
         
-        toast({
-          title: '¡Éxito!',
-          description: 'El tipo de habitación ha sido guardado.',
-        });
         router.push('/settings/room-types');
 
       } catch (error: any) {
@@ -278,244 +272,253 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     <Form {...form}>
        <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
-          <CardContent className="p-0">
-            <div className="p-6 h-[calc(100vh-280px)]">
-              <ScrollArea className="h-full pr-6 -mr-6">
-                <div className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nombre del Tipo de Habitación</FormLabel>
-                            <FormControl>
-                            <Input
-                                placeholder="p.ej., Suite Presidencial"
-                                {...field}
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+          <CardContent className="p-6">
+            <ScrollArea className="h-full">
+              <div className="space-y-6">
+                  <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Nombre del Tipo de Habitación</FormLabel>
+                          <FormControl>
+                          <Input
+                              placeholder="p.ej., Suite Presidencial"
+                              {...field}
+                          />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
 
-                    <FormItem>
-                        <FormLabel>Características</FormLabel>
-                        <div className="relative">
-                          <div className="flex items-center gap-2">
-                              <Input
-                                  placeholder="p.ej. Wi-Fi de alta velocidad"
-                                  value={newFeature}
-                                  onChange={(e) => setNewFeature(e.target.value)}
-                                  onKeyDown={handleEnterKey}
-                                  onFocus={() => setShowSuggestions(true)}
-                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                              />
-                              <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => handleAddFeature()}
-                              >
-                                  <Plus className="h-4 w-4" />
-                                  <span className="sr-only">Añadir Característica</span>
-                              </Button>
-                          </div>
-                           {showSuggestions && suggestions.length > 0 && (
-                              <div className="absolute z-10 w-full bg-card border rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto">
-                                  {suggestions.map((suggestion) => (
-                                      <div
-                                          key={suggestion}
-                                          className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
-                                          onMouseDown={() => handleAddFeature(suggestion)} // use onMouseDown to fire before onBlur
-                                      >
-                                          {suggestion}
-                                      </div>
-                                  ))}
-                              </div>
-                          )}
-                        </div>
-                        <div className="space-y-2 pt-2">
-                        {features.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                            {features.map((feature, index) => (
-                                <Badge
-                                key={index}
-                                variant="secondary"
-                                className="pl-2 pr-1 py-0.5 text-sm"
-                                >
-                                {feature}
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemoveFeature(index)}
-                                    className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                                    aria-label={`Eliminar ${feature}`}
-                                >
-                                    <X className="h-3 w-3" />
-                                </button>
-                                </Badge>
-                            ))}
-                            </div>
-                        ) : (
-                            <p className="text-xs text-muted-foreground px-1">
-                            Aún no se han añadido características.
-                            </p>
-                        )}
-                        </div>
-                    </FormItem>
-
-                    <Separator />
-
-                    <FormItem>
-                        <FormLabel>Planes de Precios</FormLabel>
-                        <div className="p-4 border rounded-lg space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
-                            <div className="space-y-1 sm:col-span-4">
-                            <Label htmlFor="plan-name" className="text-xs">
-                                Nombre
-                            </Label>
-                            <Input
-                                id="plan-name"
-                                placeholder="p.ej. Tarifa Nocturna"
-                                value={newPlanName}
-                                onChange={(e) => setNewPlanName(e.target.value)}
-                            />
-                            </div>
-                            <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-duration" className="text-xs">
-                                Duración
-                            </Label>
-                            <Input
-                                id="plan-duration"
-                                type="number"
-                                placeholder="8"
-                                value={newPlanDuration}
-                                onChange={(e) => setNewPlanDuration(e.target.value)}
-                                className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                            </div>
-                            <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-unit" className="text-xs">
-                                Unidad
-                            </Label>
-                            <Select
-                                value={newPlanUnit}
-                                onValueChange={(value) =>
-                                setNewPlanUnit(value as any)
-                                }
-                            >
-                                <FormControl>
-                                <SelectTrigger id="plan-unit">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                <SelectItem value="Hours">Horas</SelectItem>
-                                <SelectItem value="Days">Días</SelectItem>
-                                <SelectItem value="Weeks">Semanas</SelectItem>
-                                <SelectItem value="Months">Meses</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            </div>
-                            <div className="space-y-1 sm:col-span-2">
-                            <Label htmlFor="plan-price" className="text-xs">
-                                Precio (₡)
-                            </Label>
-                            <Input
-                                id="plan-price"
-                                type="text"
-                                placeholder="10.000,00"
-                                value={newPlanPrice}
-                                onChange={handlePriceChange}
-                                className="text-right"
-                            />
-                            </div>
-                        </div>
+                  <FormItem>
+                      <FormLabel>Características</FormLabel>
+                      <div className="relative">
                         <div className="flex items-center gap-2">
+                            <Input
+                                placeholder="p.ej. Wi-Fi de alta velocidad"
+                                value={newFeature}
+                                onChange={(e) => setNewFeature(e.target.value)}
+                                onKeyDown={handleEnterKey}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                            />
                             <Button
                                 type="button"
-                                onClick={handleSavePlan}
-                                className="w-full sm:w-auto"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleAddFeature()}
                             >
-                                <Plus className="h-4 w-4 mr-2" />
-                                {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
+                                <Plus className="h-4 w-4" />
+                                <span className="sr-only">Añadir Característica</span>
                             </Button>
-                            {editingPlanIndex !== null && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={handleCancelEdit}
-                                >
-                                    Cancelar
-                                </Button>
-                            )}
                         </div>
-                        </div>
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute z-10 w-full bg-card border rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto">
+                                {suggestions.map((suggestion) => {
+                                    const isNew = !allGlobalFeatures.some(f => f.toLowerCase() === suggestion.toLowerCase());
+                                    return (
+                                        <div
+                                            key={suggestion}
+                                            className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                                            onMouseDown={() => handleAddFeature(suggestion)}
+                                        >
+                                           {isNew ? (
+                                                <span className="flex items-center gap-2 text-muted-foreground">
+                                                    <Plus className="h-4 w-4" />
+                                                    <span>Añadir: <span className="font-semibold text-foreground">"{suggestion}"</span></span>
+                                                </span>
+                                           ) : (
+                                               suggestion
+                                           )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                      </div>
+                      <div className="space-y-2 pt-2">
+                      {features.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                          {features.map((feature, index) => (
+                              <Badge
+                              key={index}
+                              variant="secondary"
+                              className="pl-2 pr-1 py-0.5 text-sm"
+                              >
+                              {feature}
+                              <button
+                                  type="button"
+                                  onClick={() => handleRemoveFeature(index)}
+                                  className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
+                                  aria-label={`Eliminar ${feature}`}
+                              >
+                                  <X className="h-3 w-3" />
+                              </button>
+                              </Badge>
+                          ))}
+                          </div>
+                      ) : (
+                          <p className="text-xs text-muted-foreground px-1">
+                          Aún no se han añadido características.
+                          </p>
+                      )}
+                      </div>
+                  </FormItem>
 
-                        <div className="space-y-2 pt-2">
-                        {pricePlans.length > 0 ? (
-                        <div className="rounded-md border">
-                            <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>Duración</TableHead>
-                                <TableHead className="text-right">Precio</TableHead>
-                                <TableHead className="text-right w-[100px]">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {pricePlans.map((plan, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{plan.name}</TableCell>
-                                    <TableCell>{`${plan.duration} ${
-                                    plan.duration === 1
-                                        ? unitMap[plan.unit].replace(/s$/, '')
-                                        : unitMap[plan.unit]
-                                    }`}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
-                                    <TableCell className="text-right">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                        onClick={() => handleEditPlan(index)}
-                                        aria-label={`Editar ${plan.name}`}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        onClick={() => handleRemovePlan(index)}
-                                        aria-label={`Eliminar ${plan.name}`}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                            </Table>
-                        </div>
-                        ) : (
-                        <p className="text-xs text-muted-foreground px-1 pt-2">
-                            Aún no se han añadido planes de precios.
-                        </p>
-                        )}
-                        {errors.pricePlans && (
-                        <p className="text-sm font-medium text-destructive px-1 pt-1">
-                            {errors.pricePlans.message}
-                        </p>
-                        )}
-                    </div>
-                    </FormItem>
-                </div>
-              </ScrollArea>
-            </div>
+                  <Separator />
+
+                  <FormItem>
+                      <FormLabel>Planes de Precios</FormLabel>
+                      <div className="p-4 border rounded-lg space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
+                          <div className="space-y-1 sm:col-span-4">
+                          <Label htmlFor="plan-name" className="text-xs">
+                              Nombre
+                          </Label>
+                          <Input
+                              id="plan-name"
+                              placeholder="p.ej. Tarifa Nocturna"
+                              value={newPlanName}
+                              onChange={(e) => setNewPlanName(e.target.value)}
+                          />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                          <Label htmlFor="plan-duration" className="text-xs">
+                              Duración
+                          </Label>
+                          <Input
+                              id="plan-duration"
+                              type="number"
+                              placeholder="8"
+                              value={newPlanDuration}
+                              onChange={(e) => setNewPlanDuration(e.target.value)}
+                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                          <Label htmlFor="plan-unit" className="text-xs">
+                              Unidad
+                          </Label>
+                          <Select
+                              value={newPlanUnit}
+                              onValueChange={(value) =>
+                              setNewPlanUnit(value as any)
+                              }
+                          >
+                              <FormControl>
+                              <SelectTrigger id="plan-unit">
+                                  <SelectValue />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              <SelectItem value="Hours">Horas</SelectItem>
+                              <SelectItem value="Days">Días</SelectItem>
+                              <SelectItem value="Weeks">Semanas</SelectItem>
+                              <SelectItem value="Months">Meses</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                          <Label htmlFor="plan-price" className="text-xs">
+                              Precio (₡)
+                          </Label>
+                          <Input
+                              id="plan-price"
+                              type="text"
+                              inputMode='decimal'
+                              placeholder="10.000,00"
+                              value={newPlanPrice}
+                              onChange={handlePriceChange}
+                              className="text-right"
+                          />
+                          </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <Button
+                              type="button"
+                              onClick={handleSavePlan}
+                              className="w-full sm:w-auto"
+                          >
+                              <Plus className="h-4 w-4 mr-2" />
+                              {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
+                          </Button>
+                          {editingPlanIndex !== null && (
+                              <Button
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={handleCancelEdit}
+                              >
+                                  Cancelar
+                              </Button>
+                          )}
+                      </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                      {pricePlans.length > 0 ? (
+                      <div className="rounded-md border">
+                          <Table>
+                          <TableHeader>
+                              <TableRow>
+                              <TableHead>Nombre</TableHead>
+                              <TableHead>Duración</TableHead>
+                              <TableHead className="text-right">Precio</TableHead>
+                              <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {pricePlans.map((plan, index) => (
+                              <TableRow key={index}>
+                                  <TableCell className="font-medium">{plan.name}</TableCell>
+                                  <TableCell>{`${plan.duration} ${
+                                  plan.duration === 1
+                                      ? unitMap[plan.unit].replace(/s$/, '')
+                                      : unitMap[plan.unit]
+                                  }`}</TableCell>
+                                  <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
+                                  <TableCell className="text-right">
+                                  <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                      onClick={() => handleEditPlan(index)}
+                                      aria-label={`Editar ${plan.name}`}
+                                  >
+                                      <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleRemovePlan(index)}
+                                      aria-label={`Eliminar ${plan.name}`}
+                                  >
+                                      <X className="h-4 w-4" />
+                                  </Button>
+                                  </TableCell>
+                              </TableRow>
+                              ))}
+                          </TableBody>
+                          </Table>
+                      </div>
+                      ) : (
+                      <p className="text-xs text-muted-foreground px-1 pt-2">
+                          Aún no se han añadido planes de precios.
+                      </p>
+                      )}
+                      {errors.pricePlans && (
+                      <p className="text-sm font-medium text-destructive px-1 pt-1">
+                          {errors.pricePlans.message}
+                      </p>
+                      )}
+                      </div>
+                  </FormItem>
+              </div>
+            </ScrollArea>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
               <Button asChild variant="outline" type="button">
