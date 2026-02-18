@@ -20,15 +20,18 @@ import { realtimeOrderStatusUpdates } from '@/ai/flows/realtime-order-status-upd
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatCurrency } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
     return (
-        <div className="flex items-start">
-            <Icon className="h-5 w-5 text-muted-foreground mr-3 mt-1 flex-shrink-0" />
+        <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                 <Icon className="h-5 w-5" />
+            </div>
             <div>
-                <p className="text-sm font-medium text-muted-foreground">{label}</p>
-                <p className="text-base font-semibold">{value || 'N/D'}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+                <p className="text-sm font-bold">{value || 'N/D'}</p>
             </div>
         </div>
     )
@@ -136,9 +139,9 @@ export default function RoomDetailsPage() {
     if (loading) {
         return (
             <div className="container py-4 sm:py-6 lg:py-8">
-                <div className="space-y-6">
-                    <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-64 w-full" />
+                <div className="grid md:grid-cols-3 gap-6">
+                    <Skeleton className="h-96 w-full md:col-span-1" />
+                    <Skeleton className="h-96 w-full md:col-span-2" />
                 </div>
             </div>
         )
@@ -203,7 +206,7 @@ export default function RoomDetailsPage() {
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <CardTitle className="text-4xl">Habitación {room.number}</CardTitle>
+                                    <CardTitle className="text-5xl font-bold">Habitación {room.number}</CardTitle>
                                     <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
@@ -217,31 +220,35 @@ export default function RoomDetailsPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-4">
-                                <InfoRow label="Tipo" value={room.type} icon={Bed} />
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4">
+                                <InfoRow label="Tipo" value={room.roomTypeName} icon={Bed} />
                                 <InfoRow label="Capacidad" value={`${room.capacity} persona(s)`} icon={Users} />
                                 {room.description && <InfoRow label="Descripción" value={room.description} icon={Info} />}
                             </div>
 
                             {stay && (
-                                <div className="space-y-4 border-t pt-4 mt-4">
-                                    <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
-                                    <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
-                                </div>
+                                <>
+                                    <Separator />
+                                    <div className="grid gap-4">
+                                        <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
+                                        <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
+                                    </div>
+                                </>
                             )}
                             <div className="pt-4">{renderRoomActions()}</div>
                         </CardContent>
                     </Card>
                 </div>
-                <div className="md:col-span-2 space-y-6">
-                    {room.status === 'Occupied' && stay && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Detalles de la Estancia Actual</CardTitle>
-                                <CardDescription>Servicios y pedidos para el huésped actual.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
+                <div className="md:col-span-2">
+                     <Card className="h-full flex flex-col">
+                        <CardHeader>
+                            <CardTitle>Detalles de la Estancia Actual</CardTitle>
+                            <CardDescription>Servicios y pedidos para el huésped actual.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-grow">
+                             {room.status === 'Occupied' && stay ? (
+                                <>
                                 {orders.length > 0 ? (
                                     <ul className="space-y-4">
                                         {orders.map(order => (
@@ -266,14 +273,19 @@ export default function RoomDetailsPage() {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <div className="text-center py-8 text-muted-foreground">
+                                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed">
                                         <ConciergeBell className="mx-auto h-12 w-12" />
-                                        <p className="mt-2">Aún no se han pedido servicios para esta estancia.</p>
+                                        <p className="mt-4">Aún no se han pedido servicios para esta estancia.</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    )}
+                                </>
+                            ) : (
+                                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed">
+                                    <p>No hay una estancia activa en esta habitación.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
