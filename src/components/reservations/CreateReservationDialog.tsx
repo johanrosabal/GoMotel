@@ -285,17 +285,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
-            <Controller
-                control={form.control}
-                name="checkInDate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                        <DateTimePicker date={field.value} setDate={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
              <FormField
               control={form.control}
               name="pricePlanName"
@@ -320,7 +309,18 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
-
+            <Controller
+                control={form.control}
+                name="checkInDate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                        <DateTimePicker date={field.value} setDate={field.onChange} />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            
             {checkOutDateValue && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground font-medium">
