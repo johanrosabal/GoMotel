@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import StatusBadge from './StatusBadge';
 import type { Room } from '@/types';
 import { BedDouble, Sparkles, Wrench, User } from 'lucide-react';
@@ -20,15 +20,18 @@ export default function RoomCard({ room }: RoomCardProps) {
   const { icon: Icon, color } = statusConfig[room.status];
   
   return (
-    <Link href={`/rooms/${room.id}`} className="block">
-      <Card className={cn("hover:shadow-lg transition-shadow duration-200 border-l-4", color)}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-2xl font-bold">
-            {room.number}
-          </CardTitle>
+    <Link href={`/rooms/${room.id}`} className="block h-full">
+      <Card className={cn("hover:shadow-lg transition-shadow duration-200 border-l-4 flex flex-col h-full", color)}>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              {room.number}
+            </CardTitle>
+            <CardDescription className="text-xs font-semibold !mt-1">{room.roomTypeName || room.type}</CardDescription>
+          </div>
           <Icon className="h-6 w-6 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="mt-auto">
           <StatusBadge status={room.status} />
         </CardContent>
       </Card>
