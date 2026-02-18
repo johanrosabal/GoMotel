@@ -139,11 +139,17 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                 name="number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Número</FormLabel>
+                    <FormLabel className="sr-only">Número de Habitación</FormLabel>
                     <FormControl>
-                      <Input placeholder="p.ej., 101" {...field} />
+                      <Input
+                        placeholder="101"
+                        {...field}
+                        type="number"
+                        min="0"
+                        className="text-7xl font-bold text-center h-32 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-center" />
                   </FormItem>
                 )}
               />
