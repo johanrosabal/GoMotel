@@ -83,10 +83,21 @@ export default {
             height: '0',
           },
         },
+        'overdue-pulse': {
+          '0%, 100%': { 
+            backgroundColor: 'hsl(var(--card))',
+            borderColor: 'hsl(var(--destructive))' 
+          },
+          '50%': { 
+            backgroundColor: 'hsl(var(--destructive) / 0.1)',
+            borderColor: 'hsl(var(--destructive) / 0.5)'
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'overdue-pulse': 'overdue-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
