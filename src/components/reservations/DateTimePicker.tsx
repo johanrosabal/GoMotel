@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 interface DateTimePickerProps {
     date: Date | undefined;
@@ -10,70 +8,53 @@ interface DateTimePickerProps {
 }
 
 export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
-    const initialDate = date || new Date();
-    
-    const [day, setDay] = useState<string>(String(initialDate.getDate()));
-    const [month, setMonth] = useState<string>(String(initialDate.getMonth() + 1));
-    const [year, setYear] = useState<string>(String(initialDate.getFullYear()));
-    const [hour, setHour] = useState<string>(String(initialDate.getHours()).padStart(2, '0'));
-    const [minute, setMinute] = useState<string>(() => {
-        const currentMinutes = initialDate.getMinutes();
-        if (currentMinutes >= 45) return '45';
-        if (currentMinutes >= 30) return '30';
-        if (currentMinutes >= 15) return '15';
-        return '00';
-    });
+    const selectedDate = date || new Date();
 
-    useEffect(() => {
-        if (date) {
-            const dateHasChanged = !date || 
-                date.getDate() !== parseInt(day, 10) ||
-                (date.getMonth() + 1) !== parseInt(month, 10) ||
-                date.getFullYear() !== parseInt(year, 10) ||
-                date.getHours() !== parseInt(hour, 10) ||
-                date.getMinutes() !== parseInt(minute, 10);
+    const day = String(selectedDate.getDate());
+    const month = String(selectedDate.getMonth() + 1);
+    const year = String(selectedDate.getFullYear());
+    const hour = String(selectedDate.getHours()).padStart(2, '0');
+    const minute = String(selectedDate.getMinutes()).padStart(2, '0');
 
-            if (dateHasChanged) {
-                setDay(String(date.getDate()));
-                setMonth(String(date.getMonth() + 1));
-                setYear(String(date.getFullYear()));
-                setHour(String(date.getHours()).padStart(2, '0'));
-                
-                const currentMinutes = date.getMinutes();
-                if (currentMinutes >= 45) setMinute('45');
-                else if (currentMinutes >= 30) setMinute('30');
-                else if (currentMinutes >= 15) setMinute('15');
-                else setMinute('00');
-            }
-        }
-    }, [date, day, month, year, hour, minute]);
-    
-    useEffect(() => {
-        if (day && month && year && hour && minute) {
-            const newDate = new Date(
-                parseInt(year, 10),
-                parseInt(month, 10) - 1,
-                parseInt(day, 10),
-                parseInt(hour, 10),
-                parseInt(minute, 10)
-            );
-            if (!isNaN(newDate.getTime())) {
-                if (!date || newDate.getTime() !== date.getTime()) {
-                    setDate(newDate);
+    const handleValueChange = (part: 'day' | 'month' | 'year' | 'hour' | 'minute', value: string) => {
+        const newDate = new Date(selectedDate);
+        const numValue = parseInt(value, 10);
+        if (isNaN(numValue)) return;
+
+        switch(part) {
+            case 'day':
+                newDate.setDate(numValue);
+                break;
+            case 'month':
+                const originalDay = newDate.getDate();
+                newDate.setMonth(numValue - 1);
+                if (newDate.getDate() !== originalDay) {
+                    newDate.setDate(0);
                 }
-            }
+                break;
+            case 'year':
+                newDate.setFullYear(numValue);
+                break;
+            case 'hour':
+                newDate.setHours(numValue);
+                break;
+            case 'minute':
+                newDate.setMinutes(numValue);
+                break;
         }
-    }, [day, month, year, hour, minute, setDate, date]);
-    
+
+        setDate(newDate);
+    };
+
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
     const months = Array.from({ length: 12 }, (_, i) => ({
         value: String(i + 1),
         label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
     }));
+    
     const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
-    const days = year && month ? Array.from({ length: daysInMonth(parseInt(year), parseInt(month)) }, (_, i) => String(i + 1)) : [];
-
+    const days = year && month ? Array.from({ length: daysInMonth(parseInt(year, 10), parseInt(month, 10)) }, (_, i) => String(i + 1)) : [];
 
     const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
     const minutes = ['00', '15', '30', '45'];
@@ -84,24 +65,24 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
         if (hourVal < 12) return `${hourVal} AM`;
         if (hourVal === 12) return '12 PM';
         return `${hourVal - 12} PM`;
-    }
+    };
 
     return (
         <div className="space-y-2">
             <div className="grid grid-cols-3 gap-2">
-                <Select value={day} onValueChange={setDay} disabled={!year || !month}>
+                <Select value={day} onValueChange={(value) => handleValueChange('day', value)}>
                     <SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger>
                     <SelectContent>
                         {days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Select value={month} onValueChange={setMonth}>
+                <Select value={month} onValueChange={(value) => handleValueChange('month', value)}>
                     <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
                     <SelectContent>
                         {months.map(m => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                 <Select value={year} onValueChange={setYear}>
+                 <Select value={year} onValueChange={(value) => handleValueChange('year', value)}>
                     <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
                     <SelectContent>
                         {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -110,13 +91,13 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-                <Select value={hour} onValueChange={setHour}>
+                <Select value={hour} onValueChange={(value) => handleValueChange('hour', value)}>
                     <SelectTrigger><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>
                         {hours.map(h => <SelectItem key={h} value={h}>{formatHourForDisplay(h)}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Select value={minute} onValueChange={setMinute}>
+                <Select value={minute} onValueChange={(value) => handleValueChange('minute', value)}>
                     <SelectTrigger><SelectValue placeholder="Min." /></SelectTrigger>
                     <SelectContent>
                         {minutes.map(m => <SelectItem key={m} value={m}>{m} min</SelectItem>)}
