@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types';
 import { saveClient } from '@/lib/actions/client.actions';
 import { Textarea } from '../ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 interface AddClientDialogProps {
   children: ReactNode;
@@ -30,6 +31,7 @@ const clientSchema = z.object({
   birthDate: z.coerce.date().optional(),
   address: z.string().optional(),
   notes: z.string().optional(),
+  isVip: z.boolean().default(false),
 });
 
 export default function AddClientDialog({ children, client }: AddClientDialogProps) {
@@ -41,7 +43,8 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
     resolver: zodResolver(clientSchema),
     defaultValues: client ? {
         ...client,
-        birthDate: client.birthDate?.toDate()
+        birthDate: client.birthDate?.toDate(),
+        isVip: client.isVip || false,
     } : {
       firstName: '',
       lastName: '',
@@ -52,6 +55,7 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
       whatsappNumber: '',
       address: '',
       notes: '',
+      isVip: false,
     },
   });
 
@@ -139,6 +143,26 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
              <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem><FormLabel>Notas Internas</FormLabel><FormControl><Textarea placeholder="Cliente frecuente, prefiere habitaciones tranquilas..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
+             <FormField
+              control={form.control}
+              name="isVip"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Cliente VIP / Favorito</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Los clientes VIP se destacarán en la lista para un reconocimiento rápido.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

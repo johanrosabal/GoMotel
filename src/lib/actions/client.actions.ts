@@ -17,6 +17,7 @@ const clientSchema = z.object({
   birthDate: z.coerce.date().optional(),
   address: z.string().optional(),
   notes: z.string().optional(),
+  isVip: z.boolean().optional(),
 });
 
 
@@ -34,11 +35,13 @@ export async function saveClient(values: z.infer<typeof clientSchema>) {
       await updateDoc(clientRef, {
           ...clientData,
           birthDate: clientData.birthDate ? Timestamp.fromDate(clientData.birthDate) : null,
+          isVip: clientData.isVip || false,
       });
     } else {
       await addDoc(collection(db, 'clients'), {
           ...clientData,
           birthDate: clientData.birthDate ? Timestamp.fromDate(clientData.birthDate) : null,
+          isVip: clientData.isVip || false,
           createdAt: Timestamp.now(),
       });
     }

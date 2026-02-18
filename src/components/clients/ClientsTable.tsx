@@ -5,7 +5,7 @@ import type { Client } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Star } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,6 +14,7 @@ import AddClientDialog from './AddClientDialog';
 import { deleteClient } from '@/lib/actions/client.actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 function ActionsMenu({ client }: { client: Client }) {
     const { toast } = useToast();
@@ -107,14 +108,17 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
           </TableHeader>
           <TableBody>
             {filteredClients.length > 0 ? filteredClients.map(client => (
-              <TableRow key={client.id}>
+              <TableRow key={client.id} className={cn(client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{client.firstName} {client.lastName}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {client.firstName} {client.lastName}
+                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                      </div>
                       <div className="text-sm text-muted-foreground">{client.email}</div>
                     </div>
                   </div>

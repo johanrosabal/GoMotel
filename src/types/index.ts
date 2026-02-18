@@ -115,5 +115,6 @@ export interface Client {
   birthDate: Timestamp;
   address?: string;
   notes?: string;
+  isVip?: boolean;
   createdAt: Timestamp;
 }
