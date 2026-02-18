@@ -152,7 +152,28 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   };
   
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewPlanPrice(e.target.value);
+    let value = e.target.value.replace(/\D/g, ''); // only digits
+    
+    if (value === '') {
+        setNewPlanPrice('');
+        if (planInputErrors.price) {
+            setPlanInputErrors(prev => ({...prev, price: undefined}));
+        }
+        return;
+    }
+    
+    // remove leading zeros
+    value = value.replace(/^0+/, '');
+
+    const numberValue = Number(value);
+    
+    const formatted = new Intl.NumberFormat('es-CR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(numberValue / 100);
+
+    setNewPlanPrice(formatted);
+    
     if (planInputErrors.price) {
         setPlanInputErrors(prev => ({...prev, price: undefined}));
     }
