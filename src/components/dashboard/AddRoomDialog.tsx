@@ -140,7 +140,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={roomTypes.length === 0}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un tipo" />
