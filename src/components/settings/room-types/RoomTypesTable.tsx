@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Tag, DollarSign } from 'lucide-react';
+import { MoreHorizontal, Tag } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,7 +99,7 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                         <Separator />
                         <div>
                             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                                <DollarSign className="h-4 w-4" />
+                                <span className="w-4 text-center">₡</span>
                                 Planes de Precios
                             </h4>
                             {roomType.pricePlans && roomType.pricePlans.length > 0 ? (

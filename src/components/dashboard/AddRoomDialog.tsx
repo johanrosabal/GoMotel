@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveRoom } from '@/lib/actions/room.actions';
 import type { Room, RoomType } from '@/types';
 import { Separator } from '../ui/separator';
-import { DollarSign, Tag, Users } from 'lucide-react';
+import { Tag, Users } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import Link from 'next/link';
@@ -148,9 +148,9 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingRoomTypes}>
                     <FormControl>
-                      <SelectTrigger disabled={isLoadingRoomTypes}>
+                      <SelectTrigger>
                         <SelectValue placeholder={isLoadingRoomTypes ? "Cargando tipos..." : "Seleccione un tipo"} />
                       </SelectTrigger>
                     </FormControl>
@@ -216,7 +216,7 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
                         </div>
                     </div>
                     <div>
-                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" />Planes de Precios</h4>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><span className="w-4 text-center">₡</span>Planes de Precios</h4>
                         {selectedRoomType.pricePlans && selectedRoomType.pricePlans.length > 0 ? (
                             <ul className="space-y-1.5 text-sm">
                             {selectedRoomType.pricePlans.map(plan => (
