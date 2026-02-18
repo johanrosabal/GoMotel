@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { doc, onSnapshot, Timestamp, collection, query, where, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Room, Stay, Order, Service } from '@/types'
@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -41,6 +41,7 @@ function InfoRow({ label, value, icon: Icon }: { label: string; value: string | 
 
 export default function RoomDetailsPage() {
     const params = useParams()
+    const router = useRouter()
     const roomId = params.id as string
     const [room, setRoom] = useState<Room | null>(null)
     const [stay, setStay] = useState<Stay | null>(null)
@@ -260,10 +261,16 @@ export default function RoomDetailsPage() {
 
 
     return (
-        <div className="container py-4 sm:py-6 lg:py-8">
+        <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
+            <div className="flex items-center justify-end">
+                <Button variant="outline" onClick={() => router.back()}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver
+                </Button>
+            </div>
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-1 space-y-6">
-                    <Card className={cn(isOverdue && 'animate-pulse-border')}>
+                    <Card className={cn(isOverdue && 'animate-overdue-pulse')}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <div>
