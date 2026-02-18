@@ -19,6 +19,7 @@ import { updateRoomStatus } from '@/lib/actions/room.actions'
 import { realtimeOrderStatusUpdates } from '@/ai/flows/realtime-order-status-updates'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
@@ -185,7 +186,7 @@ export default function RoomDetailsPage() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <CardTitle className="text-4xl">Habitación {room.number}</CardTitle>
-                                    <CardDescription>Tarifa: ${room.ratePerHour}/hora</CardDescription>
+                                    <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
                                 </div>
                                 <StatusBadge status={room.status} />
                             </div>
@@ -230,11 +231,11 @@ export default function RoomDetailsPage() {
                                                     {order.items.map(item => (
                                                         <li key={item.serviceId} className="flex justify-between">
                                                             <span>{item.quantity}x {item.name}</span>
-                                                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                                                            <span>{formatCurrency(item.price * item.quantity)}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
-                                                <div className="text-right font-semibold mt-2 pt-2 border-t">Total: ${order.total.toFixed(2)}</div>
+                                                <div className="text-right font-semibold mt-2 pt-2 border-t">Total: {formatCurrency(order.total)}</div>
                                             </li>
                                         ))}
                                     </ul>

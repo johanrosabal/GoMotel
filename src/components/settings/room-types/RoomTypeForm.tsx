@@ -382,7 +382,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             </Select>
                           </div>
                           <div className="sm:col-span-2 space-y-2">
-                            <Label htmlFor="plan-price" className={cn(planInputErrors.price && "text-destructive")}>Precio (₡)</Label>
+                            <Label htmlFor="plan-price" className={cn(planInputErrors.price && "text-destructive")}>Precio</Label>
                             <Input
                                 id="plan-price"
                                 type="text"
