@@ -72,32 +72,3 @@
     pointer-events: auto !important;
   }
 }
-
-@layer utilities {
-  @keyframes pulse-border {
-    0%,
-    100% {
-      border-color: hsl(var(--destructive));
-      box-shadow: 0 0 0 5px hsl(var(--destructive) / 0.25);
-    }
-    50% {
-      border-color: hsl(var(--destructive) / 0.7);
-      box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.1);
-    }
-  }
-  .animate-pulse-border {
-    animation: pulse-border 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse-background {
-    0%, 100% {
-      background-color: hsl(var(--destructive) / 0);
-    }
-    50% {
-      background-color: hsl(var(--destructive) / 0.2);
-    }
-  }
-  .animate-pulse-background {
-    animation: pulse-background 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-}
