@@ -51,7 +51,7 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
   return (
     <div className="relative group/card h-full">
       {userProfile?.role === 'Administrador' && (
-          <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
+          <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
             <RoomActionsMenu room={room} />
           </div>
       )}
