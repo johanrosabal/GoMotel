@@ -90,7 +90,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
     
     const formData = new FormData();
     if(values.id) formData.append('id', values.id);
-    formData.append('number', values.number);
+    formData.append('number', values.number.padStart(3, '0')); // Pad before saving
     formData.append('capacity', String(rt.capacity));
     formData.append('roomTypeId', values.roomTypeId);
     formData.append('roomTypeName', rt.name);
@@ -109,7 +109,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
       } else {
         toast({
           title: '¡Éxito!',
-          description: `La habitación "${values.number}" ha sido guardada.`,
+          description: `La habitación "${values.number.padStart(3, '0')}" ha sido guardada.`,
         });
         setOpen(false);
         form.reset();
@@ -142,10 +142,14 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                     <FormLabel className="sr-only">Número de Habitación</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="101"
+                        placeholder="000"
                         {...field}
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="numeric"
+                        onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            field.onChange(value.slice(0, 3));
+                        }}
                         className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </FormControl>
