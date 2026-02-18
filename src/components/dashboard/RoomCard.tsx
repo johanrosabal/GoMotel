@@ -1,9 +1,14 @@
+'use client';
+
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import StatusBadge from './StatusBadge';
 import type { Room } from '@/types';
-import { BedDouble, Sparkles, Wrench, User, AlertTriangle } from 'lucide-react';
+import { BedDouble, Sparkles, Wrench, User, AlertTriangle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface RoomCardProps {
   room: Room;
@@ -22,6 +27,24 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
   const currentStatus = isOverdue ? 'Overdue' : room.status;
   const { icon: Icon, color } = statusConfig[currentStatus];
   
+  const [timeInStatus, setTimeInStatus] = useState('');
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    if (room.status === 'Cleaning' && room.statusUpdatedAt) {
+      const update = () => {
+        setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es }));
+      };
+      update();
+      intervalId = setInterval(update, 60000); // update every minute
+    } else {
+        setTimeInStatus('');
+    }
+
+    return () => clearInterval(intervalId);
+  }, [room.status, room.statusUpdatedAt]);
+
   return (
     <Link href={`/rooms/${room.id}`} className="block h-full">
       <Card className={cn(
@@ -39,7 +62,15 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
           <Icon className={cn("h-6 w-6 text-muted-foreground", isOverdue && "text-destructive")} />
         </CardHeader>
         <CardContent className="mt-auto">
-          <StatusBadge status={isOverdue ? 'Occupied' : room.status} isOverdue={isOverdue} />
+          <div className="flex justify-between items-center gap-2">
+            <StatusBadge status={isOverdue ? 'Occupied' : room.status} isOverdue={isOverdue} />
+            {room.status === 'Cleaning' && timeInStatus && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
+                <Clock className="h-3 w-3" />
+                {timeInStatus}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </Link>

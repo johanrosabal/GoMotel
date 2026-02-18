@@ -32,6 +32,7 @@ const toRoomObject = (doc: any): Room => {
     currentStayId: data.currentStayId || null,
     roomTypeId: data.roomTypeId || '',
     roomTypeName: data.roomTypeName || '',
+    statusUpdatedAt: data.statusUpdatedAt || null,
   };
 };
 
@@ -109,7 +110,7 @@ export async function checkIn(roomId: string, formData: FormData) {
 
   // Update room status
   const roomRef = doc(db, 'rooms', roomId);
-  batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
+  batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id, statusUpdatedAt: Timestamp.now() });
 
   try {
     await batch.commit();
@@ -167,7 +168,7 @@ export async function checkOut(stayId: string, roomId: string) {
 
   // Update room
   const roomRef = doc(db, 'rooms', roomId);
-  batch.update(roomRef, { status: 'Cleaning', currentStayId: null });
+  batch.update(roomRef, { status: 'Cleaning', currentStayId: null, statusUpdatedAt: Timestamp.now() });
 
   try {
     await batch.commit();
@@ -187,7 +188,7 @@ export async function updateRoomStatus(roomId: string, status: RoomStatus) {
 
   try {
     const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, { status });
+    await updateDoc(roomRef, { status, statusUpdatedAt: Timestamp.now() });
     revalidatePath('/');
     revalidatePath(`/rooms/${roomId}`);
     return { success: true };
@@ -247,7 +248,7 @@ export async function saveRoom(formData: FormData) {
       if (!querySnapshot.empty) {
           return { error: 'El número de habitación ya existe.' };
       }
-      await addDoc(collection(db, 'rooms'), { ...roomData, status: 'Available' });
+      await addDoc(collection(db, 'rooms'), { ...roomData, status: 'Available', statusUpdatedAt: Timestamp.now() });
     }
     revalidatePath('/');
     return { success: true };

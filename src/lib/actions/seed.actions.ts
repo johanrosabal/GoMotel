@@ -106,6 +106,7 @@ export async function seedDatabase() {
           roomTypeName: roomType.name,
           ratePerHour: hourlyPlan?.price || 0,
           description: roomType.features?.join(', ') || '',
+          statusUpdatedAt: Timestamp.now(),
       };
 
       if(status === 'Occupied') {

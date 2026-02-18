@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -17,7 +17,7 @@ import CheckoutDialog from '@/components/room-detail/CheckoutDialog'
 import { getServices } from '@/lib/actions/service.actions'
 import { updateRoomStatus } from '@/lib/actions/room.actions'
 import { realtimeOrderStatusUpdates } from '@/ai/flows/realtime-order-status-updates'
-import { format } from 'date-fns'
+import { format, formatDistanceToNowStrict } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatCurrency } from '@/lib/utils'
 
@@ -43,6 +43,7 @@ export default function RoomDetailsPage() {
     const [availableServices, setAvailableServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
     const { toast } = useToast()
+    const [timeInStatus, setTimeInStatus] = useState('');
 
     useEffect(() => {
         if (!roomId) return
@@ -59,6 +60,7 @@ export default function RoomDetailsPage() {
                     type: data.type || 'Sencilla',
                     capacity: data.capacity || 1,
                     description: data.description || '',
+                    statusUpdatedAt: data.statusUpdatedAt,
                 } as Room;
                 setRoom(roomData)
                 if (!roomData.currentStayId) {
@@ -98,6 +100,22 @@ export default function RoomDetailsPage() {
             ordersUnsub();
         }
     }, [room?.currentStayId])
+
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | undefined;
+    
+        if (room?.status === 'Cleaning' && room.statusUpdatedAt) {
+          const update = () => {
+            setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es }));
+          };
+          update();
+          intervalId = setInterval(update, 60000); // update every minute
+        } else {
+            setTimeInStatus('');
+        }
+    
+        return () => clearInterval(intervalId);
+      }, [room?.status, room?.statusUpdatedAt]);
 
     const handleSetAvailable = async () => {
         if (!room) return
@@ -188,7 +206,15 @@ export default function RoomDetailsPage() {
                                     <CardTitle className="text-4xl">Habitación {room.number}</CardTitle>
                                     <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
                                 </div>
-                                <StatusBadge status={room.status} />
+                                <div className="flex flex-col items-end gap-1">
+                                    <StatusBadge status={room.status} />
+                                    {room.status === 'Cleaning' && timeInStatus && (
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
+                                        <Clock className="h-3 w-3" />
+                                        {timeInStatus}
+                                    </div>
+                                    )}
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">

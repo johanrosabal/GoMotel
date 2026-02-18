@@ -30,6 +30,7 @@ export interface Room {
   currentStayId?: string | null;
   roomTypeId: string;
   roomTypeName: string;
+  statusUpdatedAt?: Timestamp;
 }
 
 export interface Service {
