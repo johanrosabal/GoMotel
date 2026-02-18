@@ -22,7 +22,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
-import AddClientDialog from '../clients/AddClientDialog';
 import { useRouter } from 'next/navigation';
 
 interface CreateReservationDialogProps {
@@ -33,7 +32,7 @@ const reservationSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
-  checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.'}),
+  checkInDate: z.date(),
   guestId: z.string().optional(),
   checkInNow: z.boolean().default(false),
 });
@@ -47,7 +46,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const router = useRouter();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [addClientOpen, setAddClientOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
@@ -120,6 +118,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       checkInDate: new Date(),
     });
     setCalculatedCheckOut(null);
+    setSearchTerm('');
   }, [form]);
 
   useEffect(() => {
@@ -224,7 +223,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                       <Command>
                         <CommandInput
                           placeholder="Buscar cliente..."
-                          value={searchTerm}
                           onValueChange={setSearchTerm}
                         />
                         <CommandList>
@@ -284,28 +282,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="checkInNow"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Hacer Check-in Ahora</FormLabel>
-                    <p className="text-[13px] text-muted-foreground">
-                      Para huéspedes que ingresan inmediatamente.
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-             <div className='grid grid-cols-2 gap-4'>
+            <div className='grid grid-cols-2 gap-4'>
                 <FormField
                     control={form.control}
                     name="roomId"
@@ -355,6 +332,27 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 )}
                 />
             </div>
+
+            <FormField
+              control={form.control}
+              name="checkInNow"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Hacer Check-in Ahora</FormLabel>
+                    <p className="text-[13px] text-muted-foreground">
+                      Para huéspedes que ingresan inmediatamente.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             
             {!checkInNow && (
               <Controller
@@ -376,7 +374,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                         <Clock className="h-4 w-4" />
                         <span>Salida Estimada</span>
                     </div>
-                    <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
+                    <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, "PPpp", { locale: es })}</p>
                 </div>
             )}
 
@@ -388,7 +386,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
             </DialogFooter>
           </form>
         </Form>
-        <AddClientDialog open={addClientOpen} onOpenChange={setAddClientOpen} />
       </DialogContent>
     </Dialog>
   );
