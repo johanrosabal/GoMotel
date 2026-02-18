@@ -3,6 +3,9 @@ import SeedDataButton from '@/components/SeedDataButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getRooms } from '@/lib/actions/room.actions';
 import AddRoomButton from '@/components/dashboard/AddRoomButton';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { CalendarPlus } from 'lucide-react';
 
 export default async function DashboardRoomsPage() {
   const rooms = await getRooms();
@@ -18,7 +21,15 @@ export default async function DashboardRoomsPage() {
                 Vista en vivo de todas las habitaciones. Haga clic en una habitación para administrarla.
               </CardDescription>
             </div>
-            <AddRoomButton />
+            <div className="flex items-center gap-2">
+                <Button asChild variant="outline">
+                    <Link href="/reservations">
+                        <CalendarPlus className="mr-2 h-4 w-4" />
+                        Ir a Reservaciones
+                    </Link>
+                </Button>
+                <AddRoomButton />
+            </div>
           </div>
         </CardHeader>
         {rooms.length === 0 ? (
