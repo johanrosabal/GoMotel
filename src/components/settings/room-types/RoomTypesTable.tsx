@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Tag, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +23,8 @@ import Link from 'next/link';
 import DeleteRoomTypeAlert from './DeleteRoomTypeAlert';
 import type { RoomType } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface RoomTypesTableProps {
   roomTypes: RoomType[];
@@ -63,48 +64,56 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
 
   return (
     <>
-        {/* Mobile View: Card List */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+        {/* Mobile & Tablet View: Card List */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:hidden">
             {roomTypes.map((roomType) => (
-            <Card key={roomType.id}>
-                <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                        <div className='space-y-1'>
-                            <CardTitle className="text-lg">{roomType.name}</CardTitle>
-                            <Badge variant="outline">{roomType.code}</Badge>
+                <Card key={roomType.id} className="flex flex-col">
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1.5">
+                                <CardTitle>{roomType.name}</CardTitle>
+                                <CardDescription>Código: {roomType.code}</CardDescription>
+                            </div>
+                            <ActionsMenu roomType={roomType} />
                         </div>
-                        <ActionsMenu roomType={roomType} />
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                <div>
-                    <h4 className="font-medium mb-2">Características</h4>
-                    {roomType.features && roomType.features.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                        {roomType.features.map(feature => (
-                            <Badge key={feature} variant="secondary">{feature}</Badge>
-                        ))}
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-4">
+                        <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
+                                <Tag className="h-4 w-4" />
+                                Características
+                            </h4>
+                            {roomType.features && roomType.features.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                {roomType.features.map(feature => (
+                                    <Badge key={feature} variant="secondary">{feature}</Badge>
+                                ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Sin características</p>
+                            )}
                         </div>
-                    ) : (
-                        <p className="text-muted-foreground">Sin características</p>
-                    )}
-                </div>
-                <div>
-                    <h4 className="font-medium mb-2">Planes de Precios</h4>
-                    {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
-                        <div className="flex flex-col items-start gap-1">
-                        {roomType.pricePlans.map(plan => (
-                            <Badge key={plan.name} variant="outline" className="font-normal whitespace-nowrap">
-                                {`${plan.name}: ${formatCurrency(plan.price)}`}
-                            </Badge>
-                        ))}
+                        <Separator />
+                        <div>
+                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
+                                <DollarSign className="h-4 w-4" />
+                                Planes de Precios
+                            </h4>
+                            {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
+                                <ul className="space-y-1.5 text-sm">
+                                {roomType.pricePlans.map(plan => (
+                                    <li key={plan.name} className="flex justify-between">
+                                        <span>{plan.name}</span>
+                                        <span className="font-medium">{formatCurrency(plan.price)}</span>
+                                    </li>
+                                ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Sin planes de precios</p>
+                            )}
                         </div>
-                    ) : (
-                        <p className="text-muted-foreground">Sin planes de precios</p>
-                    )}
-                </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
             ))}
         </div>
 
@@ -125,25 +134,30 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
             <TableBody>
                 {roomTypes.map((roomType) => (
                 <TableRow key={roomType.id}>
-                    <TableCell><Badge variant="outline">{roomType.code}</Badge></TableCell>
-                    <TableCell className="font-medium">{roomType.name}</TableCell>
-                    <TableCell>
-                    <div className="flex flex-wrap gap-1 max-w-xs">
+                    <TableCell className="align-top"><Badge variant="outline">{roomType.code}</Badge></TableCell>
+                    <TableCell className="font-medium align-top">{roomType.name}</TableCell>
+                    <TableCell className="align-top">
+                    <div className="flex flex-wrap gap-1 max-w-sm">
                         {roomType.features?.map(feature => (
                             <Badge key={feature} variant="secondary">{feature}</Badge>
                         ))}
                     </div>
                     </TableCell>
-                    <TableCell>
-                    <div className="flex flex-col gap-1 items-start">
-                        {roomType.pricePlans?.map(plan => (
-                            <Badge key={plan.name} variant="outline" className="font-normal whitespace-nowrap">
-                            {`${plan.name}: ${formatCurrency(plan.price)}`}
-                            </Badge>
-                        ))}
-                    </div>
+                    <TableCell className="align-top">
+                        {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
+                            <div className="flex flex-col gap-1.5 items-start">
+                                {roomType.pricePlans.map(plan => (
+                                    <div key={plan.name} className="text-xs whitespace-nowrap">
+                                        <span className="font-medium">{plan.name}:</span>
+                                        <span className="text-muted-foreground ml-1">{formatCurrency(plan.price)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-muted-foreground">N/A</div>
+                        )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right align-top">
                         <ActionsMenu roomType={roomType} />
                     </TableCell>
                 </TableRow>
