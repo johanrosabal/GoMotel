@@ -45,7 +45,7 @@ export default function ReservationsTable({ reservations }: { reservations: Proc
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
                     {reservations.map(res => {
                         return (
-                            <Card key={res.id} className={cn(res.isOverdue && 'animate-pulse-border border-destructive')}>
+                            <Card key={res.id} className={cn(res.isOverdue && 'animate-pulse-background animate-pulse-border border-destructive')}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div className="space-y-1">
@@ -111,7 +111,7 @@ export default function ReservationsTable({ reservations }: { reservations: Proc
                         <TableBody>
                             {reservations.map(res => {
                                 return (
-                                <TableRow key={res.id} className={cn(res.isOverdue && "animate-pulse-border border-l-4 border-destructive")}>
+                                <TableRow key={res.id} className={cn(res.isOverdue && "animate-pulse-background animate-pulse-border border-l-4 border-destructive")}>
                                     <TableCell className="font-medium">{res.guestName}</TableCell>
                                     <TableCell>
                                         <div>N° {res.roomNumber}</div>
