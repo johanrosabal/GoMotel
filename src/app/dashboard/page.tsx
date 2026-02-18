@@ -20,6 +20,7 @@ import {
   FileText,
   BookOpen,
   HelpCircle,
+  ArrowRight,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -229,22 +230,23 @@ export default async function DashboardPage() {
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
                 {section.links.map((link) => (
-                    <Link key={link.title} href={link.href} className="group block">
-                        <Card className="h-full hover:bg-card/70 dark:hover:bg-muted/50 transition-colors duration-200">
-                            <CardContent className="p-5 flex flex-col items-start gap-4">
-                                <div className="bg-muted p-3 rounded-lg flex items-center justify-center">
-                                    <link.icon className="h-6 w-6 text-primary" />
+                    <Link key={link.title} href={link.href} className="group relative">
+                        <div className="rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5">
+                            <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
+                                <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
+                                    <link.icon className="size-6" />
                                 </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-base font-semibold text-foreground">
-                                        {link.title}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {link.description}
-                                    </p>
+                                <div className="tracking-tight text-lg font-bold">{link.title}</div>
+                                <div className="text-muted-foreground text-xs font-medium leading-relaxed mt-1 line-clamp-2">
+                                    {link.description}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                            <div className="flex items-center p-6 pt-0 justify-end pb-4 px-6">
+                                <div className="p-1 rounded-full bg-muted/50 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+                                    <ArrowRight className="size-3" />
+                                </div>
+                            </div>
+                        </div>
                     </Link>
                 ))}
                 </div>
