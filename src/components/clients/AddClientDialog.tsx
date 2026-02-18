@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type ReactNode, useEffect } from 'react';
 import { z } from 'zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -13,6 +13,7 @@ import type { Client } from '@/types';
 import { saveClient } from '@/lib/actions/client.actions';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddClientDialogProps {
   children: ReactNode;
@@ -39,6 +40,10 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
     defaultValues: client ? {
@@ -58,6 +63,57 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
       isVip: false,
     },
   });
+  
+  useEffect(() => {
+    if (open) {
+      const defaultValues = client ? {
+        ...client,
+        birthDate: client.birthDate?.toDate(),
+      } : {
+        firstName: '', lastName: '', secondLastName: '', idCard: '', email: '', phoneNumber: '',
+        whatsappNumber: '', address: '', notes: '', isVip: false, birthDate: undefined
+      };
+      form.reset(defaultValues);
+
+      if (client && client.birthDate) {
+        const date = client.birthDate.toDate();
+        setBirthDay(String(date.getDate()));
+        setBirthMonth(String(date.getMonth() + 1));
+        setBirthYear(String(date.getFullYear()));
+      } else {
+        setBirthDay('');
+        setBirthMonth('');
+        setBirthYear('');
+      }
+    }
+  }, [open, client, form]);
+
+  useEffect(() => {
+    if (birthDay && birthMonth && birthYear) {
+      const day = parseInt(birthDay, 10);
+      const month = parseInt(birthMonth, 10) - 1; // JS months are 0-indexed
+      const year = parseInt(birthYear, 10);
+      const date = new Date(year, month, day);
+
+      if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+        form.setValue('birthDate', date, { shouldValidate: true });
+        form.clearErrors('birthDate');
+      } else {
+        form.setError('birthDate', { type: 'manual', message: 'Fecha no válida.' });
+      }
+    } else if (!birthDay && !birthMonth && !birthYear) {
+        form.setValue('birthDate', undefined, { shouldValidate: true });
+        form.clearErrors('birthDate');
+    }
+  }, [birthDay, birthMonth, birthYear, form]);
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
+  }));
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: z.infer<typeof clientSchema>) => {
     startTransition(async () => {
@@ -67,7 +123,6 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
       } else {
         toast({ title: '¡Éxito!', description: `El cliente ${values.firstName} ha sido guardado.` });
         setOpen(false);
-        if(!client) form.reset();
       }
     });
   };
@@ -129,6 +184,54 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
             <FormField control={form.control} name="secondLastName" render={({ field }) => (
                 <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input placeholder="García" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
+            <FormField
+              control={form.control}
+              name="birthDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Nacimiento (Opcional)</FormLabel>
+                  <div className="grid grid-cols-3 gap-2">
+                     <Select onValueChange={setBirthDay} value={birthDay}>
+                       <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Día" />
+                        </SelectTrigger>
+                       </FormControl>
+                       <SelectContent>
+                        {days.map((d) => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
+                       </SelectContent>
+                     </Select>
+                      <Select onValueChange={setBirthMonth} value={birthMonth}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Mes" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {months.map((m) => (
+                            <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select onValueChange={setBirthYear} value={birthYear}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Año" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {years.map((y) => (
+                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField control={form.control} name="idCard" render={({ field }) => (
                 <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input placeholder="0-0000-0000" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} /></FormControl><FormMessage /></FormItem>
             )} />
