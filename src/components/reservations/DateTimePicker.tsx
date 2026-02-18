@@ -10,11 +10,19 @@ interface DateTimePickerProps {
 }
 
 export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
-    const [day, setDay] = useState<string>('');
-    const [month, setMonth] = useState<string>('');
-    const [year, setYear] = useState<string>('');
-    const [hour, setHour] = useState<string>('');
-    const [minute, setMinute] = useState<string>('');
+    const initialDate = date || new Date();
+    
+    const [day, setDay] = useState<string>(String(initialDate.getDate()));
+    const [month, setMonth] = useState<string>(String(initialDate.getMonth() + 1));
+    const [year, setYear] = useState<string>(String(initialDate.getFullYear()));
+    const [hour, setHour] = useState<string>(String(initialDate.getHours()).padStart(2, '0'));
+    const [minute, setMinute] = useState<string>(() => {
+        const currentMinutes = initialDate.getMinutes();
+        if (currentMinutes >= 45) return '45';
+        if (currentMinutes >= 30) return '30';
+        if (currentMinutes >= 15) return '15';
+        return '00';
+    });
 
     useEffect(() => {
         if (date) {
@@ -28,13 +36,6 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
             else if (currentMinutes >= 30) setMinute('30');
             else if (currentMinutes >= 15) setMinute('15');
             else setMinute('00');
-        } else {
-             const today = new Date();
-             setDay(String(today.getDate()));
-             setMonth(String(today.getMonth() + 1));
-             setYear(String(today.getFullYear()));
-             setHour(String(today.getHours()).padStart(2, '0'));
-             setMinute('00');
         }
     }, [date]);
     
