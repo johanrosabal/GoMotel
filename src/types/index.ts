@@ -78,4 +78,6 @@ export interface UserProfile {
   whatsappNumber?: string;
   createdAt: Timestamp;
   role: UserRole;
+  status: 'Active' | 'Paused';
+  photoURL?: string;
 }

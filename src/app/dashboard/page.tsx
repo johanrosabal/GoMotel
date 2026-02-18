@@ -117,7 +117,7 @@ export default async function DashboardPage() {
           icon: Cog,
         },
         {
-          href: '#', // Placeholder for user management
+          href: '/users',
           title: 'Gestión de Usuarios',
           description: 'Administra los roles y accesos del personal.',
           icon: Users,

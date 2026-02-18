@@ -97,6 +97,8 @@ export async function register(values: z.infer<typeof registerSchema>) {
             whatsappNumber: values.whatsappNumber || '',
             createdAt: Timestamp.now(),
             role: userRole,
+            status: 'Active',
+            photoURL: user.photoURL || '',
         });
         
 
@@ -113,4 +115,5 @@ export async function register(values: z.infer<typeof registerSchema>) {
         }
     }
     revalidatePath('/');
+    revalidatePath('/users');
 }

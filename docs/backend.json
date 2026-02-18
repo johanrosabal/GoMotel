@@ -280,6 +280,16 @@
           "type": "string",
           "description": "The user's role in the application.",
           "enum": ["Administrador", "Recepcion"]
+        },
+        "status": {
+            "type": "string",
+            "description": "The current status of the user's account.",
+            "enum": ["Active", "Paused"]
+        },
+        "photoURL": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the user's profile picture."
         }
       },
       "required": [
@@ -291,7 +301,8 @@
         "idCard",
         "phoneNumber",
         "createdAt",
-        "role"
+        "role",
+        "status"
       ]
     }
   },
