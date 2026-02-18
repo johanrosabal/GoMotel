@@ -1,20 +1,28 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Room, Reservation } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Bell, BedDouble, Sparkles } from 'lucide-react';
+import { Bell, BedDouble, Sparkles, VolumeX } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from './ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { playNotificationSound } from '@/lib/sound';
+import { ToastAction } from '@/components/ui/toast';
 
 export default function Notifications() {
   const { firestore } = useFirebase();
+  const { toast, dismiss } = useToast();
   const [now, setNow] = useState(new Date());
+  const [isAlarmSilenced, setIsAlarmSilenced] = useState(false);
+  
+  const alarmToastId = useRef<string | null>(null);
+  const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000); // Rerender every 30s
@@ -46,6 +54,63 @@ export default function Notifications() {
   const totalNotifications = (overdueReservations?.length || 0) + (cleaningRooms?.length || 0);
   const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn;
 
+  // --- START: Alarm Logic ---
+  useEffect(() => {
+    const hasOverdue = overdueReservations.length > 0;
+
+    if (hasOverdue && !isAlarmSilenced) {
+      if (!soundIntervalRef.current) {
+        soundIntervalRef.current = setInterval(() => {
+          playNotificationSound();
+        }, 3000);
+      }
+    } else {
+      if (soundIntervalRef.current) {
+        clearInterval(soundIntervalRef.current);
+        soundIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (soundIntervalRef.current) {
+        clearInterval(soundIntervalRef.current);
+      }
+    };
+  }, [overdueReservations.length, isAlarmSilenced]);
+
+  useEffect(() => {
+    const hasOverdue = overdueReservations.length > 0;
+
+    if (hasOverdue) {
+      if (!alarmToastId.current) {
+        const newToastId = `alarm-${Date.now()}`;
+        alarmToastId.current = newToastId;
+        toast({
+          id: newToastId,
+          variant: 'destructive',
+          title: '¡Alerta de Estancia Vencida!',
+          description: `${overdueReservations.length} habitación(es) ha(n) vencido.`,
+          duration: Infinity,
+          action: (
+            <ToastAction altText="Silenciar" onClick={() => setIsAlarmSilenced(true)}>
+              <VolumeX className="mr-2 h-4 w-4" />
+              Silenciar
+            </ToastAction>
+          ),
+        });
+      }
+    } else {
+      if (alarmToastId.current) {
+        dismiss(alarmToastId.current);
+        alarmToastId.current = null;
+      }
+      // Reset silence state when there are no more overdue rooms
+      if (isAlarmSilenced) {
+        setIsAlarmSilenced(false);
+      }
+    }
+  }, [overdueReservations.length, toast, dismiss, isAlarmSilenced]);
+  // --- END: Alarm Logic ---
 
   return (
     <Popover>
