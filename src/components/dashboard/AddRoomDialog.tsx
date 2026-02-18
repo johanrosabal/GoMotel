@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type ReactNode, useMemo } from 'react';
+import { useState, useTransition, type ReactNode, useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -58,11 +58,18 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
   const { toast } = useToast();
 
   const { firestore } = useFirebase();
+
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'roomTypes'), fbOrderBy('name'));
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+  
+  const roomsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'rooms'));
+  }, [firestore]);
+  const { data: allRooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
 
   const form = useForm<z.infer<typeof roomSchema>>({
     resolver: zodResolver(roomSchema),
@@ -75,6 +82,19 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
       roomTypeId: undefined,
     },
   });
+
+  // Pre-fill the room number when creating a new room.
+  useEffect(() => {
+    if (open && !room && !isLoadingRooms && allRooms) {
+      const lastRoomNumber = allRooms.reduce((max, r) => {
+        const num = parseInt(r.number, 10);
+        return !isNaN(num) && num > max ? num : max;
+      }, 0);
+
+      const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '101';
+      form.setValue('number', nextNumber);
+    }
+  }, [open, room, allRooms, isLoadingRooms, form]);
 
   const selectedRoomTypeId = form.watch('roomTypeId');
 
@@ -148,7 +168,7 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingRoomTypes}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRoomTypes}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={isLoadingRoomTypes ? "Cargando tipos..." : "Seleccione un tipo"} />
@@ -233,7 +253,7 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
             )}
            
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending || isLoadingRoomTypes}>
+              <Button type="submit" disabled={isPending || isLoadingRoomTypes || isLoadingRooms}>
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}
               </Button>
             </DialogFooter>
