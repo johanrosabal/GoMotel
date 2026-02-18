@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarClock, Clock } from 'lucide-react';
+import { CalendarClock, Clock, AlertTriangle } from 'lucide-react';
 import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
 
@@ -33,9 +33,13 @@ const statusMap: Record<Reservation['status'], string> = {
     Completed: 'Completada',
 }
 
-export default function ReservationCard({ reservation }: { reservation: Reservation }) {
+export default function ReservationCard({ reservation, isOverdue = false }: { reservation: Reservation; isOverdue?: boolean }) {
   return (
-    <Card key={reservation.id} className={cn("flex flex-col relative border-l-4 hover:shadow-lg transition-shadow duration-200 h-full", statusColorStyles[reservation.status])}>
+    <Card key={reservation.id} className={cn(
+        "flex flex-col relative border-l-4 hover:shadow-lg transition-shadow duration-200 h-full", 
+        isOverdue ? 'border-destructive' : statusColorStyles[reservation.status],
+        isOverdue && 'animate-pulse-border'
+    )}>
         <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
                 <div>
@@ -77,9 +81,16 @@ export default function ReservationCard({ reservation }: { reservation: Reservat
             </div>
         </CardContent>
         <div className="p-6 pt-0 mt-auto flex justify-end">
-             <Badge variant="outline" className={cn('font-semibold', statusBadgeStyles[reservation.status])}>
-                {statusMap[reservation.status]}
-            </Badge>
+             {isOverdue ? (
+                <Badge variant="destructive" className="font-semibold">
+                    <AlertTriangle className="h-3 w-3 mr-1.5" />
+                    Vencida
+                </Badge>
+             ) : (
+                <Badge variant="outline" className={cn('font-semibold', statusBadgeStyles[reservation.status])}>
+                    {statusMap[reservation.status]}
+                </Badge>
+             )}
         </div>
     </Card>
   );

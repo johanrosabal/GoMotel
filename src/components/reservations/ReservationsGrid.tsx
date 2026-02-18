@@ -13,9 +13,10 @@ export default function ReservationsGrid({ reservations }: { reservations: Reser
     
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {reservations.map(res => (
-                <ReservationCard key={res.id} reservation={res} />
-            ))}
+            {reservations.map(res => {
+                const isOverdue = res.status === 'Checked-in' && new Date() > res.checkOutDate.toDate();
+                return <ReservationCard key={res.id} reservation={res} isOverdue={isOverdue} />;
+            })}
         </div>
     );
 }

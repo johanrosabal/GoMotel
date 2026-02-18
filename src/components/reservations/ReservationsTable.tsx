@@ -41,53 +41,56 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
             <>
                 {/* Mobile View */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
-                    {reservations.map(res => (
-                        <Card key={res.id}>
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <CardTitle className="flex items-center gap-2">
-                                            <User className="w-5 h-5 text-muted-foreground" />
-                                            {res.guestName}
-                                        </CardTitle>
-                                        <CardDescription className="flex items-center gap-2 pl-1">
-                                            <BedDouble className="w-4 h-4 text-muted-foreground" />
-                                            Habitación {res.roomNumber} ({res.roomType})
-                                        </CardDescription>
+                    {reservations.map(res => {
+                        const isOverdue = res.status === 'Checked-in' && new Date() > res.checkOutDate.toDate();
+                        return (
+                            <Card key={res.id} className={cn(isOverdue && 'animate-pulse-border border-destructive')}>
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                            <CardTitle className="flex items-center gap-2">
+                                                <User className="w-5 h-5 text-muted-foreground" />
+                                                {res.guestName}
+                                            </CardTitle>
+                                            <CardDescription className="flex items-center gap-2 pl-1">
+                                                <BedDouble className="w-4 h-4 text-muted-foreground" />
+                                                Habitación {res.roomNumber} ({res.roomType})
+                                            </CardDescription>
+                                        </div>
+                                        <ReservationActionsMenu reservation={res} />
                                     </div>
-                                    <ReservationActionsMenu reservation={res} />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
-                                    <CalendarClock className="w-5 h-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="font-semibold">Check-in:</p>
-                                        <p>{format(res.checkInDate.toDate(), 'PP p', { locale: es })}</p>
+                                </CardHeader>
+                                <CardContent className="space-y-4 text-sm">
+                                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                        <CalendarClock className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-semibold">Check-in:</p>
+                                            <p>{format(res.checkInDate.toDate(), 'PP p', { locale: es })}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                 <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
-                                    <CalendarClock className="w-5 h-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="font-semibold">Check-out:</p>
-                                        <p>{format(res.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
+                                     <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                        <CalendarClock className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-semibold">Check-out:</p>
+                                            <p>{format(res.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
-                                    <Clock className="w-5 h-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="font-semibold">Tiempo Restante:</p>
-                                        <TimeRemaining checkOutDate={res.checkOutDate.toDate()} status={res.status} />
+                                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                        <Clock className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-semibold">Tiempo Restante:</p>
+                                            <TimeRemaining checkOutDate={res.checkOutDate.toDate()} status={res.status} />
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex justify-end pt-2">
-                                    <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
-                                        {statusMap[res.status]}
-                                    </Badge>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                    <div className="flex justify-end pt-2">
+                                        <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
+                                            {statusMap[res.status]}
+                                        </Badge>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
                 </div>
 
                 {/* Desktop View */}
@@ -105,8 +108,10 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {reservations.map(res => (
-                                <TableRow key={res.id}>
+                            {reservations.map(res => {
+                                const isOverdue = res.status === 'Checked-in' && new Date() > res.checkOutDate.toDate();
+                                return (
+                                <TableRow key={res.id} className={cn(isOverdue && "animate-pulse-border border-l-4 border-destructive")}>
                                     <TableCell className="font-medium">{res.guestName}</TableCell>
                                     <TableCell>
                                         <div>N° {res.roomNumber}</div>
@@ -126,7 +131,7 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                                         <ReservationActionsMenu reservation={res} />
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </div>
