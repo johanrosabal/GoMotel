@@ -1,10 +1,9 @@
 /**
- * Production-ready security rules for Go Motel.
+ * Development-focused security rules for Go Motel.
  *
- * Core Philosophy:
- * Access is restricted by default. Only authenticated users with the 'admin'
- * role can perform read and write operations on the main data collections.
- * Role management is secured to prevent unauthorized privilege escalation.
+ * These rules are permissive to allow for rapid development and testing.
+ * Any signed-in user can read and write to all data collections.
+ * For production, you should implement more granular, role-based security.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -19,8 +18,9 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the requesting user has the 'admin' role by checking for
-     * a corresponding document in the 'roles_admin' collection.
+     * Checks if the requesting user has the 'admin' role.
+     * NOTE: This is not currently used in the development rules but is kept
+     * for easier transition to production rules.
      */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
@@ -30,54 +30,40 @@ service cloud.firestore {
     // Collection Rules
     // -------------------------------------------------------------------------
 
+    // For development, any signed-in user can manage any profile.
     match /users/{userId} {
-      // Admins can manage all profiles
-      allow read, write: if isAdmin();
-      
-      // The rules below apply to non-admins managing their own profile
-      allow get: if request.auth.uid == userId;
-      
-      // Allow a user to create their own profile document.
-      // The server action is responsible for setting the correct role and data.
-      allow create: if request.auth.uid == userId;
-
-      // Allow updates for non-admins on their own profile, but they cannot change their role.
-      allow update: if request.auth.uid == userId && request.resource.data.role == resource.data.role;
+      allow read, write: if isSignedIn();
     }
 
-    // Admin-only access for core data collections
+    // For development, any signed-in user can read/write all data.
     match /rooms/{roomId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /services/{serviceId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /orders/{orderId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /transactions/{transactionId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /roomTypes/{roomTypeId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     match /stays/{stayId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     // Rules for the 'roles_admin' collection
     match /roles_admin/{uid} {
-      // Admins can see who other admins are.
-      allow get: if isAdmin();
-      
-      // Allow any authenticated user to check for existing admins during registration.
-      // The `register` server action contains the logic to only make the first user an admin.
-      allow list: if isSignedIn();
+      // Any signed-in user can see who admins are.
+      allow get, list: if isSignedIn();
       
       // Allow a user to create their own admin role document.
       // The server action logic ensures this only happens for the first registered user.
