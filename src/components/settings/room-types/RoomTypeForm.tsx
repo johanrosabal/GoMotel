@@ -321,16 +321,16 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                     return (
                                         <div
                                             key={suggestion}
-                                            className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                                            className="px-3 py-2 text-sm cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                             onMouseDown={() => handleAddFeature(suggestion)}
                                         >
                                            {isNew ? (
-                                                <span className="flex items-center gap-2 text-muted-foreground">
+                                                <span className="flex items-center gap-2">
                                                     <Plus className="h-4 w-4" />
                                                     <span>Añadir: <span className="font-semibold text-foreground">"{suggestion}"</span></span>
                                                 </span>
                                            ) : (
-                                               suggestion
+                                               <span className="text-foreground">{suggestion}</span>
                                            )}
                                         </div>
                                     );
