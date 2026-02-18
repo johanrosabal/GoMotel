@@ -1,76 +1,21 @@
 /**
- * Development-focused security rules for Go Motel.
+ * WARNING: PERMISSIVE DEVELOPMENT RULES
  *
- * These rules are permissive to allow for rapid development and testing.
- * Any signed-in user can read and write to all data collections.
- * For production, you should implement more granular, role-based security.
+ * These rules are intentionally open to allow for rapid development and
+ * to support server-side actions that run unauthenticated in this
+ * specific prototyping environment.
+ *
+ * ANYONE can read, write, and delete ANY data in your database.
+ *
+ * DO NOT use these rules in a production environment. Before deploying
+ * to production, you MUST secure your database.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // -------------------------------------------------------------------------
-    // Helper Functions
-    // -------------------------------------------------------------------------
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * Checks if the requesting user has the 'admin' role.
-     * NOTE: This is not currently used in the development rules but is kept
-     * for easier transition to production rules.
-     */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    // -------------------------------------------------------------------------
-    // Collection Rules
-    // -------------------------------------------------------------------------
-
-    // For development, any signed-in user can manage any profile.
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // For development, any signed-in user can read/write all data.
-    match /rooms/{roomId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /services/{serviceId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /orders/{orderId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /transactions/{transactionId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /roomTypes/{roomTypeId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /stays/{stayId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Rules for the 'roles_admin' collection
-    match /roles_admin/{uid} {
-      // Any signed-in user can see who admins are.
-      allow get, list: if isSignedIn();
-      
-      // Allow a user to create their own admin role document.
-      // The server action logic ensures this only happens for the first registered user.
-      allow create: if request.auth.uid == uid;
-
-      // Prevent users from updating or deleting roles.
-      allow update, delete: if false;
+    match /{document=**} {
+      // Insecure: For development only.
+      allow read, write: if true;
     }
   }
 }
