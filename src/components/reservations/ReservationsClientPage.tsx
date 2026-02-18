@@ -6,8 +6,9 @@ import type { Reservation } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import ReservationsTable from "./ReservationsTable";
 import { Button } from "../ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, UserPlus } from "lucide-react";
 import CreateReservationDialog from "./CreateReservationDialog";
+import AddClientDialog from "../clients/AddClientDialog";
 
 export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
@@ -21,7 +22,13 @@ export default function ReservationsClientPage() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+                <AddClientDialog>
+                    <Button variant="outline">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Añadir Cliente
+                    </Button>
+                </AddClientDialog>
                 <CreateReservationDialog>
                     <Button>
                         <PlusCircle className="mr-2 h-4 w-4" />

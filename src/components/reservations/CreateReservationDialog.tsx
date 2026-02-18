@@ -16,14 +16,12 @@ import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
+import { Check, ChevronsUpDown, Star, Clock } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import AddClientDialog from '@/components/clients/AddClientDialog';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
-import { useRouter } from 'next/navigation';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -43,7 +41,7 @@ const reservationSchema = z.object({
     }
     return true;
 }, {
-    message: "Solo los clientes registrados pueden hacer reservaciones a futuro. Por favor, seleccione un cliente de la lista o regístrelo.",
+    message: "Solo los clientes registrados pueden hacer reservaciones a futuro. Por favor, seleccione un cliente de la lista.",
     path: ["guestName"],
 });
 
@@ -55,7 +53,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const { firestore } = useFirebase();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [addClientOpen, setAddClientOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
@@ -206,7 +203,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                           )}
                         >
                           <span className="truncate">
-                            {field.value || 'Seleccionar o crear cliente...'}
+                            {field.value || 'Seleccionar cliente...'}
                           </span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -267,19 +264,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                               )}
                             </CommandGroup>
                           </ScrollArea>
-                           <CommandGroup className="border-t">
-                            <CommandItem
-                                onSelect={() => {
-                                setPopoverOpen(false);
-                                setTimeout(() => {
-                                    setAddClientOpen(true);
-                                }, 100);
-                                }}
-                            >
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Añadir Nuevo Cliente
-                            </CommandItem>
-                            </CommandGroup>
                         </CommandList>
                       </Command>
                     </PopoverContent>
@@ -393,7 +377,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
             </DialogFooter>
           </form>
         </Form>
-        <AddClientDialog open={addClientOpen} onOpenChange={setAddClientOpen} />
       </DialogContent>
     </Dialog>
   );
