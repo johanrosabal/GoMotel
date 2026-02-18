@@ -9,17 +9,21 @@ import { Button } from "../ui/button";
 import { PlusCircle, UserPlus, List, LayoutGrid } from "lucide-react";
 import CreateReservationDialog from "./CreateReservationDialog";
 import AddClientDialog from "../clients/AddClientDialog";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import ReservationsGrid from "./ReservationsGrid";
+import { playNotificationSound } from "@/lib/sound";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
     const [view, setView] = useState<'list' | 'grid'>('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
-
+    const [now, setNow] = useState(new Date());
+    const notifiedOverdueReservations = useRef(new Set<string>());
+    const { toast } = useToast();
 
     const reservationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -28,15 +32,50 @@ export default function ReservationsClientPage() {
 
     const { data: reservations, isLoading } = useCollection<Reservation>(reservationsQuery);
 
-    const filteredReservations = useMemo(() => {
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 30000); // Rerender every 30s
+        return () => clearInterval(timer);
+    }, []);
+
+    const processedReservations = useMemo(() => {
         if (!reservations) return [];
-        return reservations.filter(res => {
-            const searchContent = `${res.guestName} ${res.roomNumber}`.toLowerCase();
-            const searchMatch = searchContent.includes(searchTerm.toLowerCase());
-            const statusMatch = statusFilter === 'all' || res.status === statusFilter;
-            return searchMatch && statusMatch;
+        return reservations
+            .filter(res => {
+                const searchContent = `${res.guestName} ${res.roomNumber}`.toLowerCase();
+                const searchMatch = searchContent.includes(searchTerm.toLowerCase());
+                const statusMatch = statusFilter === 'all' || res.status === statusFilter;
+                return searchMatch && statusMatch;
+            })
+            .map(res => ({
+                ...res,
+                isOverdue: res.status === 'Checked-in' && now > res.checkOutDate.toDate(),
+            }));
+    }, [reservations, searchTerm, statusFilter, now]);
+
+    useEffect(() => {
+        const newlyOverdue = processedReservations.filter(r => r.isOverdue && !notifiedOverdueReservations.current.has(r.id));
+        
+        if (newlyOverdue.length > 0) {
+            playNotificationSound();
+            newlyOverdue.forEach(reservation => {
+                notifiedOverdueReservations.current.add(reservation.id);
+                toast({
+                    variant: 'destructive',
+                    title: `Reservación Vencida: Hab. ${reservation.roomNumber}`,
+                    description: `La estancia de ${reservation.guestName} ha terminado.`,
+                    duration: 15000,
+                });
+            });
+        }
+        
+        const currentlyOverdueIds = new Set(processedReservations.filter(r => r.isOverdue).map(r => r.id));
+        notifiedOverdueReservations.current.forEach(resId => {
+            if (!currentlyOverdueIds.has(resId)) {
+                notifiedOverdueReservations.current.delete(resId);
+            }
         });
-    }, [reservations, searchTerm, statusFilter]);
+
+    }, [processedReservations, toast]);
 
     return (
         <div className="space-y-4">
@@ -104,9 +143,9 @@ export default function ReservationsClientPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : view === 'list' ? (
-                <ReservationsTable reservations={filteredReservations} />
+                <ReservationsTable reservations={processedReservations} />
             ) : (
-                <ReservationsGrid reservations={filteredReservations} />
+                <ReservationsGrid reservations={processedReservations} />
             )}
         </div>
     );

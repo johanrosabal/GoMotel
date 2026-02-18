@@ -27,7 +27,9 @@ const statusMap: Record<Reservation['status'], string> = {
     Completed: 'Completada'
 }
 
-export default function ReservationsTable({ reservations }: { reservations: Reservation[] }) {
+type ProcessedReservation = Reservation & { isOverdue: boolean };
+
+export default function ReservationsTable({ reservations }: { reservations: ProcessedReservation[] }) {
     if (reservations.length === 0) {
         return (
             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -42,9 +44,8 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                 {/* Mobile View */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
                     {reservations.map(res => {
-                        const isOverdue = res.status === 'Checked-in' && new Date() > res.checkOutDate.toDate();
                         return (
-                            <Card key={res.id} className={cn(isOverdue && 'animate-pulse-border border-destructive')}>
+                            <Card key={res.id} className={cn(res.isOverdue && 'animate-pulse-border border-destructive')}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div className="space-y-1">
@@ -109,9 +110,8 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                         </TableHeader>
                         <TableBody>
                             {reservations.map(res => {
-                                const isOverdue = res.status === 'Checked-in' && new Date() > res.checkOutDate.toDate();
                                 return (
-                                <TableRow key={res.id} className={cn(isOverdue && "animate-pulse-border border-l-4 border-destructive")}>
+                                <TableRow key={res.id} className={cn(res.isOverdue && "animate-pulse-border border-l-4 border-destructive")}>
                                     <TableCell className="font-medium">{res.guestName}</TableCell>
                                     <TableCell>
                                         <div>N° {res.roomNumber}</div>
