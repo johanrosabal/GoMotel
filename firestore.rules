@@ -1,20 +1,9 @@
-/**
- * WARNING: PERMISSIVE DEVELOPMENT RULES
- *
- * These rules are intentionally open to allow for rapid development and
- * to support server-side actions that run unauthenticated in this
- * specific prototyping environment.
- *
- * ANYONE can read, write, and delete ANY data in your database.
- *
- * DO NOT use these rules in a production environment. Before deploying
- * to production, you MUST secure your database.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow read/write access to any authenticated user
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }
