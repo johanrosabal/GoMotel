@@ -62,7 +62,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
-  const [isAddingClient, setIsAddingClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
@@ -99,7 +98,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   
   const selectedRoomId = form.watch('roomId');
   const selectedPlanName = form.watch('pricePlanName');
-  const checkInDate = form.watch('checkInDate');
+  const checkInDateValue = form.watch('checkInDate');
   const checkInNow = form.watch('checkInNow');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
@@ -128,7 +127,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   }, [open, resetForm]);
 
   useEffect(() => {
-    const baseDate = checkInNow ? new Date() : checkInDate;
+    const baseDate = checkInNow ? new Date() : checkInDateValue;
 
     if (!baseDate || !selectedPlanName || !availablePlans.length) {
       setCalculatedCheckOut(null);
@@ -146,7 +145,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         
         setCalculatedCheckOut(newCheckOutDate);
     }
-  }, [checkInDate, selectedPlanName, availablePlans, checkInNow]);
+  }, [checkInDateValue, selectedPlanName, availablePlans, checkInNow]);
 
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
@@ -201,13 +200,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Huésped</FormLabel>
-                   <Popover open={popoverOpen} onOpenChange={(isOpen) => {
-                      setPopoverOpen(isOpen);
-                      if (!isOpen && isAddingClient) {
-                          setAddClientOpen(true);
-                          setIsAddingClient(false);
-                      }
-                  }}>
+                   <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -283,8 +276,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                           <CommandGroup className="border-t">
                             <CommandItem
                               onSelect={() => {
-                                setIsAddingClient(true);
                                 setPopoverOpen(false);
+                                setAddClientOpen(true);
                               }}
                             >
                               <PlusCircle className="mr-2 h-4 w-4" />
@@ -300,41 +293,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="checkInNow"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Hacer Check-in Ahora</FormLabel>
-                    <p className="text-[13px] text-muted-foreground">
-                      Para huéspedes que ingresan inmediatamente.
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {!checkInNow && (
-              <Controller
-                  control={form.control}
-                  name="checkInDate"
-                  render={({ field, fieldState }) => (
-                      <FormItem>
-                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                          <DateTimePicker date={field.value} setDate={field.onChange} />
-                          <FormMessage>{fieldState.error?.message}</FormMessage>
-                      </FormItem>
-                  )}
-              />
-            )}
-
             <div className='grid grid-cols-2 gap-4'>
                 <FormField
                     control={form.control}
@@ -385,6 +343,41 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 )}
                 />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="checkInNow"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Hacer Check-in Ahora</FormLabel>
+                    <p className="text-[13px] text-muted-foreground">
+                      Para huéspedes que ingresan inmediatamente.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {!checkInNow && (
+              <Controller
+                  control={form.control}
+                  name="checkInDate"
+                  render={({ field, fieldState }) => (
+                      <FormItem>
+                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                          <DateTimePicker date={field.value} setDate={field.onChange} />
+                          <FormMessage>{fieldState.error?.message}</FormMessage>
+                      </FormItem>
+                  )}
+              />
+            )}
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
