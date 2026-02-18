@@ -55,6 +55,8 @@ export interface Stay {
   guestId?: string;
   pricePlanName?: string;
   pricePlanAmount?: number;
+  checkOutReason?: string;
+  checkOutNotes?: string;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';

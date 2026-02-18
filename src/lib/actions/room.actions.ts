@@ -125,7 +125,7 @@ export async function checkIn(roomId: string, formData: FormData) {
   }
 }
 
-export async function checkOut(stayId: string, roomId: string) {
+export async function checkOut(stayId: string, roomId: string, options?: { reason?: string; notes?: string }) {
   if (!stayId || !roomId) {
     return { error: 'ID de estancia o habitación no válido.' };
   }
@@ -168,11 +168,21 @@ export async function checkOut(stayId: string, roomId: string) {
 
   // Update stay
   const stayRef = doc(db, 'stays', stayId);
-  batch.update(stayRef, {
+  
+  const stayUpdateData: Record<string, any> = {
     checkOut: Timestamp.now(),
     total: finalTotal,
     isPaid: true, // Assuming payment is collected at checkout
-  });
+  };
+
+  if (options?.reason) {
+    stayUpdateData.checkOutReason = options.reason;
+  }
+  if (options?.notes) {
+    stayUpdateData.checkOutNotes = options.notes;
+  }
+  
+  batch.update(stayRef, stayUpdateData);
 
   // Update room
   const roomRef = doc(db, 'rooms', roomId);

@@ -217,9 +217,12 @@ export async function checkInFromReservation(reservationId: string) {
     }
 }
 
-export async function checkOutEarlyFromReservation(reservationId: string) {
+export async function checkOutEarlyFromReservation(reservationId: string, reason: string, notes?: string) {
     if (!reservationId) {
         return { error: 'ID de reservación no válido.' };
+    }
+    if (!reason) {
+        return { error: 'Se requiere un motivo para el check-out anticipado.' };
     }
 
     try {
@@ -237,7 +240,7 @@ export async function checkOutEarlyFromReservation(reservationId: string) {
         const roomId = stayDoc.data().roomId;
 
         // Use the existing checkOut logic
-        const result = await checkOut(stayId, roomId);
+        const result = await checkOut(stayId, roomId, { reason, notes });
 
         if (result.error) {
             return { error: result.error };
