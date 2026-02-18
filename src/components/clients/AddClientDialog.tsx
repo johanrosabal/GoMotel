@@ -122,6 +122,9 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
                     <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input placeholder="Pérez" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
+            <FormField control={form.control} name="secondLastName" render={({ field }) => (
+                <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input placeholder="García" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
             <FormField control={form.control} name="idCard" render={({ field }) => (
                 <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input placeholder="0-0000-0000" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} /></FormControl><FormMessage /></FormItem>
             )} />
