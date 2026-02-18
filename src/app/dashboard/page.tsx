@@ -155,104 +155,102 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="flex-1 bg-background text-foreground">
-      <main className="p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Header */}
-        <div className="space-y-1.5">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Bienvenido, Encargado
-          </h1>
-          <p className="text-muted-foreground max-w-3xl">
-            Resumen ejecutivo de métricas clave, estado de habitaciones y accesos directos a los procesos críticos del motel.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-8">
+      {/* Header */}
+      <div className="space-y-1.5">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+          Bienvenido, Encargado
+        </h1>
+        <p className="text-muted-foreground max-w-3xl">
+          Resumen ejecutivo de métricas clave, estado de habitaciones y accesos directos a los procesos críticos del motel.
+        </p>
+      </div>
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {kpiData.map((kpi, index) => (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {kpi.title}
-                </CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {kpi.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Charts */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="lg:col-span-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Tendencia de Facturación
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {kpiData.map((kpi, index) => (
+          <Card key={index}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {kpi.title}
               </CardTitle>
-            </CardHeader>
-            <CardContent className="pl-2">
-                <BillingTrendChart />
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Distribución de Stock
-              </CardTitle>
+              <kpi.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <StockDistributionChart services={services} />
+              <div className="text-2xl font-bold">{kpi.value}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpi.description}
+              </p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Navigation Sections */}
-        {navSections.map((section) => (
-            <div key={section.title}>
-                <div className="space-y-1">
-                    <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
-                        {section.title}
-                        <span className="h-px flex-1 bg-primary/10"></span>
-                    </h2>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">
-                        Módulo / Alcance: {section.scope}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground opacity-60 leading-none mt-1">
-                        {section.description}
-                    </p>
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
-                {section.links.map((link) => (
-                    <Link key={link.title} href={link.href} className="group relative">
-                        <div className="rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5">
-                            <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
-                                <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
-                                    <link.icon className="size-6" />
-                                </div>
-                                <div className="tracking-tight text-lg font-bold">{link.title}</div>
-                                <div className="text-muted-foreground text-xs font-medium leading-relaxed mt-1 line-clamp-2">
-                                    {link.description}
-                                </div>
-                            </div>
-                            <div className="flex items-center p-6 pt-0 justify-end pb-4 px-6">
-                                <div className="p-1 rounded-full bg-muted/50 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
-                                    <ArrowRight className="size-3" />
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
-                </div>
-            </div>
         ))}
-      </main>
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Tendencia de Facturación
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+              <BillingTrendChart />
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChart className="h-5 w-5" />
+              Distribución de Stock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+              <StockDistributionChart services={services} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Navigation Sections */}
+      {navSections.map((section) => (
+          <div key={section.title}>
+              <div className="space-y-1">
+                  <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
+                      {section.title}
+                      <span className="h-px flex-1 bg-primary/10"></span>
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">
+                      Módulo / Alcance: {section.scope}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground opacity-60 leading-none mt-1">
+                      {section.description}
+                  </p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+              {section.links.map((link) => (
+                  <Link key={link.title} href={link.href} className="group relative">
+                      <div className="rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5">
+                          <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
+                              <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
+                                  <link.icon className="size-6" />
+                              </div>
+                              <div className="tracking-tight text-lg font-bold">{link.title}</div>
+                              <div className="text-muted-foreground text-xs font-medium leading-relaxed mt-1 line-clamp-2">
+                                  {link.description}
+                              </div>
+                          </div>
+                          <div className="flex items-center p-6 pt-0 justify-end pb-4 px-6">
+                              <div className="p-1 rounded-full bg-muted/50 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+                                  <ArrowRight className="size-3" />
+                              </div>
+                          </div>
+                      </div>
+                  </Link>
+              ))}
+              </div>
+          </div>
+      ))}
     </div>
   );
 }
