@@ -14,7 +14,7 @@ export function ToastStateProvider({ children }: { children: React.ReactNode }) 
 
   const toast = useCallback(
     ({ ...props }: Toast) => {
-      const id = Math.random().toString(36).substring(2, 9);
+      const id = props.id || Math.random().toString(36).substring(2, 9);
       const newToast: ToasterToast = {
         id,
         ...props,

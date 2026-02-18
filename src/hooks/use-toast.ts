@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast';
 
-export type Toast = Omit<ToasterToast, 'id' | 'open' | 'onOpenChange'>;
+export type Toast = Omit<ToasterToast, 'id' | 'open' | 'onOpenChange'> & { id?: string };
 
 export type ToasterToast = ToastProps & {
   id: string;

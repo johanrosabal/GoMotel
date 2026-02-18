@@ -10,13 +10,17 @@ import { playNotificationSound } from '@/lib/sound';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
-import ExtendStayDialog from '../room-detail/ExtendStayDialog';
+import { VolumeX } from 'lucide-react';
 
 export default function RoomGrid() {
   const { firestore } = useFirebase();
+  const { toast, dismiss } = useToast();
+
   const [overdueRooms, setOverdueRooms] = useState<Set<string>>(new Set());
-  const notifiedOverdueRooms = useRef(new Set<string>());
-  const { toast } = useToast();
+  const [isAlarmSilenced, setIsAlarmSilenced] = useState(false);
+  
+  const alarmToastId = useRef<string | null>(null);
+  const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -36,7 +40,7 @@ export default function RoomGrid() {
 
   useEffect(() => {
     const checkOverdueStays = () => {
-      if (!activeStays || !rooms) return;
+      if (!activeStays) return;
 
       const now = new Date();
       const latestOverdueRooms = new Set<string>();
@@ -46,37 +50,6 @@ export default function RoomGrid() {
         }
       }
       
-      // Sync notified set: remove rooms that are no longer overdue
-      notifiedOverdueRooms.current.forEach(roomId => {
-        if (!latestOverdueRooms.has(roomId)) {
-            notifiedOverdueRooms.current.delete(roomId);
-        }
-      });
-
-      const newlyOverdue = [...latestOverdueRooms].filter(id => !notifiedOverdueRooms.current.has(id));
-      
-      if (newlyOverdue.length > 0) {
-        playNotificationSound();
-        newlyOverdue.forEach(roomId => {
-            notifiedOverdueRooms.current.add(roomId);
-            const room = rooms.find(r => r.id === roomId);
-            const stay = activeStays.find(s => s.roomId === roomId);
-            if (room && stay) {
-                toast({
-                    variant: 'destructive',
-                    title: `Habitación ${room.number} Vencida`,
-                    description: `La estancia de ${stay.guestName} ha terminado. Gestione la estancia.`,
-                    duration: Infinity,
-                    action: (
-                        <ExtendStayDialog room={room} stay={stay}>
-                            <ToastAction altText="Gestionar">Gestionar</ToastAction>
-                        </ExtendStayDialog>
-                    )
-                });
-            }
-        });
-      }
-
       setOverdueRooms(prevOverdueRooms => {
         if (latestOverdueRooms.size === prevOverdueRooms.size && [...latestOverdueRooms].every(id => prevOverdueRooms.has(id))) {
           return prevOverdueRooms;
@@ -85,11 +58,66 @@ export default function RoomGrid() {
       });
     };
 
-    const intervalId = setInterval(checkOverdueStays, 30 * 1000); // Check every 30 seconds
+    const intervalId = setInterval(checkOverdueStays, 30 * 1000);
     checkOverdueStays();
 
     return () => clearInterval(intervalId);
-  }, [activeStays, rooms, toast]);
+  }, [activeStays]);
+
+  useEffect(() => {
+    const hasOverdueRooms = overdueRooms.size > 0;
+
+    if (hasOverdueRooms && !isAlarmSilenced) {
+      if (!soundIntervalRef.current) {
+        soundIntervalRef.current = setInterval(() => {
+          playNotificationSound();
+        }, 3000);
+      }
+    } else {
+      if (soundIntervalRef.current) {
+        clearInterval(soundIntervalRef.current);
+        soundIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (soundIntervalRef.current) {
+        clearInterval(soundIntervalRef.current);
+      }
+    };
+  }, [overdueRooms.size, isAlarmSilenced]);
+
+  useEffect(() => {
+    const hasOverdueRooms = overdueRooms.size > 0;
+
+    if (hasOverdueRooms) {
+      if (!alarmToastId.current) {
+        const newToastId = `alarm-${Date.now()}`;
+        alarmToastId.current = newToastId;
+        toast({
+          id: newToastId,
+          variant: 'destructive',
+          title: '¡Alerta de Estancia Vencida!',
+          description: `${overdueRooms.size} habitación(es) ha(n) vencido.`,
+          duration: Infinity,
+          action: (
+            <ToastAction altText="Silenciar" onClick={() => setIsAlarmSilenced(true)}>
+              <VolumeX className="mr-2 h-4 w-4" />
+              Silenciar
+            </ToastAction>
+          ),
+        });
+      }
+    } else {
+      if (alarmToastId.current) {
+        dismiss(alarmToastId.current);
+        alarmToastId.current = null;
+      }
+      if (isAlarmSilenced) {
+        setIsAlarmSilenced(false);
+      }
+    }
+  }, [overdueRooms.size, toast, dismiss, isAlarmSilenced]);
   
   const isLoading = isLoadingRooms || isLoadingStays;
 
