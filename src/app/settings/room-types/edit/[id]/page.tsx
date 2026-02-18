@@ -4,8 +4,8 @@ import RoomTypeForm from '@/components/settings/room-types/RoomTypeForm';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useDoc, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { RoomType } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,7 +19,15 @@ export default function EditRoomTypePage() {
     return doc(firestore, 'roomTypes', id);
   }, [firestore, id]);
 
-  const { data: roomType, isLoading } = useDoc<RoomType>(roomTypeRef);
+  const roomTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'roomTypes'), fbOrderBy('name'));
+  }, [firestore]);
+
+  const { data: roomType, isLoading: isLoadingRoomType } = useDoc<RoomType>(roomTypeRef);
+  const { data: allRoomTypes, isLoading: isLoadingAllRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+
+  const isLoading = isLoadingRoomType || isLoadingAllRoomTypes;
 
   if (isLoading) {
     return (
@@ -54,7 +62,7 @@ export default function EditRoomTypePage() {
           <p className="text-muted-foreground">Actualizar detalles para {roomType?.name}.</p>
         </div>
       </div>
-      <RoomTypeForm roomType={roomType as RoomType} />
+      <RoomTypeForm roomType={roomType as RoomType} allRoomTypes={allRoomTypes || []} />
     </div>
   );
 }

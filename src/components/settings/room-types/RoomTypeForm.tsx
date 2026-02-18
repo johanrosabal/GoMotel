@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -28,9 +28,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RoomTypeFormProps {
   roomType?: RoomType;
+  allRoomTypes?: RoomType[];
 }
 
 const pricePlanSchema = z.object({
@@ -69,7 +71,7 @@ const numberToCrcString = (num: number): string => {
     }).format(num);
 };
 
-export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
+export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [newFeature, setNewFeature] = useState('');
@@ -100,10 +102,36 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
   const features = form.watch('features', roomType?.features || []);
   const pricePlans = form.watch('pricePlans', roomType?.pricePlans || []);
 
-  const handleAddFeature = () => {
-    if (newFeature.trim() && !features.includes(newFeature.trim())) {
-      form.setValue('features', [...features, newFeature.trim()]);
+  const allGlobalFeatures = useMemo(() => {
+    const featureSet = new Set<string>();
+    allRoomTypes.forEach(rt => {
+      rt.features?.forEach(f => featureSet.add(f));
+    });
+    return Array.from(featureSet).sort();
+  }, [allRoomTypes]);
+
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (newFeature.trim()) {
+      const filtered = allGlobalFeatures.filter(
+        (f) =>
+          f.toLowerCase().includes(newFeature.toLowerCase()) &&
+          !features.includes(f)
+      );
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  }, [newFeature, allGlobalFeatures, features]);
+
+  const handleAddFeature = (featureToAdd?: string) => {
+    const feature = (featureToAdd || newFeature).trim();
+    if (feature && !features.includes(feature)) {
+      form.setValue('features', [...features, feature], { shouldValidate: true });
       setNewFeature('');
+      setShowSuggestions(false);
     }
   };
 
@@ -196,7 +224,7 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
   const onSubmit = (values: z.infer<typeof roomTypeSchema>) => {
     startTransition(async () => {
       try {
-        const dataToSave = {
+        const dataToSave: Partial<RoomType> = {
           name: values.name,
           features: values.features || [],
           pricePlans: values.pricePlans || [],
@@ -216,12 +244,10 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
 
           const nextCodeNumber =
             existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
-          const newCode = String(nextCodeNumber).padStart(2, '0');
+          
+          dataToSave.code = String(nextCodeNumber).padStart(2, '0');
 
-          await addDoc(collection(firestore, 'roomTypes'), {
-            ...dataToSave,
-            code: newCode,
-          });
+          await addDoc(collection(firestore, 'roomTypes'), dataToSave);
         }
         
         toast({
@@ -241,12 +267,20 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
     });
   };
 
+  const handleEnterKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddFeature();
+    }
+  };
+
   return (
     <Form {...form}>
        <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-0">
-            <div className="p-6 space-y-6 h-[calc(100vh-280px)]">
+            <div className="p-6 h-[calc(100vh-280px)]">
+              <ScrollArea className="h-full pr-6 -mr-6">
                 <div className="space-y-6">
                     <FormField
                         control={form.control}
@@ -267,27 +301,39 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
 
                     <FormItem>
                         <FormLabel>Características</FormLabel>
-                        <div className="flex items-center gap-2">
-                        <Input
-                            placeholder="p.ej. Wi-Fi de alta velocidad"
-                            value={newFeature}
-                            onChange={(e) => setNewFeature(e.target.value)}
-                            onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddFeature();
-                            }
-                            }}
-                        />
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={handleAddFeature}
-                        >
-                            <Plus className="h-4 w-4" />
-                            <span className="sr-only">Añadir Característica</span>
-                        </Button>
+                        <div className="relative">
+                          <div className="flex items-center gap-2">
+                              <Input
+                                  placeholder="p.ej. Wi-Fi de alta velocidad"
+                                  value={newFeature}
+                                  onChange={(e) => setNewFeature(e.target.value)}
+                                  onKeyDown={handleEnterKey}
+                                  onFocus={() => setShowSuggestions(true)}
+                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                              />
+                              <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleAddFeature()}
+                              >
+                                  <Plus className="h-4 w-4" />
+                                  <span className="sr-only">Añadir Característica</span>
+                              </Button>
+                          </div>
+                           {showSuggestions && suggestions.length > 0 && (
+                              <div className="absolute z-10 w-full bg-card border rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto">
+                                  {suggestions.map((suggestion) => (
+                                      <div
+                                          key={suggestion}
+                                          className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                                          onMouseDown={() => handleAddFeature(suggestion)} // use onMouseDown to fire before onBlur
+                                      >
+                                          {suggestion}
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
                         </div>
                         <div className="space-y-2 pt-2">
                         {features.length > 0 ? (
@@ -468,6 +514,7 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
                     </div>
                     </FormItem>
                 </div>
+              </ScrollArea>
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
