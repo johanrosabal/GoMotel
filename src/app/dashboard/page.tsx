@@ -27,11 +27,11 @@ import { formatCurrency } from '@/lib/utils';
 import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 import type { Service } from '@/types';
-import { Separator } from '@/components/ui/separator';
 
 // Define a type for navigation sections
 type NavSection = {
   title: string;
+  scope: string;
   description: string;
   links: {
     href: string;
@@ -90,6 +90,7 @@ export default async function DashboardPage() {
   const navSections: NavSection[] = [
     {
       title: 'Operaciones Principales',
+      scope: 'Flujo de trabajo diario y atención al cliente.',
       description: 'Gestión de habitaciones, servicios y inventario.',
       links: [
         {
@@ -108,6 +109,7 @@ export default async function DashboardPage() {
     },
     {
       title: 'Administración y Configuración',
+      scope: 'Seguridad, parámetros del sistema y datos maestros.',
       description: 'Ajustes del sistema y gestión de usuarios.',
       links: [
         {
@@ -132,6 +134,7 @@ export default async function DashboardPage() {
     },
      {
       title: 'Ayuda y Recursos',
+      scope: 'Documentación y asistencia técnica.',
       description: 'Manuales de operación y soporte técnico.',
       links: [
         {
@@ -212,10 +215,19 @@ export default async function DashboardPage() {
         {/* Navigation Sections */}
         {navSections.map((section) => (
             <div key={section.title}>
-                <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
-                <p className="text-sm text-muted-foreground">{section.description}</p>
-                <Separator className="my-4" />
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="space-y-1">
+                    <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
+                        {section.title}
+                        <span className="h-px flex-1 bg-primary/10"></span>
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest italic">
+                        Módulo / Alcance: {section.scope}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground opacity-60 leading-none mt-1">
+                        {section.description}
+                    </p>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
                 {section.links.map((link) => (
                     <Link key={link.title} href={link.href} className="group block">
                         <Card className="h-full hover:bg-card/70 dark:hover:bg-muted/50 transition-colors duration-200">
