@@ -46,6 +46,14 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
     const minutes = ['00', '15', '30', '45'];
 
+    const formatHourForDisplay = (hour24: string) => {
+        const hour = parseInt(hour24, 10);
+        if (hour === 0) return '12 AM';
+        if (hour < 12) return `${hour} AM`;
+        if (hour === 12) return '12 PM';
+        return `${hour - 12} PM`;
+    }
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Popover>
@@ -75,15 +83,15 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
 
             <div className="flex items-center gap-2">
                 <Select
-                    value={String(date?.getHours() ?? '00').padStart(2, '0')}
+                    value={String(date?.getHours() ?? '0').padStart(2, '0')}
                     onValueChange={(val) => handleTimeChange(val, 'hours')}
                     disabled={!date}
                 >
                     <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                     <SelectContent>
-                        {hours.map(h => <SelectItem key={h} value={h}>{h} H</SelectItem>)}
+                        {hours.map(h => <SelectItem key={h} value={h}>{formatHourForDisplay(h)}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select
@@ -92,7 +100,7 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
                     disabled={!date}
                 >
                     <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Min." />
                     </SelectTrigger>
                     <SelectContent>
                         {minutes.map(m => <SelectItem key={m} value={m}>{m} min</SelectItem>)}
