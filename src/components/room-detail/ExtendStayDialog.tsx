@@ -107,7 +107,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
           <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
           <DialogDescription>
             {isOverdue 
-              ? `La estancia de ${stay.guestName} ha vencido. Puede extenderla o cerrar esta ventana y proceder al check-out.`
+              ? `La estancia de ${stay.guestName} ha vencido. Puede extender la estancia o realizar el check-out.`
               : `Añada más tiempo a la estancia de ${stay.guestName}.`
             }
           </DialogDescription>
@@ -149,12 +149,15 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
                 </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancelar</Button>
+            <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
                 <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1">
                     {isPending ? 'Extendiendo...' : 'Extender Estancia'}
                 </Button>
-                
+                <CheckoutDialog stay={stay} room={room} orders={orders || []}>
+                    <Button type="button" variant="destructive" className="flex-1">
+                        Realizar Check-Out
+                    </Button>
+                </CheckoutDialog>
             </div>
           </form>
         </Form>
