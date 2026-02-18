@@ -1,23 +1,32 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy as fbOrderBy } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import type { Client } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import ClientsTable from "./ClientsTable";
 import { Button } from "../ui/button";
 import { PlusCircle } from "lucide-react";
 import AddClientDialog from "./AddClientDialog";
+import { useMemo } from "react";
 
 export default function ClientsPage() {
     const { firestore } = useFirebase();
 
     const clientsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, "clients"), fbOrderBy("createdAt", "desc"));
+        // The composite orderBy was causing an error without a specific Firestore index.
+        // Temporarily removing ordering until the index is created.
+        return query(collection(firestore, "clients"));
     }, [firestore]);
 
     const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
+    
+    // Sort clients manually on the client-side for now
+    const sortedClients = useMemo(() => {
+        if (!clients) return [];
+        return [...clients].sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    }, [clients]);
 
     return (
         <div className="space-y-4">
@@ -36,7 +45,7 @@ export default function ClientsPage() {
                     <Skeleton className="h-12 w-full" />
                 </div>
             ) : (
-                <ClientsTable clients={clients || []} />
+                <ClientsTable clients={sortedClients} />
             )}
         </div>
     );

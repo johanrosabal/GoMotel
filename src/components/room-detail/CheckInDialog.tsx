@@ -42,7 +42,9 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'clients'), fbOrderBy('isVip', 'desc'), fbOrderBy('firstName'));
+    // The composite orderBy was causing an error without a specific Firestore index.
+    // Temporarily ordering by a single field until the index is created.
+    return query(collection(firestore, 'clients'), fbOrderBy('firstName'));
   }, [firestore]);
 
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
