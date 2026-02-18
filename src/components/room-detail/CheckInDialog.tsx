@@ -1,24 +1,26 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useState, useTransition, type ReactNode, useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { checkIn } from '@/lib/actions/room.actions';
-import { Check, ChevronsUpDown, PlusCircle, Star } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
-import type { Client } from '@/types';
+import { collection, query } from 'firebase/firestore';
+import type { Client, Room, RoomType, PricePlan } from '@/types';
 import AddClientDialog from '@/components/clients/AddClientDialog';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface CheckInDialogProps {
   children: ReactNode;
@@ -27,7 +29,7 @@ interface CheckInDialogProps {
 
 const checkInSchema = z.object({
   guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
-  durationHours: z.coerce.number().int().min(1, 'La duración debe ser de al menos 1 hora.'),
+  pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   guestId: z.string().optional(),
 });
 
@@ -42,29 +44,78 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // The composite orderBy was causing an error without a specific Firestore index.
-    // Temporarily ordering by a single field until the index is created.
-    return query(collection(firestore, 'clients'), fbOrderBy('firstName'));
+    return query(collection(firestore, 'clients'));
   }, [firestore]);
 
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+  
+  const roomsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'rooms'));
+  }, [firestore]);
+  const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
+
+  const roomTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'roomTypes'));
+  }, [firestore]);
+  const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+  
+  const room = useMemo(() => rooms?.find(r => r.id === roomId), [rooms, roomId]);
+  const roomType = useMemo(() => roomTypes?.find(rt => rt.id === room?.roomTypeId), [roomTypes, room]);
+  const availablePlans = useMemo(() => roomType?.pricePlans?.sort((a, b) => a.price - b.price) || [], [roomType]);
 
   const form = useForm<z.infer<typeof checkInSchema>>({
     resolver: zodResolver(checkInSchema),
     defaultValues: {
       guestName: '',
-      durationHours: 3,
+      pricePlanName: undefined,
       guestId: undefined,
     },
   });
 
+  const selectedPlanName = form.watch('pricePlanName');
+  
+  const calculatedCheckOut = useMemo(() => {
+    if (!selectedPlanName || !availablePlans.length) return null;
+
+    const plan = availablePlans.find(p => p.name === selectedPlanName);
+    if (!plan) return null;
+
+    const checkInTime = new Date();
+    let checkOutTime = new Date(checkInTime);
+    
+    switch(plan.unit) {
+      case 'Hours': checkOutTime = addHours(checkInTime, plan.duration); break;
+      case 'Days': checkOutTime = addDays(checkInTime, plan.duration); break;
+      case 'Weeks': checkOutTime = addWeeks(checkInTime, plan.duration); break;
+      case 'Months': checkOutTime = addMonths(checkInTime, plan.duration); break;
+    }
+    
+    return format(checkOutTime, 'PPpp', { locale: es });
+  }, [selectedPlanName, availablePlans]);
+
   const onSubmit = (values: z.infer<typeof checkInSchema>) => {
     const formData = new FormData();
     formData.append('guestName', values.guestName);
-    formData.append('durationHours', String(values.durationHours));
     if (values.guestId) {
       formData.append('guestId', values.guestId);
     }
+    
+    const plan = availablePlans.find(p => p.name === values.pricePlanName);
+    if (!plan) {
+        toast({ title: 'Error', description: 'Plan de precios inválido.', variant: 'destructive' });
+        return;
+    }
+    
+    let durationHours = 0;
+    switch(plan.unit) {
+        case 'Hours': durationHours = plan.duration; break;
+        case 'Days': durationHours = plan.duration * 24; break;
+        case 'Weeks': durationHours = plan.duration * 7 * 24; break;
+        case 'Months': durationHours = plan.duration * 30 * 24; break; // Approximation
+    }
+    formData.append('durationHours', String(durationHours));
 
     startTransition(async () => {
       const result = await checkIn(roomId, formData);
@@ -84,6 +135,14 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
       }
     });
   };
+
+  useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
+
+  const isLoading = isLoadingRooms || isLoadingRoomTypes;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -193,19 +252,41 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
             />
             <FormField
               control={form.control}
-              name="durationHours"
+              name="pricePlanName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Duración de la Estancia (horas)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" {...field} />
-                  </FormControl>
+                  <FormLabel>Plan de Estancia</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availablePlans.map(plan => (
+                        <SelectItem key={plan.name} value={plan.name}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {calculatedCheckOut && (
+                <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                        <Clock className="h-4 w-4" />
+                        <span>Salida Estimada</span>
+                    </div>
+                    <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
+                </div>
+            )}
+
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || isLoading}>
                 {isPending ? 'Registrando...' : 'Confirmar Check-In'}
               </Button>
             </DialogFooter>

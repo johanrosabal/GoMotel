@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
-import type { Room, Client } from '@/types';
+import type { Room, Client, RoomType, PricePlan } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
-import { addHours, isBefore } from 'date-fns';
-import { Check, ChevronsUpDown, PlusCircle, Star } from 'lucide-react';
+import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import AddClientDialog from '@/components/clients/AddClientDialog';
@@ -31,11 +32,13 @@ const reservationSchema = z.object({
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.' }),
   checkOutDate: z.date({ required_error: 'La fecha de check-out es requerida.' }),
+  pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   guestId: z.string().optional(),
-}).refine(data => isBefore(data.checkInDate, data.checkOutDate), {
+}).refine(data => data.checkInDate && data.checkOutDate && isBefore(data.checkInDate, data.checkOutDate), {
     message: "La fecha de check-out debe ser posterior a la fecha de check-in.",
     path: ["checkOutDate"],
 });
+
 
 export default function CreateReservationDialog({ children }: CreateReservationDialogProps) {
   const [open, setOpen] = useState(false);
@@ -55,21 +58,73 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // The composite orderBy was causing an error without a specific Firestore index.
-    // Temporarily ordering by a single field until the index is created.
-    return query(collection(firestore, 'clients'), fbOrderBy('firstName'));
+    return query(collection(firestore, 'clients'));
   }, [firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+  
+  const roomTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'roomTypes'));
+  }, [firestore]);
+  const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+
 
   const form = useForm<z.infer<typeof reservationSchema>>({
     resolver: zodResolver(reservationSchema),
     defaultValues: {
       guestName: '',
       guestId: undefined,
+      roomId: undefined,
+      pricePlanName: undefined,
       checkInDate: addHours(new Date(), 1),
-      checkOutDate: addHours(new Date(), 4),
+      checkOutDate: addHours(new Date(), 4), // Will be overwritten
     },
   });
+  
+  const selectedRoomId = form.watch('roomId');
+  const selectedPlanName = form.watch('pricePlanName');
+  const checkInDate = form.watch('checkInDate');
+  const checkOutDateValue = form.watch('checkOutDate');
+
+  const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
+  const availablePlans = useMemo(() => {
+      if (!selectedRoom || !roomTypes) return [];
+      const roomType = roomTypes.find(rt => rt.id === selectedRoom.roomTypeId);
+      return roomType?.pricePlans?.sort((a,b) => a.price - b.price) || [];
+  }, [selectedRoom, roomTypes]);
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+          guestName: '',
+          guestId: undefined,
+          roomId: undefined,
+          pricePlanName: undefined,
+          checkInDate: addHours(new Date(), 1),
+          checkOutDate: addHours(new Date(), 4),
+      });
+    }
+  }, [open, form]);
+
+  useEffect(() => {
+      form.setValue('pricePlanName', undefined as any, { shouldValidate: false });
+  }, [selectedRoomId, form]);
+
+  useEffect(() => {
+      const plan = availablePlans.find(p => p.name === selectedPlanName);
+      if (checkInDate && plan) {
+          let newCheckOutDate = new Date(checkInDate);
+          const { duration, unit } = plan;
+          
+          if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
+          else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
+          else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
+          else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
+          
+          form.setValue('checkOutDate', newCheckOutDate, { shouldValidate: true });
+      }
+  }, [checkInDate, selectedPlanName, availablePlans, form]);
+
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
     const room = rooms?.find(r => r.id === values.roomId);
@@ -96,10 +151,11 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       } else {
         toast({ title: '¡Éxito!', description: 'La reservación ha sido creada.' });
         setOpen(false);
-        form.reset();
       }
     });
   };
+
+  const isLoading = isLoadingRooms || isLoadingRoomTypes;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -240,20 +296,45 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                     </FormItem>
                 )}
             />
-             <Controller
-                control={form.control}
-                name="checkOutDate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha y Hora de Check-out</FormLabel>
-                        <DateTimePicker date={field.value} setDate={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                )}
+             <FormField
+              control={form.control}
+              name="pricePlanName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plan de Estancia</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={!selectedRoomId ? "Seleccione una habitación primero" : "Seleccione un plan"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availablePlans.map(plan => (
+                        <SelectItem key={plan.name} value={plan.name}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
+
+            {checkOutDateValue && form.getValues('pricePlanName') && (
+                <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                        <Clock className="h-4 w-4" />
+                        <span>Salida Estimada</span>
+                    </div>
+                    <p className="font-semibold text-center pt-1">{format(checkOutDateValue, 'PPpp', { locale: es })}</p>
+                    <FormMessage>{form.formState.errors.checkOutDate?.message}</FormMessage>
+                </div>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || isLoading}>
                 {isPending ? 'Creando...' : 'Crear Reservación'}
               </Button>
             </DialogFooter>
