@@ -165,7 +165,7 @@ export default function RoomDetailsPage() {
             case 'Available':
                 return (
                     <CheckInDialog roomId={room.id}>
-                        <Button size="lg" className="w-full h-16 sm:h-12 text-base sm:text-sm">
+                        <Button className="w-full h-16 sm:h-12 text-base sm:text-sm">
                             <LogIn className="mr-2 h-5 w-5" /> Registrar Huésped
                         </Button>
                     </CheckInDialog>
@@ -174,12 +174,12 @@ export default function RoomDetailsPage() {
                 return (
                     <div className="flex flex-col sm:flex-row gap-2">
                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
-                            <Button size="lg" className="flex-1 h-16 sm:h-12 text-base sm:text-sm">
+                            <Button className="flex-1 h-16 sm:h-12 text-base sm:text-sm">
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
                         <CheckoutDialog stay={stay} room={room} orders={orders}>
-                            <Button size="lg" variant="destructive" className="flex-1 h-16 sm:h-12 text-base sm:text-sm">
+                            <Button variant="destructive" className="flex-1 h-16 sm:h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
                         </CheckoutDialog>
@@ -188,7 +188,7 @@ export default function RoomDetailsPage() {
             case 'Cleaning':
             case 'Maintenance':
                 return (
-                    <Button size="lg" className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable}>
+                    <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable}>
                         <Check className="mr-2 h-5 w-5" /> Marcar como Disponible
                     </Button>
                 )
