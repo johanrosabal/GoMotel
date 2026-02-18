@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -131,12 +131,10 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     {userProfile?.role === 'Administrador' && (
                         <>
                             <DropdownMenuSeparator />
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsDeleteAlertOpen(true);}} className="text-destructive focus:text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Eliminar (Admin)
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
+                            <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar (Admin)
+                            </DropdownMenuItem>
                         </>
                     )}
                 </DropdownMenuContent>
