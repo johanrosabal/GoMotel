@@ -15,10 +15,10 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order } from '@/types';
+import type { Room, RoomStatus, Stay, Order, RoomType } from '@/types';
 import { z } from 'zod';
 import { formatDistance } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 
 // Helper to convert Firestore doc to Room object
 const toRoomObject = (doc: any): Room => {
@@ -276,5 +276,69 @@ export async function saveRoom(formData: FormData) {
         return { error: error.message };
     }
     return { error: 'Ocurrió un error inesperado.' };
+  }
+}
+
+const extendStaySchema = z.object({
+  stayId: z.string(),
+  newPlanName: z.string(),
+});
+
+export async function extendStay(stayId: string, newPlanName: string) {
+  const validatedFields = extendStaySchema.safeParse({ stayId, newPlanName });
+  if (!validatedFields.success) {
+    return { error: 'Datos de extensión inválidos.' };
+  }
+
+  const stayRef = doc(db, 'stays', stayId);
+  const staySnap = await getDoc(stayRef);
+  if (!staySnap.exists()) {
+    return { error: 'La estancia a extender no fue encontrada.' };
+  }
+  const stayData = staySnap.data() as Stay;
+
+  const roomSnap = await getDoc(doc(db, 'rooms', stayData.roomId));
+  if (!roomSnap.exists()) {
+    return { error: 'La habitación de la estancia no fue encontrada.' };
+  }
+  const roomData = roomSnap.data() as Room;
+
+  const roomTypeSnap = await getDoc(doc(db, 'roomTypes', roomData.roomTypeId));
+  if (!roomTypeSnap.exists()) {
+    return { error: 'El tipo de habitación no fue encontrado.' };
+  }
+  const roomTypeData = roomTypeSnap.data() as RoomType;
+
+  const newPlan = roomTypeData.pricePlans?.find(p => p.name === newPlanName);
+  if (!newPlan) {
+    return { error: 'El nuevo plan de precios no es válido para este tipo de habitación.' };
+  }
+
+  const now = new Date();
+  let newExpectedCheckOut = new Date(now);
+  switch (newPlan.unit) {
+    case 'Minutes': newExpectedCheckOut = addMinutes(now, newPlan.duration); break;
+    case 'Hours': newExpectedCheckOut = addHours(now, newPlan.duration); break;
+    case 'Days': newExpectedCheckOut = addDays(now, newPlan.duration); break;
+    case 'Weeks': newExpectedCheckOut = addWeeks(now, newPlan.duration); break;
+    case 'Months': newExpectedCheckOut = addMonths(now, newPlan.duration); break;
+  }
+
+  // Add the price of the new plan to the existing amount.
+  const newPricePlanAmount = (stayData.pricePlanAmount || 0) + newPlan.price;
+  const newPricePlanName = `${stayData.pricePlanName}, ${newPlan.name}`; // Append plan names
+
+  try {
+    await updateDoc(stayRef, {
+      expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
+      pricePlanAmount: newPricePlanAmount,
+      pricePlanName: newPricePlanName,
+    });
+    revalidatePath(`/rooms/${stayData.roomId}`);
+    revalidatePath('/dashboard/rooms');
+    return { success: true };
+  } catch (error) {
+    console.error('Error extending stay:', error);
+    return { error: 'No se pudo extender la estancia.' };
   }
 }

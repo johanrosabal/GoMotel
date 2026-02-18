@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, onSnapshot, query, where, DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Room, Stay } from '@/types';
@@ -8,6 +8,9 @@ import RoomCard from './RoomCard';
 import { Skeleton } from '../ui/skeleton';
 import { playNotificationSound } from '@/lib/sound';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import ExtendStayDialog from '../room-detail/ExtendStayDialog';
 
 interface RoomGridProps {
   initialRooms: Room[];
@@ -16,6 +19,8 @@ interface RoomGridProps {
 export default function RoomGrid({ initialRooms }: RoomGridProps) {
   const { firestore } = useFirebase();
   const [overdueRooms, setOverdueRooms] = useState<Set<string>>(new Set());
+  const notifiedOverdueRooms = useRef(new Set<string>());
+  const { toast } = useToast();
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -35,7 +40,7 @@ export default function RoomGrid({ initialRooms }: RoomGridProps) {
 
   useEffect(() => {
     const checkOverdueStays = () => {
-      if (!activeStays) return;
+      if (!activeStays || !rooms) return;
 
       const now = new Date();
       const latestOverdueRooms = new Set<string>();
@@ -44,29 +49,51 @@ export default function RoomGrid({ initialRooms }: RoomGridProps) {
           latestOverdueRooms.add(stay.roomId);
         }
       }
+      
+      // Sync notified set: remove rooms that are no longer overdue
+      notifiedOverdueRooms.current.forEach(roomId => {
+        if (!latestOverdueRooms.has(roomId)) {
+            notifiedOverdueRooms.current.delete(roomId);
+        }
+      });
+
+      const newlyOverdue = [...latestOverdueRooms].filter(id => !notifiedOverdueRooms.current.has(id));
+      
+      if (newlyOverdue.length > 0) {
+        playNotificationSound();
+        newlyOverdue.forEach(roomId => {
+            notifiedOverdueRooms.current.add(roomId);
+            const room = rooms.find(r => r.id === roomId);
+            const stay = activeStays.find(s => s.roomId === roomId);
+            if (room && stay) {
+                toast({
+                    variant: 'destructive',
+                    title: `Habitación ${room.number} Vencida`,
+                    description: `La estancia de ${stay.guestName} ha terminado. Gestione la estancia.`,
+                    duration: Infinity,
+                    action: (
+                        <ExtendStayDialog room={room} stay={stay}>
+                            <ToastAction altText="Gestionar">Gestionar</ToastAction>
+                        </ExtendStayDialog>
+                    )
+                });
+            }
+        });
+      }
 
       setOverdueRooms(prevOverdueRooms => {
-        // Determine if there are any new overdue rooms since the last check.
-        const newlyOverdue = [...latestOverdueRooms].filter(id => !prevOverdueRooms.has(id));
-
-        if (newlyOverdue.length > 0) {
-          playNotificationSound();
-        }
-
-        // Only update state if the set has actually changed to prevent infinite loops.
         if (latestOverdueRooms.size === prevOverdueRooms.size && [...latestOverdueRooms].every(id => prevOverdueRooms.has(id))) {
           return prevOverdueRooms;
         }
-        
         return latestOverdueRooms;
       });
     };
 
-    const intervalId = setInterval(checkOverdueStays, 60 * 1000); // Check every minute
-    checkOverdueStays(); // Also check immediately on load
+    const intervalId = setInterval(checkOverdueStays, 30 * 1000); // Check every 30 seconds
+    checkOverdueStays();
 
     return () => clearInterval(intervalId);
-  }, [activeStays]);
+  }, [activeStays, rooms, toast]);
   
   const isLoading = isLoadingRooms || isLoadingStays;
 
