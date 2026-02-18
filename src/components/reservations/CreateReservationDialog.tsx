@@ -31,12 +31,8 @@ const reservationSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.' }),
-  checkOutDate: z.date({ required_error: 'La fecha de check-out es requerida.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   guestId: z.string().optional(),
-}).refine(data => data.checkInDate && data.checkOutDate && isBefore(data.checkInDate, data.checkOutDate), {
-    message: "La fecha de check-out debe ser posterior a la fecha de check-in.",
-    path: ["checkOutDate"],
 });
 
 
@@ -49,6 +45,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -58,7 +55,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'clients'));
+    return query(collection(firestore, "clients"));
   }, [firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
   
@@ -77,14 +74,12 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       roomId: undefined,
       pricePlanName: undefined,
       checkInDate: addHours(new Date(), 1),
-      checkOutDate: addHours(new Date(), 4), // Will be overwritten
     },
   });
   
   const selectedRoomId = form.watch('roomId');
   const selectedPlanName = form.watch('pricePlanName');
   const checkInDate = form.watch('checkInDate');
-  const checkOutDateValue = form.watch('checkOutDate');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
   const availablePlans = useMemo(() => {
@@ -101,14 +96,14 @@ export default function CreateReservationDialog({ children }: CreateReservationD
           roomId: undefined,
           pricePlanName: undefined,
           checkInDate: addHours(new Date(), 1),
-          checkOutDate: addHours(new Date(), 4),
       });
+      setCalculatedCheckOut(null);
     }
-  }, [open, form]);
+  }, [open, form.reset]);
 
   useEffect(() => {
       form.setValue('pricePlanName', undefined as any, { shouldValidate: false });
-  }, [selectedRoomId, form]);
+  }, [selectedRoomId, form.setValue]);
 
   useEffect(() => {
       const plan = availablePlans.find(p => p.name === selectedPlanName);
@@ -121,15 +116,22 @@ export default function CreateReservationDialog({ children }: CreateReservationD
           else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
           else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
           
-          form.setValue('checkOutDate', newCheckOutDate, { shouldValidate: true });
+          setCalculatedCheckOut(newCheckOutDate);
+      } else {
+        setCalculatedCheckOut(null);
       }
-  }, [checkInDate, selectedPlanName, availablePlans, form]);
+  }, [checkInDate, selectedPlanName, availablePlans]);
 
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
     const room = rooms?.find(r => r.id === values.roomId);
-    if (!room) {
-        toast({ title: "Error", description: "Habitación no válida.", variant: "destructive" });
+    if (!room || !calculatedCheckOut) {
+        toast({ title: "Error", description: "Habitación o fecha de salida no válida.", variant: "destructive" });
+        return;
+    }
+    
+    if (isBefore(calculatedCheckOut, values.checkInDate)) {
+        toast({ title: "Error", description: "La fecha de check-out debe ser posterior a la fecha de check-in.", variant: "destructive" });
         return;
     }
 
@@ -139,7 +141,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     formData.append('roomNumber', room.number);
     formData.append('roomType', room.roomTypeName);
     formData.append('checkInDate', values.checkInDate.toISOString());
-    formData.append('checkOutDate', values.checkOutDate.toISOString());
+    formData.append('checkOutDate', calculatedCheckOut.toISOString());
     if (values.guestId) {
         formData.append('guestId', values.guestId);
     }
@@ -321,14 +323,13 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 )}
             />
             
-            {checkOutDateValue && form.getValues('pricePlanName') && (
+            {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground font-medium">
                         <Clock className="h-4 w-4" />
                         <span>Salida Estimada</span>
                     </div>
-                    <p className="font-semibold text-center pt-1">{format(checkOutDateValue, 'PPpp', { locale: es })}</p>
-                    <FormMessage>{form.formState.errors.checkOutDate?.message}</FormMessage>
+                    <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, 'PPpp', { locale: es })}</p>
                 </div>
             )}
 
