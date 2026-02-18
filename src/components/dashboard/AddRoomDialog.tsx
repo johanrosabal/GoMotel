@@ -134,29 +134,6 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="sr-only">Número de Habitación</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="000"
-                        {...field}
-                        type="text"
-                        inputMode="numeric"
-                        onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '');
-                            field.onChange(value.slice(0, 3));
-                        }}
-                        className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-center" />
-                  </FormItem>
-                )}
-              />
             <FormField
               control={form.control}
               name="roomTypeId"
@@ -185,6 +162,29 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="sr-only">Número de Habitación</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="000"
+                      {...field}
+                      type="text"
+                      inputMode="numeric"
+                      onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          field.onChange(value.slice(0, 3));
+                      }}
+                      className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </FormControl>
+                  <FormMessage className="text-center" />
                 </FormItem>
               )}
             />
