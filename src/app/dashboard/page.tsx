@@ -105,6 +105,12 @@ export default async function DashboardPage() {
           badge: 'Principal',
         },
         {
+          href: '/clients',
+          title: 'Gestión de Clientes',
+          description: 'Cree y administre la ficha de sus clientes frecuentes.',
+          icon: Users,
+        },
+        {
           href: '/inventory',
           title: 'Inventario de Servicios',
           description: 'Administración de productos y servicios.',

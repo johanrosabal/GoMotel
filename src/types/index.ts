@@ -102,3 +102,18 @@ export interface UserProfile {
   status: 'Active' | 'Paused';
   photoURL?: string;
 }
+
+export interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  secondLastName?: string;
+  idCard: string;
+  email: string;
+  phoneNumber: string;
+  whatsappNumber?: string;
+  birthDate: Timestamp;
+  address?: string;
+  notes?: string;
+  createdAt: Timestamp;
+}

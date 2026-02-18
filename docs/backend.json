@@ -1,5 +1,67 @@
 {
   "entities": {
+    "Client": {
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a registered guest/client of the motel.",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "description": "Client's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Client's primary last name."
+        },
+        "secondLastName": {
+          "type": "string",
+          "description": "Client's secondary last name."
+        },
+        "idCard": {
+          "type": "string",
+          "description": "Client's national identity card number."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Client's email address."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Client's phone number."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Client's WhatsApp number."
+        },
+        "birthDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Client's date of birth."
+        },
+        "address": {
+          "type": "string",
+          "description": "Client's address."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Internal notes about the client."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the client was registered."
+        }
+      },
+      "required": [
+        "firstName",
+        "lastName",
+        "idCard",
+        "email",
+        "phoneNumber",
+        "createdAt"
+      ]
+    },
     "Reservation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Reservation",
@@ -15,12 +77,12 @@
           "description": "Reference to the Room being reserved."
         },
         "roomNumber": {
-            "type": "string",
-            "description": "Denormalized room number for display."
+          "type": "string",
+          "description": "Denormalized room number for display."
         },
         "roomType": {
-            "type": "string",
-            "description": "Denormalized room type name for display."
+          "type": "string",
+          "description": "Denormalized room type name for display."
         },
         "guestName": {
           "type": "string",
@@ -186,7 +248,12 @@
         "status": {
           "type": "string",
           "description": "The status of the order (e.g., pending, processing, completed).",
-          "enum": ["Pendiente", "En preparación", "Entregado", "Cancelado"]
+          "enum": [
+            "Pendiente",
+            "En preparación",
+            "Entregado",
+            "Cancelado"
+          ]
         },
         "totalPrice": {
           "type": "number",
@@ -248,23 +315,62 @@
       ]
     },
     "Stay": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Stay",
-        "type": "object",
-        "description": "Represents an active or past stay of a guest in a room.",
-        "properties": {
-          "id": { "type": "string", "description": "Unique identifier for the Stay." },
-          "roomId": { "type": "string", "description": "Reference to the Room." },
-          "roomNumber": { "type": "string", "description": "Denormalized room number." },
-          "guestName": { "type": "string", "description": "Name of the guest." },
-          "checkIn": { "type": "string", "format": "date-time", "description": "Actual check-in time." },
-          "expectedCheckOut": { "type": "string", "format": "date-time", "description": "Expected check-out time." },
-          "checkOut": { "type": "string", "format": "date-time", "description": "Actual check-out time." },
-          "total": { "type": "number", "description": "Final bill amount." },
-          "isPaid": { "type": "boolean", "description": "Payment status." },
-          "reservationId": { "type": "string", "description": "Optional reference to the Reservation." }
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Stay",
+      "type": "object",
+      "description": "Represents an active or past stay of a guest in a room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Stay."
         },
-        "required": ["roomId", "roomNumber", "guestName", "checkIn", "expectedCheckOut"]
+        "roomId": {
+          "type": "string",
+          "description": "Reference to the Room."
+        },
+        "roomNumber": {
+          "type": "string",
+          "description": "Denormalized room number."
+        },
+        "guestName": {
+          "type": "string",
+          "description": "Name of the guest."
+        },
+        "checkIn": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Actual check-in time."
+        },
+        "expectedCheckOut": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expected check-out time."
+        },
+        "checkOut": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Actual check-out time."
+        },
+        "total": {
+          "type": "number",
+          "description": "Final bill amount."
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Payment status."
+        },
+        "reservationId": {
+          "type": "string",
+          "description": "Optional reference to the Reservation."
+        }
+      },
+      "required": [
+        "roomId",
+        "roomNumber",
+        "guestName",
+        "checkIn",
+        "expectedCheckOut"
+      ]
     },
     "roles_admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -277,7 +383,9 @@
           "description": "Must be true to grant admin access."
         }
       },
-      "required": ["admin"]
+      "required": [
+        "admin"
+      ]
     },
     "PricePlan": {
       "title": "Price Plan",
@@ -295,14 +403,24 @@
         "unit": {
           "type": "string",
           "description": "The unit of time for the duration.",
-          "enum": ["Hours", "Days", "Weeks", "Months"]
+          "enum": [
+            "Hours",
+            "Days",
+            "Weeks",
+            "Months"
+          ]
         },
         "price": {
           "type": "number",
           "description": "The cost of this plan."
         }
       },
-      "required": ["name", "duration", "unit", "price"]
+      "required": [
+        "name",
+        "duration",
+        "unit",
+        "price"
+      ]
     },
     "RoomType": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -315,8 +433,8 @@
           "description": "The name of the room type (e.g., Single, Double, Suite)."
         },
         "code": {
-            "type": "string",
-            "description": "A unique code for the room type (e.g., 01, 02)."
+          "type": "string",
+          "description": "A unique code for the room type (e.g., 01, 02)."
         },
         "capacity": {
           "type": "number",
@@ -337,7 +455,11 @@
           }
         }
       },
-      "required": ["name", "code", "capacity"]
+      "required": [
+        "name",
+        "code",
+        "capacity"
+      ]
     },
     "UserProfile": {
       "title": "User Profile",
@@ -383,24 +505,30 @@
           "description": "User's WhatsApp number, if different from phone."
         },
         "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the profile was created."
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the profile was created."
         },
         "role": {
           "type": "string",
           "description": "The user's role in the application.",
-          "enum": ["Administrador", "Recepcion"]
+          "enum": [
+            "Administrador",
+            "Recepcion"
+          ]
         },
         "status": {
-            "type": "string",
-            "description": "The current status of the user's account.",
-            "enum": ["Active", "Paused"]
+          "type": "string",
+          "description": "The current status of the user's account.",
+          "enum": [
+            "Active",
+            "Paused"
+          ]
         },
         "photoURL": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL of the user's profile picture."
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's profile picture."
         }
       },
       "required": [
@@ -556,12 +684,30 @@
         "path": "/stays/{stayId}",
         "definition": {
           "entityName": "Stay",
-          "schema": { "$ref": "#/backend/entities/Stay" },
+          "schema": {
+            "$ref": "#/backend/entities/Stay"
+          },
           "description": "Stores records of room stays, both active and past.",
-           "params": [
+          "params": [
             {
               "name": "stayId",
               "description": "The unique identifier of the stay."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores registered client information for faster check-ins and CRM.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             }
           ]
         }
@@ -570,3 +716,4 @@
     "reasoning": "The Firestore data structure is designed to manage a motel's operations, including room check-in/out, service orders, inventory, and billing. The structure prioritizes authorization independence and supports secure list operations.\n\n**Authorization Independence and QAPs:**\n\n*   Path-based ownership is used for private user data (none in the current data model, but can be easily extended). This avoids the need for `get()` calls in security rules and enables atomic operations.\n*   Since all the collections requires Admin privileges, no additional attributes are denormalized as no user-level authorization rules are needed, simplifying security rules and improving performance.\n*   Structural segregation ensures all documents in each collection share the same security requirements (admin-only access).  This simplifies security rules.\n\n**Explanation of Collections:**\n\n*   `/rooms`: Stores room information. All operations require admin privileges.\n*   `/services`: Stores service information. All operations require admin privileges.\n*   `/orders`: Stores order information. All operations require admin privileges. Includes `roomId` to associate orders with rooms.\n*   `/transactions`: Stores transaction information. All operations require admin privileges. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.\n*   `/roles_admin/{uid}`: Used to grant admin access. The existence of a document in this collection grants admin privileges to the corresponding user.\n\nThis design enables robust security rules. For example, listing rooms is secure because no user-generated content is involved. All write operations are restricted to admins, which can be enforced by checking the existence of a document in `/roles_admin/{uid}`."
   }
 }
+    
