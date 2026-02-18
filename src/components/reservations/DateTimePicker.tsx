@@ -26,18 +26,27 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
 
     useEffect(() => {
         if (date) {
-            setDay(String(date.getDate()));
-            setMonth(String(date.getMonth() + 1));
-            setYear(String(date.getFullYear()));
-            setHour(String(date.getHours()).padStart(2, '0'));
-            
-            const currentMinutes = date.getMinutes();
-            if (currentMinutes >= 45) setMinute('45');
-            else if (currentMinutes >= 30) setMinute('30');
-            else if (currentMinutes >= 15) setMinute('15');
-            else setMinute('00');
+            const dateHasChanged = !date || 
+                date.getDate() !== parseInt(day, 10) ||
+                (date.getMonth() + 1) !== parseInt(month, 10) ||
+                date.getFullYear() !== parseInt(year, 10) ||
+                date.getHours() !== parseInt(hour, 10) ||
+                date.getMinutes() !== parseInt(minute, 10);
+
+            if (dateHasChanged) {
+                setDay(String(date.getDate()));
+                setMonth(String(date.getMonth() + 1));
+                setYear(String(date.getFullYear()));
+                setHour(String(date.getHours()).padStart(2, '0'));
+                
+                const currentMinutes = date.getMinutes();
+                if (currentMinutes >= 45) setMinute('45');
+                else if (currentMinutes >= 30) setMinute('30');
+                else if (currentMinutes >= 15) setMinute('15');
+                else setMinute('00');
+            }
         }
-    }, [date]);
+    }, [date, day, month, year, hour, minute]);
     
     useEffect(() => {
         if (day && month && year && hour && minute) {

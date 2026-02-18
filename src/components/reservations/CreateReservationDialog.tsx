@@ -23,6 +23,7 @@ import AddClientDialog from '@/components/clients/AddClientDialog';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
+import { useRouter } from 'next/navigation';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -58,6 +59,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const router = useRouter();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
@@ -280,7 +282,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                             <CommandItem
                               onSelect={() => {
                                 setPopoverOpen(false);
-                                setAddClientOpen(true);
+                                setTimeout(() => setAddClientOpen(true), 150);
                               }}
                             >
                               <PlusCircle className="mr-2 h-4 w-4" />
@@ -288,8 +290,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                             </CommandItem>
                             <CommandItem
                                 onSelect={() => {
-                                    window.open('/clients', '_blank');
-                                    setPopoverOpen(false);
+                                    router.push('/clients');
                                 }}
                             >
                               <Users className="mr-2 h-4 w-4" />
@@ -304,23 +305,48 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
-            
-            <FormField
+
+            <div className='grid grid-cols-2 gap-4'>
+                <FormField
+                    control={form.control}
+                    name="roomId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Habitación</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione"} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {rooms?.map(room => (
+                                <SelectItem key={room.id} value={room.id}>
+                                {room.number} - {room.roomTypeName}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
                 control={form.control}
-                name="roomId"
+                name="pricePlanName"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms}>
+                    <FormLabel>Plan de Estancia</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
                         <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione una habitación"} />
+                            <SelectValue placeholder={!selectedRoomId ? "Elija habitación" : "Seleccione"} />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {rooms?.map(room => (
-                            <SelectItem key={room.id} value={room.id}>
-                            {room.number} - {room.roomTypeName}
+                        {availablePlans.map(plan => (
+                            <SelectItem key={plan.name} value={plan.name}>
+                            {plan.name}
                             </SelectItem>
                         ))}
                         </SelectContent>
@@ -328,32 +354,9 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                     <FormMessage />
                     </FormItem>
                 )}
-            />
-             <FormField
-              control={form.control}
-              name="pricePlanName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan de Estancia</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={!selectedRoomId ? "Seleccione una habitación primero" : "Seleccione un plan"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availablePlans.map(plan => (
-                        <SelectItem key={plan.name} value={plan.name}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+                />
+            </div>
+            
             <FormField
               control={form.control}
               name="checkInNow"
