@@ -5,10 +5,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, BedDouble, CalendarClock } from 'lucide-react';
+import { User, BedDouble, CalendarClock, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import ReservationActionsMenu from './ReservationActionsMenu';
+import TimeRemaining from './TimeRemaining';
 
 const statusStyles: Record<Reservation['status'], string> = {
   Confirmed: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50',
@@ -70,6 +71,13 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                                         <p>{format(res.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                    <Clock className="w-5 h-5 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-semibold">Tiempo Restante:</p>
+                                        <TimeRemaining checkOutDate={res.checkOutDate.toDate()} status={res.status} />
+                                    </div>
+                                </div>
                                 <div className="flex justify-end pt-2">
                                     <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
                                         {statusMap[res.status]}
@@ -89,6 +97,7 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                                 <TableHead>Habitación</TableHead>
                                 <TableHead>Check-in</TableHead>
                                 <TableHead>Check-out</TableHead>
+                                <TableHead>Tiempo Restante</TableHead>
                                 <TableHead>Estado</TableHead>
                                 <TableHead><span className="sr-only">Acciones</span></TableHead>
                             </TableRow>
@@ -103,6 +112,9 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                                     </TableCell>
                                     <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
                                     <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                    <TableCell>
+                                        <TimeRemaining checkOutDate={res.checkOutDate.toDate()} status={res.status} />
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
                                             {statusMap[res.status]}
