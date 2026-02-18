@@ -22,7 +22,7 @@ import {
   HelpCircle,
   ArrowRight,
   CalendarPlus,
-  Star,
+  Zap,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -30,6 +30,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 import type { Service } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 // Define a type for navigation sections
 type NavSection = {
@@ -240,21 +241,29 @@ export default async function DashboardPage() {
               {section.links.map((link) => (
                   <Link key={link.title} href={link.href} className="group relative">
                       {link.badge === 'Principal' && (
-                        <div className="absolute -top-3 -right-3 z-10">
-                            <div className="relative flex h-8 w-8 items-center justify-center">
-                                <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/80 opacity-75"></div>
-                                <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                    <Star className="h-4 w-4" />
-                                </div>
-                            </div>
-                        </div>
+                          <div className="absolute -top-2 -right-2 z-20">
+                              <div className="rounded-full border transition-colors hover:bg-primary/80 bg-accent text-accent-foreground border-accent shadow-lg animate-bounce text-[8px] font-black py-0 px-1.5 h-5 flex items-center gap-1">
+                                  <Zap className="size-2.5 fill-current" />
+                                  ACTIVIDAD PRINCIPAL
+                              </div>
+                          </div>
                       )}
                       <div className={cn(
-                          "rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5",
-                          link.badge === 'Principal' && "border-primary/30 shadow-primary/10"
+                          "rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group-hover:border-primary/20",
+                          link.badge === 'Principal' 
+                          ? "border-accent border-2 ring-4 ring-accent/10 bg-accent/[0.03]"
+                          : "bg-card border-primary/5"
                       )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
-                              <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
+                              {link.badge === 'Principal' && (
+                                  <div className="absolute top-4 right-4">
+                                      <Badge variant="default" className="font-black text-[10px] px-2 h-5 bg-accent text-accent-foreground">PASO 1</Badge>
+                                  </div>
+                              )}
+                              <div className={cn(
+                                  "mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm",
+                                  link.badge === 'Principal' ? "text-accent bg-accent/10" : "bg-primary/10 text-primary"
+                              )}>
                                   <link.icon className="size-6" />
                               </div>
                               <h3 className="tracking-tight text-lg font-bold">{link.title}</h3>
