@@ -35,7 +35,7 @@ interface RoomTypeFormProps {
 }
 
 const pricePlanSchema = z.object({
-  name: z.string().min(1, 'El nombre del plan es requerido.'),
+  name: z.string(),
   duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
   unit: z.enum(['Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().min(0, 'El precio debe ser un número no negativo.'),
@@ -48,17 +48,11 @@ const roomTypeSchema = z.object({
   pricePlans: z.array(pricePlanSchema).min(1, 'Debe agregar al menos un plan de precios.'),
 });
 
-const unitMap: Record<PricePlan['unit'], string> = {
-    Hours: 'hs',
-    Days: 'días',
-    Weeks: 'semanas',
-    Months: 'meses'
-};
-
 const stringToNumber = (numString: string): number => {
     if (!numString) return 0;
     // Remove thousand separators (commas) and parse as float.
-    return parseFloat(numString.replace(/,/g, ''));
+    const sanitized = numString.replace(/,/g, '');
+    return parseFloat(sanitized);
 };
 
 const numberToString = (num: number): string => {
@@ -76,12 +70,11 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const { toast } = useToast();
   const [newFeature, setNewFeature] = useState('');
   
-  const [newPlanName, setNewPlanName] = useState('');
   const [newPlanDuration, setNewPlanDuration] = useState('');
   const [newPlanUnit, setNewPlanUnit] = useState<PricePlan['unit']>('Hours');
   const [newPlanPrice, setNewPlanPrice] = useState('');
   const [editingPlanIndex, setEditingPlanIndex] = useState<number | null>(null);
-  const [planInputErrors, setPlanInputErrors] = useState<{ name?: string, duration?: string, price?: string }>({});
+  const [planInputErrors, setPlanInputErrors] = useState<{ duration?: string, price?: string }>({});
 
   const router = useRouter();
   const { firestore } = useFirebase();
@@ -152,7 +145,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   };
   
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ''); // only digits
+    let value = e.target.value.replace(/[^\d]/g, ''); // only digits
     
     if (value === '') {
         setNewPlanPrice('');
@@ -165,14 +158,16 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     // remove leading zeros
     value = value.replace(/^0+/, '');
 
-    const numberValue = Number(value);
-    
-    const formatted = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(numberValue / 100);
+    while (value.length < 3) {
+      value = '0' + value;
+    }
 
-    setNewPlanPrice(formatted);
+    const integerPart = value.slice(0, value.length - 2);
+    const decimalPart = value.slice(value.length - 2);
+    
+    const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10));
+
+    setNewPlanPrice(`${formattedInteger}.${decimalPart}`);
     
     if (planInputErrors.price) {
         setPlanInputErrors(prev => ({...prev, price: undefined}));
@@ -183,19 +178,16 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     const durationNum = parseInt(newPlanDuration, 10);
     const priceNum = stringToNumber(newPlanPrice);
 
-    const currentErrors: { name?: string; duration?: string; price?: string } = {};
-
-    if (!newPlanName.trim()) {
-      currentErrors.name = 'El nombre es requerido.';
-    } else if (
-      pricePlans.some((p, i) => p.name.toLowerCase() === newPlanName.trim().toLowerCase() && i !== editingPlanIndex)
-    ) {
-      currentErrors.name = 'El nombre del plan de precios ya existe.';
-    }
+    const currentErrors: { duration?: string; price?: string } = {};
 
     if (isNaN(durationNum) || durationNum <= 0) {
       currentErrors.duration = 'Debe ser un número positivo.';
+    } else if (
+      pricePlans.some((p, i) => p.duration === durationNum && p.unit === newPlanUnit && i !== editingPlanIndex)
+    ) {
+      currentErrors.duration = 'Ya existe un plan para esta duración.';
     }
+
 
     if (isNaN(priceNum) || priceNum < 0) {
       currentErrors.price = 'Debe ser un número no negativo.';
@@ -207,7 +199,22 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
       return;
     }
 
-    const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
+    const unitMapSingular: Record<PricePlan['unit'], string> = {
+        Hours: 'Hora',
+        Days: 'Día',
+        Weeks: 'Semana',
+        Months: 'Mes'
+    };
+    const unitMapPlural: Record<PricePlan['unit'], string> = {
+        Hours: 'Horas',
+        Days: 'Días',
+        Weeks: 'Semanas',
+        Months: 'Meses'
+    };
+    const unitText = durationNum === 1 ? unitMapSingular[newPlanUnit] : unitMapPlural[newPlanUnit];
+    const newPlanName = `${durationNum} ${unitText}`;
+
+    const newPlan: PricePlan = { name: newPlanName, duration: durationNum, unit: newPlanUnit, price: priceNum };
     
     if (editingPlanIndex !== null) {
       const updatedPlans = [...pricePlans];
@@ -218,7 +225,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     }
 
     setEditingPlanIndex(null);
-    setNewPlanName('');
     setNewPlanDuration('');
     setNewPlanPrice('');
     setNewPlanUnit('Hours');
@@ -227,7 +233,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const handleEditPlan = (index: number) => {
     const plan = pricePlans[index];
     setEditingPlanIndex(index);
-    setNewPlanName(plan.name);
     setNewPlanDuration(String(plan.duration));
     setNewPlanUnit(plan.unit);
     setNewPlanPrice(numberToString(plan.price));
@@ -236,7 +241,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
   const handleCancelEdit = () => {
     setEditingPlanIndex(null);
-    setNewPlanName('');
     setNewPlanDuration('');
     setNewPlanPrice('');
     setNewPlanUnit('Hours');
@@ -326,35 +330,21 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                   <div className="space-y-4">
                       <FormLabel>Planes de Precios</FormLabel>
                       <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
-                        <div className="grid grid-cols-1 sm:grid-cols-10 gap-x-4 gap-y-2 items-start">
-                          <div className="sm:col-span-4 space-y-2">
-                              <Label htmlFor="plan-name" className={cn(planInputErrors.name && "text-destructive")}>Nombre</Label>
-                              <Input
-                                  id="plan-name"
-                                  placeholder="p.ej. Tarifa Nocturna"
-                                  value={newPlanName}
-                                  onChange={(e) => {
-                                    setNewPlanName(e.target.value);
-                                    if(planInputErrors.name) setPlanInputErrors(p => ({...p, name: undefined}));
-                                  }}
-                                  className={cn(planInputErrors.name && "border-destructive focus-visible:ring-destructive")}
-                              />
-                              {planInputErrors.name && <p className="text-sm font-medium text-destructive">{planInputErrors.name}</p>}
-                          </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-2 items-start">
                           <div className="sm:col-span-2 space-y-2">
-                            <Label htmlFor="plan-duration" className={cn(planInputErrors.duration && "text-destructive")}>Duración</Label>
-                            <Input
-                                id="plan-duration"
-                                type="number"
-                                placeholder="8"
-                                value={newPlanDuration}
-                                onChange={(e) => {
-                                  setNewPlanDuration(e.target.value);
-                                  if(planInputErrors.duration) setPlanInputErrors(p => ({...p, duration: undefined}));
-                                }}
-                                className={cn("text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", planInputErrors.duration && "border-destructive focus-visible:ring-destructive")}
-                            />
-                            {planInputErrors.duration && <p className="text-sm font-medium text-destructive">{planInputErrors.duration}</p>}
+                              <Label htmlFor="plan-duration" className={cn(planInputErrors.duration && "text-destructive")}>Duración</Label>
+                              <Input
+                                  id="plan-duration"
+                                  type="number"
+                                  placeholder="8"
+                                  value={newPlanDuration}
+                                  onChange={(e) => {
+                                    setNewPlanDuration(e.target.value);
+                                    if(planInputErrors.duration) setPlanInputErrors(p => ({...p, duration: undefined}));
+                                  }}
+                                  className={cn("text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", planInputErrors.duration && "border-destructive focus-visible:ring-destructive")}
+                              />
+                              {planInputErrors.duration && <p className="text-sm font-medium text-destructive">{planInputErrors.duration}</p>}
                           </div>
                           <div className="sm:col-span-2 space-y-2">
                             <Label htmlFor="plan-unit">Unidad</Label>
@@ -413,8 +403,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             <Table>
                             <TableHeader>
                                 <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>Duración</TableHead>
+                                <TableHead>Plan</TableHead>
                                 <TableHead className="text-right">Precio</TableHead>
                                 <TableHead className="text-right w-[100px]">Acciones</TableHead>
                                 </TableRow>
@@ -423,11 +412,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                 {pricePlans.map((plan, index) => (
                                 <TableRow key={index}>
                                     <TableCell className="font-medium">{plan.name}</TableCell>
-                                    <TableCell>{`${plan.duration} ${
-                                    plan.duration === 1
-                                        ? unitMap[plan.unit].replace(/s$/, '')
-                                        : unitMap[plan.unit]
-                                    }`}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
                                     <TableCell className="text-right">
                                     <Button

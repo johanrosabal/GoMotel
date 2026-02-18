@@ -28,14 +28,6 @@ interface RoomTypesTableProps {
   roomTypes: RoomType[];
 }
 
-const unitMap: Record<PricePlan['unit'], string> = {
-    Hours: 'hs',
-    Days: 'días',
-    Weeks: 'semanas',
-    Months: 'meses'
-};
-
-
 export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
   if (roomTypes.length === 0) {
     return (
@@ -75,7 +67,7 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                   <div className="flex flex-col gap-1 items-start">
                     {roomType.pricePlans?.map(plan => (
                         <Badge key={plan.name} variant="outline" className="font-normal whitespace-nowrap">
-                          {`${plan.name} (${plan.duration} ${plan.duration === 1 ? unitMap[plan.unit].replace(/s$/, '') : unitMap[plan.unit]}): ${formatCurrency(plan.price)}`}
+                          {`${plan.name}: ${formatCurrency(plan.price)}`}
                         </Badge>
                     ))}
                   </div>
