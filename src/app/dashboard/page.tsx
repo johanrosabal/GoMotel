@@ -27,6 +27,7 @@ import { formatCurrency } from '@/lib/utils';
 import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 import type { Service } from '@/types';
+import { Separator } from '@/components/ui/separator';
 
 // Define a type for navigation sections
 type NavSection = {
@@ -212,7 +213,8 @@ export default async function DashboardPage() {
         {navSections.map((section) => (
             <div key={section.title}>
                 <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                <p className="text-sm text-muted-foreground">{section.description}</p>
+                <Separator className="my-4" />
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {section.links.map((link) => (
                     <Link key={link.title} href={link.href} className="group">
