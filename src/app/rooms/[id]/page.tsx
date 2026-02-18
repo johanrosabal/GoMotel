@@ -22,6 +22,7 @@ import { es } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
+import { Progress } from '@/components/ui/progress'
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
@@ -49,6 +50,7 @@ export default function RoomDetailsPage() {
     const { toast } = useToast()
     const [timeInStatus, setTimeInStatus] = useState('');
     const [isOverdue, setIsOverdue] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     useEffect(() => {
         if (!roomId) return
@@ -137,6 +139,38 @@ export default function RoomDetailsPage() {
             setIsOverdue(false);
         }
     }, [stay, room?.status]);
+
+    useEffect(() => {
+        if (stay && room?.status === 'Occupied') {
+            const calculateProgress = () => {
+                const now = new Date();
+                const checkInTime = stay.checkIn.toDate();
+                const expectedCheckOutTime = stay.expectedCheckOut.toDate();
+    
+                if (now >= expectedCheckOutTime) {
+                    setProgress(100);
+                    return;
+                }
+                if (now < checkInTime) {
+                    setProgress(0);
+                    return;
+                }
+    
+                const totalDuration = expectedCheckOutTime.getTime() - checkInTime.getTime();
+                const elapsedTime = now.getTime() - checkInTime.getTime();
+                
+                const calculatedProgress = (elapsedTime / totalDuration) * 100;
+                setProgress(Math.min(100, calculatedProgress)); // Cap at 100%
+            };
+    
+            calculateProgress();
+            const interval = setInterval(calculateProgress, 60000); // Update every minute
+            return () => clearInterval(interval);
+        } else {
+            setProgress(0);
+        }
+    }, [stay, room?.status]);
+
 
     const handleSetAvailable = async () => {
         if (!room) return
@@ -259,7 +293,20 @@ export default function RoomDetailsPage() {
                                     <Separator />
                                     <div className="grid gap-4">
                                         <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
-                                        <InfoRow label="Hora de Check-In" value={stay.checkIn ? format(stay.checkIn.toDate(), 'PPpp', { locale: es }) : 'N/D'} icon={LogIn} />
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Línea de Tiempo de Estancia</p>
+                                            <Progress value={progress} className="h-3" />
+                                            <div className="flex justify-between text-xs text-muted-foreground font-semibold">
+                                                <div>
+                                                    <p>Check-in</p>
+                                                    <p className="font-bold text-foreground">{stay.checkIn ? format(stay.checkIn.toDate(), 'p', { locale: es }) : 'N/D'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p>Check-out</p>
+                                                    <p className="font-bold text-foreground">{stay.expectedCheckOut ? format(stay.expectedCheckOut.toDate(), 'p', { locale: es }) : 'N/D'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </>
                             )}
