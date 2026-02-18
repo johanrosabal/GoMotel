@@ -48,7 +48,7 @@ export interface Stay {
   guestName: string;
   checkIn: Timestamp;
   expectedCheckOut: Timestamp;
-  checkOut?: Timestamp | null;
+  checkOut: Timestamp | null;
   total: number;
   isPaid: boolean;
   reservationId?: string;

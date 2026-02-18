@@ -118,6 +118,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           guestName: guestName,
           checkIn: Timestamp.fromDate(finalCheckInDate),
           expectedCheckOut: Timestamp.fromDate(checkOutDate),
+          checkOut: null,
           total: 0,
           isPaid: false,
           reservationId: reservationRef.id,
@@ -191,6 +192,7 @@ export async function checkInFromReservation(reservationId: string) {
       guestName: reservation.guestName,
       checkIn: Timestamp.now(), // Actual check-in time
       expectedCheckOut: reservation.checkOutDate,
+      checkOut: null,
       total: 0,
       isPaid: false,
       reservationId: reservation.id,

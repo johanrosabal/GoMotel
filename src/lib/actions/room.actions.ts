@@ -102,6 +102,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     guestName,
     checkIn: checkInTime,
     expectedCheckOut: Timestamp.fromDate(expectedCheckOut),
+    checkOut: null,
     total: 0,
     isPaid: false,
     guestId: guestId,

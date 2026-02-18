@@ -110,13 +110,17 @@ export async function seedDatabase() {
       };
 
       if(status === 'Occupied') {
-        // We will create a dummy stay for this room
         const stayRef = doc(collection(db, 'stays'));
+        const checkInTime = new Date();
+        const expectedCheckOutTime = new Date(checkInTime.getTime() + 8 * 60 * 60 * 1000); // 8 hours from now
+
         batch.set(stayRef, {
             roomId: docRef.id,
             roomNumber: room.number,
             guestName: 'Juan Pérez',
-            checkIn: Timestamp.now(),
+            checkIn: Timestamp.fromDate(checkInTime),
+            expectedCheckOut: Timestamp.fromDate(expectedCheckOutTime),
+            checkOut: null,
             total: 0,
             isPaid: false
         });
