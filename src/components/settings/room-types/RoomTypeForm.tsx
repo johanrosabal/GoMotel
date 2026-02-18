@@ -37,7 +37,7 @@ interface RoomTypeFormProps {
 const pricePlanSchema = z.object({
   name: z.string(),
   duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
-  unit: z.enum(['Hours', 'Days', 'Weeks', 'Months']),
+  unit: z.enum(['Minutes', 'Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().min(0, 'El precio debe ser un número no negativo.'),
 });
 
@@ -203,12 +203,14 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     }
 
     const unitMapSingular: Record<PricePlan['unit'], string> = {
+        Minutes: 'Minuto',
         Hours: 'Hora',
         Days: 'Día',
         Weeks: 'Semana',
         Months: 'Mes'
     };
     const unitMapPlural: Record<PricePlan['unit'], string> = {
+        Minutes: 'Minutos',
         Hours: 'Horas',
         Days: 'Días',
         Weeks: 'Semanas',
@@ -374,6 +376,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                  <SelectItem value="Minutes">Minutos</SelectItem>
                                   <SelectItem value="Hours">Horas</SelectItem>
                                   <SelectItem value="Days">Días</SelectItem>
                                   <SelectItem value="Weeks">Semanas</SelectItem>

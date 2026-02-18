@@ -14,10 +14,10 @@ import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { Room, Client, RoomType } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
-import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { addMinutes, addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Check, Star, Clock } from 'lucide-react';
-import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
@@ -141,7 +141,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         let newCheckOutDate = new Date(baseDate);
         const { duration, unit } = plan;
         
-        if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
+        if (unit === 'Minutes') newCheckOutDate = addMinutes(newCheckOutDate, duration);
+        else if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
         else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
         else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
         else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
@@ -197,34 +198,32 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="guestName"
-              render={({ field }) => (
-                <FormItem className="relative">
-                  <FormLabel>Huésped</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Buscar o escribir cliente..."
-                      autoComplete="off"
-                      onFocus={() => setShowSuggestions(true)}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        form.setValue('guestId', undefined);
-                        setShowSuggestions(true);
-                      }}
-                      onBlur={() => {
-                        // Delay hiding to allow click on suggestions
-                        setTimeout(() => {
-                          setShowSuggestions(false);
-                        }, 150);
-                      }}
-                    />
-                  </FormControl>
-                  {showSuggestions && (
-                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
-                      <Command>
+            <Command>
+              <FormField
+                control={form.control}
+                name="guestName"
+                render={({ field }) => (
+                  <FormItem className="relative">
+                    <FormLabel>Huésped</FormLabel>
+                    <FormControl>
+                      <CommandInput
+                        placeholder="Buscar o escribir cliente..."
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue('guestId', undefined);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setShowSuggestions(false);
+                          }, 150);
+                        }}
+                      />
+                    </FormControl>
+                    {showSuggestions && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
                         <ScrollArea className="max-h-56">
                           <CommandList>
                             <CommandGroup>
@@ -252,13 +251,13 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                             </CommandGroup>
                           </CommandList>
                         </ScrollArea>
-                      </Command>
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </Command>
             
             <div className='grid grid-cols-2 gap-4'>
                 <FormField

@@ -19,7 +19,7 @@ import AddClientDialog from '@/components/clients/AddClientDialog';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { addMinutes, addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface CheckInDialogProps {
@@ -86,6 +86,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     let checkOutTime = new Date(checkInTime);
     
     switch(plan.unit) {
+      case 'Minutes': checkOutTime = addMinutes(checkInTime, plan.duration); break;
       case 'Hours': checkOutTime = addHours(checkInTime, plan.duration); break;
       case 'Days': checkOutTime = addDays(checkInTime, plan.duration); break;
       case 'Weeks': checkOutTime = addWeeks(checkInTime, plan.duration); break;
@@ -110,6 +111,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     
     let durationHours = 0;
     switch(plan.unit) {
+        case 'Minutes': durationHours = plan.duration / 60; break;
         case 'Hours': durationHours = plan.duration; break;
         case 'Days': durationHours = plan.duration * 24; break;
         case 'Weeks': durationHours = plan.duration * 7 * 24; break;
