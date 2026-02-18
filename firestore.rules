@@ -13,9 +13,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // Insecure: For development only.
-      allow read, write: if true;
-    }
+    // Explicitly allow access to each collection to avoid wildcard issues.
+    match /clients/{docId} { allow read, write: if true; }
+    match /rooms/{docId} { allow read, write: if true; }
+    match /roomTypes/{docId} { allow read, write: if true; }
+    match /reservations/{docId} { allow read, write: if true; }
+    match /stays/{docId} { allow read, write: if true; }
+    match /orders/{docId} { allow read, write: if true; }
+    match /services/{docId} { allow read, write: if true; }
+    match /transactions/{docId} { allow read, write: if true; }
+    match /users/{docId} { allow read, write: if true; }
+    match /roles_admin/{docId} { allow read, write: if true; }
   }
 }
