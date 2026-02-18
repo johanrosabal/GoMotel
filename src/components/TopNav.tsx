@@ -4,6 +4,8 @@ import Link from 'next/link';
 import UserMenu from './UserMenu';
 import { useFirebase } from '@/firebase';
 import { ThemeToggle } from './ThemeToggle';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard } from 'lucide-react';
 
 export default function TopNav() {
   const { user } = useFirebase();
@@ -14,7 +16,15 @@ export default function TopNav() {
             <Link href={user ? '/dashboard' : '/'} className="mr-auto flex items-center">
               <span className="font-bold text-lg">Go Motel</span>
             </Link>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {user && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/dashboard">
+                        <LayoutDashboard />
+                        Panel Principal
+                    </Link>
+                  </Button>
+              )}
               <ThemeToggle />
               <UserMenu />
             </div>
