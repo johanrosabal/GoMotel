@@ -316,18 +316,25 @@ export async function extendStay(stayId: string, newPlanName: string) {
   }
 
   const now = new Date();
-  let newExpectedCheckOut = new Date(now);
+  const currentCheckOut = stayData.expectedCheckOut.toDate();
+  const baseDate = now > currentCheckOut ? now : currentCheckOut; // Extend from now if overdue, otherwise from current checkout time
+
+  let newExpectedCheckOut = new Date(baseDate);
   switch (newPlan.unit) {
-    case 'Minutes': newExpectedCheckOut = addMinutes(now, newPlan.duration); break;
-    case 'Hours': newExpectedCheckOut = addHours(now, newPlan.duration); break;
-    case 'Days': newExpectedCheckOut = addDays(now, newPlan.duration); break;
-    case 'Weeks': newExpectedCheckOut = addWeeks(now, newPlan.duration); break;
-    case 'Months': newExpectedCheckOut = addMonths(now, newPlan.duration); break;
+    case 'Minutes': newExpectedCheckOut = addMinutes(baseDate, newPlan.duration); break;
+    case 'Hours': newExpectedCheckOut = addHours(baseDate, newPlan.duration); break;
+    case 'Days': newExpectedCheckOut = addDays(baseDate, newPlan.duration); break;
+    case 'Weeks': newExpectedCheckOut = addWeeks(baseDate, newPlan.duration); break;
+    case 'Months': newExpectedCheckOut = addMonths(baseDate, newPlan.duration); break;
   }
 
   // Add the price of the new plan to the existing amount.
   const newPricePlanAmount = (stayData.pricePlanAmount || 0) + newPlan.price;
-  const newPricePlanName = `${stayData.pricePlanName}, ${newPlan.name}`; // Append plan names
+  
+  let newPricePlanName = stayData.pricePlanName || 'Estancia';
+  if (!newPricePlanName.includes('(Extendida)')) {
+    newPricePlanName = `${newPricePlanName} (Extendida)`;
+  }
 
   try {
     await updateDoc(stayRef, {

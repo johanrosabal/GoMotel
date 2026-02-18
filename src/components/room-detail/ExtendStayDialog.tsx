@@ -22,13 +22,14 @@ interface ExtendStayDialogProps {
   children: ReactNode;
   stay: Stay;
   room: Room;
+  isOverdue?: boolean;
 }
 
 const extendStaySchema = z.object({
   newPlanName: z.string({ required_error: 'Debe seleccionar un nuevo plan de estancia.' }),
 });
 
-export default function ExtendStayDialog({ children, stay, room }: ExtendStayDialogProps) {
+export default function ExtendStayDialog({ children, stay, room, isOverdue }: ExtendStayDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -62,18 +63,21 @@ export default function ExtendStayDialog({ children, stay, room }: ExtendStayDia
     if (!plan) return null;
 
     const now = new Date();
-    let checkOutTime = new Date(now);
+    const currentCheckOut = stay.expectedCheckOut.toDate();
+    const baseDate = isOverdue && now > currentCheckOut ? now : currentCheckOut;
+    
+    let checkOutTime = new Date(baseDate);
     
     switch(plan.unit) {
-      case 'Minutes': checkOutTime = addMinutes(now, plan.duration); break;
-      case 'Hours': checkOutTime = addHours(now, plan.duration); break;
-      case 'Days': checkOutTime = addDays(now, plan.duration); break;
-      case 'Weeks': checkOutTime = addWeeks(now, plan.duration); break;
-      case 'Months': checkOutTime = addMonths(now, plan.duration); break;
+      case 'Minutes': checkOutTime = addMinutes(baseDate, plan.duration); break;
+      case 'Hours': checkOutTime = addHours(baseDate, plan.duration); break;
+      case 'Days': checkOutTime = addDays(baseDate, plan.duration); break;
+      case 'Weeks': checkOutTime = addWeeks(baseDate, plan.duration); break;
+      case 'Months': checkOutTime = addMonths(baseDate, plan.duration); break;
     }
     
     return format(checkOutTime, 'PPpp', { locale: es });
-  }, [selectedPlanName, availablePlans]);
+  }, [selectedPlanName, availablePlans, stay.expectedCheckOut, isOverdue]);
 
   const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
     startTransition(async () => {
@@ -100,9 +104,12 @@ export default function ExtendStayDialog({ children, stay, room }: ExtendStayDia
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Gestionar Estancia Vencida</DialogTitle>
+          <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
           <DialogDescription>
-            La estancia de {stay.guestName} en la habitación {room.number} ha vencido.
+            {isOverdue 
+              ? `La estancia de ${stay.guestName} ha vencido. Puede extenderla o cerrar esta ventana y proceder al check-out.`
+              : `Añada más tiempo a la estancia de ${stay.guestName}.`
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -143,14 +150,11 @@ export default function ExtendStayDialog({ children, stay, room }: ExtendStayDia
             )}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1">
                     {isPending ? 'Extendiendo...' : 'Extender Estancia'}
                 </Button>
-                <CheckoutDialog stay={stay} room={room} orders={orders || []}>
-                    <Button type="button" variant="destructive" className="flex-1">
-                        Realizar Check-out
-                    </Button>
-                </CheckoutDialog>
+                
             </div>
           </form>
         </Form>
