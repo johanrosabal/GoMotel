@@ -84,11 +84,14 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                                 Características
                             </h4>
                             {roomType.features && roomType.features.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5">
-                                {roomType.features.map(feature => (
-                                    <Badge key={feature} variant="secondary">{feature}</Badge>
-                                ))}
-                                </div>
+                                <ul className="space-y-2">
+                                    {roomType.features.map(feature => (
+                                        <li key={feature} className="flex items-center text-sm">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-primary/40 mr-3 flex-shrink-0"></span>
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
                             ) : (
                                 <p className="text-sm text-muted-foreground">Sin características</p>
                             )}
@@ -137,11 +140,18 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                     <TableCell className="align-top"><Badge variant="outline">{roomType.code}</Badge></TableCell>
                     <TableCell className="font-medium align-top">{roomType.name}</TableCell>
                     <TableCell className="align-top">
-                    <div className="flex flex-wrap gap-1 max-w-sm">
-                        {roomType.features?.map(feature => (
-                            <Badge key={feature} variant="secondary">{feature}</Badge>
-                        ))}
-                    </div>
+                       {roomType.features && roomType.features.length > 0 ? (
+                            <ul className="space-y-1.5 max-w-sm">
+                                {roomType.features.map(feature => (
+                                    <li key={feature} className="flex items-center text-xs">
+                                        <span className="h-1 w-1 rounded-full bg-muted-foreground mr-2 flex-shrink-0"></span>
+                                        <span>{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                           <div className="text-xs text-muted-foreground">N/A</div>
+                        )}
                     </TableCell>
                     <TableCell className="align-top">
                         {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
