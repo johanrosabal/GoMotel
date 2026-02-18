@@ -73,7 +73,7 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
           </CardHeader>
           <CardContent className="mt-auto">
             <div className="flex justify-between items-center gap-2">
-              <StatusBadge status={isOverdue ? 'Occupied' : room.status} isOverdue={isOverdue} />
+              <StatusBadge status={room.status} isOverdue={isOverdue} />
               {room.status === 'Cleaning' && timeInStatus && (
                 <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
                   <Clock className="h-3 w-3" />
