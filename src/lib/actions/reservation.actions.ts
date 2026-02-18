@@ -254,3 +254,29 @@ export async function checkOutEarlyFromReservation(reservationId: string, reason
         return { error: 'Ocurrió un error inesperado durante el check-out anticipado.' };
     }
 }
+
+export async function markAsNoShow(reservationId: string) {
+    if (!reservationId) return { error: 'ID de reservación no válido.' };
+
+    try {
+        const reservationRef = doc(db, 'reservations', reservationId);
+        const reservationSnap = await getDoc(reservationRef);
+
+        if (!reservationSnap.exists()) {
+            return { error: 'Reservación no encontrada.' };
+        }
+
+        const reservation = reservationSnap.data() as Reservation;
+
+        if (reservation.status !== 'Confirmed') {
+            return { error: `Solo se puede anular una reservación con estado 'Confirmada'.` };
+        }
+
+        await updateDoc(reservationRef, { status: 'No-show' });
+        revalidatePath('/reservations');
+        return { success: true };
+    } catch (error) {
+        console.error("Error marking reservation as no-show: ", error);
+        return { error: 'No se pudo anular la reservación.' };
+    }
+}

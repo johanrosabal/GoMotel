@@ -2,11 +2,11 @@
 
 import { useTransition, useState } from 'react';
 import type { Reservation } from '@/types';
-import { MoreHorizontal, LogIn, XCircle, LogOut } from 'lucide-react';
+import { MoreHorizontal, LogIn, XCircle, LogOut, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation } from '@/lib/actions/reservation.actions';
+import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation, markAsNoShow } from '@/lib/actions/reservation.actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +17,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     const [isPending, startTransition] = useTransition();
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
     const [isCheckoutAlertOpen, setIsCheckoutAlertOpen] = useState(false);
+    const [isNoShowAlertOpen, setIsNoShowAlertOpen] = useState(false);
     const [checkoutReason, setCheckoutReason] = useState('');
     const [checkoutNotes, setCheckoutNotes] = useState('');
 
@@ -43,6 +44,18 @@ export default function ReservationActionsMenu({ reservation, className }: { res
         });
     }
     
+    const handleNoShow = () => {
+        startTransition(async () => {
+            const result = await markAsNoShow(reservation.id);
+            if (result?.error) {
+                toast({ title: 'Error', description: 'No se pudo anular la reservación.', variant: 'destructive' });
+            } else {
+                toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como No-show.' });
+            }
+            setIsNoShowAlertOpen(false);
+        });
+    }
+
     const handleEarlyCheckOut = () => {
         if (!checkoutReason) {
             toast({
@@ -88,6 +101,10 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                                 <XCircle className="mr-2 h-4 w-4" />
                                 <span>Cancelar Reservación</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setIsNoShowAlertOpen(true)} className="text-destructive focus:text-destructive">
+                                <UserX className="mr-2 h-4 w-4" />
+                                <span>Anular (No-show)</span>
+                            </DropdownMenuItem>
                         </>
                     )}
                     {reservation.status === 'Checked-in' && (
@@ -116,6 +133,23 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                 </AlertDialogContent>
             </AlertDialog>
             
+            <AlertDialog open={isNoShowAlertOpen} onOpenChange={setIsNoShowAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Marcar como No-show?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Esto anulará la reservación para {reservation.guestName} por no presentarse.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleNoShow} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {isPending ? "Anulando..." : "Confirmar Anulación"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <AlertDialog open={isCheckoutAlertOpen} onOpenChange={setIsCheckoutAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
