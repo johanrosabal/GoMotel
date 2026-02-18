@@ -1,42 +1,56 @@
-import RoomGrid from '@/components/dashboard/RoomGrid';
-import SeedDataButton from '@/components/SeedDataButton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getRooms } from '@/lib/actions/room.actions';
-import { getRoomTypes } from '@/lib/actions/roomType.actions';
-import AddRoomButton from '@/components/dashboard/AddRoomButton';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { LayoutGrid, Package, Cog } from 'lucide-react';
 
-export default async function DashboardPage() {
-  const rooms = await getRooms();
-  const roomTypes = await getRoomTypes();
+const menuOptions = [
+    {
+        href: '/dashboard/rooms',
+        title: 'Panel de Habitaciones',
+        description: 'Vea y administre el estado de todas las habitaciones.',
+        icon: LayoutGrid,
+    },
+    {
+        href: '/inventory',
+        title: 'Inventario',
+        description: 'Administre los servicios y productos de su motel.',
+        icon: Package,
+    },
+    {
+        href: '/settings',
+        title: 'Ajustes',
+        description: 'Configure los ajustes del sistema, como los tipos de habitación.',
+        icon: Cog,
+    },
+];
 
+export default function DashboardPage() {
   return (
     <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Panel de Habitaciones</CardTitle>
-              <CardDescription>
-                Vista en vivo de todas las habitaciones. Haga clic en una habitación para administrarla.
-              </CardDescription>
-            </div>
-            <AddRoomButton roomTypes={roomTypes} />
-          </div>
-        </CardHeader>
-        {rooms.length === 0 && (
-          <CardContent>
-            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-              <h3 className="text-lg font-medium text-muted-foreground">No se encontraron habitaciones.</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Cargue su base de datos con datos iniciales para comenzar.
-              </p>
-              <SeedDataButton />
-            </div>
-          </CardContent>
-        )}
-      </Card>
-
-      {rooms.length > 0 && <RoomGrid initialRooms={rooms} />}
+        <div className='space-y-1.5'>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Panel de Control Principal</h1>
+            <p className="text-muted-foreground max-w-2xl">
+                Bienvenido a Go Motel. Seleccione una opción a continuación para comenzar a administrar su motel.
+            </p>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {menuOptions.map((option) => (
+                <Card key={option.href} className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-xl">
+                            <option.icon className="h-6 w-6" />
+                            {option.title}
+                        </CardTitle>
+                        <CardDescription>{option.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="mt-auto">
+                        <Button asChild className="w-full">
+                            <Link href={option.href}>Ir a {option.title}</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
     </div>
   );
 }

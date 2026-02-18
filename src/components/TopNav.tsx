@@ -9,7 +9,7 @@ import { useFirebase } from '@/firebase';
 import { ThemeToggle } from './ThemeToggle';
 
 const menuItems = [
-  { href: '/dashboard', label: 'Panel de Habitaciones' },
+  { href: '/dashboard/rooms', label: 'Panel de Habitaciones' },
   { href: '/inventory', label: 'Inventario' },
   { href: '/settings', label: 'Ajustes' },
 ];
