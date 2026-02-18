@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
-import type { Room, Client, RoomType, PricePlan } from '@/types';
+import type { Room, Client, RoomType } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import AddClientDialog from '@/components/clients/AddClientDialog';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
+import { Switch } from '../ui/switch';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -30,9 +31,16 @@ interface CreateReservationDialogProps {
 const reservationSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
-  checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   guestId: z.string().optional(),
+  checkInNow: z.boolean().default(false),
+  checkInDate: z.date().optional(),
+}).refine(data => {
+    // If we are not checking in now, we need a check-in date.
+    return data.checkInNow || !!data.checkInDate;
+}, {
+    message: "La fecha de check-in es requerida para futuras reservaciones.",
+    path: ["checkInDate"],
 });
 
 
@@ -73,6 +81,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       guestId: undefined,
       roomId: undefined,
       pricePlanName: undefined,
+      checkInNow: false,
       checkInDate: new Date(),
     },
   });
@@ -80,6 +89,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const selectedRoomId = form.watch('roomId');
   const selectedPlanName = form.watch('pricePlanName');
   const checkInDate = form.watch('checkInDate');
+  const checkInNow = form.watch('checkInNow');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
   const availablePlans = useMemo(() => {
@@ -94,6 +104,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       guestId: undefined,
       roomId: undefined,
       pricePlanName: undefined,
+      checkInNow: false,
       checkInDate: new Date(),
     });
     setCalculatedCheckOut(null);
@@ -110,13 +121,15 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   }, [selectedRoomId, form]);
 
   useEffect(() => {
-      if (!checkInDate || !selectedPlanName || !availablePlans.length) {
+      const baseDate = checkInNow ? new Date() : checkInDate;
+
+      if (!baseDate || !selectedPlanName || !availablePlans.length) {
         setCalculatedCheckOut(null);
         return;
       }
       const plan = availablePlans.find(p => p.name === selectedPlanName);
       if (plan) {
-          let newCheckOutDate = new Date(checkInDate);
+          let newCheckOutDate = new Date(baseDate);
           const { duration, unit } = plan;
           
           if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
@@ -126,38 +139,38 @@ export default function CreateReservationDialog({ children }: CreateReservationD
           
           setCalculatedCheckOut(newCheckOutDate);
       }
-  }, [checkInDate, selectedPlanName, availablePlans]);
+  }, [checkInDate, selectedPlanName, availablePlans, checkInNow]);
 
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
-    const room = rooms?.find(r => r.id === values.roomId);
-    if (!room || !calculatedCheckOut) {
-        toast({ title: "Error", description: "Habitación o fecha de salida no válida.", variant: "destructive" });
+    if (!calculatedCheckOut) {
+        toast({ title: "Error", description: "Fecha de salida no válida.", variant: "destructive" });
         return;
     }
-    
-    if (isBefore(calculatedCheckOut, values.checkInDate)) {
+
+    const finalCheckInDate = values.checkInNow ? new Date() : values.checkInDate;
+    if (!finalCheckInDate) {
+        toast({ title: "Error", description: "Fecha de check-in no válida.", variant: "destructive" });
+        return;
+    }
+
+    if (isBefore(calculatedCheckOut, finalCheckInDate)) {
         toast({ title: "Error", description: "La fecha de check-out debe ser posterior a la fecha de check-in.", variant: "destructive" });
         return;
     }
 
-    const formData = new FormData();
-    formData.append('guestName', values.guestName);
-    formData.append('roomId', values.roomId);
-    formData.append('roomNumber', room.number);
-    formData.append('roomType', room.roomTypeName);
-    formData.append('checkInDate', values.checkInDate.toISOString());
-    formData.append('checkOutDate', calculatedCheckOut.toISOString());
-    if (values.guestId) {
-        formData.append('guestId', values.guestId);
-    }
+    const submissionData = {
+        ...values,
+        checkInDate: finalCheckInDate,
+        checkOutDate: calculatedCheckOut,
+    };
 
     startTransition(async () => {
-      const result = await createReservation(formData);
+      const result = await createReservation(submissionData);
       if (result.error) {
-        toast({ title: 'Error al Crear Reservación', description: result.error, variant: 'destructive' });
+        toast({ title: 'Error al Procesar', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: '¡Éxito!', description: 'La reservación ha sido creada.' });
+        toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
         setOpen(false);
       }
     });
@@ -318,18 +331,41 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
-
-            <Controller
-                control={form.control}
-                name="checkInDate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                        <DateTimePicker date={field.value} setDate={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                )}
+            
+            <FormField
+              control={form.control}
+              name="checkInNow"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Hacer Check-in Ahora</FormLabel>
+                    <p className="text-[13px] text-muted-foreground">
+                      Para huéspedes que ingresan inmediatamente.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
+
+            {!checkInNow && (
+              <Controller
+                  control={form.control}
+                  name="checkInDate"
+                  render={({ field, fieldState }) => (
+                      <FormItem>
+                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                          <DateTimePicker date={field.value} setDate={field.onChange} />
+                          <FormMessage>{fieldState.error?.message}</FormMessage>
+                      </FormItem>
+                  )}
+              />
+            )}
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
@@ -344,7 +380,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={isPending || isLoading}>
-                {isPending ? 'Creando...' : 'Crear Reservación'}
+                {isPending ? (checkInNow ? 'Procesando...' : 'Creando...') : (checkInNow ? 'Hacer Check-in Ahora' : 'Crear Reservación')}
               </Button>
             </DialogFooter>
           </form>

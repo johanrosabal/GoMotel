@@ -17,64 +17,110 @@ import { z } from 'zod';
 import { db } from '../firebase';
 import type { Reservation, Stay } from '@/types';
 
-const reservationSchema = z.object({
-  guestName: z.string().min(3),
-  roomId: z.string(),
-  roomNumber: z.string(),
-  roomType: z.string(),
-  checkInDate: z.coerce.date(),
+const reservationActionSchema = z.object({
+  guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   checkOutDate: z.coerce.date(),
   guestId: z.string().optional(),
+  checkInNow: z.boolean(),
+  checkInDate: z.coerce.date().optional(),
+}).refine(data => data.checkInNow || data.checkInDate, {
+  message: 'La fecha de check-in es requerida para futuras reservaciones.',
+  path: ['checkInDate'],
 });
 
-export async function createReservation(formData: FormData) {
-  const rawData = Object.fromEntries(formData.entries());
-  const validatedFields = reservationSchema.safeParse(rawData);
+
+export async function createReservation(values: z.infer<typeof reservationActionSchema>) {
+  const validatedFields = reservationActionSchema.safeParse(values);
 
   if (!validatedFields.success) {
     console.error(validatedFields.error.flatten().fieldErrors);
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, ...rest } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow } = validatedFields.data;
+  const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
-  // Check for booking conflicts
+  const roomRef = doc(db, 'rooms', roomId);
+  const roomSnap = await getDoc(roomRef);
+
+  if (!roomSnap.exists()) {
+    return { error: 'La habitación seleccionada no existe.' };
+  }
+  const roomData = roomSnap.data();
+
+  // --- Conflict & Availability Check ---
   const reservationsRef = collection(db, 'reservations');
-  const q = query(
+  const conflictQuery = query(
     reservationsRef, 
     where('roomId', '==', roomId),
     where('status', 'in', ['Confirmed', 'Checked-in'])
   );
   
-  const querySnapshot = await getDocs(q);
+  const querySnapshot = await getDocs(conflictQuery);
   const existingReservations = querySnapshot.docs.map(doc => doc.data() as Reservation);
 
   const hasConflict = existingReservations.some(res => {
     const oldStart = res.checkInDate.toDate();
     const oldEnd = res.checkOutDate.toDate();
-    // new_start < old_end AND new_end > old_start
-    return checkInDate < oldEnd && checkOutDate > oldStart;
+    return finalCheckInDate < oldEnd && checkOutDate > oldStart;
   });
 
   if (hasConflict) {
     return { error: 'La habitación ya está reservada para las fechas seleccionadas.' };
   }
+  
+  if (checkInNow && roomData.status !== 'Available') {
+      return { error: `La habitación no está disponible para check-in inmediato. Estado actual: ${roomData.status}.` };
+  }
 
+  // --- Database Operations ---
   try {
-    await addDoc(reservationsRef, {
-      ...rest,
+    const batch = writeBatch(db);
+
+    const reservationRef = doc(collection(db, 'reservations'));
+    const reservationPayload = {
+      guestName,
+      guestId: guestId ?? null,
       roomId,
-      checkInDate: Timestamp.fromDate(checkInDate),
+      roomNumber: roomData.number,
+      roomType: roomData.roomTypeName,
+      checkInDate: Timestamp.fromDate(finalCheckInDate),
       checkOutDate: Timestamp.fromDate(checkOutDate),
-      guestId: guestId,
-      status: 'Confirmed',
       createdAt: Timestamp.now(),
-    });
+      status: checkInNow ? 'Checked-in' : 'Confirmed',
+    };
+    batch.set(reservationRef, reservationPayload);
+
+    if (checkInNow) {
+        const stayRef = doc(collection(db, 'stays'));
+        const newStay: Omit<Stay, 'id'> = {
+          roomId: roomId,
+          roomNumber: roomData.number,
+          guestName: guestName,
+          checkIn: Timestamp.fromDate(finalCheckInDate),
+          expectedCheckOut: Timestamp.fromDate(checkOutDate),
+          total: 0,
+          isPaid: false,
+          reservationId: reservationRef.id,
+          guestId: guestId,
+        };
+        batch.set(stayRef, newStay);
+        
+        batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
+    }
+    
+    await batch.commit();
+
     revalidatePath('/reservations');
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/rooms');
+    revalidatePath(`/rooms/${roomId}`);
+
     return { success: true };
   } catch (error) {
-    console.error("Error creating reservation: ", error);
-    return { error: 'No se pudo crear la reservación.' };
+    console.error("Error creating reservation/check-in: ", error);
+    return { error: 'No se pudo procesar la solicitud.' };
   }
 }
 
