@@ -15,6 +15,7 @@ import { deleteClient } from '@/lib/actions/client.actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 function ActionsMenu({ client }: { client: Client }) {
     const { toast } = useToast();
@@ -95,53 +96,96 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
           className="max-w-sm"
         />
       </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Contacto</TableHead>
-              <TableHead>Cédula</TableHead>
-              <TableHead>Miembro Desde</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredClients.length > 0 ? filteredClients.map(client => (
-              <TableRow key={client.id} className={cn(client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {client.firstName} {client.lastName}
-                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{client.email}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{client.phoneNumber}</TableCell>
-                <TableCell>
-                  <div className="font-mono text-sm">{client.idCard}</div>
-                </TableCell>
-                <TableCell>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
-                <TableCell className="text-right">
-                  <ActionsMenu client={client} />
-                </TableCell>
-              </TableRow>
-            )) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                        No se encontraron clientes.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+
+       {filteredClients.length === 0 ? (
+        <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+            No se encontraron clientes.
+        </div>
+      ) : (
+        <>
+            {/* Mobile & Tablet View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
+                {filteredClients.map(client => (
+                <Card key={client.id} className={cn("flex flex-col", client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarFallback>{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        {client.firstName} {client.lastName}
+                                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                                    </CardTitle>
+                                    <CardDescription>{client.email}</CardDescription>
+                                </div>
+                            </div>
+                            <ActionsMenu client={client} />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-4 text-sm">
+                        <div>
+                            <p className="font-semibold text-muted-foreground">Contacto</p>
+                            <p>{client.phoneNumber}</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-muted-foreground">Cédula</p>
+                            <p className="font-mono">{client.idCard}</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-muted-foreground">Miembro Desde</p>
+                            <p>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block rounded-md border">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Cédula</TableHead>
+                    <TableHead>Miembro Desde</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredClients.map(client => (
+                    <TableRow key={client.id} className={cn(client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
+                        <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                                <AvatarFallback>{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                            <div className="font-medium flex items-center gap-2">
+                                {client.firstName} {client.lastName}
+                                {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                            </div>
+                            <div className="text-sm text-muted-foreground">{client.email}</div>
+                            </div>
+                        </div>
+                        </TableCell>
+                        <TableCell>{client.phoneNumber}</TableCell>
+                        <TableCell>
+                        <div className="font-mono text-sm">{client.idCard}</div>
+                        </TableCell>
+                        <TableCell>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
+                        <TableCell className="text-right">
+                        <ActionsMenu client={client} />
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
+        </>
+      )}
     </div>
   );
 }
