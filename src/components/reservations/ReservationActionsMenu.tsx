@@ -100,7 +100,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                             <AlertDialogHeader>
                                 <AlertDialogTitle>¿Confirmar Check-out Anticipado?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Esta acción finalizará la estancia para {reservation.guestName} y calculará el cobro final. La habitación pasará a estado de limpieza.
+                                    Esta acción finalizará la estancia para {reservation.guestName}. Se aplicará la tarifa del plan seleccionado y la habitación pasará a estado de limpieza.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
