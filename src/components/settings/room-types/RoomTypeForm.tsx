@@ -25,7 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '../../ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, getDocs, updateDoc } from 'firebase/firestore';
@@ -53,6 +52,21 @@ const unitMap: Record<PricePlan['unit'], string> = {
     Days: 'días',
     Weeks: 'semanas',
     Months: 'meses'
+};
+
+const crcStringToNumber = (crcString: string): number => {
+    if (!crcString) return 0;
+    // Remove thousand separators (dots) and replace decimal comma with a dot for parseFloat
+    return parseFloat(crcString.replace(/\./g, '').replace(',', '.'));
+};
+
+const numberToCrcString = (num: number): string => {
+    if (isNaN(num)) return '';
+    // Format to a string like "1.234,56"
+    return new Intl.NumberFormat('es-CR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
 };
 
 export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
@@ -98,9 +112,37 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
     form.setValue('features', newFeatures);
   };
   
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+
+    // 1. Sanitize: Remove anything that's not a digit or a comma
+    let sanitizedValue = rawValue.replace(/[^\d,]/g, '');
+    
+    // 2. Ensure only one comma exists
+    const parts = sanitizedValue.split(',');
+    if (parts.length > 2) {
+        sanitizedValue = parts[0] + ',' + parts.slice(1).join('');
+    }
+
+    // 3. Limit decimals to 2 digits
+    if (parts[1] && parts[1].length > 2) {
+        sanitizedValue = parts[0] + ',' + parts[1].substring(0, 2);
+    }
+
+    // 4. Format integer part with thousand separators
+    const [integerPart, decimalPart] = sanitizedValue.split(',');
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    
+    const finalValue = decimalPart !== undefined 
+        ? `${formattedInteger},${decimalPart}`
+        : formattedInteger;
+
+    setNewPlanPrice(finalValue);
+  };
+
   const handleSavePlan = () => {
     const durationNum = parseInt(newPlanDuration, 10);
-    const priceNum = parseFloat(newPlanPrice);
+    const priceNum = crcStringToNumber(newPlanPrice);
 
     if (newPlanName.trim() && !isNaN(durationNum) && durationNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
       const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
@@ -135,7 +177,7 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
     setNewPlanName(plan.name);
     setNewPlanDuration(String(plan.duration));
     setNewPlanUnit(plan.unit);
-    setNewPlanPrice(String(plan.price));
+    setNewPlanPrice(numberToCrcString(plan.price));
   };
 
   const handleCancelEdit = () => {
@@ -201,234 +243,234 @@ export default function RoomTypeForm({ roomType }: RoomTypeFormProps) {
 
   return (
     <Form {...form}>
-      <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
+       <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-0">
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="p-6 space-y-6">
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Nombre del Tipo de Habitación</FormLabel>
-                        <FormControl>
-                        <Input
-                            placeholder="p.ej., Suite Presidencial"
-                            {...field}
-                        />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-
-                <FormItem>
-                    <FormLabel>Características</FormLabel>
-                    <div className="flex items-center gap-2">
-                    <Input
-                        placeholder="p.ej. Wi-Fi de alta velocidad"
-                        value={newFeature}
-                        onChange={(e) => setNewFeature(e.target.value)}
-                        onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddFeature();
-                        }
-                        }}
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleAddFeature}
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="sr-only">Añadir Característica</span>
-                    </Button>
-                    </div>
-                    <div className="space-y-2 pt-2">
-                    {features.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                        {features.map((feature, index) => (
-                            <Badge
-                            key={index}
-                            variant="secondary"
-                            className="pl-2 pr-1 py-0.5 text-sm"
-                            >
-                            {feature}
-                            <button
-                                type="button"
-                                onClick={() => handleRemoveFeature(index)}
-                                className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                                aria-label={`Eliminar ${feature}`}
-                            >
-                                <X className="h-3 w-3" />
-                            </button>
-                            </Badge>
-                        ))}
-                        </div>
-                    ) : (
-                        <p className="text-xs text-muted-foreground px-1">
-                        Aún no se han añadido características.
-                        </p>
-                    )}
-                    </div>
-                </FormItem>
-
-                <Separator />
-
-                <FormItem>
-                    <FormLabel>Planes de Precios</FormLabel>
-                    <div className="p-4 border rounded-lg space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
-                        <div className="space-y-1 sm:col-span-4">
-                        <Label htmlFor="plan-name" className="text-xs">
-                            Nombre
-                        </Label>
-                        <Input
-                            id="plan-name"
-                            placeholder="p.ej. Tarifa Nocturna"
-                            value={newPlanName}
-                            onChange={(e) => setNewPlanName(e.target.value)}
-                        />
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                        <Label htmlFor="plan-duration" className="text-xs">
-                            Duración
-                        </Label>
-                        <Input
-                            id="plan-duration"
-                            type="number"
-                            placeholder="8"
-                            value={newPlanDuration}
-                            onChange={(e) => setNewPlanDuration(e.target.value)}
-                            className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                        <Label htmlFor="plan-unit" className="text-xs">
-                            Unidad
-                        </Label>
-                        <Select
-                            value={newPlanUnit}
-                            onValueChange={(value) =>
-                            setNewPlanUnit(value as any)
-                            }
-                        >
+            <div className="p-6 space-y-6 h-[calc(100vh-280px)]">
+                <div className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nombre del Tipo de Habitación</FormLabel>
                             <FormControl>
-                            <SelectTrigger id="plan-unit">
-                                <SelectValue />
-                            </SelectTrigger>
+                            <Input
+                                placeholder="p.ej., Suite Presidencial"
+                                {...field}
+                            />
                             </FormControl>
-                            <SelectContent>
-                            <SelectItem value="Hours">Horas</SelectItem>
-                            <SelectItem value="Days">Días</SelectItem>
-                            <SelectItem value="Weeks">Semanas</SelectItem>
-                            <SelectItem value="Months">Meses</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                        <Label htmlFor="plan-price" className="text-xs">
-                            Precio ($)
-                        </Label>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+
+                    <FormItem>
+                        <FormLabel>Características</FormLabel>
+                        <div className="flex items-center gap-2">
                         <Input
-                            id="plan-price"
-                            type="number"
-                            placeholder="120"
-                            value={newPlanPrice}
-                            onChange={(e) => setNewPlanPrice(e.target.value)}
-                            className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="p.ej. Wi-Fi de alta velocidad"
+                            value={newFeature}
+                            onChange={(e) => setNewFeature(e.target.value)}
+                            onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddFeature();
+                            }
+                            }}
                         />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
                         <Button
                             type="button"
-                            onClick={handleSavePlan}
-                            className="w-full sm:w-auto"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleAddFeature}
                         >
-                            <Plus className="h-4 w-4 mr-2" />
-                            {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
+                            <Plus className="h-4 w-4" />
+                            <span className="sr-only">Añadir Característica</span>
                         </Button>
-                        {editingPlanIndex !== null && (
+                        </div>
+                        <div className="space-y-2 pt-2">
+                        {features.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                            {features.map((feature, index) => (
+                                <Badge
+                                key={index}
+                                variant="secondary"
+                                className="pl-2 pr-1 py-0.5 text-sm"
+                                >
+                                {feature}
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveFeature(index)}
+                                    className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
+                                    aria-label={`Eliminar ${feature}`}
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                                </Badge>
+                            ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground px-1">
+                            Aún no se han añadido características.
+                            </p>
+                        )}
+                        </div>
+                    </FormItem>
+
+                    <Separator />
+
+                    <FormItem>
+                        <FormLabel>Planes de Precios</FormLabel>
+                        <div className="p-4 border rounded-lg space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
+                            <div className="space-y-1 sm:col-span-4">
+                            <Label htmlFor="plan-name" className="text-xs">
+                                Nombre
+                            </Label>
+                            <Input
+                                id="plan-name"
+                                placeholder="p.ej. Tarifa Nocturna"
+                                value={newPlanName}
+                                onChange={(e) => setNewPlanName(e.target.value)}
+                            />
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                            <Label htmlFor="plan-duration" className="text-xs">
+                                Duración
+                            </Label>
+                            <Input
+                                id="plan-duration"
+                                type="number"
+                                placeholder="8"
+                                value={newPlanDuration}
+                                onChange={(e) => setNewPlanDuration(e.target.value)}
+                                className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                            <Label htmlFor="plan-unit" className="text-xs">
+                                Unidad
+                            </Label>
+                            <Select
+                                value={newPlanUnit}
+                                onValueChange={(value) =>
+                                setNewPlanUnit(value as any)
+                                }
+                            >
+                                <FormControl>
+                                <SelectTrigger id="plan-unit">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="Hours">Horas</SelectItem>
+                                <SelectItem value="Days">Días</SelectItem>
+                                <SelectItem value="Weeks">Semanas</SelectItem>
+                                <SelectItem value="Months">Meses</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                            <Label htmlFor="plan-price" className="text-xs">
+                                Precio (₡)
+                            </Label>
+                            <Input
+                                id="plan-price"
+                                type="text"
+                                placeholder="10.000,00"
+                                value={newPlanPrice}
+                                onChange={handlePriceChange}
+                                className="text-right"
+                            />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                             <Button
                                 type="button"
-                                variant="ghost"
-                                onClick={handleCancelEdit}
+                                onClick={handleSavePlan}
+                                className="w-full sm:w-auto"
                             >
-                                Cancelar
+                                <Plus className="h-4 w-4 mr-2" />
+                                {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
                             </Button>
+                            {editingPlanIndex !== null && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={handleCancelEdit}
+                                >
+                                    Cancelar
+                                </Button>
+                            )}
+                        </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                        {pricePlans.length > 0 ? (
+                        <div className="rounded-md border">
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead>Duración</TableHead>
+                                <TableHead className="text-right">Precio</TableHead>
+                                <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {pricePlans.map((plan, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="font-medium">{plan.name}</TableCell>
+                                    <TableCell>{`${plan.duration} ${
+                                    plan.duration === 1
+                                        ? unitMap[plan.unit].replace(/s$/, '')
+                                        : unitMap[plan.unit]
+                                    }`}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
+                                    <TableCell className="text-right">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => handleEditPlan(index)}
+                                        aria-label={`Editar ${plan.name}`}
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleRemovePlan(index)}
+                                        aria-label={`Eliminar ${plan.name}`}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                            </Table>
+                        </div>
+                        ) : (
+                        <p className="text-xs text-muted-foreground px-1 pt-2">
+                            Aún no se han añadido planes de precios.
+                        </p>
+                        )}
+                        {errors.pricePlans && (
+                        <p className="text-sm font-medium text-destructive px-1 pt-1">
+                            {errors.pricePlans.message}
+                        </p>
                         )}
                     </div>
-                    </div>
-
-                    <div className="space-y-2 pt-2">
-                    {pricePlans.length > 0 ? (
-                    <div className="rounded-md border">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Duración</TableHead>
-                            <TableHead className="text-right">Precio</TableHead>
-                            <TableHead className="text-right w-[100px]">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pricePlans.map((plan, index) => (
-                            <TableRow key={index}>
-                                <TableCell className="font-medium">{plan.name}</TableCell>
-                                <TableCell>{`${plan.duration} ${
-                                plan.duration === 1
-                                    ? unitMap[plan.unit].replace(/s$/, '')
-                                    : unitMap[plan.unit]
-                                }`}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
-                                <TableCell className="text-right">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                    onClick={() => handleEditPlan(index)}
-                                    aria-label={`Editar ${plan.name}`}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleRemovePlan(index)}
-                                    aria-label={`Eliminar ${plan.name}`}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                        </Table>
-                    </div>
-                    ) : (
-                    <p className="text-xs text-muted-foreground px-1 pt-2">
-                        Aún no se han añadido planes de precios.
-                    </p>
-                    )}
-                    {errors.pricePlans && (
-                    <p className="text-sm font-medium text-destructive px-1 pt-1">
-                        {errors.pricePlans.message}
-                    </p>
-                    )}
+                    </FormItem>
                 </div>
-                </FormItem>
-              </div>
-            </ScrollArea>
+            </div>
           </CardContent>
-          <CardFooter className="flex justify-end gap-2 border-t pt-6">
+          <CardFooter className="flex justify-end gap-2 border-t p-6">
               <Button asChild variant="outline" type="button">
                 <Link href="/settings/room-types">Cancelar</Link>
               </Button>
