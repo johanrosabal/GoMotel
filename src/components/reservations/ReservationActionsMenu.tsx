@@ -37,50 +37,62 @@ export default function ReservationActionsMenu({ reservation, className }: { res
 
     const handleCancel = () => {
         startTransition(async () => {
-            const result = await cancelReservation(reservation.id);
-            setIsCancelAlertOpen(false);
-            if (result?.error) {
-                toast({ title: 'Error', description: 'No se pudo cancelar la reservación.', variant: 'destructive' });
-            } else {
-                toast({ title: 'Reservación Cancelada', description: 'La reservación ha sido cancelada.' });
+            try {
+                const result = await cancelReservation(reservation.id);
+                if (result?.error) {
+                    toast({ title: 'Error', description: 'No se pudo cancelar la reservación.', variant: 'destructive' });
+                } else {
+                    toast({ title: 'Reservación Cancelada', description: 'La reservación ha sido cancelada.' });
+                }
+            } finally {
+                setIsCancelAlertOpen(false);
             }
         });
     }
     
     const handleNoShow = () => {
         startTransition(async () => {
-            const result = await markAsNoShow(reservation.id);
-            setIsNoShowAlertOpen(false);
-            if (result?.error) {
-                toast({ title: 'Error', description: 'No se pudo anular la reservación.', variant: 'destructive' });
-            } else {
-                toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como No-show.' });
+            try {
+                const result = await markAsNoShow(reservation.id);
+                if (result?.error) {
+                    toast({ title: 'Error', description: 'No se pudo anular la reservación.', variant: 'destructive' });
+                } else {
+                    toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como No-show.' });
+                }
+            } finally {
+                setIsNoShowAlertOpen(false);
             }
         });
     }
 
     const handleEarlyCheckOut = () => {
         startTransition(async () => {
-            const result = await checkOutEarlyFromReservation(reservation.id, checkoutReason, checkoutNotes);
-            setIsCheckoutAlertOpen(false);
-            setCheckoutReason('');
-            setCheckoutNotes('');
-            if (result?.error) {
-                toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
+            try {
+                const result = await checkOutEarlyFromReservation(reservation.id, checkoutReason, checkoutNotes);
+                if (result?.error) {
+                    toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
+                }
+            } finally {
+                setIsCheckoutAlertOpen(false);
+                setCheckoutReason('');
+                setCheckoutNotes('');
             }
         });
     };
 
     const handleDelete = () => {
         startTransition(async () => {
-            const result = await deleteReservation(reservation.id);
-            setIsDeleteAlertOpen(false);
-            if (result?.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Reservación Eliminada', description: 'La reservación ha sido eliminada permanentemente.' });
+            try {
+                const result = await deleteReservation(reservation.id);
+                if (result?.error) {
+                    toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                } else {
+                    toast({ title: 'Reservación Eliminada', description: 'La reservación ha sido eliminada permanentemente.' });
+                }
+            } finally {
+                setIsDeleteAlertOpen(false);
             }
         });
     };
