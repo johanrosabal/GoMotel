@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -19,8 +19,9 @@ import { updateRoomStatus } from '@/lib/actions/room.actions'
 import { realtimeOrderStatusUpdates } from '@/ai/flows/realtime-order-status-updates'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
+import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
@@ -47,6 +48,7 @@ export default function RoomDetailsPage() {
     const [loading, setLoading] = useState(true)
     const { toast } = useToast()
     const [timeInStatus, setTimeInStatus] = useState('');
+    const [isOverdue, setIsOverdue] = useState(false);
 
     useEffect(() => {
         if (!roomId) return
@@ -119,6 +121,22 @@ export default function RoomDetailsPage() {
     
         return () => clearInterval(intervalId);
       }, [room?.status, room?.statusUpdatedAt]);
+    
+    useEffect(() => {
+        if (stay && room?.status === 'Occupied') {
+            const checkOverdue = () => {
+                const now = new Date();
+                const isStayOverdue = stay.expectedCheckOut.toDate() < now;
+                setIsOverdue(isStayOverdue);
+            };
+
+            checkOverdue(); // Check immediately
+            const interval = setInterval(checkOverdue, 30000); // And every 30 seconds
+            return () => clearInterval(interval);
+        } else {
+            setIsOverdue(false);
+        }
+    }, [stay, room?.status]);
 
     const handleSetAvailable = async () => {
         if (!room) return
@@ -171,6 +189,15 @@ export default function RoomDetailsPage() {
                     </CheckInDialog>
                 )
             case 'Occupied':
+                if (isOverdue && stay) {
+                    return (
+                       <ExtendStayDialog room={room} stay={stay}>
+                           <Button variant="destructive" className="w-full h-16 sm:h-12 text-base sm:text-sm animate-pulse">
+                               <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
+                           </Button>
+                       </ExtendStayDialog>
+                   )
+               }
                 return (
                     <div className="flex flex-col sm:flex-row gap-2">
                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
@@ -202,7 +229,7 @@ export default function RoomDetailsPage() {
         <div className="container py-4 sm:py-6 lg:py-8">
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-1 space-y-6">
-                    <Card>
+                    <Card className={cn(isOverdue && 'animate-pulse-border')}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <div>
@@ -210,7 +237,7 @@ export default function RoomDetailsPage() {
                                     <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                    <StatusBadge status={room.status} />
+                                    <StatusBadge status={room.status} isOverdue={isOverdue} />
                                     {room.status === 'Cleaning' && timeInStatus && (
                                     <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
                                         <Clock className="h-3 w-3" />
