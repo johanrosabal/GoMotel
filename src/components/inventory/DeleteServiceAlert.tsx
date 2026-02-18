@@ -22,29 +22,34 @@ interface DeleteServiceAlertProps {
 }
 
 export default function DeleteServiceAlert({ children, serviceId }: DeleteServiceAlertProps) {
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteService(serviceId);
-      if (result.error) {
-        toast({
-          title: 'Error',
-          description: 'No se pudo eliminar el servicio.',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: '¡Éxito!',
-          description: 'El servicio ha sido eliminado.',
-        });
+      try {
+        const result = await deleteService(serviceId);
+        if (result.error) {
+          toast({
+            title: 'Error',
+            description: 'No se pudo eliminar el servicio.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: '¡Éxito!',
+            description: 'El servicio ha sido eliminado.',
+          });
+        }
+      } finally {
+        setOpen(false);
       }
     });
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

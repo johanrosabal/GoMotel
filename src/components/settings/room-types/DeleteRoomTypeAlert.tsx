@@ -23,6 +23,7 @@ interface DeleteRoomTypeAlertProps {
 }
 
 export default function DeleteRoomTypeAlert({ children, roomTypeId }: DeleteRoomTypeAlertProps) {
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -43,12 +44,14 @@ export default function DeleteRoomTypeAlert({ children, roomTypeId }: DeleteRoom
           description: error.message || 'No se pudo eliminar el tipo de habitación.',
           variant: 'destructive',
         });
+      } finally {
+        setOpen(false);
       }
     });
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
