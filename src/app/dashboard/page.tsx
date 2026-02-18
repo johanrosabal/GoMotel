@@ -130,9 +130,9 @@ export default async function DashboardPage() {
           icon: LayoutGrid,
         },
         {
-          href: '/settings/room-types',
-          title: 'Tipos de Habitación',
-          description: 'Define las categorías de tus habitaciones.',
+          href: '/settings',
+          title: 'Ajustes del Sistema',
+          description: 'Configura tipos de habitación, sonidos de alerta y otros parámetros.',
           icon: Cog,
         },
         {
