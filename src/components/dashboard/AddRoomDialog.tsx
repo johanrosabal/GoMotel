@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useState, useTransition, type ReactNode, useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,11 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveRoom } from '@/lib/actions/room.actions';
 import type { Room, RoomType } from '@/types';
+import { Separator } from '../ui/separator';
+import { DollarSign, Tag, Users } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { Badge } from '../ui/badge';
 
 interface AddRoomDialogProps {
   children: ReactNode;
@@ -44,10 +47,8 @@ interface AddRoomDialogProps {
 const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
-  type: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
+  roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
   capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
-  ratePerHour: z.coerce.number().min(0, 'La tarifa por hora no puede ser negativa.'),
-  description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
 });
 
 export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDialogProps) {
@@ -58,25 +59,42 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
   const form = useForm<z.infer<typeof roomSchema>>({
     resolver: zodResolver(roomSchema),
     defaultValues: room ? {
-      ...room,
-      description: room.description || '',
+      id: room.id,
+      number: room.number,
+      roomTypeId: room.roomTypeId,
+      capacity: room.capacity
     } : {
       number: '',
-      type: roomTypes[0]?.name || '',
+      roomTypeId: undefined,
       capacity: 1,
-      ratePerHour: 20,
-      description: '',
     },
   });
 
+  const selectedRoomTypeId = form.watch('roomTypeId');
+
+  const selectedRoomType = useMemo(() => {
+    return roomTypes.find(rt => rt.id === selectedRoomTypeId);
+  }, [selectedRoomTypeId, roomTypes]);
+
   const onSubmit = (values: z.infer<typeof roomSchema>) => {
+    const rt = roomTypes.find(rt => rt.id === values.roomTypeId);
+    if (!rt) { 
+        toast({ title: 'Error', description: 'Por favor seleccione un tipo de habitación válido.', variant: 'destructive' });
+        return; 
+    }
+
+    const hourlyRatePlan = rt.pricePlans?.find(p => p.unit === 'Hours' && p.duration === 1) || rt.pricePlans?.[0];
+    const ratePerHour = hourlyRatePlan ? hourlyRatePlan.price : 0;
+    
     const formData = new FormData();
     if(values.id) formData.append('id', values.id);
     formData.append('number', values.number);
-    formData.append('type', values.type);
     formData.append('capacity', String(values.capacity));
-    formData.append('ratePerHour', String(values.ratePerHour));
-    if (values.description) formData.append('description', values.description);
+    formData.append('roomTypeId', values.roomTypeId);
+    formData.append('roomTypeName', rt.name);
+    formData.append('type', rt.name);
+    formData.append('description', rt.features?.join(', ') || '');
+    formData.append('ratePerHour', String(ratePerHour));
 
     startTransition(async () => {
       const result = await saveRoom(formData);
@@ -100,10 +118,10 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) form.reset(room ? {...room, description: room.description || ''} : { number: '', type: roomTypes[0]?.name || '', capacity: 1, ratePerHour: 20, description: '' });
+        if (!isOpen) form.reset(room ? { id: room.id, number: room.number, roomTypeId: room.roomTypeId, capacity: room.capacity } : { number: '', roomTypeId: undefined, capacity: 1 });
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{room ? 'Editar Habitación' : 'Añadir Nueva Habitación'}</DialogTitle>
           <DialogDescription>
@@ -120,7 +138,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                 name="number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Número de Habitación</FormLabel>
+                    <FormLabel>Número</FormLabel>
                     <FormControl>
                       <Input placeholder="p.ej., 101" {...field} />
                     </FormControl>
@@ -129,30 +147,6 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                 )}
               />
               <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccione un tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {roomTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-               <FormField
                 control={form.control}
                 name="capacity"
                 render={({ field }) => (
@@ -165,34 +159,60 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="ratePerHour"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tarifa por Hora ($)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-             <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descripción</FormLabel>
+            <FormField
+              control={form.control}
+              name="roomTypeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Habitación</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <Textarea placeholder="Describa las características de la habitación..." {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un tipo" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            <DialogFooter>
+                    <SelectContent>
+                      {roomTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {selectedRoomType && (
+              <div className="space-y-4 pt-2">
+                <Separator />
+                <div className="p-4 rounded-lg border bg-muted/50 space-y-4">
+                    <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Tag className="h-4 w-4" />Características</h4>
+                        {selectedRoomType.features && selectedRoomType.features.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {selectedRoomType.features.map(feature => <Badge key={feature} variant="secondary">{feature}</Badge>)}
+                            </div>
+                        ) : <p className="text-sm text-muted-foreground">Sin características definidas.</p>}
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" />Planes de Precios</h4>
+                        {selectedRoomType.pricePlans && selectedRoomType.pricePlans.length > 0 ? (
+                            <ul className="space-y-1.5 text-sm">
+                            {selectedRoomType.pricePlans.map(plan => (
+                                <li key={plan.name} className="flex justify-between">
+                                    <span className="text-muted-foreground">{plan.name}</span>
+                                    <span className="font-medium">{formatCurrency(plan.price)}</span>
+                                </li>
+                            ))}
+                            </ul>
+                        ) : <p className="text-sm text-muted-foreground">Sin planes de precios.</p>}
+                    </div>
+                </div>
+              </div>
+            )}
+           
+            <DialogFooter className="pt-4">
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}
               </Button>

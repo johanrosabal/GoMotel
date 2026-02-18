@@ -1,3 +1,4 @@
+'use client';
 import type { Timestamp } from 'firebase/firestore';
 
 export type RoomStatus = 'Available' | 'Occupied' | 'Cleaning' | 'Maintenance';
@@ -26,6 +27,8 @@ export interface Room {
   capacity: number;
   description: string;
   currentStayId?: string | null;
+  roomTypeId: string;
+  roomTypeName: string;
 }
 
 export interface Service {

@@ -10,29 +10,48 @@
           "type": "string",
           "description": "Unique identifier for the Room entity."
         },
-        "roomNumber": {
+        "number": {
           "type": "string",
           "description": "The room number or identifier."
-        },
-        "roomType": {
-          "type": "string",
-          "description": "The type of room (e.g., single, double, suite). This could be a reference to a RoomType entity, but we will define it as a string for simplicity."
         },
         "status": {
           "type": "string",
           "description": "The current status of the room (e.g., available, occupied, out of service)."
         },
-        "rate": {
+        "roomTypeId": {
+          "type": "string",
+          "description": "Reference to the RoomType entity."
+        },
+        "roomTypeName": {
+          "type": "string",
+          "description": "Denormalized name of the RoomType."
+        },
+        "type": {
+          "type": "string",
+          "description": "Denormalized name of the RoomType. Kept for compatibility."
+        },
+        "capacity": {
           "type": "number",
-          "description": "The hourly rate for the room."
+          "description": "Capacity of the room."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the room, based on RoomType features."
+        },
+        "ratePerHour": {
+          "type": "number",
+          "description": "Hourly rate, based on RoomType price plans."
         }
       },
       "required": [
         "id",
-        "roomNumber",
-        "roomType",
+        "number",
         "status",
-        "rate"
+        "roomTypeId",
+        "roomTypeName",
+        "type",
+        "capacity",
+        "ratePerHour"
       ]
     },
     "Service": {

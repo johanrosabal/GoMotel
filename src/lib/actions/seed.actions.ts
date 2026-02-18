@@ -5,17 +5,17 @@ import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import type { Room, Service, RoomStatus, RoomType } from '@/types';
 
-const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status'>[] = [
-  { number: '101', ratePerHour: 20, type: 'Sencilla', capacity: 1, description: 'Habitación acogedora con cama individual, perfecta para viajeros solos.' },
-  { number: '102', ratePerHour: 22, type: 'Sencilla', capacity: 2, description: 'Habitación estándar con dos camas individuales.' },
-  { number: '103', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con una cómoda cama doble.' },
-  { number: '104', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con cama doble y vista a la ciudad.' },
-  { number: '201', ratePerHour: 35, type: 'Suite', capacity: 2, description: 'Suite de lujo con cama king size, jacuzzi privado y minibar.' },
-  { number: '202', ratePerHour: 35, type: 'Suite', capacity: 3, description: 'Suite familiar con área de estar separada y sofá cama.' },
-  { number: '203', ratePerHour: 22, type: 'Sencilla', capacity: 2, description: 'Habitación estándar con dos camas individuales y escritorio.' },
-  { number: '204', ratePerHour: 25, type: 'Doble', capacity: 2, description: 'Habitación espaciosa con cama doble y balcón privado.' },
-  { number: '301', ratePerHour: 40, type: 'Suite', capacity: 4, description: 'Amplia suite en el último piso con vistas panorámicas de la ciudad.' },
-  { number: '302', ratePerHour: 40, type: 'Suite', capacity: 4, description: 'Nuestra Suite Presidencial, con dos dormitorios y todas las comodidades.' },
+const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status' | 'ratePerHour' | 'description' | 'roomTypeId' | 'roomTypeName'>[] = [
+  { number: '101', type: 'Sencilla', capacity: 1 },
+  { number: '102', type: 'Sencilla', capacity: 2 },
+  { number: '103', type: 'Doble', capacity: 2 },
+  { number: '104', type: 'Doble', capacity: 2 },
+  { number: '201', type: 'Suite', capacity: 2 },
+  { number: '202', type: 'Suite', capacity: 3 },
+  { number: '203', type: 'Sencilla', capacity: 2 },
+  { number: '204', type: 'Doble', capacity: 2 },
+  { number: '301', type: 'Suite', capacity: 4 },
+  { number: '302', type: 'Suite', capacity: 4 },
 ];
 
 const initialStatuses: Record<string, RoomStatus> = {
@@ -74,9 +74,10 @@ export async function seedDatabase() {
 
     // Seed Room Types
     const roomTypesCollection = collection(db, 'roomTypes');
-    roomTypesToSeed.forEach(roomType => {
+    const seededRoomTypeRefs = roomTypesToSeed.map(roomType => {
         const docRef = doc(roomTypesCollection);
         batch.set(docRef, roomType);
+        return { ...roomType, id: docRef.id };
     });
 
     // Seed Rooms
@@ -85,7 +86,24 @@ export async function seedDatabase() {
       const docRef = doc(roomsCollection);
       const status = initialStatuses[room.number] || 'Available';
       
-      const roomData = { ...room, status };
+      const roomType = seededRoomTypeRefs.find(rt => rt.name === room.type);
+      if (!roomType) {
+          console.warn(`RoomType '${room.type}' not found for room ${room.number}`);
+          return;
+      }
+
+      const hourlyPlan = roomType.pricePlans.find(p => p.unit === 'Hours' && p.duration === 1) || roomType.pricePlans[0];
+
+      const roomData = { 
+          number: room.number,
+          capacity: room.capacity,
+          type: room.type,
+          status,
+          roomTypeId: roomType.id,
+          roomTypeName: roomType.name,
+          ratePerHour: hourlyPlan?.price || 0,
+          description: roomType.features?.join(', ') || '',
+      };
 
       if(status === 'Occupied') {
         // We will create a dummy stay for this room

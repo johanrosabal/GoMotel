@@ -30,6 +30,8 @@ const toRoomObject = (doc: any): Room => {
     capacity: data.capacity || 1,
     description: data.description || '',
     currentStayId: data.currentStayId || null,
+    roomTypeId: data.roomTypeId || '',
+    roomTypeName: data.roomTypeName || '',
   };
 };
 
@@ -208,6 +210,8 @@ const roomSchema = z.object({
   type: z.string({ required_error: 'El tipo de habitación es requerido.' }).min(1, 'El tipo de habitación es requerido.'),
   capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   description: z.string().max(200, 'La descripción no puede exceder los 200 caracteres.').optional(),
+  roomTypeId: z.string({ required_error: 'El ID de tipo de habitación es requerido.' }),
+  roomTypeName: z.string({ required_error: 'El nombre del tipo de habitación es requerido.' }),
 });
 
 export async function saveRoom(formData: FormData) {
@@ -222,25 +226,19 @@ export async function saveRoom(formData: FormData) {
 
   const { id, ...roomData } = validatedFields.data;
 
-  const dataToSave = {
-      ...roomData,
-      status: 'Available', // New rooms are always available
-  };
-
   try {
     if (id) {
-      // Update existing room - don't change status on edit
-      const { status, ...updateData } = dataToSave;
+      // Update existing room
       const roomRef = doc(db, 'rooms', id);
-      await updateDoc(roomRef, updateData);
+      await updateDoc(roomRef, roomData);
     } else {
       // Add new room
-      const q = query(collection(db, 'rooms'), where('number', '==', dataToSave.number));
+      const q = query(collection(db, 'rooms'), where('number', '==', roomData.number));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
           return { error: 'El número de habitación ya existe.' };
       }
-      await addDoc(collection(db, 'rooms'), dataToSave);
+      await addDoc(collection(db, 'rooms'), { ...roomData, status: 'Available' });
     }
     revalidatePath('/');
     return { success: true };
