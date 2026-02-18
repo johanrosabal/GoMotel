@@ -83,23 +83,10 @@ export default {
             height: '0',
           },
         },
-        'overdue-pulse': {
-          '0%, 100%': {
-            borderColor: 'hsl(var(--destructive) / 0.7)',
-            backgroundColor: 'hsl(var(--destructive) / 0.1)',
-            boxShadow: '0 0 0 2px hsl(var(--destructive) / 0.1)',
-          },
-          '50%': {
-            borderColor: 'hsl(var(--destructive))',
-            backgroundColor: 'hsl(var(--destructive) / 0.2)',
-            boxShadow: '0 0 0 5px hsl(var(--destructive) / 0.25)',
-          },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'overdue-pulse': 'overdue-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },

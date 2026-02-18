@@ -58,8 +58,9 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
       <Link href={`/rooms/${room.id}`} className="block h-full">
         <Card className={cn(
           "hover:shadow-lg transition-shadow duration-200 border-l-4 flex flex-col h-full",
-          !isOverdue && color,
-          isOverdue && "animate-overdue-pulse"
+          isOverdue 
+            ? "border-destructive bg-destructive/10 animate-pulse" 
+            : color
           )}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div>
