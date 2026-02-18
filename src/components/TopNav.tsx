@@ -9,6 +9,7 @@ import { ChevronLeft } from 'lucide-react';
 import SearchCommand from './SearchCommand';
 import AppLogo from './AppLogo';
 import { usePathname } from 'next/navigation';
+import Notifications from './Notifications';
 
 export default function TopNav() {
   const { user } = useFirebase();
@@ -39,6 +40,7 @@ export default function TopNav() {
             </div>
             
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+              {user && <Notifications />}
               <ThemeToggle />
               <UserMenu />
             </div>
