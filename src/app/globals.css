@@ -65,6 +65,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* 
+      SOLUCIÓN CRÍTICA: Fuerza la interactividad del body incluso si Radix UI
+      falla al limpiar el estilo inline de pointer-events.
+    */
+    pointer-events: auto !important;
   }
 }
 

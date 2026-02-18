@@ -43,9 +43,9 @@ export default function RootLayout({
                   <TopNav />
                   <main className="flex-1">{children}</main>
                 </div>
-                <Toaster />
               </AuthWrapper>
             </FirebaseClientProvider>
+            <Toaster />
           </ToastStateProvider>
         </ThemeProvider>
       </body>
