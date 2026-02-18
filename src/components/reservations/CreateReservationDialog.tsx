@@ -57,7 +57,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "clients"), fbOrderBy("firstName"));
+    return query(collection(firestore, "clients"));
   }, [firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
   
@@ -67,22 +67,14 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
 
-  const filteredClients = useMemo(() => {
+  const sortedClients = useMemo(() => {
     if (!clients) return [];
-    if (!searchTerm) {
-      // Sort by isVip first, then by name
-      return [...clients].sort((a, b) => {
-        if (a.isVip && !b.isVip) return -1;
-        if (!a.isVip && b.isVip) return 1;
-        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-      });
-    }
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
-    return clients.filter(client => 
-      `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedSearchTerm)
-    );
-  }, [clients, searchTerm]);
-
+    return [...clients].sort((a, b) => {
+      if (a.isVip && !b.isVip) return -1;
+      if (!a.isVip && b.isVip) return 1;
+      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    });
+  }, [clients]);
 
   const form = useForm<z.infer<typeof reservationSchema>>({
     resolver: zodResolver(reservationSchema),
@@ -220,31 +212,31 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
+                      <Command onValueChange={setSearchTerm}>
                         <CommandInput
                           placeholder="Buscar cliente..."
-                          onValueChange={setSearchTerm}
                         />
                         <CommandList>
                           <CommandEmpty>
-                             <CommandItem
-                                onSelect={() => {
-                                  form.setValue('guestName', searchTerm);
-                                  form.setValue('guestId', undefined);
-                                  setPopoverOpen(false);
-                                  setSearchTerm('');
-                                }}
-                                className="cursor-pointer"
-                              >
-                                Usar nombre: "{searchTerm}"
-                              </CommandItem>
+                            {searchTerm.length > 0 ? (
+                               <CommandItem
+                                  onSelect={() => {
+                                    form.setValue('guestName', searchTerm);
+                                    form.setValue('guestId', undefined);
+                                    setPopoverOpen(false);
+                                  }}
+                                  className="cursor-pointer"
+                                >
+                                  Usar nombre: "{searchTerm}"
+                                </CommandItem>
+                            ) : 'No se encontró el cliente.'}
                           </CommandEmpty>
                           <ScrollArea className="max-h-56">
                             <CommandGroup>
                               {isLoadingClients ? (
                                 <p className="p-2 text-center text-sm">Cargando...</p>
                               ) : (
-                                filteredClients.map((client) => (
+                                sortedClients.map((client) => (
                                   <CommandItem
                                     value={`${client.firstName} ${client.lastName}`}
                                     key={client.id}
@@ -252,7 +244,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                       form.setValue('guestName', `${client.firstName} ${client.lastName}`);
                                       form.setValue('guestId', client.id);
                                       setPopoverOpen(false);
-                                      setSearchTerm('');
                                     }}
                                     className="flex justify-between items-center"
                                   >
