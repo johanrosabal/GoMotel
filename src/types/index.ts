@@ -51,6 +51,7 @@ export interface Stay {
   total: number;
   isPaid: boolean;
   reservationId?: string;
+  guestId?: string;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';

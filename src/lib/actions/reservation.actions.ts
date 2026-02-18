@@ -24,6 +24,7 @@ const reservationSchema = z.object({
   roomType: z.string(),
   checkInDate: z.coerce.date(),
   checkOutDate: z.coerce.date(),
+  guestId: z.string().optional(),
 });
 
 export async function createReservation(formData: FormData) {
@@ -35,7 +36,7 @@ export async function createReservation(formData: FormData) {
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, ...rest } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, ...rest } = validatedFields.data;
 
   // Check for booking conflicts
   const reservationsRef = collection(db, 'reservations');
@@ -65,6 +66,7 @@ export async function createReservation(formData: FormData) {
       roomId,
       checkInDate: Timestamp.fromDate(checkInDate),
       checkOutDate: Timestamp.fromDate(checkOutDate),
+      guestId: guestId,
       status: 'Confirmed',
       createdAt: Timestamp.now(),
     });
@@ -126,6 +128,7 @@ export async function checkInFromReservation(reservationId: string) {
       total: 0,
       isPaid: false,
       reservationId: reservation.id,
+      guestId: reservation.guestId,
     };
     batch.set(stayRef, newStay);
     

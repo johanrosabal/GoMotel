@@ -65,12 +65,14 @@ export async function getRoomById(roomId: string): Promise<Room | null> {
 const checkInSchema = z.object({
   guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
   durationHours: z.coerce.number().int().min(1, 'La duración debe ser de al menos 1 hora.'),
+  guestId: z.string().optional(),
 });
 
 export async function checkIn(roomId: string, formData: FormData) {
   const validatedFields = checkInSchema.safeParse({
     guestName: formData.get('guestName'),
     durationHours: formData.get('durationHours'),
+    guestId: formData.get('guestId'),
   });
 
   if (!validatedFields.success) {
@@ -79,7 +81,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     };
   }
 
-  const { guestName, durationHours } = validatedFields.data;
+  const { guestName, durationHours, guestId } = validatedFields.data;
 
   const room = await getRoomById(roomId);
   if (!room || room.status !== 'Available') {
@@ -101,6 +103,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     expectedCheckOut: Timestamp.fromDate(checkOutTime),
     total: 0,
     isPaid: false,
+    guestId: guestId,
   };
   batch.set(stayRef, newStay);
 

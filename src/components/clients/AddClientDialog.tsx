@@ -16,8 +16,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddClientDialogProps {
-  children: ReactNode;
+  children?: ReactNode;
   client?: Client;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const clientSchema = z.object({
@@ -35,14 +37,17 @@ const clientSchema = z.object({
   isVip: z.boolean().default(false),
 });
 
-export default function AddClientDialog({ children, client }: AddClientDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddClientDialog({ children, client, open: controlledOpen, onOpenChange: setControlledOpen }: AddClientDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
 
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
@@ -163,7 +168,7 @@ export default function AddClientDialog({ children, client }: AddClientDialogPro
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{client ? 'Editar Cliente' : 'Añadir Nuevo Cliente'}</DialogTitle>
