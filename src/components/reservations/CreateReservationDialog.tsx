@@ -17,7 +17,6 @@ import { createReservation } from '@/lib/actions/reservation.actions';
 import { addMinutes, addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Check, Star, Clock } from 'lucide-react';
-import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
@@ -198,66 +197,69 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Command>
-              <FormField
+             <FormField
                 control={form.control}
                 name="guestName"
                 render={({ field }) => (
-                  <FormItem className="relative">
+                <FormItem className="relative">
                     <FormLabel>Huésped</FormLabel>
                     <FormControl>
-                      <CommandInput
+                    <Input
                         placeholder="Buscar o escribir cliente..."
-                        value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          form.setValue('guestId', undefined);
-                          setShowSuggestions(true);
-                        }}
+                        {...field}
                         onFocus={() => setShowSuggestions(true)}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            setShowSuggestions(false);
-                          }, 150);
-                        }}
-                      />
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                        autoComplete="off"
+                    />
                     </FormControl>
                     {showSuggestions && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
                         <ScrollArea className="max-h-56">
-                          <CommandList>
-                            <CommandGroup>
-                                {filteredClients.length > 0 ? (
-                                  filteredClients.map((client) => (
-                                    <CommandItem
-                                      key={client.id}
-                                      onSelect={() => {
-                                        form.setValue('guestName', `${client.firstName} ${client.lastName}`);
-                                        form.setValue('guestId', client.id);
-                                        setShowSuggestions(false);
-                                      }}
-                                      className="flex justify-between items-center cursor-pointer"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                          <Check className={cn('h-4 w-4', form.getValues('guestId') === client.id ? 'opacity-100' : 'opacity-0')} />
-                                          {client.firstName} {client.lastName}
-                                      </div>
-                                      {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                    </CommandItem>
-                                  ))
-                                ) : (
-                                  <CommandItem disabled>No se encontraron clientes.</CommandItem>
-                                )}
-                            </CommandGroup>
-                          </CommandList>
+                          <div className="p-1">
+                            {filteredClients.length > 0 ? (
+                              filteredClients.map((client) => (
+                                <button
+                                  type="button"
+                                  key={client.id}
+                                  onClick={() => {
+                                    form.setValue(
+                                      'guestName',
+                                      `${client.firstName} ${client.lastName}`
+                                    );
+                                    form.setValue('guestId', client.id);
+                                    setShowSuggestions(false);
+                                  }}
+                                  className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Check
+                                      className={cn(
+                                        'h-4 w-4',
+                                        form.getValues('guestId') === client.id
+                                          ? 'opacity-100'
+                                          : 'opacity-0'
+                                      )}
+                                    />
+                                    {client.firstName} {client.lastName}
+                                  </div>
+                                  {client.isVip && (
+                                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
+                                  )}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                No se encontraron clientes.
+                              </div>
+                            )}
+                          </div>
                         </ScrollArea>
-                      </div>
+                    </div>
                     )}
                     <FormMessage />
-                  </FormItem>
+                </FormItem>
                 )}
-              />
-            </Command>
+            />
             
             <div className='grid grid-cols-2 gap-4'>
                 <FormField
