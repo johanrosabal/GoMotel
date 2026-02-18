@@ -78,8 +78,8 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-            <div className="sm:col-span-3 grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <Select value={day} onValueChange={setDay} disabled={!year || !month}>
                     <SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger>
                     <SelectContent>
@@ -100,7 +100,7 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
                 </Select>
             </div>
 
-            <div className="sm:col-span-2 flex items-center gap-2">
+            <div className="flex items-center gap-2">
                 <Select value={hour} onValueChange={setHour}>
                     <SelectTrigger><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>
