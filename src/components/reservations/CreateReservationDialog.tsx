@@ -91,18 +91,18 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   useEffect(() => {
     if (open) {
       form.reset({
-          guestName: '',
-          guestId: undefined,
-          roomId: undefined,
-          pricePlanName: undefined,
-          checkInDate: addHours(new Date(), 1),
+        guestName: '',
+        guestId: undefined,
+        roomId: undefined,
+        pricePlanName: undefined,
+        checkInDate: addHours(new Date(), 1),
       });
       setCalculatedCheckOut(null);
     }
   }, [open, form.reset]);
 
   useEffect(() => {
-      form.setValue('pricePlanName', undefined as any, { shouldValidate: false });
+      form.setValue('pricePlanName', undefined, { shouldValidate: false });
   }, [selectedRoomId, form.setValue]);
 
   useEffect(() => {
@@ -116,11 +116,15 @@ export default function CreateReservationDialog({ children }: CreateReservationD
           else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
           else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
           
-          setCalculatedCheckOut(newCheckOutDate);
+          if (!calculatedCheckOut || newCheckOutDate.getTime() !== calculatedCheckOut.getTime()) {
+            setCalculatedCheckOut(newCheckOutDate);
+          }
       } else {
-        setCalculatedCheckOut(null);
+        if (calculatedCheckOut !== null) {
+          setCalculatedCheckOut(null);
+        }
       }
-  }, [checkInDate, selectedPlanName, availablePlans]);
+  }, [checkInDate, selectedPlanName, availablePlans, calculatedCheckOut]);
 
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {

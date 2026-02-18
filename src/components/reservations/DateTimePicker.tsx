@@ -48,10 +48,12 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
                 parseInt(minute, 10)
             );
             if (!isNaN(newDate.getTime())) {
-                setDate(newDate);
+                if (!date || newDate.getTime() !== date.getTime()) {
+                    setDate(newDate);
+                }
             }
         }
-    }, [day, month, year, hour, minute, setDate]);
+    }, [day, month, year, hour, minute, setDate, date]);
     
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
