@@ -146,7 +146,7 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
                         {...field}
                         type="number"
                         min="0"
-                        className="text-7xl font-bold text-center h-32 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </FormControl>
                     <FormMessage className="text-center" />
