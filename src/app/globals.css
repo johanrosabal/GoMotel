@@ -75,16 +75,17 @@
 
 @layer utilities {
   @keyframes pulse-border {
-    0%, 100% {
+    0%,
+    100% {
       border-color: hsl(var(--destructive));
-      box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.1);
+      box-shadow: 0 0 0 5px hsl(var(--destructive) / 0.25);
     }
     50% {
-      border-color: hsl(var(--destructive) / 0.5);
-      box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.05);
+      border-color: hsl(var(--destructive) / 0.7);
+      box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.1);
     }
   }
   .animate-pulse-border {
-    animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: pulse-border 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
