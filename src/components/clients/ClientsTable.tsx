@@ -141,6 +141,10 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                             <p className="font-semibold text-muted-foreground">Miembro Desde</p>
                             <p>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</p>
                         </div>
+                        <div>
+                            <p className="font-semibold text-muted-foreground">Visitas</p>
+                            <p>{client.visitCount || 0}</p>
+                        </div>
                     </CardContent>
                 </Card>
                 ))}
@@ -155,6 +159,7 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                     <TableHead>Contacto</TableHead>
                     <TableHead>Cédula</TableHead>
                     <TableHead>Miembro Desde</TableHead>
+                    <TableHead>Visitas</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -180,6 +185,7 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                         <div className="font-mono text-sm">{client.idCard}</div>
                         </TableCell>
                         <TableCell>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
+                        <TableCell>{client.visitCount || 0}</TableCell>
                         <TableCell className="text-right">
                         <ActionsMenu client={client} />
                         </TableCell>
@@ -193,3 +199,5 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
     </div>
   );
 }
+
+    

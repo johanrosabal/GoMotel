@@ -93,6 +93,16 @@ export async function checkIn(roomId: string, formData: FormData) {
   const batch = writeBatch(db);
 
   const checkInTime = Timestamp.now();
+  
+  if (guestId) {
+    const clientRef = doc(db, 'clients', guestId);
+    const clientSnap = await getDoc(clientRef);
+    if (clientSnap.exists()) {
+      const currentCount = clientSnap.data().visitCount || 0;
+      batch.update(clientRef, { visitCount: currentCount + 1 });
+    }
+  }
+
 
   // Create new stay
   const stayRef = doc(collection(db, 'stays'));
@@ -120,6 +130,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     await batch.commit();
     revalidatePath('/');
     revalidatePath(`/rooms/${roomId}`);
+    revalidatePath('/clients');
     return { success: true, stayId: stayRef.id };
   } catch (error) {
     console.error('Check-in failed:', error);
@@ -354,3 +365,5 @@ export async function extendStay(stayId: string, newPlanName: string) {
     return { error: 'No se pudo extender la estancia.' };
   }
 }
+
+    

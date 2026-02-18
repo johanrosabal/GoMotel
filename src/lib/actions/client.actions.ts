@@ -43,6 +43,7 @@ export async function saveClient(values: z.infer<typeof clientSchema>) {
           birthDate: clientData.birthDate ? Timestamp.fromDate(clientData.birthDate) : null,
           isVip: clientData.isVip || false,
           createdAt: Timestamp.now(),
+          visitCount: 0,
       });
     }
     revalidatePath('/clients');
@@ -67,3 +68,5 @@ export async function deleteClient(clientId: string) {
         return { error: 'No se pudo eliminar el cliente.' };
     }
 }
+
+    

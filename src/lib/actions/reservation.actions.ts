@@ -130,6 +130,15 @@ export async function createReservation(values: z.infer<typeof reservationAction
         batch.set(stayRef, newStay);
         
         batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
+
+        if (guestId) {
+            const clientRef = doc(db, 'clients', guestId);
+            const clientSnap = await getDoc(clientRef);
+            if (clientSnap.exists()) {
+                const currentCount = clientSnap.data().visitCount || 0;
+                batch.update(clientRef, { visitCount: currentCount + 1 });
+            }
+        }
     }
     
     await batch.commit();
@@ -138,6 +147,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/rooms');
     revalidatePath(`/rooms/${roomId}`);
+    if (guestId) revalidatePath('/clients');
+
 
     return { success: true };
   } catch (error) {
@@ -171,6 +182,8 @@ export async function checkInFromReservation(reservationId: string) {
     }
 
     const reservation = reservationSnap.data() as Reservation;
+    const guestId = reservation.guestId;
+
 
     if (reservation.status !== 'Confirmed') {
         return { error: `La reservación tiene estado '${reservation.status}' y no puede ser utilizada para check-in.` };
@@ -210,11 +223,21 @@ export async function checkInFromReservation(reservationId: string) {
     // Update reservation
     batch.update(reservationRef, { status: 'Checked-in' });
 
+    if (guestId) {
+        const clientRef = doc(db, 'clients', guestId);
+        const clientSnap = await getDoc(clientRef);
+        if (clientSnap.exists()) {
+            const currentCount = clientSnap.data().visitCount || 0;
+            batch.update(clientRef, { visitCount: currentCount + 1 });
+        }
+    }
+
     try {
         await batch.commit();
         revalidatePath('/reservations');
         revalidatePath(`/rooms/${reservation.roomId}`);
         revalidatePath('/dashboard/rooms');
+        if (guestId) revalidatePath('/clients');
         return { success: true };
     } catch (error) {
         console.error("Check-in from reservation failed: ", error);
@@ -319,3 +342,5 @@ export async function deleteReservation(reservationId: string) {
         return { error: 'No se pudo eliminar la reservación.' };
     }
 }
+
+    

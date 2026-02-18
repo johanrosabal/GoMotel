@@ -125,5 +125,8 @@ export interface Client {
   address?: string;
   notes?: string;
   isVip?: boolean;
+  visitCount?: number;
   createdAt: Timestamp;
 }
+
+    
