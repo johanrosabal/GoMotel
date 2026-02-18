@@ -108,6 +108,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     guestId: guestId,
     pricePlanName: pricePlanName,
     pricePlanAmount: pricePlanAmount,
+    renewalCount: 0,
   };
   batch.set(stayRef, newStay);
 
@@ -336,11 +337,14 @@ export async function extendStay(stayId: string, newPlanName: string) {
     newPricePlanName = `${newPricePlanName} (Extendida)`;
   }
 
+  const newRenewalCount = (stayData.renewalCount || 0) + 1;
+
   try {
     await updateDoc(stayRef, {
       expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
       pricePlanAmount: newPricePlanAmount,
       pricePlanName: newPricePlanName,
+      renewalCount: newRenewalCount,
     });
     revalidatePath(`/rooms/${stayData.roomId}`);
     revalidatePath('/dashboard/rooms');

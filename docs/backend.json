@@ -381,6 +381,10 @@
         "checkOutNotes": {
           "type": "string",
           "description": "Additional notes about the early checkout."
+        },
+        "renewalCount": {
+          "type": "number",
+          "description": "The number of times the stay has been extended."
         }
       },
       "required": [

@@ -122,7 +122,8 @@ export async function seedDatabase() {
             expectedCheckOut: Timestamp.fromDate(expectedCheckOutTime),
             checkOut: null,
             total: 0,
-            isPaid: false
+            isPaid: false,
+            renewalCount: 0,
         });
         batch.set(docRef, {...roomData, currentStayId: stayRef.id});
       } else {

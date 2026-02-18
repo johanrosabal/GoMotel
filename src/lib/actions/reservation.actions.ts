@@ -125,6 +125,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           guestId: guestId,
           pricePlanName: pricePlanName,
           pricePlanAmount: pricePlanAmount,
+          renewalCount: 0,
         };
         batch.set(stayRef, newStay);
         
@@ -199,6 +200,7 @@ export async function checkInFromReservation(reservationId: string) {
       guestId: reservation.guestId,
       pricePlanName: reservation.pricePlanName,
       pricePlanAmount: reservation.pricePlanAmount,
+      renewalCount: 0,
     };
     batch.set(stayRef, newStay);
     

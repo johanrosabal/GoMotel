@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -293,6 +293,9 @@ export default function RoomDetailsPage() {
                                     <Separator />
                                     <div className="grid gap-4">
                                         <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
+                                        {stay.renewalCount && stay.renewalCount > 0 && (
+                                            <InfoRow label="Renovaciones" value={`${stay.renewalCount} ${stay.renewalCount > 1 ? 'veces' : 'vez'}`} icon={Repeat} />
+                                        )}
                                         <div className="space-y-2">
                                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Línea de Tiempo de Estancia</p>
                                             <Progress value={progress} className="h-3" />
