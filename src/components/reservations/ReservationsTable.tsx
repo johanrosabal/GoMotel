@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MoreHorizontal, LogIn, XCircle } from 'lucide-react';
+import { MoreHorizontal, LogIn, XCircle, User, BedDouble, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { checkInFromReservation, cancelReservation } from '@/lib/actions/reserva
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const statusStyles: Record<Reservation['status'], string> = {
   Confirmed: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50',
@@ -151,41 +152,88 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
                     No se encontraron reservaciones con los filtros actuales.
                 </div>
             ) : (
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Huésped</TableHead>
-                                <TableHead>Habitación</TableHead>
-                                <TableHead>Check-in</TableHead>
-                                <TableHead>Check-out</TableHead>
-                                <TableHead>Estado</TableHead>
-                                <TableHead><span className="sr-only">Acciones</span></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredReservations.map(res => (
-                                <TableRow key={res.id}>
-                                    <TableCell className="font-medium">{res.guestName}</TableCell>
-                                    <TableCell>
-                                        <div>N° {res.roomNumber}</div>
-                                        <div className="text-xs text-muted-foreground">{res.roomType}</div>
-                                    </TableCell>
-                                    <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
-                                    <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
-                                    <TableCell>
+                <>
+                    {/* Mobile View */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
+                        {filteredReservations.map(res => (
+                            <Card key={res.id}>
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                            <CardTitle className="flex items-center gap-2">
+                                                <User className="w-5 h-5 text-muted-foreground" />
+                                                {res.guestName}
+                                            </CardTitle>
+                                            <CardDescription className="flex items-center gap-2 pl-1">
+                                                <BedDouble className="w-4 h-4 text-muted-foreground" />
+                                                Habitación {res.roomNumber} ({res.roomType})
+                                            </CardDescription>
+                                        </div>
+                                        <ActionsMenu reservation={res} />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4 text-sm">
+                                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                        <CalendarClock className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-semibold">Check-in:</p>
+                                            <p>{format(res.checkInDate.toDate(), 'PP p', { locale: es })}</p>
+                                        </div>
+                                    </div>
+                                     <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                                        <CalendarClock className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-semibold">Check-out:</p>
+                                            <p>{format(res.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end pt-2">
                                         <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
                                             {statusMap[res.status]}
                                         </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <ActionsMenu reservation={res} />
-                                    </TableCell>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Huésped</TableHead>
+                                    <TableHead>Habitación</TableHead>
+                                    <TableHead>Check-in</TableHead>
+                                    <TableHead>Check-out</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead><span className="sr-only">Acciones</span></TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredReservations.map(res => (
+                                    <TableRow key={res.id}>
+                                        <TableCell className="font-medium">{res.guestName}</TableCell>
+                                        <TableCell>
+                                            <div>N° {res.roomNumber}</div>
+                                            <div className="text-xs text-muted-foreground">{res.roomType}</div>
+                                        </TableCell>
+                                        <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                        <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
+                                                {statusMap[res.status]}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <ActionsMenu reservation={res} />
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </>
             )}
         </div>
     );
