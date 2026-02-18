@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
+import AddClientDialog from '../clients/AddClientDialog';
+import { useRouter } from 'next/navigation';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -42,8 +44,10 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const router = useRouter();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
@@ -64,6 +68,22 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     return query(collection(firestore, 'roomTypes'));
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    if (!searchTerm) {
+      // Sort by isVip first, then by name
+      return [...clients].sort((a, b) => {
+        if (a.isVip && !b.isVip) return -1;
+        if (!a.isVip && b.isVip) return 1;
+        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      });
+    }
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    return clients.filter(client => 
+      `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedSearchTerm)
+    );
+  }, [clients, searchTerm]);
 
 
   const form = useForm<z.infer<typeof reservationSchema>>({
@@ -204,6 +224,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                       <Command>
                         <CommandInput
                           placeholder="Buscar cliente..."
+                          value={searchTerm}
                           onValueChange={setSearchTerm}
                         />
                         <CommandList>
@@ -213,6 +234,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                   form.setValue('guestName', searchTerm);
                                   form.setValue('guestId', undefined);
                                   setPopoverOpen(false);
+                                  setSearchTerm('');
                                 }}
                                 className="cursor-pointer"
                               >
@@ -224,7 +246,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                               {isLoadingClients ? (
                                 <p className="p-2 text-center text-sm">Cargando...</p>
                               ) : (
-                                clients?.map((client) => (
+                                filteredClients.map((client) => (
                                   <CommandItem
                                     value={`${client.firstName} ${client.lastName}`}
                                     key={client.id}
@@ -232,6 +254,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                       form.setValue('guestName', `${client.firstName} ${client.lastName}`);
                                       form.setValue('guestId', client.id);
                                       setPopoverOpen(false);
+                                      setSearchTerm('');
                                     }}
                                     className="flex justify-between items-center"
                                   >
@@ -282,21 +305,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               )}
             />
 
-            {!checkInNow && (
-              <Controller
-                  control={form.control}
-                  name="checkInDate"
-                  render={({ field, fieldState }) => (
-                      <FormItem>
-                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                          <DateTimePicker date={field.value} setDate={field.onChange} />
-                          <FormMessage>{fieldState.error?.message}</FormMessage>
-                      </FormItem>
-                  )}
-              />
-            )}
-            
-            <div className='grid grid-cols-2 gap-4'>
+             <div className='grid grid-cols-2 gap-4'>
                 <FormField
                     control={form.control}
                     name="roomId"
@@ -347,13 +356,27 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 />
             </div>
             
+            {!checkInNow && (
+              <Controller
+                  control={form.control}
+                  name="checkInDate"
+                  render={({ field, fieldState }) => (
+                      <FormItem>
+                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                          <DateTimePicker date={field.value} setDate={field.onChange} />
+                          <FormMessage>{fieldState.error?.message}</FormMessage>
+                      </FormItem>
+                  )}
+              />
+            )}
+            
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground font-medium">
                         <Clock className="h-4 w-4" />
                         <span>Salida Estimada</span>
                     </div>
-                    <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, 'PPpp', { locale: es })}</p>
+                    <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
                 </div>
             )}
 
@@ -365,6 +388,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
             </DialogFooter>
           </form>
         </Form>
+        <AddClientDialog open={addClientOpen} onOpenChange={setAddClientOpen} />
       </DialogContent>
     </Dialog>
   );
