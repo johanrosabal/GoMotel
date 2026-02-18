@@ -55,16 +55,16 @@ const unitMap: Record<PricePlan['unit'], string> = {
     Months: 'meses'
 };
 
-const crcStringToNumber = (crcString: string): number => {
-    if (!crcString) return 0;
-    // Remove thousand separators (dots) and replace decimal comma with a dot for parseFloat
-    return parseFloat(crcString.replace(/\./g, '').replace(',', '.'));
+const stringToNumber = (numString: string): number => {
+    if (!numString) return 0;
+    // Remove thousand separators (commas) and parse as float.
+    return parseFloat(numString.replace(/,/g, ''));
 };
 
-const numberToCrcString = (num: number): string => {
+const numberToString = (num: number): string => {
     if (isNaN(num)) return '';
-    // Format to a string like 1.234,56 (without currency symbol)
-    return new Intl.NumberFormat('es-CR', {
+    // Format to a string like 10,000.00
+    return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(num);
@@ -167,7 +167,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
     const numberValue = Number(value);
     
-    const formatted = new Intl.NumberFormat('es-CR', {
+    const formatted = new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(numberValue / 100);
@@ -181,7 +181,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
   const handleSavePlan = () => {
     const durationNum = parseInt(newPlanDuration, 10);
-    const priceNum = crcStringToNumber(newPlanPrice);
+    const priceNum = stringToNumber(newPlanPrice);
 
     const currentErrors: { name?: string; duration?: string; price?: string } = {};
 
@@ -230,7 +230,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setNewPlanName(plan.name);
     setNewPlanDuration(String(plan.duration));
     setNewPlanUnit(plan.unit);
-    setNewPlanPrice(numberToCrcString(plan.price));
+    setNewPlanPrice(numberToString(plan.price));
     setPlanInputErrors({});
   };
 
@@ -378,7 +378,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                 id="plan-price"
                                 type="text"
                                 inputMode='text'
-                                placeholder="10.000,00"
+                                placeholder="10,000.00"
                                 value={newPlanPrice}
                                 onChange={handlePriceChange}
                                 className={cn("text-right", planInputErrors.price && "border-destructive focus-visible:ring-destructive")}
@@ -506,7 +506,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                              {isNew ? (
                                                   <span className="flex items-center gap-2">
                                                       <Plus className="h-4 w-4" />
-                                                      <span>Añadir: <span className="font-semibold text-foreground">"{suggestion}"</span></span>
+                                                      <span className="text-foreground">Añadir: <span className="font-semibold">"{suggestion}"</span></span>
                                                   </span>
                                              ) : (
                                                  <span className="text-foreground">{suggestion}</span>
