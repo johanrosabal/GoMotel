@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useState, useTransition, useEffect, useMemo, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,7 +55,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "clients"));
+    return query(collection(firestore, "clients"), fbOrderBy("firstName"));
   }, [firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
   
@@ -73,7 +73,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       guestId: undefined,
       roomId: undefined,
       pricePlanName: undefined,
-      checkInDate: addHours(new Date(), 1),
+      checkInDate: new Date(),
     },
   });
   
@@ -88,26 +88,34 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       return roomType?.pricePlans?.sort((a,b) => a.price - b.price) || [];
   }, [selectedRoom, roomTypes]);
 
+  const resetForm = useCallback(() => {
+    form.reset({
+      guestName: '',
+      guestId: undefined,
+      roomId: undefined,
+      pricePlanName: undefined,
+      checkInDate: new Date(),
+    });
+    setCalculatedCheckOut(null);
+  }, [form]);
+
   useEffect(() => {
     if (open) {
-      form.reset({
-        guestName: '',
-        guestId: undefined,
-        roomId: undefined,
-        pricePlanName: undefined,
-        checkInDate: addHours(new Date(), 1),
-      });
-      setCalculatedCheckOut(null);
+      resetForm();
     }
-  }, [open, form.reset]);
+  }, [open, resetForm]);
 
   useEffect(() => {
       form.setValue('pricePlanName', undefined, { shouldValidate: false });
-  }, [selectedRoomId, form.setValue]);
+  }, [selectedRoomId, form]);
 
   useEffect(() => {
+      if (!checkInDate || !selectedPlanName || !availablePlans.length) {
+        setCalculatedCheckOut(null);
+        return;
+      }
       const plan = availablePlans.find(p => p.name === selectedPlanName);
-      if (checkInDate && plan) {
+      if (plan) {
           let newCheckOutDate = new Date(checkInDate);
           const { duration, unit } = plan;
           
@@ -116,15 +124,9 @@ export default function CreateReservationDialog({ children }: CreateReservationD
           else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
           else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
           
-          if (!calculatedCheckOut || newCheckOutDate.getTime() !== calculatedCheckOut.getTime()) {
-            setCalculatedCheckOut(newCheckOutDate);
-          }
-      } else {
-        if (calculatedCheckOut !== null) {
-          setCalculatedCheckOut(null);
-        }
+          setCalculatedCheckOut(newCheckOutDate);
       }
-  }, [checkInDate, selectedPlanName, availablePlans, calculatedCheckOut]);
+  }, [checkInDate, selectedPlanName, availablePlans]);
 
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
@@ -267,6 +269,19 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
+            
+            <Controller
+                control={form.control}
+                name="checkInDate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                        <DateTimePicker date={field.value} setDate={field.onChange} />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
             <FormField
               control={form.control}
               name="roomId"
@@ -314,17 +329,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                   <FormMessage />
                 </FormItem>
               )}
-            />
-            <Controller
-                control={form.control}
-                name="checkInDate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                        <DateTimePicker date={field.value} setDate={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                )}
             />
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
