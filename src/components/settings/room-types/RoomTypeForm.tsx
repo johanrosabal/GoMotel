@@ -281,7 +281,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
        <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-6">
-              <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-8">
                   <FormField
                       control={form.control}
                       name="name"
@@ -298,81 +299,6 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       </FormItem>
                       )}
                   />
-
-                  <FormItem>
-                      <FormLabel>Características</FormLabel>
-                      <div className="relative">
-                        <div className="flex items-center gap-2">
-                            <Input
-                                placeholder="p.ej. Wi-Fi de alta velocidad"
-                                value={newFeature}
-                                onChange={(e) => setNewFeature(e.target.value)}
-                                onKeyDown={handleEnterKey}
-                                onFocus={() => setShowSuggestions(true)}
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleAddFeature()}
-                            >
-                                <Plus className="h-4 w-4" />
-                                <span className="sr-only">Añadir Característica</span>
-                            </Button>
-                        </div>
-                        {showSuggestions && suggestions.length > 0 && (
-                            <div className="absolute z-10 w-full bg-card border rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto">
-                                {suggestions.map((suggestion) => {
-                                    const isNew = !allGlobalFeatures.some(f => f.toLowerCase() === suggestion.toLowerCase());
-                                    return (
-                                        <div
-                                            key={suggestion}
-                                            className="px-3 py-2 text-sm cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                            onMouseDown={() => handleAddFeature(suggestion)}
-                                        >
-                                           {isNew ? (
-                                                <span className="flex items-center gap-2">
-                                                    <Plus className="h-4 w-4" />
-                                                    <span>Añadir: <span className="font-semibold text-foreground">"{suggestion}"</span></span>
-                                                </span>
-                                           ) : (
-                                               <span className="text-foreground">{suggestion}</span>
-                                           )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                      </div>
-                      <div className="space-y-2 pt-2">
-                      {features.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                          {features.map((feature, index) => (
-                              <Badge
-                              key={index}
-                              variant="secondary"
-                              className="pl-2 pr-1 py-0.5 text-sm"
-                              >
-                              {feature}
-                              <button
-                                  type="button"
-                                  onClick={() => handleRemoveFeature(index)}
-                                  className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                                  aria-label={`Eliminar ${feature}`}
-                              >
-                                  <X className="h-3 w-3" />
-                              </button>
-                              </Badge>
-                          ))}
-                          </div>
-                      ) : (
-                          <p className="text-xs text-muted-foreground px-1">
-                          Aún no se han añadido características.
-                          </p>
-                      )}
-                      </div>
-                  </FormItem>
 
                   <Separator />
 
@@ -522,6 +448,85 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       </div>
                   </div>
               </div>
+              <div className="md:col-span-1">
+                  <div className="p-4 border rounded-lg bg-muted/30 sticky top-24">
+                    <FormItem>
+                        <FormLabel>Características</FormLabel>
+                        <div className="relative">
+                          <div className="flex items-center gap-2">
+                              <Input
+                                  placeholder="p.ej. Wi-Fi de alta velocidad"
+                                  value={newFeature}
+                                  onChange={(e) => setNewFeature(e.target.value)}
+                                  onKeyDown={handleEnterKey}
+                                  onFocus={() => setShowSuggestions(true)}
+                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                              />
+                              <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleAddFeature()}
+                              >
+                                  <Plus className="h-4 w-4" />
+                                  <span className="sr-only">Añadir Característica</span>
+                              </Button>
+                          </div>
+                          {showSuggestions && suggestions.length > 0 && (
+                              <div className="absolute z-10 w-full bg-card border rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto">
+                                  {suggestions.map((suggestion) => {
+                                      const isNew = !allGlobalFeatures.some(f => f.toLowerCase() === suggestion.toLowerCase());
+                                      return (
+                                          <div
+                                              key={suggestion}
+                                              className="px-3 py-2 text-sm cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                              onMouseDown={() => handleAddFeature(suggestion)}
+                                          >
+                                             {isNew ? (
+                                                  <span className="flex items-center gap-2">
+                                                      <Plus className="h-4 w-4" />
+                                                      <span>Añadir: <span className="font-semibold text-foreground">"{suggestion}"</span></span>
+                                                  </span>
+                                             ) : (
+                                                 <span className="text-foreground">{suggestion}</span>
+                                             )}
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          )}
+                        </div>
+                        <div className="space-y-2 pt-2">
+                        {features.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                            {features.map((feature, index) => (
+                                <Badge
+                                key={index}
+                                variant="secondary"
+                                className="pl-2 pr-1 py-0.5 text-sm"
+                                >
+                                {feature}
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveFeature(index)}
+                                    className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
+                                    aria-label={`Eliminar ${feature}`}
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                                </Badge>
+                            ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground px-1">
+                            Aún no se han añadido características.
+                            </p>
+                        )}
+                        </div>
+                    </FormItem>
+                  </div>
+              </div>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
               <Button asChild variant="outline" type="button">
