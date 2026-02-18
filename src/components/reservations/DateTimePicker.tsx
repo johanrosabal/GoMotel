@@ -1,13 +1,8 @@
 'use client';
 
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Button } from "../ui/button";
 
 interface DateTimePickerProps {
     date: Date | undefined;
@@ -15,93 +10,102 @@ interface DateTimePickerProps {
 }
 
 export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
-    const handleDateSelect = (selectedDay: Date | undefined) => {
-        if (!selectedDay) {
-            setDate(undefined);
-            return;
-        }
-        const newDate = new Date(
-            selectedDay.getFullYear(),
-            selectedDay.getMonth(),
-            selectedDay.getDate(),
-            date?.getHours() ?? 0,
-            date?.getMinutes() ?? 0
-        );
-        setDate(newDate);
-    };
+    const [day, setDay] = useState<string>('');
+    const [month, setMonth] = useState<string>('');
+    const [year, setYear] = useState<string>('');
+    const [hour, setHour] = useState<string>('');
+    const [minute, setMinute] = useState<string>('');
 
-    const handleTimeChange = (value: string, unit: 'hours' | 'minutes') => {
-        if (!date) return;
-        const newDate = new Date(date);
-        if (unit === 'hours') {
-            newDate.setHours(parseInt(value, 10));
+    useEffect(() => {
+        if (date) {
+            setDay(String(date.getDate()));
+            setMonth(String(date.getMonth() + 1));
+            setYear(String(date.getFullYear()));
+            setHour(String(date.getHours()).padStart(2, '0'));
+            
+            const currentMinutes = date.getMinutes();
+            if (currentMinutes >= 45) setMinute('45');
+            else if (currentMinutes >= 30) setMinute('30');
+            else if (currentMinutes >= 15) setMinute('15');
+            else setMinute('00');
         } else {
-            // Snap to nearest 15 minutes
-            const newMinutes = parseInt(value, 10);
-            newDate.setMinutes(newMinutes);
+             const today = new Date();
+             setDay(String(today.getDate()));
+             setMonth(String(today.getMonth() + 1));
+             setYear(String(today.getFullYear()));
+             setHour(String(today.getHours()).padStart(2, '0'));
+             setMinute('00');
         }
-        setDate(newDate);
-    };
+    }, [date]);
+    
+    useEffect(() => {
+        if (day && month && year && hour && minute) {
+            const newDate = new Date(
+                parseInt(year, 10),
+                parseInt(month, 10) - 1,
+                parseInt(day, 10),
+                parseInt(hour, 10),
+                parseInt(minute, 10)
+            );
+            if (!isNaN(newDate.getTime())) {
+                setDate(newDate);
+            }
+        }
+    }, [day, month, year, hour, minute, setDate]);
+    
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
+    const months = Array.from({ length: 12 }, (_, i) => ({
+        value: String(i + 1),
+        label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
+    }));
+    const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+    const days = year && month ? Array.from({ length: daysInMonth(parseInt(year), parseInt(month)) }, (_, i) => String(i + 1)) : [];
+
 
     const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
     const minutes = ['00', '15', '30', '45'];
 
     const formatHourForDisplay = (hour24: string) => {
-        const hour = parseInt(hour24, 10);
-        if (hour === 0) return '12 AM';
-        if (hour < 12) return `${hour} AM`;
-        if (hour === 12) return '12 PM';
-        return `${hour - 12} PM`;
+        const hourVal = parseInt(hour24, 10);
+        if (hourVal === 0) return '12 AM';
+        if (hourVal < 12) return `${hourVal} AM`;
+        if (hourVal === 12) return '12 PM';
+        return `${hourVal - 12} PM`;
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn(
-                            "justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={handleDateSelect}
-                        initialFocus
-                        locale={es}
-                        disabled={(day) => day < new Date(new Date().setDate(new Date().getDate() - 1))}
-                    />
-                </PopoverContent>
-            </Popover>
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            <div className="sm:col-span-3 grid grid-cols-3 gap-2">
+                <Select value={day} onValueChange={setDay} disabled={!year || !month}>
+                    <SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger>
+                    <SelectContent>
+                        {days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={month} onValueChange={setMonth}>
+                    <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
+                    <SelectContent>
+                        {months.map(m => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                 <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <div className="flex items-center gap-2">
-                <Select
-                    value={String(date?.getHours() ?? '0').padStart(2, '0')}
-                    onValueChange={(val) => handleTimeChange(val, 'hours')}
-                    disabled={!date}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Hora" />
-                    </SelectTrigger>
+            <div className="sm:col-span-2 flex items-center gap-2">
+                <Select value={hour} onValueChange={setHour}>
+                    <SelectTrigger><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>
                         {hours.map(h => <SelectItem key={h} value={h}>{formatHourForDisplay(h)}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={String(date?.getMinutes() ?? '00').padStart(2, '0')}
-                    onValueChange={(val) => handleTimeChange(val, 'minutes')}
-                    disabled={!date}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Min." />
-                    </SelectTrigger>
+                <Select value={minute} onValueChange={setMinute}>
+                    <SelectTrigger><SelectValue placeholder="Min." /></SelectTrigger>
                     <SelectContent>
                         {minutes.map(m => <SelectItem key={m} value={m}>{m} min</SelectItem>)}
                     </SelectContent>
