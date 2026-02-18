@@ -16,7 +16,7 @@ import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, Star, Clock, Users } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import AddClientDialog from '@/components/clients/AddClientDialog';
@@ -286,6 +286,15 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Añadir Nuevo Cliente
                             </CommandItem>
+                            <CommandItem
+                                onSelect={() => {
+                                    window.open('/clients', '_blank');
+                                    setPopoverOpen(false);
+                                }}
+                            >
+                              <Users className="mr-2 h-4 w-4" />
+                              Gestionar Clientes
+                            </CommandItem>
                           </CommandGroup>
                         </CommandList>
                       </Command>
@@ -296,6 +305,55 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               )}
             />
             
+            <FormField
+                control={form.control}
+                name="roomId"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Habitación</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione una habitación"} />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {rooms?.map(room => (
+                            <SelectItem key={room.id} value={room.id}>
+                            {room.number} - {room.roomTypeName}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+              control={form.control}
+              name="pricePlanName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plan de Estancia</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={!selectedRoomId ? "Seleccione una habitación primero" : "Seleccione un plan"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availablePlans.map(plan => (
+                        <SelectItem key={plan.name} value={plan.name}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="checkInNow"
@@ -331,54 +389,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               />
             )}
 
-            <FormField
-              control={form.control}
-              name="roomId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Habitación</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione una habitación"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {rooms?.map(room => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.number} - {room.roomTypeName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="pricePlanName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan de Estancia</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={!selectedRoomId ? "Seleccione una habitación primero" : "Seleccione un plan"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availablePlans.map(plan => (
-                        <SelectItem key={plan.name} value={plan.name}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
@@ -403,3 +413,5 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     </Dialog>
   );
 }
+
+    
