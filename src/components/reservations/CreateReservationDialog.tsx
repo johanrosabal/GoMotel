@@ -34,15 +34,6 @@ const reservationSchema = z.object({
   checkInDate: z.date({ required_error: 'La fecha de check-in es requerida.'}),
   guestId: z.string().optional(),
   checkInNow: z.boolean().default(false),
-}).refine(data => {
-    // If it's a future reservation, the guest must be a registered client (have a guestId).
-    if (!data.checkInNow) {
-        return !!data.guestId;
-    }
-    return true;
-}, {
-    message: "Solo los clientes registrados pueden hacer reservaciones a futuro. Por favor, seleccione un cliente de la lista.",
-    path: ["guestName"],
 });
 
 
@@ -203,7 +194,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                           )}
                         >
                           <span className="truncate">
-                            {field.value || 'Seleccionar cliente...'}
+                            {field.value || 'Seleccionar o escribir cliente...'}
                           </span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -217,19 +208,16 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                         />
                         <CommandList>
                           <CommandEmpty>
-                            {checkInNow ? (
-                              <CommandItem
+                             <CommandItem
                                 onSelect={() => {
                                   form.setValue('guestName', searchTerm);
                                   form.setValue('guestId', undefined);
                                   setPopoverOpen(false);
                                 }}
+                                className="cursor-pointer"
                               >
                                 Usar nombre: "{searchTerm}"
                               </CommandItem>
-                            ) : (
-                              <div className="py-6 text-center text-sm">Cliente no encontrado.</div>
-                            )}
                           </CommandEmpty>
                           <ScrollArea className="max-h-56">
                             <CommandGroup>
@@ -272,6 +260,41 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="checkInNow"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Hacer Check-in Ahora</FormLabel>
+                    <p className="text-[13px] text-muted-foreground">
+                      Para huéspedes que ingresan inmediatamente.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {!checkInNow && (
+              <Controller
+                  control={form.control}
+                  name="checkInDate"
+                  render={({ field, fieldState }) => (
+                      <FormItem>
+                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
+                          <DateTimePicker date={field.value} setDate={field.onChange} />
+                          <FormMessage>{fieldState.error?.message}</FormMessage>
+                      </FormItem>
+                  )}
+              />
+            )}
             
             <div className='grid grid-cols-2 gap-4'>
                 <FormField
@@ -323,41 +346,6 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                 )}
                 />
             </div>
-            
-            <FormField
-              control={form.control}
-              name="checkInNow"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Hacer Check-in Ahora</FormLabel>
-                    <p className="text-[13px] text-muted-foreground">
-                      Para huéspedes que ingresan inmediatamente.
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {!checkInNow && (
-              <Controller
-                  control={form.control}
-                  name="checkInDate"
-                  render={({ field, fieldState }) => (
-                      <FormItem>
-                          <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                          <DateTimePicker date={field.value} setDate={field.onChange} />
-                          <FormMessage>{fieldState.error?.message}</FormMessage>
-                      </FormItem>
-                  )}
-              />
-            )}
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
