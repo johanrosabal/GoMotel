@@ -1,7 +1,7 @@
 'use client';
 
-import { useTransition } from 'react';
-import type { Reservation } from '@/types';
+import { useTransition, useState, useMemo } from 'react';
+import type { Reservation, ReservationStatus } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { checkInFromReservation, cancelReservation } from '@/lib/actions/reservation.actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusStyles: Record<Reservation['status'], string> = {
   Confirmed: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50',
@@ -101,6 +103,18 @@ function ActionsMenu({ reservation }: { reservation: Reservation }) {
 }
 
 export default function ReservationsTable({ reservations }: { reservations: Reservation[] }) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
+
+    const filteredReservations = useMemo(() => {
+        return reservations.filter(res => {
+            const searchContent = `${res.guestName} ${res.roomNumber}`.toLowerCase();
+            const searchMatch = searchContent.includes(searchTerm.toLowerCase());
+            const statusMatch = statusFilter === 'all' || res.status === statusFilter;
+            return searchMatch && statusMatch;
+        });
+    }, [reservations, searchTerm, statusFilter]);
+
     if (reservations.length === 0) {
         return (
             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -110,40 +124,69 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
     }
 
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Huésped</TableHead>
-                        <TableHead>Habitación</TableHead>
-                        <TableHead>Check-in</TableHead>
-                        <TableHead>Check-out</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead><span className="sr-only">Acciones</span></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {reservations.map(res => (
-                        <TableRow key={res.id}>
-                            <TableCell className="font-medium">{res.guestName}</TableCell>
-                            <TableCell>
-                                <div>N° {res.roomNumber}</div>
-                                <div className="text-xs text-muted-foreground">{res.roomType}</div>
-                            </TableCell>
-                            <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
-                            <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
-                            <TableCell>
-                                <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
-                                    {statusMap[res.status]}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <ActionsMenu reservation={res} />
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4">
+                <Input
+                    placeholder="Buscar por huésped o habitación..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                />
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filtrar por estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los Estados</SelectItem>
+                        <SelectItem value="Confirmed">Confirmada</SelectItem>
+                        <SelectItem value="Checked-in">Checked-in</SelectItem>
+                        <SelectItem value="Cancelled">Cancelada</SelectItem>
+                        <SelectItem value="No-show">No-show</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {filteredReservations.length === 0 ? (
+                 <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+                    No se encontraron reservaciones con los filtros actuales.
+                </div>
+            ) : (
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Huésped</TableHead>
+                                <TableHead>Habitación</TableHead>
+                                <TableHead>Check-in</TableHead>
+                                <TableHead>Check-out</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead><span className="sr-only">Acciones</span></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredReservations.map(res => (
+                                <TableRow key={res.id}>
+                                    <TableCell className="font-medium">{res.guestName}</TableCell>
+                                    <TableCell>
+                                        <div>N° {res.roomNumber}</div>
+                                        <div className="text-xs text-muted-foreground">{res.roomType}</div>
+                                    </TableCell>
+                                    <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                    <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={cn('font-semibold', statusStyles[res.status])}>
+                                            {statusMap[res.status]}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <ActionsMenu reservation={res} />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
         </div>
     );
 }
