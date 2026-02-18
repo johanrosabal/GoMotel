@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { checkIn } from '@/lib/actions/room.actions';
 import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Client, Room, RoomType, PricePlan } from '@/types';
@@ -21,6 +19,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addMinutes, addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Input } from '../ui/input';
 
 interface CheckInDialogProps {
   children: ReactNode;
@@ -37,10 +36,10 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const [popoverOpen, setPopoverOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const { firestore } = useFirebase();
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const clientsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -73,6 +72,27 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
       guestId: undefined,
     },
   });
+
+  const guestNameValue = form.watch('guestName');
+  const sortedClients = useMemo(() => {
+    if (!clients) return [];
+    return [...clients].sort((a, b) => {
+      if (a.isVip && !b.isVip) return -1;
+      if (!a.isVip && b.isVip) return 1;
+      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    });
+  }, [clients]);
+
+  const filteredClients = useMemo(() => {
+      if (!searchTerm) {
+          return sortedClients;
+      }
+      const lowercasedQuery = searchTerm.toLowerCase();
+      return sortedClients.filter(client =>
+          `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
+      );
+  }, [searchTerm, sortedClients]);
+
 
   const selectedPlanName = form.watch('pricePlanName');
   
@@ -108,16 +128,20 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
         toast({ title: 'Error', description: 'Plan de precios inválido.', variant: 'destructive' });
         return;
     }
-    
-    let durationHours = 0;
+
+    const checkInTime = new Date();
+    let expectedCheckOutDate = new Date(checkInTime);
     switch(plan.unit) {
-        case 'Minutes': durationHours = plan.duration / 60; break;
-        case 'Hours': durationHours = plan.duration; break;
-        case 'Days': durationHours = plan.duration * 24; break;
-        case 'Weeks': durationHours = plan.duration * 7 * 24; break;
-        case 'Months': durationHours = plan.duration * 30 * 24; break; // Approximation
+      case 'Minutes': expectedCheckOutDate = addMinutes(checkInTime, plan.duration); break;
+      case 'Hours': expectedCheckOutDate = addHours(checkInTime, plan.duration); break;
+      case 'Days': expectedCheckOutDate = addDays(checkInTime, plan.duration); break;
+      case 'Weeks': expectedCheckOutDate = addWeeks(checkInTime, plan.duration); break;
+      case 'Months': expectedCheckOutDate = addMonths(checkInTime, plan.duration); break;
     }
-    formData.append('durationHours', String(durationHours));
+
+    formData.append('pricePlanName', plan.name);
+    formData.append('pricePlanAmount', String(plan.price));
+    formData.append('expectedCheckOut', expectedCheckOutDate.toISOString());
 
     startTransition(async () => {
       const result = await checkIn(roomId, formData);
@@ -141,8 +165,14 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   useEffect(() => {
     if (open) {
       form.reset();
+      setSearchTerm('');
     }
   }, [open, form]);
+
+  useEffect(() => {
+    form.setValue('guestName', searchTerm);
+    form.setValue('guestId', undefined);
+  }, [searchTerm, form]);
 
   const isLoading = isLoadingRooms || isLoadingRoomTypes;
 
@@ -164,90 +194,63 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Huésped</FormLabel>
-                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            'w-full justify-between',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          <span className="truncate">
-                            {field.value || 'Seleccionar o crear cliente...'}
-                          </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput
-                          placeholder="Buscar cliente..."
-                          onValueChange={setSearchTerm}
-                        />
-                        <CommandList>
-                          <CommandEmpty>
-                             <CommandItem
-                                onSelect={() => {
-                                  form.setValue('guestName', searchTerm);
-                                  form.setValue('guestId', undefined);
-                                  setPopoverOpen(false);
-                                }}
-                              >
-                                Usar nombre: "{searchTerm}"
-                              </CommandItem>
-                          </CommandEmpty>
-                          <ScrollArea className="max-h-56">
-                            <CommandGroup>
-                              {isLoadingClients ? (
-                                <p className="p-2 text-center text-sm">Cargando...</p>
-                              ) : (
-                                clients?.map((client) => (
-                                  <CommandItem
-                                    value={`${client.firstName} ${client.lastName}`}
-                                    key={client.id}
-                                    onSelect={() => {
-                                      form.setValue('guestName', `${client.firstName} ${client.lastName}`);
-                                      form.setValue('guestId', client.id);
-                                      setPopoverOpen(false);
-                                    }}
-                                    className="flex justify-between items-center"
+                   <div className="relative">
+                      <Input
+                          placeholder="Buscar o escribir nombre..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onFocus={() => setShowSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                          autoComplete="off"
+                          className="pr-10"
+                      />
+                      {showSuggestions && (
+                          <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                              <ScrollArea className="max-h-56">
+                                <div className="p-1">
+                                  {filteredClients.length > 0 ? (
+                                    filteredClients.map((client) => (
+                                      <button
+                                        type="button"
+                                        key={client.id}
+                                        onMouseDown={() => {
+                                          setSearchTerm(`${client.firstName} ${client.lastName}`);
+                                          form.setValue('guestId', client.id);
+                                          setShowSuggestions(false);
+                                        }}
+                                        className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Check
+                                            className={cn('h-4 w-4', guestNameValue === `${client.firstName} ${client.lastName}` ? 'opacity-100' : 'opacity-0')}
+                                          />
+                                          {client.firstName} {client.lastName}
+                                        </div>
+                                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    !isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">No se encontraron clientes.</p>
+                                  )}
+                                  {isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">Cargando...</p>}
+                                </div>
+                              </ScrollArea>
+                               <div className="border-t p-1">
+                                  <button
+                                      type="button"
+                                      onMouseDown={() => {
+                                        setShowSuggestions(false);
+                                        setAddClientOpen(true);
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                                   >
-                                    <div className="flex items-center">
-                                      <Check
-                                        className={cn(
-                                          'mr-2 h-4 w-4',
-                                          field.value === `${client.firstName} ${client.lastName}`
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                        )}
-                                      />
-                                      {client.firstName} {client.lastName}
-                                    </div>
-                                    {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                  </CommandItem>
-                                ))
-                              )}
-                            </CommandGroup>
-                          </ScrollArea>
-                          <CommandGroup className="border-t">
-                            <CommandItem
-                              onSelect={() => {
-                                setPopoverOpen(false);
-                                setAddClientOpen(true);
-                              }}
-                            >
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Añadir Nuevo Cliente
-                            </CommandItem>
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                                      <PlusCircle className="h-4 w-4" />
+                                      Añadir Nuevo Cliente
+                                  </button>
+                              </div>
+                          </div>
+                      )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

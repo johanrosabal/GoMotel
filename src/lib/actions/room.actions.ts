@@ -17,6 +17,8 @@ import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
 import type { Room, RoomStatus, Stay, Order } from '@/types';
 import { z } from 'zod';
+import { formatDistance } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Helper to convert Firestore doc to Room object
 const toRoomObject = (doc: any): Room => {
@@ -65,16 +67,15 @@ export async function getRoomById(roomId: string): Promise<Room | null> {
 
 const checkInSchema = z.object({
   guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
-  durationHours: z.coerce.number().int().min(1, 'La duración debe ser de al menos 1 hora.'),
   guestId: z.string().optional(),
+  pricePlanName: z.string(),
+  pricePlanAmount: z.coerce.number(),
+  expectedCheckOut: z.coerce.date(),
 });
 
 export async function checkIn(roomId: string, formData: FormData) {
-  const validatedFields = checkInSchema.safeParse({
-    guestName: formData.get('guestName'),
-    durationHours: formData.get('durationHours'),
-    guestId: formData.get('guestId'),
-  });
+  const rawData = Object.fromEntries(formData);
+  const validatedFields = checkInSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
     return {
@@ -82,7 +83,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     };
   }
 
-  const { guestName, durationHours, guestId } = validatedFields.data;
+  const { guestName, guestId, pricePlanName, pricePlanAmount, expectedCheckOut } = validatedFields.data;
 
   const room = await getRoomById(roomId);
   if (!room || room.status !== 'Available') {
@@ -92,7 +93,6 @@ export async function checkIn(roomId: string, formData: FormData) {
   const batch = writeBatch(db);
 
   const checkInTime = Timestamp.now();
-  const checkOutTime = new Date(checkInTime.toDate().getTime() + durationHours * 60 * 60 * 1000);
 
   // Create new stay
   const stayRef = doc(collection(db, 'stays'));
@@ -101,10 +101,12 @@ export async function checkIn(roomId: string, formData: FormData) {
     roomNumber: room.number,
     guestName,
     checkIn: checkInTime,
-    expectedCheckOut: Timestamp.fromDate(checkOutTime),
+    expectedCheckOut: Timestamp.fromDate(expectedCheckOut),
     total: 0,
     isPaid: false,
     guestId: guestId,
+    pricePlanName: pricePlanName,
+    pricePlanAmount: pricePlanAmount,
   };
   batch.set(stayRef, newStay);
 
@@ -137,13 +139,19 @@ export async function checkOut(stayId: string, roomId: string) {
 
   const stay = { id: stayDoc.id, ...stayDoc.data() } as Stay;
   const room = { id: roomDoc.id, ...roomDoc.data() } as Room;
-  const checkInTime = stay.checkIn.toDate();
-  const checkOutTime = new Date();
+  
+  let roomTotal: number;
+  if (stay.pricePlanAmount != null) {
+    roomTotal = stay.pricePlanAmount;
+  } else {
+    // Fallback for old data: calculate based on duration
+    const checkInTime = stay.checkIn.toDate();
+    const checkOutTime = new Date();
+    const durationMs = checkOutTime.getTime() - checkInTime.getTime();
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))); // Minimum 1 hour charge
+    roomTotal = durationHours * room.ratePerHour;
+  }
 
-  // Calculate stay duration in hours
-  const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-  const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))); // Minimum 1 hour charge
-  const roomTotal = durationHours * room.ratePerHour;
 
   // Calculate total from services
   const ordersCollection = collection(db, 'orders');
@@ -161,7 +169,7 @@ export async function checkOut(stayId: string, roomId: string) {
   // Update stay
   const stayRef = doc(db, 'stays', stayId);
   batch.update(stayRef, {
-    checkOut: Timestamp.fromDate(checkOutTime),
+    checkOut: Timestamp.now(),
     total: finalTotal,
     isPaid: true, // Assuming payment is collected at checkout
   });

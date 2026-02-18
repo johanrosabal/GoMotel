@@ -53,6 +53,8 @@ export interface Stay {
   isPaid: boolean;
   reservationId?: string;
   guestId?: string;
+  pricePlanName?: string;
+  pricePlanAmount?: number;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';
@@ -68,6 +70,8 @@ export interface Reservation {
   checkOutDate: Timestamp;
   status: ReservationStatus;
   createdAt: Timestamp;
+  pricePlanName?: string;
+  pricePlanAmount?: number;
 }
 
 export interface OrderItem {

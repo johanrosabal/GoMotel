@@ -15,12 +15,13 @@ import {
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../firebase';
-import type { Reservation, Stay } from '@/types';
+import type { Reservation, Stay, RoomType } from '@/types';
 import { checkOut } from './room.actions';
 
 const reservationActionSchema = z.object({
   guestName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
+  pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   checkOutDate: z.coerce.date(),
   guestId: z.string().optional(),
   checkInNow: z.boolean(),
@@ -39,7 +40,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -49,6 +50,19 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'La habitación seleccionada no existe.' };
   }
   const roomData = roomSnap.data();
+  
+  const roomTypeRef = doc(db, 'roomTypes', roomData.roomTypeId);
+  const roomTypeSnap = await getDoc(roomTypeRef);
+  if (!roomTypeSnap.exists()) {
+    return { error: "Tipo de habitación no encontrado." };
+  }
+  const roomTypeData = roomTypeSnap.data() as RoomType;
+
+  const plan = roomTypeData.pricePlans?.find(p => p.name === pricePlanName);
+  if (!plan) {
+      return { error: 'Plan de precios no encontrado para este tipo de habitación.' };
+  }
+  const pricePlanAmount = plan.price;
 
   // --- Conflict & Availability Check ---
   const reservationsRef = collection(db, 'reservations');
@@ -80,9 +94,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const batch = writeBatch(db);
 
     const reservationRef = doc(collection(db, 'reservations'));
-    const reservationPayload = {
+    const reservationPayload: Omit<Reservation, 'id'> = {
       guestName,
-      guestId: guestId ?? null,
+      guestId: guestId ?? undefined,
       roomId,
       roomNumber: roomData.number,
       roomType: roomData.roomTypeName,
@@ -90,6 +104,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
       checkOutDate: Timestamp.fromDate(checkOutDate),
       createdAt: Timestamp.now(),
       status: checkInNow ? 'Checked-in' : 'Confirmed',
+      pricePlanName,
+      pricePlanAmount,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -105,6 +121,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
           isPaid: false,
           reservationId: reservationRef.id,
           guestId: guestId,
+          pricePlanName: pricePlanName,
+          pricePlanAmount: pricePlanAmount,
         };
         batch.set(stayRef, newStay);
         
@@ -176,6 +194,8 @@ export async function checkInFromReservation(reservationId: string) {
       isPaid: false,
       reservationId: reservation.id,
       guestId: reservation.guestId,
+      pricePlanName: reservation.pricePlanName,
+      pricePlanAmount: reservation.pricePlanAmount,
     };
     batch.set(stayRef, newStay);
     

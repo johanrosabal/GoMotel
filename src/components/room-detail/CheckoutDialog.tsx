@@ -48,13 +48,23 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     if (!stay || !room) {
       return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, finalTotal: 0 };
     }
+    
+    let roomTotalCalc: number;
+    if (stay.pricePlanAmount != null) {
+      roomTotalCalc = stay.pricePlanAmount;
+    } else {
+      // Fallback for old data or stays without a price plan
+      const checkInTime = stay.checkIn.toDate();
+      const checkOutTime = new Date();
+      const durationMs = checkOutTime.getTime() - checkInTime.getTime();
+      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+      roomTotalCalc = durationHours * room.ratePerHour;
+    }
+
     const checkInTime = stay.checkIn.toDate();
     const checkOutTime = new Date();
-    const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
-
     const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
-    const roomTotalCalc = durationHours * room.ratePerHour;
+    
     const servicesTotalCalc = orders.reduce((sum, order) => sum + order.total, 0);
     const finalTotalCalc = roomTotalCalc + servicesTotalCalc;
 
@@ -83,6 +93,12 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                             <span className="text-muted-foreground">Huésped:</span>
                             <span>{stay?.guestName}</span>
                         </div>
+                         {stay?.pricePlanName && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Plan Seleccionado:</span>
+                                <span>{stay.pricePlanName}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Duración de la Estancia:</span>
                             <span>~{duration}</span>
