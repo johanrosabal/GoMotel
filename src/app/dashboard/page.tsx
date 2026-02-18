@@ -215,7 +215,7 @@ export default async function DashboardPage() {
                 <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {section.links.map((link) => (
-                    <Link key={link.href} href={link.href} className="group">
+                    <Link key={link.title} href={link.href} className="group">
                         <Card className="h-full hover:border-primary transition-colors">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-base font-semibold">
