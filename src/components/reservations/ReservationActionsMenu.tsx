@@ -60,15 +60,6 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     }
 
     const handleEarlyCheckOut = () => {
-        if (!checkoutReason) {
-            toast({
-                title: 'Error',
-                description: 'Por favor, seleccione un motivo para el check-out.',
-                variant: 'destructive'
-            });
-            return;
-        }
-
         startTransition(async () => {
             const result = await checkOutEarlyFromReservation(reservation.id, checkoutReason, checkoutNotes);
             setIsCheckoutAlertOpen(false);
