@@ -22,10 +22,11 @@ import {
   HelpCircle,
   ArrowRight,
   CalendarPlus,
+  Star,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 import type { Service } from '@/types';
@@ -100,6 +101,7 @@ export default async function DashboardPage() {
           title: 'Crear Reservaciones',
           description: 'Agenda futuras estancias para los huéspedes.',
           icon: CalendarPlus,
+          badge: 'Principal',
         },
         {
           href: '/inventory',
@@ -237,7 +239,20 @@ export default async function DashboardPage() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
               {section.links.map((link) => (
                   <Link key={link.title} href={link.href} className="group relative">
-                      <div className="rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5">
+                      {link.badge === 'Principal' && (
+                        <div className="absolute -top-3 -right-3 z-10">
+                            <div className="relative flex h-8 w-8 items-center justify-center">
+                                <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/80 opacity-75"></div>
+                                <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                    <Star className="h-4 w-4" />
+                                </div>
+                            </div>
+                        </div>
+                      )}
+                      <div className={cn(
+                          "rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card group-hover:border-primary/20 border-primary/5",
+                          link.badge === 'Principal' && "border-primary/30 shadow-primary/10"
+                      )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
                               <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
                                   <link.icon className="size-6" />
