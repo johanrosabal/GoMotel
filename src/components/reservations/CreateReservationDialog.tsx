@@ -16,13 +16,12 @@ import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, ChevronsUpDown, Star, Clock } from 'lucide-react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, Star, Clock } from 'lucide-react';
+import { CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
-import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -43,10 +42,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
-  const router = useRouter();
 
-  const [popoverOpen, setPopoverOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
   const roomsQuery = useMemoFirebase(() => {
@@ -66,16 +63,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     return query(collection(firestore, 'roomTypes'));
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
-
-  const sortedClients = useMemo(() => {
-    if (!clients) return [];
-    return [...clients].sort((a, b) => {
-      if (a.isVip && !b.isVip) return -1;
-      if (!a.isVip && b.isVip) return 1;
-      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-    });
-  }, [clients]);
-
+  
   const form = useForm<z.infer<typeof reservationSchema>>({
     resolver: zodResolver(reservationSchema),
     defaultValues: {
@@ -87,7 +75,29 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       checkInDate: new Date(),
     },
   });
+
+  const guestNameValue = form.watch('guestName');
   
+  const sortedClients = useMemo(() => {
+    if (!clients) return [];
+    return [...clients].sort((a, b) => {
+      if (a.isVip && !b.isVip) return -1;
+      if (!a.isVip && b.isVip) return 1;
+      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    });
+  }, [clients]);
+
+  const filteredClients = useMemo(() => {
+    if (!guestNameValue) {
+        return [];
+    }
+    const lowercasedQuery = guestNameValue.toLowerCase();
+    return sortedClients.filter(client =>
+        `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [guestNameValue, sortedClients]);
+
+
   const selectedRoomId = form.watch('roomId');
   const selectedPlanName = form.watch('pricePlanName');
   const checkInDateValue = form.watch('checkInDate');
@@ -110,7 +120,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       checkInDate: new Date(),
     });
     setCalculatedCheckOut(null);
-    setSearchTerm('');
+    setShowSuggestions(false);
   }, [form]);
 
   useEffect(() => {
@@ -191,83 +201,58 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               control={form.control}
               name="guestName"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="relative">
                   <FormLabel>Huésped</FormLabel>
-                   <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            'w-full justify-between',
-                            !field.value && 'text-muted-foreground'
-                          )}
-                        >
-                          <span className="truncate">
-                            {field.value || 'Seleccionar o escribir cliente...'}
-                          </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command onValueChange={setSearchTerm}>
-                        <CommandInput
-                          placeholder="Buscar cliente..."
-                        />
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Escriba para buscar o registrar un nombre"
+                      autoComplete="off"
+                      onFocus={() => {
+                        if (field.value) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        form.setValue('guestId', undefined);
+                        setShowSuggestions(true);
+                      }}
+                      onBlur={() => {
+                        // Delay hiding to allow click on suggestions
+                        setTimeout(() => {
+                          setShowSuggestions(false);
+                        }, 150);
+                      }}
+                    />
+                  </FormControl>
+                  {showSuggestions && filteredClients.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                      <ScrollArea className="max-h-56">
                         <CommandList>
-                          <CommandEmpty>
-                            {searchTerm.length > 0 ? (
-                               <CommandItem
+                          <CommandGroup>
+                              {filteredClients.map((client) => (
+                                <CommandItem
+                                  key={client.id}
                                   onSelect={() => {
-                                    form.setValue('guestName', searchTerm);
-                                    form.setValue('guestId', undefined);
-                                    setPopoverOpen(false);
+                                    form.setValue('guestName', `${client.firstName} ${client.lastName}`);
+                                    form.setValue('guestId', client.id);
+                                    setShowSuggestions(false);
                                   }}
-                                  className="cursor-pointer"
+                                  className="flex justify-between items-center cursor-pointer"
                                 >
-                                  Usar nombre: "{searchTerm}"
-                                </CommandItem>
-                            ) : 'No se encontró el cliente.'}
-                          </CommandEmpty>
-                          <ScrollArea className="max-h-56">
-                            <CommandGroup>
-                              {isLoadingClients ? (
-                                <p className="p-2 text-center text-sm">Cargando...</p>
-                              ) : (
-                                sortedClients.map((client) => (
-                                  <CommandItem
-                                    value={`${client.firstName} ${client.lastName}`}
-                                    key={client.id}
-                                    onSelect={() => {
-                                      form.setValue('guestName', `${client.firstName} ${client.lastName}`);
-                                      form.setValue('guestId', client.id);
-                                      setPopoverOpen(false);
-                                    }}
-                                    className="flex justify-between items-center"
-                                  >
-                                    <div className="flex items-center">
-                                      <Check
-                                        className={cn(
-                                          'mr-2 h-4 w-4',
-                                          field.value === `${client.firstName} ${client.lastName}`
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                        )}
-                                      />
+                                  <div className="flex items-center gap-2">
+                                      <Check className={cn('h-4 w-4', form.getValues('guestId') === client.id ? 'opacity-100' : 'opacity-0')} />
                                       {client.firstName} {client.lastName}
-                                    </div>
-                                     {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                  </CommandItem>
-                                ))
-                              )}
-                            </CommandGroup>
-                          </ScrollArea>
+                                  </div>
+                                  {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
                         </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                      </ScrollArea>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
