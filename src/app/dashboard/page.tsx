@@ -95,12 +95,6 @@ export default async function DashboardPage() {
       description: 'Gestión de habitaciones, servicios y inventario.',
       links: [
         {
-          href: '/dashboard/rooms',
-          title: 'Panel de Habitaciones',
-          description: 'Vista y gestión de todas las habitaciones.',
-          icon: LayoutGrid,
-        },
-        {
           href: '/inventory',
           title: 'Inventario de Servicios',
           description: 'Administración de productos y servicios.',
@@ -113,6 +107,12 @@ export default async function DashboardPage() {
       scope: 'Seguridad, parámetros del sistema y datos maestros.',
       description: 'Ajustes del sistema y gestión de usuarios.',
       links: [
+        {
+          href: '/dashboard/rooms',
+          title: 'Panel de Habitaciones',
+          description: 'Vista y gestión de todas las habitaciones.',
+          icon: LayoutGrid,
+        },
         {
           href: '/settings/room-types',
           title: 'Tipos de Habitación',
@@ -235,10 +235,10 @@ export default async function DashboardPage() {
                               <div className="mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm bg-primary/10 text-primary">
                                   <link.icon className="size-6" />
                               </div>
-                              <div className="tracking-tight text-lg font-bold">{link.title}</div>
-                              <div className="text-muted-foreground text-xs font-medium leading-relaxed mt-1 line-clamp-2">
+                              <h3 className="tracking-tight text-lg font-bold">{link.title}</h3>
+                              <p className="text-muted-foreground text-xs font-medium leading-relaxed mt-1 line-clamp-2">
                                   {link.description}
-                              </div>
+                              </p>
                           </div>
                           <div className="flex items-center p-6 pt-0 justify-end pb-4 px-6">
                               <div className="p-1 rounded-full bg-muted/50 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
