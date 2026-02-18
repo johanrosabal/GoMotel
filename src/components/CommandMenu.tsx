@@ -9,7 +9,8 @@ import {
   Users,
   Cog,
   Sun,
-  Moon
+  Moon,
+  Sparkles,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -49,6 +50,10 @@ export function CommandMenu({ open, setOpen }: Props) {
           <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/rooms'))}>
             <LayoutGrid className="mr-2 h-4 w-4" />
             <span>Panel de Habitaciones</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push('/cleaning'))}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>Cola de Limpieza</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => router.push('/inventory'))}>
             <Package className="mr-2 h-4 w-4" />

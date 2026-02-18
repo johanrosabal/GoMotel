@@ -23,6 +23,7 @@ import {
   ArrowRight,
   CalendarPlus,
   Zap,
+  Sparkles,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -103,6 +104,12 @@ export default async function DashboardPage() {
           description: 'Agenda futuras estancias para los huéspedes.',
           icon: CalendarPlus,
           badge: 'Principal',
+        },
+        {
+          href: '/cleaning',
+          title: 'Cola de Limpieza',
+          description: 'Gestione las habitaciones que requieren limpieza.',
+          icon: Sparkles,
         },
         {
           href: '/clients',
