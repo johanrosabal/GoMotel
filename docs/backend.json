@@ -14,6 +14,14 @@
           "type": "string",
           "description": "Reference to the Room being reserved."
         },
+        "roomNumber": {
+            "type": "string",
+            "description": "Denormalized room number for display."
+        },
+        "roomType": {
+            "type": "string",
+            "description": "Denormalized room type name for display."
+        },
         "guestName": {
           "type": "string",
           "description": "Name of the primary guest."
@@ -51,6 +59,8 @@
       "required": [
         "id",
         "roomId",
+        "roomNumber",
+        "roomType",
         "guestName",
         "checkInDate",
         "checkOutDate",
@@ -175,7 +185,8 @@
         },
         "status": {
           "type": "string",
-          "description": "The status of the order (e.g., pending, processing, completed)."
+          "description": "The status of the order (e.g., pending, processing, completed).",
+          "enum": ["Pendiente", "En preparación", "Entregado", "Cancelado"]
         },
         "totalPrice": {
           "type": "number",
@@ -235,6 +246,25 @@
         "totalAmount",
         "orderIds"
       ]
+    },
+    "Stay": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Stay",
+        "type": "object",
+        "description": "Represents an active or past stay of a guest in a room.",
+        "properties": {
+          "id": { "type": "string", "description": "Unique identifier for the Stay." },
+          "roomId": { "type": "string", "description": "Reference to the Room." },
+          "roomNumber": { "type": "string", "description": "Denormalized room number." },
+          "guestName": { "type": "string", "description": "Name of the guest." },
+          "checkIn": { "type": "string", "format": "date-time", "description": "Actual check-in time." },
+          "expectedCheckOut": { "type": "string", "format": "date-time", "description": "Expected check-out time." },
+          "checkOut": { "type": "string", "format": "date-time", "description": "Actual check-out time." },
+          "total": { "type": "number", "description": "Final bill amount." },
+          "isPaid": { "type": "boolean", "description": "Payment status." },
+          "reservationId": { "type": "string", "description": "Optional reference to the Reservation." }
+        },
+        "required": ["roomId", "roomNumber", "guestName", "checkIn", "expectedCheckOut"]
     },
     "roles_admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -518,6 +548,20 @@
             {
               "name": "reservationId",
               "description": "The unique identifier of the reservation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stays/{stayId}",
+        "definition": {
+          "entityName": "Stay",
+          "schema": { "$ref": "#/backend/entities/Stay" },
+          "description": "Stores records of room stays, both active and past.",
+           "params": [
+            {
+              "name": "stayId",
+              "description": "The unique identifier of the stay."
             }
           ]
         }

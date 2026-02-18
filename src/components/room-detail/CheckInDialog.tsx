@@ -33,6 +33,7 @@ interface CheckInDialogProps {
 
 const checkInSchema = z.object({
   guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
+  durationHours: z.coerce.number().int().min(1, 'La duración debe ser de al menos 1 hora.'),
 });
 
 export default function CheckInDialog({ children, roomId }: CheckInDialogProps) {
@@ -44,12 +45,14 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     resolver: zodResolver(checkInSchema),
     defaultValues: {
       guestName: '',
+      durationHours: 3,
     },
   });
 
   const onSubmit = (values: z.infer<typeof checkInSchema>) => {
     const formData = new FormData();
     formData.append('guestName', values.guestName);
+    formData.append('durationHours', String(values.durationHours));
 
     startTransition(async () => {
       const result = await checkIn(roomId, formData);
@@ -73,11 +76,11 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Check-In de Huésped</DialogTitle>
+          <DialogTitle>Check-In de Huésped (Walk-in)</DialogTitle>
           <DialogDescription>
-            Ingrese el nombre del huésped para registrarlo en esta habitación.
+            Ingrese los detalles del huésped para registrarlo en esta habitación.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -95,7 +98,20 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                 </FormItem>
               )}
             />
-            <DialogFooter>
+             <FormField
+              control={form.control}
+              name="durationHours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duración de la Estancia (horas)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="1" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="pt-4">
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Registrando...' : 'Confirmar Check-In'}
               </Button>

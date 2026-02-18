@@ -57,7 +57,7 @@ export async function createOrder(stayId: string, cart: CartItem[]) {
     items: orderItems,
     total: totalOrderPrice,
     createdAt: Timestamp.now(),
-    status: 'Pending',
+    status: 'Pendiente',
   };
 
   batch.set(orderRef, newOrder);

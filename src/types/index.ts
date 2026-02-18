@@ -46,9 +46,11 @@ export interface Stay {
   roomNumber: string;
   guestName: string;
   checkIn: Timestamp;
+  expectedCheckOut: Timestamp;
   checkOut?: Timestamp | null;
   total: number;
   isPaid: boolean;
+  reservationId?: string;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';
@@ -56,6 +58,8 @@ export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-s
 export interface Reservation {
   id: string;
   roomId: string;
+  roomNumber: string;
+  roomType: string;
   guestName: string;
   guestId?: string;
   checkInDate: Timestamp;
@@ -77,7 +81,7 @@ export interface Order {
   items: OrderItem[];
   total: number;
   createdAt: Timestamp;
-  status: 'Pending' | 'Delivered';
+  status: 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
 }
 
 export type UserRole = 'Administrador' | 'Recepcion';
