@@ -39,6 +39,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             } else {
                 toast({ title: 'Reservación Cancelada', description: 'La reservación ha sido cancelada.' });
             }
+            setIsCancelAlertOpen(false);
         });
     }
     
@@ -58,10 +59,10 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                 toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
-                setIsCheckoutAlertOpen(false);
-                setCheckoutReason('');
-                setCheckoutNotes('');
             }
+            setIsCheckoutAlertOpen(false);
+            setCheckoutReason('');
+            setCheckoutNotes('');
         });
     };
 
