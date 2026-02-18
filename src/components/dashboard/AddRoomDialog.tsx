@@ -42,8 +42,10 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
 
 interface AddRoomDialogProps {
-  children: ReactNode;
+  children?: ReactNode;
   room?: Room;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const roomSchema = z.object({
@@ -52,10 +54,13 @@ const roomSchema = z.object({
   roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
 });
 
-export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function AddRoomDialog({ children, room, open: controlledOpen, onOpenChange: setControlledOpen }: AddRoomDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
 
   const { firestore } = useFirebase();
 
@@ -83,18 +88,28 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
     },
   });
 
-  // Pre-fill the room number when creating a new room.
+  // Handle form population when dialog opens
   useEffect(() => {
-    if (open && !room && !isLoadingRooms && allRooms) {
-      const lastRoomNumber = allRooms.reduce((max, r) => {
-        const num = parseInt(r.number, 10);
-        return !isNaN(num) && num > max ? num : max;
-      }, 0);
-
-      const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '101';
-      form.setValue('number', nextNumber);
+    if (open) {
+      if (room) {
+        // Editing mode
+        form.reset({
+          id: room.id,
+          number: room.number,
+          roomTypeId: room.roomTypeId,
+        });
+      } else {
+        // Creation mode - pre-fill with next available number
+        const lastRoomNumber = allRooms?.reduce((max, r) => {
+          const num = parseInt(r.number, 10);
+          return !isNaN(num) && num > max ? num : max;
+        }, 0) || 0;
+  
+        const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '101';
+        form.reset({ number: nextNumber, roomTypeId: undefined, id: undefined });
+      }
     }
-  }, [open, room, allRooms, isLoadingRooms, form]);
+  }, [open, room, allRooms, form]);
 
   const selectedRoomTypeId = form.watch('roomTypeId');
 
@@ -140,17 +155,13 @@ export default function AddRoomDialog({ children, room }: AddRoomDialogProps) {
           description: `La habitación "${values.number.padStart(3, '0')}" ha sido guardada.`,
         });
         setOpen(false);
-        form.reset();
       }
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) form.reset(room ? { id: room.id, number: room.number, roomTypeId: room.roomTypeId } : { number: '', roomTypeId: undefined });
-    }}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{room ? 'Editar Habitación' : 'Añadir Nueva Habitación'}</DialogTitle>

@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import RoomActionsMenu from './RoomActionsMenu';
 
 interface RoomCardProps {
   room: Room;
@@ -24,6 +26,7 @@ const statusConfig = {
 }
 
 export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
+  const { userProfile } = useUserProfile();
   const currentStatus = isOverdue ? 'Overdue' : room.status;
   const { icon: Icon, color } = statusConfig[currentStatus];
   
@@ -46,33 +49,40 @@ export default function RoomCard({ room, isOverdue = false }: RoomCardProps) {
   }, [room.status, room.statusUpdatedAt]);
 
   return (
-    <Link href={`/rooms/${room.id}`} className="block h-full">
-      <Card className={cn(
-        "hover:shadow-lg transition-shadow duration-200 border-l-4 flex flex-col h-full",
-         color,
-         isOverdue && "animate-pulse-border"
-        )}>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle className="text-2xl font-bold">
-              {room.number}
-            </CardTitle>
-            <CardDescription className="text-xs font-semibold !mt-1">{room.roomTypeName || room.type}</CardDescription>
+    <div className="relative group/card h-full">
+      {userProfile?.role === 'Administrador' && (
+          <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
+            <RoomActionsMenu room={room} />
           </div>
-          <Icon className={cn("h-6 w-6 text-muted-foreground", isOverdue && "text-destructive")} />
-        </CardHeader>
-        <CardContent className="mt-auto">
-          <div className="flex justify-between items-center gap-2">
-            <StatusBadge status={isOverdue ? 'Occupied' : room.status} isOverdue={isOverdue} />
-            {room.status === 'Cleaning' && timeInStatus && (
-              <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
-                <Clock className="h-3 w-3" />
-                {timeInStatus}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+      )}
+      <Link href={`/rooms/${room.id}`} className="block h-full">
+        <Card className={cn(
+          "hover:shadow-lg transition-shadow duration-200 border-l-4 flex flex-col h-full",
+          color,
+          isOverdue && "animate-pulse-border"
+          )}>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-2xl font-bold">
+                {room.number}
+              </CardTitle>
+              <CardDescription className="text-xs font-semibold !mt-1">{room.roomTypeName || room.type}</CardDescription>
+            </div>
+            <Icon className={cn("h-6 w-6 text-muted-foreground", isOverdue && "text-destructive")} />
+          </CardHeader>
+          <CardContent className="mt-auto">
+            <div className="flex justify-between items-center gap-2">
+              <StatusBadge status={isOverdue ? 'Occupied' : room.status} isOverdue={isOverdue} />
+              {room.status === 'Cleaning' && timeInStatus && (
+                <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
+                  <Clock className="h-3 w-3" />
+                  {timeInStatus}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </div>
   );
 }
