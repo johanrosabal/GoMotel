@@ -38,28 +38,35 @@ export default function RoomGrid({ initialRooms }: RoomGridProps) {
       if (!activeStays) return;
 
       const now = new Date();
-      const newOverdueRooms = new Set<string>();
-      let soundPlayed = false;
-
+      const latestOverdueRooms = new Set<string>();
       for (const stay of activeStays) {
         if (stay.expectedCheckOut.toDate() < now) {
-          newOverdueRooms.add(stay.roomId);
-          // If the room just became overdue, play a sound
-          if (!overdueRooms.has(stay.roomId) && !soundPlayed) {
-            playNotificationSound();
-            soundPlayed = true; // Play sound only once per interval check
-          }
+          latestOverdueRooms.add(stay.roomId);
         }
       }
-      
-      setOverdueRooms(newOverdueRooms);
+
+      setOverdueRooms(prevOverdueRooms => {
+        // Determine if there are any new overdue rooms since the last check.
+        const newlyOverdue = [...latestOverdueRooms].filter(id => !prevOverdueRooms.has(id));
+
+        if (newlyOverdue.length > 0) {
+          playNotificationSound();
+        }
+
+        // Only update state if the set has actually changed to prevent infinite loops.
+        if (latestOverdueRooms.size === prevOverdueRooms.size && [...latestOverdueRooms].every(id => prevOverdueRooms.has(id))) {
+          return prevOverdueRooms;
+        }
+        
+        return latestOverdueRooms;
+      });
     };
 
     const intervalId = setInterval(checkOverdueStays, 60 * 1000); // Check every minute
     checkOverdueStays(); // Also check immediately on load
 
     return () => clearInterval(intervalId);
-  }, [activeStays, overdueRooms]);
+  }, [activeStays]);
   
   const isLoading = isLoadingRooms || isLoadingStays;
 
