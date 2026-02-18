@@ -23,12 +23,11 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, getDocs, updateDoc } from 'firebase/firestore';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RoomTypeFormProps {
   roomType?: RoomType;
@@ -39,7 +38,7 @@ const pricePlanSchema = z.object({
   name: z.string().min(1, 'El nombre del plan es requerido.'),
   duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
   unit: z.enum(['Hours', 'Days', 'Weeks', 'Months']),
-  price: z.coerce.number().positive('El precio debe ser un número positivo.'),
+  price: z.coerce.number().min(0, 'El precio debe ser un número no negativo.'),
 });
 
 const roomTypeSchema = z.object({
@@ -64,13 +63,11 @@ const crcStringToNumber = (crcString: string): number => {
 
 const numberToCrcString = (num: number): string => {
     if (isNaN(num)) return '';
-    // Format to a string like "1.234,56"
+    // Format to a string like 1.234,56 (without currency symbol)
     return new Intl.NumberFormat('es-CR', {
-        style: 'currency',
-        currency: 'CRC',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }).format(num).replace('CRC', '').trim();
+    }).format(num);
 };
 
 
@@ -84,6 +81,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const [newPlanUnit, setNewPlanUnit] = useState<PricePlan['unit']>('Hours');
   const [newPlanPrice, setNewPlanPrice] = useState('');
   const [editingPlanIndex, setEditingPlanIndex] = useState<number | null>(null);
+  const [planInputErrors, setPlanInputErrors] = useState<{ name?: string, duration?: string, price?: string }>({});
 
   const router = useRouter();
   const { firestore } = useFirebase();
@@ -119,28 +117,21 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   useEffect(() => {
     const trimmedInput = newFeature.trim();
     if (trimmedInput) {
-        // Find existing global features that match the input
         const filteredGlobalSuggestions = allGlobalFeatures.filter(f => 
             f.toLowerCase().includes(trimmedInput.toLowerCase()) && 
-            !features.includes(f) // Exclude features already added to this room type
+            !features.includes(f)
         );
         
-        // Check if the user's exact input is already in the list of added features
         const isAlreadyAdded = features.some(f => f.toLowerCase() === trimmedInput.toLowerCase());
         
-        // Check if the user's exact input is already in the filtered suggestions list
         const exactMatchExists = filteredGlobalSuggestions.some(f => f.toLowerCase() === trimmedInput.toLowerCase());
 
-        // If the user's input is something new (not added, not an existing global feature)
         if (!isAlreadyAdded && !exactMatchExists) {
-            // Prepend the new feature to the suggestions list to be rendered as "Create..."
             setSuggestions([trimmedInput, ...filteredGlobalSuggestions]);
         } else {
-            // Otherwise, just show the filtered existing features
             setSuggestions(filteredGlobalSuggestions);
         }
     } else {
-        // Clear suggestions if input is empty
         setSuggestions([]);
     }
   }, [newFeature, allGlobalFeatures, features]);
@@ -161,40 +152,55 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   };
   
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const sanitizedValue = rawValue.replace(/[^\d,.]/g, '').replace(/\./g, '');
-    setNewPlanPrice(sanitizedValue);
+    setNewPlanPrice(e.target.value);
+    if (planInputErrors.price) {
+        setPlanInputErrors(prev => ({...prev, price: undefined}));
+    }
   };
 
   const handleSavePlan = () => {
     const durationNum = parseInt(newPlanDuration, 10);
     const priceNum = crcStringToNumber(newPlanPrice);
 
-    if (newPlanName.trim() && !isNaN(durationNum) && durationNum > 0 && !isNaN(priceNum) && priceNum >= 0) {
-      const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
-      
-      if (pricePlans.some((p, i) => p.name.toLowerCase() === newPlan.name.toLowerCase() && i !== editingPlanIndex)) {
-        toast({ title: "Error", description: "El nombre del plan de precios ya existe.", variant: 'destructive'});
-        return;
-      }
-      
-      if (editingPlanIndex !== null) {
-        const updatedPlans = [...pricePlans];
-        updatedPlans[editingPlanIndex] = newPlan;
-        form.setValue('pricePlans', updatedPlans, { shouldValidate: true });
-      } else {
-        form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
-      }
+    const currentErrors: { name?: string; duration?: string; price?: string } = {};
 
-      setEditingPlanIndex(null);
-      setNewPlanName('');
-      setNewPlanDuration('');
-      setNewPlanPrice('');
-      setNewPlanUnit('Hours');
-
-    } else {
-        toast({ title: "Error", description: "Por favor, complete todos los campos del plan de precios con valores válidos.", variant: 'destructive'});
+    if (!newPlanName.trim()) {
+      currentErrors.name = 'El nombre es requerido.';
+    } else if (
+      pricePlans.some((p, i) => p.name.toLowerCase() === newPlanName.trim().toLowerCase() && i !== editingPlanIndex)
+    ) {
+      currentErrors.name = 'El nombre del plan de precios ya existe.';
     }
+
+    if (isNaN(durationNum) || durationNum <= 0) {
+      currentErrors.duration = 'Debe ser un número positivo.';
+    }
+
+    if (isNaN(priceNum) || priceNum < 0) {
+      currentErrors.price = 'Debe ser un número no negativo.';
+    }
+
+    setPlanInputErrors(currentErrors);
+    
+    if (Object.keys(currentErrors).length > 0) {
+      return;
+    }
+
+    const newPlan = { name: newPlanName.trim(), duration: durationNum, unit: newPlanUnit, price: priceNum };
+    
+    if (editingPlanIndex !== null) {
+      const updatedPlans = [...pricePlans];
+      updatedPlans[editingPlanIndex] = newPlan;
+      form.setValue('pricePlans', updatedPlans, { shouldValidate: true });
+    } else {
+      form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
+    }
+
+    setEditingPlanIndex(null);
+    setNewPlanName('');
+    setNewPlanDuration('');
+    setNewPlanPrice('');
+    setNewPlanUnit('Hours');
   };
 
   const handleEditPlan = (index: number) => {
@@ -204,6 +210,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setNewPlanDuration(String(plan.duration));
     setNewPlanUnit(plan.unit);
     setNewPlanPrice(numberToCrcString(plan.price));
+    setPlanInputErrors({});
   };
 
   const handleCancelEdit = () => {
@@ -212,6 +219,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setNewPlanDuration('');
     setNewPlanPrice('');
     setNewPlanUnit('Hours');
+    setPlanInputErrors({});
   };
 
   const handleRemovePlan = (indexToRemove: number) => {
@@ -222,7 +230,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const onSubmit = (values: z.infer<typeof roomTypeSchema>) => {
     startTransition(async () => {
       try {
-        const dataToSave: Partial<RoomType> = {
+        const dataToSave: Omit<RoomType, 'id' | 'code'> & { code?: string } = {
           name: values.name,
           features: values.features || [],
           pricePlans: values.pricePlans || [],
@@ -231,7 +239,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
         if (roomType?.id) {
           // Update
           const roomTypeRef = doc(firestore, 'roomTypes', roomType.id);
-          await updateDoc(roomTypeRef, dataToSave);
+          await updateDoc(roomTypeRef, dataToSave as any);
         } else {
           // Create
           const roomTypesCollection = collection(firestore, 'roomTypes');
@@ -273,8 +281,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
        <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-6">
-            <ScrollArea className="h-full">
-              <div className="space-y-6">
+              <div className="space-y-8">
                   <FormField
                       control={form.control}
                       name="name"
@@ -369,73 +376,70 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
                   <Separator />
 
-                  <FormItem>
+                  <div className="space-y-4">
                       <FormLabel>Planes de Precios</FormLabel>
-                      <div className="p-4 border rounded-lg space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-end">
-                          <div className="space-y-1 sm:col-span-4">
-                          <Label htmlFor="plan-name" className="text-xs">
-                              Nombre
-                          </Label>
-                          <Input
-                              id="plan-name"
-                              placeholder="p.ej. Tarifa Nocturna"
-                              value={newPlanName}
-                              onChange={(e) => setNewPlanName(e.target.value)}
-                          />
+                      <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
+                        <div className="grid grid-cols-1 sm:grid-cols-10 gap-x-4 gap-y-2 items-start">
+                          <div className="sm:col-span-4 space-y-2">
+                              <Label htmlFor="plan-name" className={cn(planInputErrors.name && "text-destructive")}>Nombre</Label>
+                              <Input
+                                  id="plan-name"
+                                  placeholder="p.ej. Tarifa Nocturna"
+                                  value={newPlanName}
+                                  onChange={(e) => {
+                                    setNewPlanName(e.target.value);
+                                    if(planInputErrors.name) setPlanInputErrors(p => ({...p, name: undefined}));
+                                  }}
+                                  className={cn(planInputErrors.name && "border-destructive focus-visible:ring-destructive")}
+                              />
+                              {planInputErrors.name && <p className="text-sm font-medium text-destructive">{planInputErrors.name}</p>}
                           </div>
-                          <div className="space-y-1 sm:col-span-2">
-                          <Label htmlFor="plan-duration" className="text-xs">
-                              Duración
-                          </Label>
-                          <Input
-                              id="plan-duration"
-                              type="number"
-                              placeholder="8"
-                              value={newPlanDuration}
-                              onChange={(e) => setNewPlanDuration(e.target.value)}
-                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
+                          <div className="sm:col-span-2 space-y-2">
+                            <Label htmlFor="plan-duration" className={cn(planInputErrors.duration && "text-destructive")}>Duración</Label>
+                            <Input
+                                id="plan-duration"
+                                type="number"
+                                placeholder="8"
+                                value={newPlanDuration}
+                                onChange={(e) => {
+                                  setNewPlanDuration(e.target.value);
+                                  if(planInputErrors.duration) setPlanInputErrors(p => ({...p, duration: undefined}));
+                                }}
+                                className={cn("text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", planInputErrors.duration && "border-destructive focus-visible:ring-destructive")}
+                            />
+                            {planInputErrors.duration && <p className="text-sm font-medium text-destructive">{planInputErrors.duration}</p>}
                           </div>
-                          <div className="space-y-1 sm:col-span-2">
-                          <Label htmlFor="plan-unit" className="text-xs">
-                              Unidad
-                          </Label>
-                          <Select
-                              value={newPlanUnit}
-                              onValueChange={(value) =>
-                              setNewPlanUnit(value as any)
-                              }
-                          >
-                              <FormControl>
-                              <SelectTrigger id="plan-unit">
-                                  <SelectValue />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              <SelectItem value="Hours">Horas</SelectItem>
-                              <SelectItem value="Days">Días</SelectItem>
-                              <SelectItem value="Weeks">Semanas</SelectItem>
-                              <SelectItem value="Months">Meses</SelectItem>
-                              </SelectContent>
-                          </Select>
+                          <div className="sm:col-span-2 space-y-2">
+                            <Label htmlFor="plan-unit">Unidad</Label>
+                            <Select value={newPlanUnit} onValueChange={(value) => setNewPlanUnit(value as any)}>
+                                <FormControl>
+                                  <SelectTrigger id="plan-unit">
+                                      <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Hours">Horas</SelectItem>
+                                  <SelectItem value="Days">Días</SelectItem>
+                                  <SelectItem value="Weeks">Semanas</SelectItem>
+                                  <SelectItem value="Months">Meses</SelectItem>
+                                </SelectContent>
+                            </Select>
                           </div>
-                          <div className="space-y-1 sm:col-span-2">
-                          <Label htmlFor="plan-price" className="text-xs">
-                              Precio (₡)
-                          </Label>
-                          <Input
-                              id="plan-price"
-                              type="text"
-                              inputMode='decimal'
-                              placeholder="10.000,00"
-                              value={newPlanPrice}
-                              onChange={handlePriceChange}
-                              className="text-right"
-                          />
+                          <div className="sm:col-span-2 space-y-2">
+                            <Label htmlFor="plan-price" className={cn(planInputErrors.price && "text-destructive")}>Precio (₡)</Label>
+                            <Input
+                                id="plan-price"
+                                type="text"
+                                inputMode='text'
+                                placeholder="10.000,00"
+                                value={newPlanPrice}
+                                onChange={handlePriceChange}
+                                className={cn("text-right", planInputErrors.price && "border-destructive focus-visible:ring-destructive")}
+                            />
+                             {planInputErrors.price && <p className="text-sm font-medium text-destructive">{planInputErrors.price}</p>}
                           </div>
-                      </div>
-                      <div className="flex items-center gap-2">
+                        </div>
+                        <div className="flex items-center gap-2">
                           <Button
                               type="button"
                               onClick={handleSavePlan}
@@ -453,72 +457,71 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                   Cancelar
                               </Button>
                           )}
-                      </div>
+                        </div>
                       </div>
 
                       <div className="space-y-2 pt-2">
-                      {pricePlans.length > 0 ? (
-                      <div className="rounded-md border">
-                          <Table>
-                          <TableHeader>
-                              <TableRow>
-                              <TableHead>Nombre</TableHead>
-                              <TableHead>Duración</TableHead>
-                              <TableHead className="text-right">Precio</TableHead>
-                              <TableHead className="text-right w-[100px]">Acciones</TableHead>
-                              </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {pricePlans.map((plan, index) => (
-                              <TableRow key={index}>
-                                  <TableCell className="font-medium">{plan.name}</TableCell>
-                                  <TableCell>{`${plan.duration} ${
-                                  plan.duration === 1
-                                      ? unitMap[plan.unit].replace(/s$/, '')
-                                      : unitMap[plan.unit]
-                                  }`}</TableCell>
-                                  <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
-                                  <TableCell className="text-right">
-                                  <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                      onClick={() => handleEditPlan(index)}
-                                      aria-label={`Editar ${plan.name}`}
-                                  >
-                                      <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() => handleRemovePlan(index)}
-                                      aria-label={`Eliminar ${plan.name}`}
-                                  >
-                                      <X className="h-4 w-4" />
-                                  </Button>
-                                  </TableCell>
-                              </TableRow>
-                              ))}
-                          </TableBody>
-                          </Table>
-                      </div>
-                      ) : (
-                      <p className="text-xs text-muted-foreground px-1 pt-2">
+                        {pricePlans.length > 0 ? (
+                        <div className="rounded-md border">
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead>Duración</TableHead>
+                                <TableHead className="text-right">Precio</TableHead>
+                                <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {pricePlans.map((plan, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="font-medium">{plan.name}</TableCell>
+                                    <TableCell>{`${plan.duration} ${
+                                    plan.duration === 1
+                                        ? unitMap[plan.unit].replace(/s$/, '')
+                                        : unitMap[plan.unit]
+                                    }`}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
+                                    <TableCell className="text-right">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => handleEditPlan(index)}
+                                        aria-label={`Editar ${plan.name}`}
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleRemovePlan(index)}
+                                        aria-label={`Eliminar ${plan.name}`}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                            </Table>
+                        </div>
+                        ) : (
+                        <p className="text-xs text-muted-foreground px-1 pt-2">
                           Aún no se han añadido planes de precios.
-                      </p>
-                      )}
-                      {errors.pricePlans && (
-                      <p className="text-sm font-medium text-destructive px-1 pt-1">
+                        </p>
+                        )}
+                        {errors.pricePlans && (
+                        <p className="text-sm font-medium text-destructive px-1 pt-1">
                           {errors.pricePlans.message}
-                      </p>
-                      )}
+                        </p>
+                        )}
                       </div>
-                  </FormItem>
+                  </div>
               </div>
-            </ScrollArea>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
               <Button asChild variant="outline" type="button">
