@@ -37,6 +37,7 @@ import { Separator } from '../ui/separator';
 import { DollarSign, Tag, Users } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import Link from 'next/link';
 
 interface AddRoomDialogProps {
   children: ReactNode;
@@ -152,16 +153,25 @@ export default function AddRoomDialog({ children, room, roomTypes }: AddRoomDial
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={roomTypes.length === 0}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un tipo" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {roomTypes.map((type) => (
+                      {roomTypes && roomTypes.length > 0 ? (
+                        roomTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                      ))}
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No hay tipos de habitación.
+                          <Button variant="link" asChild className="pl-1">
+                            <Link href="/settings/room-types/new">Crear uno</Link>
+                          </Button>
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
