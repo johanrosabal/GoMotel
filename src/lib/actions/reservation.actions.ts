@@ -227,18 +227,21 @@ export async function checkOutEarlyFromReservation(reservationId: string, reason
     }
 
     try {
-        // Find the active stay associated with this reservation
-        const staysRef = collection(db, 'stays');
-        const q = query(staysRef, where('reservationId', '==', reservationId), where('checkOut', '==', null));
-        const staySnapshot = await getDocs(q);
+        const reservationRef = doc(db, 'reservations', reservationId);
+        const reservationSnap = await getDoc(reservationRef);
+        if (!reservationSnap.exists()) {
+            return { error: 'Reservación no encontrada.' };
+        }
+        const reservation = reservationSnap.data() as Reservation;
 
-        if (staySnapshot.empty) {
-            return { error: 'No se encontró una estancia activa para esta reservación.' };
+        const roomRef = doc(db, 'rooms', reservation.roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists() || !roomSnap.data().currentStayId) {
+            return { error: 'La habitación asociada no tiene una estancia activa.' };
         }
 
-        const stayDoc = staySnapshot.docs[0];
-        const stayId = stayDoc.id;
-        const roomId = stayDoc.data().roomId;
+        const stayId = roomSnap.data().currentStayId;
+        const roomId = reservation.roomId;
 
         // Use the existing checkOut logic
         const result = await checkOut(stayId, roomId, { reason, notes });
@@ -247,6 +250,8 @@ export async function checkOutEarlyFromReservation(reservationId: string, reason
             return { error: result.error };
         }
 
+        await updateDoc(reservationRef, { status: 'Completed' });
+        
         revalidatePath('/reservations');
         return { success: true };
 

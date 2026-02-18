@@ -56,6 +56,7 @@ export default function ReservationsClientPage() {
                             <SelectItem value="all">Todos los Estados</SelectItem>
                             <SelectItem value="Confirmed">Confirmada</SelectItem>
                             <SelectItem value="Checked-in">Checked-in</SelectItem>
+                            <SelectItem value="Completed">Completada</SelectItem>
                             <SelectItem value="Cancelled">Cancelada</SelectItem>
                             <SelectItem value="No-show">No-show</SelectItem>
                         </SelectContent>

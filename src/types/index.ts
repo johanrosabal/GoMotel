@@ -59,7 +59,7 @@ export interface Stay {
   checkOutNotes?: string;
 }
 
-export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show';
+export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
 
 export interface Reservation {
   id: string;

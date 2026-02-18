@@ -24,6 +24,8 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     const [checkoutNotes, setCheckoutNotes] = useState('');
     const { userProfile } = useUserProfile();
 
+    const isOverdue = reservation.status === 'Checked-in' && new Date() > reservation.checkOutDate.toDate();
+
     const handleCheckIn = () => {
         startTransition(async () => {
             const result = await checkInFromReservation(reservation.id);
@@ -61,15 +63,20 @@ export default function ReservationActionsMenu({ reservation, className }: { res
 
     const handleEarlyCheckOut = () => {
         setIsCheckoutAlertOpen(false);
-        setCheckoutReason('');
-        setCheckoutNotes('');
         startTransition(async () => {
-            const result = await checkOutEarlyFromReservation(reservation.id, checkoutReason, checkoutNotes);
+            const reasonForCheckout = isOverdue ? 'Estancia finalizada' : checkoutReason;
+            if (!reasonForCheckout) {
+                toast({ title: 'Error de Validación', description: 'Debe seleccionar un motivo para el retiro.', variant: 'destructive' });
+                return;
+            }
+            const result = await checkOutEarlyFromReservation(reservation.id, reasonForCheckout, checkoutNotes);
             if (result?.error) {
                 toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
             }
+            setCheckoutReason('');
+            setCheckoutNotes('');
         });
     };
 
@@ -116,10 +123,10 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     {reservation.status === 'Checked-in' && (
                         <DropdownMenuItem onSelect={() => setIsCheckoutAlertOpen(true)}>
                             <LogOut className="mr-2 h-4 w-4" />
-                            <span>Check-out Anticipado</span>
+                            <span>{isOverdue ? 'Finalizar Estancia' : 'Check-out Anticipado'}</span>
                         </DropdownMenuItem>
                     )}
-                    {userProfile?.role === 'Administrador' && (
+                    {userProfile?.role === 'Administrador' && reservation.status !== 'Checked-in' && (
                         <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive focus:text-destructive">
@@ -168,42 +175,47 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             <AlertDialog open={isCheckoutAlertOpen} onOpenChange={setIsCheckoutAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Confirmar Check-out Anticipado?</AlertDialogTitle>
+                        <AlertDialogTitle>{isOverdue ? 'Confirmar Finalización de Estancia' : '¿Confirmar Check-out Anticipado?'}</AlertDialogTitle>
                         <AlertDialogDescription>
-                           Se aplicará la tarifa del plan seleccionado y la habitación pasará a estado de limpieza. Por favor, especifique el motivo del retiro.
+                           {isOverdue 
+                            ? 'La estancia ha vencido. Se aplicará la tarifa del plan y la habitación pasará a limpieza.'
+                            : 'Se aplicará la tarifa del plan seleccionado y la habitación pasará a estado de limpieza. Por favor, especifique el motivo del retiro.'
+                           }
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="checkout-reason">Motivo del Retiro</Label>
-                            <Select value={checkoutReason} onValueChange={setCheckoutReason}>
-                                <SelectTrigger id="checkout-reason">
-                                    <SelectValue placeholder="Seleccione un motivo..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Salida voluntaria">Salida voluntaria del cliente</SelectItem>
-                                    <SelectItem value="Incumplimiento de normas">Incumplimiento de normas</SelectItem>
-                                    <SelectItem value="Daños a la propiedad">Daños a la propiedad</SelectItem>
-                                    <SelectItem value="Emergencia">Emergencia del cliente</SelectItem>
-                                    <SelectItem value="Otro">Otro (especificar en notas)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    {!isOverdue && (
+                         <div className="space-y-4 py-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="checkout-reason">Motivo del Retiro</Label>
+                                <Select value={checkoutReason} onValueChange={setCheckoutReason}>
+                                    <SelectTrigger id="checkout-reason">
+                                        <SelectValue placeholder="Seleccione un motivo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Salida voluntaria">Salida voluntaria del cliente</SelectItem>
+                                        <SelectItem value="Incumplimiento de normas">Incumplimiento de normas</SelectItem>
+                                        <SelectItem value="Daños a la propiedad">Daños a la propiedad</SelectItem>
+                                        <SelectItem value="Emergencia">Emergencia del cliente</SelectItem>
+                                        <SelectItem value="Otro">Otro (especificar en notas)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="checkout-notes">Notas Adicionales</Label>
+                                <Textarea 
+                                    id="checkout-notes"
+                                    placeholder="Detalles sobre el motivo del retiro..."
+                                    value={checkoutNotes}
+                                    onChange={(e) => setCheckoutNotes(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="checkout-notes">Notas Adicionales</Label>
-                            <Textarea 
-                                id="checkout-notes"
-                                placeholder="Detalles sobre el motivo del retiro..."
-                                value={checkoutNotes}
-                                onChange={(e) => setCheckoutNotes(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => { setCheckoutReason(''); setCheckoutNotes(''); }}>Cerrar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleEarlyCheckOut} disabled={isPending || !checkoutReason}>
+                        <AlertDialogAction onClick={handleEarlyCheckOut} disabled={isPending || (!isOverdue && !checkoutReason)}>
                             {isPending ? "Procesando..." : "Confirmar Check-out"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
