@@ -67,6 +67,9 @@ export interface Stay {
   checkOutNotes?: string;
   renewalCount?: number;
   extensionHistory?: StayExtension[];
+  paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
+  paymentStatus?: 'Pagado' | 'Pendiente';
+  paymentAmount?: number;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
@@ -84,6 +87,9 @@ export interface Reservation {
   createdAt: Timestamp;
   pricePlanName?: string;
   pricePlanAmount?: number;
+  paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
+  paymentStatus?: 'Pagado' | 'Pendiente';
+  paymentAmount?: number;
 }
 
 export interface OrderItem {

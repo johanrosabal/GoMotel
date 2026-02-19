@@ -27,6 +27,7 @@ const reservationActionSchema = z.object({
   guestId: z.string().optional(),
   checkInNow: z.boolean(),
   checkInDate: z.coerce.date().optional(),
+  paymentOption: z.enum(['Cuenta Abierta', 'Efectivo', 'Sinpe Movil', 'Tarjeta']),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -41,7 +42,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, paymentOption } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -94,6 +95,10 @@ export async function createReservation(values: z.infer<typeof reservationAction
   try {
     const batch = writeBatch(db);
 
+    const paymentStatus = paymentOption === 'Cuenta Abierta' ? 'Pendiente' : 'Pagado';
+    const paymentMethod = paymentOption === 'Cuenta Abierta' ? 'Por Definir' : paymentOption;
+    const paymentAmount = paymentStatus === 'Pagado' ? pricePlanAmount : 0;
+
     const reservationRef = doc(collection(db, 'reservations'));
     const reservationPayload: Omit<Reservation, 'id'> = {
       guestName,
@@ -107,6 +112,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
       status: checkInNow ? 'Checked-in' : 'Confirmed',
       pricePlanName,
       pricePlanAmount,
+      paymentStatus,
+      paymentMethod,
+      paymentAmount,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -120,12 +128,15 @@ export async function createReservation(values: z.infer<typeof reservationAction
           expectedCheckOut: Timestamp.fromDate(checkOutDate),
           checkOut: null,
           total: 0,
-          isPaid: false,
+          isPaid: paymentStatus === 'Pagado',
           reservationId: reservationRef.id,
           guestId: guestId,
           pricePlanName: pricePlanName,
           pricePlanAmount: pricePlanAmount,
           renewalCount: 0,
+          paymentStatus,
+          paymentMethod,
+          paymentAmount,
         };
         batch.set(stayRef, newStay);
         
@@ -208,12 +219,15 @@ export async function checkInFromReservation(reservationId: string) {
       expectedCheckOut: reservation.checkOutDate,
       checkOut: null,
       total: 0,
-      isPaid: false,
+      isPaid: reservation.paymentStatus === 'Pagado',
       reservationId: reservationId,
       guestId: reservation.guestId,
       pricePlanName: reservation.pricePlanName,
       pricePlanAmount: reservation.pricePlanAmount,
       renewalCount: 0,
+      paymentStatus: reservation.paymentStatus,
+      paymentMethod: reservation.paymentMethod,
+      paymentAmount: reservation.paymentAmount,
     };
     batch.set(stayRef, newStay);
     

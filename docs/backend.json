@@ -124,6 +124,28 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp of when the reservation was created."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method chosen for the reservation.",
+          "enum": [
+            "Efectivo",
+            "Sinpe Movil",
+            "Tarjeta",
+            "Por Definir"
+          ]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Payment status of the reservation.",
+          "enum": [
+            "Pagado",
+            "Pendiente"
+          ]
+        },
+        "paymentAmount": {
+          "type": "number",
+          "description": "The amount paid for the reservation, if any."
         }
       },
       "required": [
@@ -396,6 +418,28 @@
           "items": {
             "$ref": "#/backend/entities/StayExtension"
           }
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method used for the stay.",
+          "enum": [
+            "Efectivo",
+            "Sinpe Movil",
+            "Tarjeta",
+            "Por Definir"
+          ]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Payment status of the stay.",
+          "enum": [
+            "Pagado",
+            "Pendiente"
+          ]
+        },
+        "paymentAmount": {
+          "type": "number",
+          "description": "The amount paid for the stay, if any."
         }
       },
       "required": [

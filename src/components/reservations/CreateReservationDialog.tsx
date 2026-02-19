@@ -14,13 +14,15 @@ import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { Room, Client, RoomType } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
-import { addMinutes, addHours, isBefore, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { addMinutes, addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, Star, Clock } from 'lucide-react';
+import { Check, Star, Clock, ClipboardList, HandCoins, Smartphone, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -33,6 +35,7 @@ const reservationSchema = z.object({
   checkInDate: z.date(),
   guestId: z.string().optional(),
   checkInNow: z.boolean().default(false),
+  paymentOption: z.enum(['Cuenta Abierta', 'Efectivo', 'Sinpe Movil', 'Tarjeta']),
 });
 
 
@@ -72,6 +75,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       pricePlanName: undefined,
       checkInNow: false,
       checkInDate: new Date(),
+      paymentOption: 'Cuenta Abierta',
     },
   });
 
@@ -117,6 +121,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       pricePlanName: undefined,
       checkInNow: false,
       checkInDate: new Date(),
+      paymentOption: 'Cuenta Abierta',
     });
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
@@ -190,7 +195,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Crear Nueva Reservación</DialogTitle>
           <DialogDescription>Complete los detalles para agendar una nueva reservación.</DialogDescription>
@@ -346,6 +351,61 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                   )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="paymentOption"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Opciones de Pago</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="Cuenta Abierta" id="cuenta-abierta" className="sr-only" />
+                        </FormControl>
+                        <Label htmlFor="cuenta-abierta" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                          <ClipboardList className="mb-3 h-6 w-6" />
+                          Cuenta Abierta
+                        </Label>
+                      </FormItem>
+                       <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="Efectivo" id="efectivo" className="sr-only" />
+                        </FormControl>
+                        <Label htmlFor="efectivo" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                          <HandCoins className="mb-3 h-6 w-6" />
+                          Efectivo
+                        </Label>
+                      </FormItem>
+                       <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="Sinpe Movil" id="sinpe" className="sr-only" />
+                        </FormControl>
+                        <Label htmlFor="sinpe" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                          <Smartphone className="mb-3 h-6 w-6" />
+                          Sinpe Móvil
+                        </Label>
+                      </FormItem>
+                       <FormItem>
+                        <FormControl>
+                          <RadioGroupItem value="Tarjeta" id="tarjeta" className="sr-only" />
+                        </FormControl>
+                        <Label htmlFor="tarjeta" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                          <CreditCard className="mb-3 h-6 w-6" />
+                          Tarjeta
+                        </Label>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
