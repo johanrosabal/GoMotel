@@ -149,9 +149,9 @@ export default async function DashboardPage() {
           icon: Users,
         },
         {
-            href: '#', // Placeholder for reports
-            title: 'Reportes',
-            description: 'Visualiza reportes de ventas y ocupación.',
+            href: '/reports/stays',
+            title: 'Registro de Estancias',
+            description: 'Consulta el historial de estancias activas y pasadas.',
             icon: FileText,
         }
       ],
