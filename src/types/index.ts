@@ -41,6 +41,14 @@ export interface Service {
   category: 'Food' | 'Beverage' | 'Amenity';
 }
 
+export interface StayExtension {
+  extendedAt: Timestamp;
+  oldExpectedCheckOut: Timestamp;
+  newExpectedCheckOut: Timestamp;
+  planName: string;
+  planPrice: number;
+}
+
 export interface Stay {
   id: string;
   roomId: string;
@@ -58,6 +66,7 @@ export interface Stay {
   checkOutReason?: string;
   checkOutNotes?: string;
   renewalCount?: number;
+  extensionHistory?: StayExtension[];
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';

@@ -389,6 +389,13 @@
         "renewalCount": {
           "type": "number",
           "description": "The number of times the stay has been extended."
+        },
+        "extensionHistory": {
+          "type": "array",
+          "description": "A history of all extensions applied to this stay.",
+          "items": {
+            "$ref": "#/backend/entities/StayExtension"
+          }
         }
       },
       "required": [
@@ -397,6 +404,43 @@
         "guestName",
         "checkIn",
         "expectedCheckOut"
+      ]
+    },
+    "StayExtension": {
+      "title": "Stay Extension",
+      "type": "object",
+      "description": "Records an instance of a stay being extended.",
+      "properties": {
+        "extendedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the extension was processed."
+        },
+        "oldExpectedCheckOut": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The checkout time before this extension."
+        },
+        "newExpectedCheckOut": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The new checkout time after this extension."
+        },
+        "planName": {
+          "type": "string",
+          "description": "The name of the price plan used for this extension."
+        },
+        "planPrice": {
+          "type": "number",
+          "description": "The price of the plan used for this extension."
+        }
+      },
+      "required": [
+        "extendedAt",
+        "oldExpectedCheckOut",
+        "newExpectedCheckOut",
+        "planName",
+        "planPrice"
       ]
     },
     "roles_admin": {

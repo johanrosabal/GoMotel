@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -24,6 +24,7 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
 import { Progress } from '@/components/ui/progress'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
@@ -307,9 +308,38 @@ export default function RoomDetailsPage() {
                                     <Separator />
                                     <div className="grid gap-4">
                                         <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
-                                        {stay.renewalCount && stay.renewalCount > 0 && (
-                                            <InfoRow label="Renovaciones" value={`${stay.renewalCount} ${stay.renewalCount > 1 ? 'veces' : 'vez'}`} icon={Repeat} />
+                                        
+                                        {stay?.extensionHistory && stay.extensionHistory.length > 0 && (
+                                            <Collapsible>
+                                                <div className="flex items-start justify-between">
+                                                    <InfoRow label="Renovaciones" value={`${stay.extensionHistory.length} ${stay.extensionHistory.length > 1 ? 'veces' : 'vez'}`} icon={Repeat} />
+                                                    <CollapsibleTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="mt-3 -mr-2">
+                                                            <ChevronsUpDown className="h-4 w-4" />
+                                                            <span className="sr-only">Mostrar/Ocultar Historial</span>
+                                                        </Button>
+                                                    </CollapsibleTrigger>
+                                                </div>
+                                                <CollapsibleContent>
+                                                    <ul className="mt-2 space-y-3 pl-14 pb-2">
+                                                        {stay.extensionHistory.slice().reverse().map((ext, index) => (
+                                                            <li key={index} className="text-xs relative pl-4">
+                                                                <span className="absolute left-0 top-1 h-1.5 w-1.5 rounded-full bg-primary/40"></span>
+                                                                <div className="font-semibold text-sm">
+                                                                    {ext.planName} <span className="text-muted-foreground">({formatCurrency(ext.planPrice)})</span>
+                                                                </div>
+                                                                <div className="text-muted-foreground">
+                                                                    <span>Extendido el {format(ext.extendedAt.toDate(), 'dd MMM, h:mm a', { locale: es })}</span>
+                                                                    <br />
+                                                                    <span>Salida movida de {format(ext.oldExpectedCheckOut.toDate(), 'h:mm a', { locale: es })} a <span className="font-semibold text-foreground">{format(ext.newExpectedCheckOut.toDate(), 'h:mm a', { locale: es })}</span></span>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </CollapsibleContent>
+                                            </Collapsible>
                                         )}
+
                                         <div className="space-y-2">
                                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Línea de Tiempo de Estancia</p>
                                             <Progress value={progress} className="h-3" />

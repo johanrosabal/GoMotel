@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order, RoomType } from '@/types';
+import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension } from '@/types';
 import { z } from 'zod';
 import { formatDistance, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -119,6 +119,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     pricePlanName: pricePlanName,
     pricePlanAmount: pricePlanAmount,
     renewalCount: 0,
+    extensionHistory: [],
   };
   batch.set(stayRef, newStay);
 
@@ -356,6 +357,18 @@ export async function extendStay(stayId: string, newPlanName: string) {
   }
 
   const newRenewalCount = (stayData.renewalCount || 0) + 1;
+  const oldExtensionHistory = stayData.extensionHistory || [];
+
+  const newExtension: StayExtension = {
+      extendedAt: Timestamp.now(),
+      oldExpectedCheckOut: stayData.expectedCheckOut,
+      newExpectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
+      planName: newPlan.name,
+      planPrice: newPlan.price,
+  };
+
+  const newExtensionHistory = [...oldExtensionHistory, newExtension];
+
 
   try {
     const batch = writeBatch(db);
@@ -365,6 +378,7 @@ export async function extendStay(stayId: string, newPlanName: string) {
       pricePlanAmount: newPricePlanAmount,
       pricePlanName: newPricePlanName,
       renewalCount: newRenewalCount,
+      extensionHistory: newExtensionHistory,
     });
     
     // Also update the corresponding reservation if it exists
