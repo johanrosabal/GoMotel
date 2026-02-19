@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy as fbOrderBy } from 'firebase/firestore';
-import type { Room, Client, RoomType } from '@/types';
+import type { Room, Client, RoomType, PricePlan } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
-import { addMinutes, addHours, addDays, addWeeks, addMonths, format } from 'date-fns';
+import { addMinutes, addHours, addDays, addWeeks, addMonths, format, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, Star, Clock, ClipboardList, HandCoins, Smartphone, CreditCard } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, Star, Clock, ClipboardList, HandCoins, Smartphone, CreditCard, CheckCircle } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
 import { Input } from '@/components/ui/input';
@@ -105,6 +105,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const selectedPlanName = form.watch('pricePlanName');
   const checkInDateValue = form.watch('checkInDate');
   const checkInNow = form.watch('checkInNow');
+  const paymentOption = form.watch('paymentOption');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
   const availablePlans = useMemo(() => {
@@ -112,6 +113,11 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       const roomType = roomTypes.find(rt => rt.id === selectedRoom.roomTypeId);
       return roomType?.pricePlans?.sort((a,b) => a.price - b.price) || [];
   }, [selectedRoom, roomTypes]);
+  
+  const selectedPlan = useMemo(() => {
+    if (!selectedPlanName || !availablePlans.length) return null;
+    return availablePlans.find(p => p.name === selectedPlanName);
+  }, [selectedPlanName, availablePlans]);
 
   const resetForm = useCallback(() => {
     form.reset({
@@ -407,6 +413,19 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               )}
             />
             
+            {paymentOption !== 'Cuenta Abierta' && selectedPlan && (
+                <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">
+                    <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Confirmación de Pago por Adelantado</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-200 dark:border-green-800/50">
+                         <span className="font-medium">Monto a Cobrar:</span>
+                         <span className="font-bold text-base">{formatCurrency(selectedPlan.price)}</span>
+                    </div>
+                </div>
+            )}
+
             {calculatedCheckOut && form.getValues('pricePlanName') && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground font-medium">
