@@ -358,14 +358,28 @@ export async function extendStay(stayId: string, newPlanName: string) {
   const newRenewalCount = (stayData.renewalCount || 0) + 1;
 
   try {
-    await updateDoc(stayRef, {
+    const batch = writeBatch(db);
+
+    batch.update(stayRef, {
       expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
       pricePlanAmount: newPricePlanAmount,
       pricePlanName: newPricePlanName,
       renewalCount: newRenewalCount,
     });
+    
+    // Also update the corresponding reservation if it exists
+    if (stayData.reservationId) {
+        const reservationRef = doc(db, 'reservations', stayData.reservationId);
+        batch.update(reservationRef, {
+            checkOutDate: Timestamp.fromDate(newExpectedCheckOut)
+        });
+    }
+
+    await batch.commit();
+
     revalidatePath(`/rooms/${stayData.roomId}`);
     revalidatePath('/dashboard/rooms');
+    revalidatePath('/reservations');
     return { success: true };
   } catch (error) {
     console.error('Error extending stay:', error);
