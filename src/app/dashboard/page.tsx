@@ -103,13 +103,14 @@ export default async function DashboardPage() {
           title: 'Crear Reservaciones',
           description: 'Agenda futuras estancias para los huéspedes.',
           icon: CalendarPlus,
-          badge: 'Principal',
+          badge: 'PASO 1',
         },
         {
           href: '/cleaning',
           title: 'Cola de Limpieza',
           description: 'Gestione las habitaciones que requieren limpieza.',
           icon: Sparkles,
+          badge: 'PASO 2',
         },
         {
           href: '/clients',
@@ -253,7 +254,7 @@ export default async function DashboardPage() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
               {section.links.map((link) => (
                   <Link key={link.title} href={link.href} className="group relative">
-                      {link.badge === 'Principal' && (
+                      {link.badge === 'PASO 1' && (
                           <div className="absolute -top-2 -right-2 z-20">
                               <div className="rounded-full border transition-colors hover:bg-primary/80 bg-accent text-accent-foreground border-accent shadow-lg animate-bounce text-[8px] font-black py-0 px-1.5 h-5 flex items-center gap-1">
                                   <Zap className="size-2.5 fill-current" />
@@ -263,19 +264,23 @@ export default async function DashboardPage() {
                       )}
                       <div className={cn(
                           "rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group-hover:border-primary/20",
-                          link.badge === 'Principal' 
+                          link.badge === 'PASO 1' 
                           ? "border-accent border-2 ring-4 ring-accent/10 bg-accent/[0.03]"
+                          : link.badge === 'PASO 2'
+                          ? "border-primary border-2 ring-4 ring-primary/10 bg-primary/[0.03]"
                           : "bg-card border-primary/5"
                       )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
-                              {link.badge === 'Principal' && (
+                              {link.badge?.startsWith('PASO') && (
                                   <div className="absolute top-4 right-4">
-                                      <Badge variant="default" className="font-black text-[10px] px-2 h-5 bg-accent text-accent-foreground">PASO 1</Badge>
+                                      <Badge variant="default" className={cn("font-black text-[10px] px-2 h-5",
+                                        link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
+                                      )}>{link.badge}</Badge>
                                   </div>
                               )}
                               <div className={cn(
                                   "mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm",
-                                  link.badge === 'Principal' ? "text-accent bg-accent/10" : "bg-primary/10 text-primary"
+                                  link.badge === 'PASO 1' ? "text-accent bg-accent/10" : "bg-primary/10 text-primary"
                               )}>
                                   <link.icon className="size-6" />
                               </div>
