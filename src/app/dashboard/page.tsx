@@ -163,7 +163,7 @@ export default async function DashboardPage() {
       description: 'Manuales de operación y soporte técnico.',
       links: [
         {
-          href: '#',
+          href: '/manual/operations',
           title: 'Manual Operativo',
           description: 'Guía paso a paso del flujo de trabajo.',
           icon: BookOpen,
