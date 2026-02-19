@@ -1,11 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Reglas simplificadas para desarrollo:
-    // Permite el acceso de lectura y escritura a cualquier usuario autenticado.
+    // Abierto para desarrollo: Permite el acceso de lectura y escritura a cualquiera.
     // Esto elimina las barreras de permisos durante la creación de prototipos.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
