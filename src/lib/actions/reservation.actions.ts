@@ -276,8 +276,6 @@ export async function checkOutEarlyFromReservation(reservationId: string, reason
         if (result.error) {
             return { error: result.error };
         }
-
-        await updateDoc(reservationRef, { status: 'Completed' });
         
         revalidatePath('/reservations');
         return { success: true };

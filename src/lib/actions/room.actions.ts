@@ -178,6 +178,12 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
   const finalTotal = roomTotal + servicesTotal;
 
   const batch = writeBatch(db);
+  
+  // If the stay is linked to a reservation, update the reservation's status to 'Completed'.
+  if (stay.reservationId) {
+    const reservationRef = doc(db, 'reservations', stay.reservationId);
+    batch.update(reservationRef, { status: 'Completed' });
+  }
 
   // Update stay
   const stayRef = doc(db, 'stays', stayId);
@@ -205,6 +211,7 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
     await batch.commit();
     revalidatePath('/');
     revalidatePath(`/rooms/${roomId}`);
+    revalidatePath('/reservations');
     return { success: true };
   } catch (error) {
     console.error('Check-out failed:', error);
