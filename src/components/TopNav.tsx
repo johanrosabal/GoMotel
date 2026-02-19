@@ -7,7 +7,6 @@ import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import SearchCommand from './SearchCommand';
-import AppLogo from './AppLogo';
 import { usePathname } from 'next/navigation';
 import Notifications from './Notifications';
 
@@ -33,8 +32,7 @@ export default function TopNav() {
             </div>
 
             <div className="hidden sm:flex flex-none items-center justify-center mx-4">
-              <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
-                  <AppLogo className="h-6 w-6 text-primary" />
+              <Link href={user ? '/dashboard' : '/'} className="flex items-center">
                   <span className="font-bold text-lg tracking-tight">Go Motel</span>
               </Link>
             </div>
