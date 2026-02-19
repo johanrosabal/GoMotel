@@ -2,29 +2,22 @@
 
 import { useTransition, useState } from 'react';
 import type { Reservation } from '@/types';
-import { MoreHorizontal, LogIn, XCircle, LogOut, UserX, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { MoreHorizontal, LogIn, XCircle, UserX, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { checkInFromReservation, cancelReservation, checkOutEarlyFromReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
+import { checkInFromReservation, cancelReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 export default function ReservationActionsMenu({ reservation, className }: { reservation: Reservation, className?: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
-    const [isCheckoutAlertOpen, setIsCheckoutAlertOpen] = useState(false);
     const [isNoShowAlertOpen, setIsNoShowAlertOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-    const [checkoutReason, setCheckoutReason] = useState('');
-    const [checkoutNotes, setCheckoutNotes] = useState('');
     const { userProfile } = useUserProfile();
-
-    const isOverdue = reservation.status === 'Checked-in' && new Date() > reservation.checkOutDate.toDate();
 
     const handleCheckIn = () => {
         startTransition(async () => {
@@ -60,25 +53,6 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             }
         });
     }
-
-    const handleEarlyCheckOut = () => {
-        setIsCheckoutAlertOpen(false);
-        startTransition(async () => {
-            const reasonForCheckout = isOverdue ? 'Estancia finalizada' : checkoutReason;
-            if (!reasonForCheckout) {
-                toast({ title: 'Error de Validación', description: 'Debe seleccionar un motivo para el retiro.', variant: 'destructive' });
-                return;
-            }
-            const result = await checkOutEarlyFromReservation(reservation.id, reasonForCheckout, checkoutNotes);
-            if (result?.error) {
-                toast({ title: 'Error en Check-out', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: '¡Check-out Exitoso!', description: `${reservation.guestName} ha finalizado su estancia.` });
-            }
-            setCheckoutReason('');
-            setCheckoutNotes('');
-        });
-    };
 
     const handleDelete = () => {
         setIsDeleteAlertOpen(false);
@@ -121,9 +95,11 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                         </>
                     )}
                     {reservation.status === 'Checked-in' && (
-                        <DropdownMenuItem onSelect={() => setIsCheckoutAlertOpen(true)}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>{isOverdue ? 'Finalizar Estancia' : 'Check-out Anticipado'}</span>
+                         <DropdownMenuItem asChild>
+                            <Link href={`/rooms/${reservation.roomId}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>Gestionar Estancia</span>
+                            </Link>
                         </DropdownMenuItem>
                     )}
                     {userProfile?.role === 'Administrador' && reservation.status !== 'Checked-in' && (
@@ -167,56 +143,6 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                         <AlertDialogCancel>Cerrar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleNoShow} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                             {isPending ? "Anulando..." : "Confirmar Anulación"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog open={isCheckoutAlertOpen} onOpenChange={setIsCheckoutAlertOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{isOverdue ? 'Confirmar Finalización de Estancia' : '¿Confirmar Check-out Anticipado?'}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           {isOverdue 
-                            ? 'La estancia ha vencido. Se aplicará la tarifa del plan y la habitación pasará a limpieza.'
-                            : 'Se aplicará la tarifa del plan seleccionado y la habitación pasará a estado de limpieza. Por favor, especifique el motivo del retiro.'
-                           }
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    
-                    {!isOverdue && (
-                         <div className="space-y-4 py-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="checkout-reason">Motivo del Retiro</Label>
-                                <Select value={checkoutReason} onValueChange={setCheckoutReason}>
-                                    <SelectTrigger id="checkout-reason">
-                                        <SelectValue placeholder="Seleccione un motivo..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Salida voluntaria">Salida voluntaria del cliente</SelectItem>
-                                        <SelectItem value="Incumplimiento de normas">Incumplimiento de normas</SelectItem>
-                                        <SelectItem value="Daños a la propiedad">Daños a la propiedad</SelectItem>
-                                        <SelectItem value="Emergencia">Emergencia del cliente</SelectItem>
-                                        <SelectItem value="Otro">Otro (especificar en notas)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="checkout-notes">Notas Adicionales</Label>
-                                <Textarea 
-                                    id="checkout-notes"
-                                    placeholder="Detalles sobre el motivo del retiro..."
-                                    value={checkoutNotes}
-                                    onChange={(e) => setCheckoutNotes(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => { setCheckoutReason(''); setCheckoutNotes(''); }}>Cerrar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleEarlyCheckOut} disabled={isPending || (!isOverdue && !checkoutReason)}>
-                            {isPending ? "Procesando..." : "Confirmar Check-out"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
