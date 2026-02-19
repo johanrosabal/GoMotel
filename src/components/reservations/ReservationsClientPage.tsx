@@ -6,19 +6,20 @@ import type { Reservation, ReservationStatus } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import ReservationsTable from "./ReservationsTable";
 import { Button } from "../ui/button";
-import { PlusCircle, UserPlus, List, LayoutGrid } from "lucide-react";
+import { PlusCircle, UserPlus, List, LayoutGrid, CalendarDays } from "lucide-react";
 import CreateReservationDialog from "./CreateReservationDialog";
 import AddClientDialog from "../clients/AddClientDialog";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import ReservationsGrid from "./ReservationsGrid";
+import ReservationsTimeline from "./ReservationsTimeline";
 import { playNotificationSound } from "@/lib/sound";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
-    const [view, setView] = useState<'list' | 'grid'>('list');
+    const [view, setView] = useState<'list' | 'grid' | 'timeline'>('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
     const [now, setNow] = useState(new Date());
@@ -51,6 +52,11 @@ export default function ReservationsClientPage() {
                 isOverdue: res.status === 'Checked-in' && now > res.checkOutDate.toDate(),
             }));
     }, [reservations, searchTerm, statusFilter, now]);
+    
+    const sortedForTimeline = useMemo(() => {
+        return [...processedReservations].sort((a, b) => a.checkInDate.toDate().getTime() - b.checkInDate.toDate().getTime());
+    }, [processedReservations]);
+
 
     useEffect(() => {
         const newlyOverdue = processedReservations.filter(r => r.isOverdue && !notifiedOverdueReservations.current.has(r.id));
@@ -121,6 +127,15 @@ export default function ReservationsClientPage() {
                         >
                             <LayoutGrid className="h-4 w-4" />
                         </Button>
+                         <Button
+                            variant={view === 'timeline' ? 'secondary' : 'ghost'}
+                            size="icon"
+                            onClick={() => setView('timeline')}
+                            className="h-8 w-8"
+                            aria-label="Vista de línea de tiempo"
+                        >
+                            <CalendarDays className="h-4 w-4" />
+                        </Button>
                     </div>
                      <AddClientDialog>
                         <Button variant="outline">
@@ -144,8 +159,10 @@ export default function ReservationsClientPage() {
                 </div>
             ) : view === 'list' ? (
                 <ReservationsTable reservations={processedReservations} />
-            ) : (
+            ) : view === 'grid' ? (
                 <ReservationsGrid reservations={processedReservations} />
+            ) : (
+                <ReservationsTimeline reservations={sortedForTimeline} />
             )}
         </div>
     );
