@@ -209,7 +209,7 @@ export async function checkInFromReservation(reservationId: string) {
       checkOut: null,
       total: 0,
       isPaid: false,
-      reservationId: reservation.id,
+      reservationId: reservationId,
       guestId: reservation.guestId,
       pricePlanName: reservation.pricePlanName,
       pricePlanAmount: reservation.pricePlanAmount,
