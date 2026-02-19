@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { doc, onSnapshot, Timestamp, collection, query, where, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Room, Stay, Order, Service } from '@/types'
@@ -9,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CheckInDialog from '@/components/room-detail/CheckInDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -262,7 +263,13 @@ export default function RoomDetailsPage() {
 
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end gap-2">
+                <Button asChild variant="outline">
+                    <Link href="/reservations">
+                        <CalendarPlus className="mr-2 h-4 w-4" />
+                        Ir a Reservaciones
+                    </Link>
+                </Button>
                 <Button variant="outline" onClick={() => router.back()}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver
