@@ -18,7 +18,7 @@ const Step = ({ icon, title, description, statuses, isLast = false }: { icon: Re
                     <p className="mt-1 text-muted-foreground">{description}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {statuses.map(status => (
-                            <div key={status.name}>
+                            <div key={`${status.type}-${status.name}`}>
                                 <span className="text-xs font-semibold text-muted-foreground">{status.type}: </span>
                                 <Badge variant="outline" className={status.color}>{status.name}</Badge>
                             </div>
