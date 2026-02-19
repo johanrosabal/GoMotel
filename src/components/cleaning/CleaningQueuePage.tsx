@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useTransition, useState, useEffect } from "react";
 import { updateRoomStatus } from "@/lib/actions/room.actions";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict, format } from "date-fns";
 import { es } from 'date-fns/locale';
 
 function CleaningRoomCard({ room }: { room: Room }) {
@@ -51,7 +51,7 @@ function CleaningRoomCard({ room }: { room: Room }) {
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle>Habitación {room.number}</CardTitle>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1" title={`Inició ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
+                    <div className="text-sm text-muted-foreground flex items-center gap-1" title={room.statusUpdatedAt ? 'Inició ' + format(room.statusUpdatedAt.toDate(), "dd MMM yyyy, h:mm a", { locale: es }) : ''}>
                         <Clock className="h-4 w-4" />
                         {timeInStatus || 'Calculando...'}
                     </div>

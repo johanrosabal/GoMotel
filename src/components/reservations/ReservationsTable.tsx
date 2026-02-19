@@ -66,14 +66,14 @@ export default function ReservationsTable({ reservations }: { reservations: Proc
                                         <CalendarClock className="w-5 h-5 text-muted-foreground" />
                                         <div>
                                             <p className="font-semibold">Check-in:</p>
-                                            <p>{format(res.checkInDate.toDate(), 'PP p', { locale: es })}</p>
+                                            <p>{format(res.checkInDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                                         </div>
                                     </div>
                                      <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
                                         <CalendarClock className="w-5 h-5 text-muted-foreground" />
                                         <div>
                                             <p className="font-semibold">Check-out:</p>
-                                            <p>{format(res.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
+                                            <p>{format(res.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
@@ -117,8 +117,8 @@ export default function ReservationsTable({ reservations }: { reservations: Proc
                                         <div>N° {res.roomNumber}</div>
                                         <div className="text-xs text-muted-foreground">{res.roomType}</div>
                                     </TableCell>
-                                    <TableCell>{format(res.checkInDate.toDate(), 'PPpp', { locale: es })}</TableCell>
-                                    <TableCell>{format(res.checkOutDate.toDate(), 'PPpp', { locale: es })}</TableCell>
+                                    <TableCell>{format(res.checkInDate.toDate(), "dd MMM yyyy, h:mm:ss a", { locale: es })}</TableCell>
+                                    <TableCell>{format(res.checkOutDate.toDate(), "dd MMM yyyy, h:mm:ss a", { locale: es })}</TableCell>
                                     <TableCell>
                                         <TimeRemaining checkOutDate={res.checkOutDate.toDate()} status={res.status} />
                                     </TableCell>

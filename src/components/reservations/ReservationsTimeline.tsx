@@ -73,7 +73,7 @@ export default function ReservationsTimeline({ reservations }: { reservations: P
                                     <div key={res.id} className="flex items-start gap-4 relative">
                                         <div className={cn("absolute -left-6 top-[5px] -translate-x-1/2 h-3 w-3 rounded-full ring-4 ring-background", res.isOverdue ? 'bg-destructive' : 'bg-muted-foreground' )}></div>
                                         <div className="w-20 text-right shrink-0">
-                                            <p className="font-bold text-sm">{format(res.checkInDate.toDate(), 'p', { locale: es })}</p>
+                                            <p className="font-bold text-sm">{format(res.checkInDate.toDate(), 'h:mm a', { locale: es })}</p>
                                         </div>
                                         <div className="flex-1 border rounded-lg p-4 bg-card shadow-sm">
                                             <div className="flex justify-between items-start">
@@ -89,7 +89,7 @@ export default function ReservationsTimeline({ reservations }: { reservations: P
                                                 </div>
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-2">
-                                                Check-out: {format(res.checkOutDate.toDate(), "p", { locale: es })}
+                                                Check-out: {format(res.checkOutDate.toDate(), "h:mm a", { locale: es })}
                                             </div>
                                         </div>
                                     </div>

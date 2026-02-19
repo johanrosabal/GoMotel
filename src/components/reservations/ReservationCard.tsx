@@ -58,14 +58,14 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
                     <p className="font-semibold text-muted-foreground text-xs">Check-in</p>
-                    <p className="text-xs">{format(reservation.checkInDate.toDate(), 'PP p', { locale: es })}</p>
+                    <p className="text-xs">{format(reservation.checkInDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                 </div>
             </div>
              <div className="flex items-start gap-2">
                 <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
                     <p className="font-semibold text-muted-foreground text-xs">Check-out</p>
-                    <p className="text-xs">{format(reservation.checkOutDate.toDate(), 'PP p', { locale: es })}</p>
+                    <p className="text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                 </div>
             </div>
             <div className="flex items-start gap-2">

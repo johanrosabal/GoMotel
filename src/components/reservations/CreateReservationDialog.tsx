@@ -353,7 +353,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                         <Clock className="h-4 w-4" />
                         <span>Salida Estimada</span>
                     </div>
-                    <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, "PPpp", { locale: es })}</p>
+                    <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, "dd MMM yyyy, h:mm a", { locale: es })}</p>
                 </div>
             )}
 

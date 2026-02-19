@@ -280,7 +280,7 @@ export default function RoomDetailsPage() {
                                 <div className="flex flex-col items-end gap-1">
                                     <StatusBadge status={room.status} isOverdue={isOverdue} />
                                     {room.status === 'Cleaning' && timeInStatus && (
-                                    <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt ? format(room.statusUpdatedAt.toDate(), "dd MMM yyyy, h:mm a", { locale: es }) : ''}`}>
                                         <Clock className="h-3 w-3" />
                                         {timeInStatus}
                                     </div>
@@ -309,11 +309,11 @@ export default function RoomDetailsPage() {
                                             <div className="flex justify-between text-xs text-muted-foreground font-semibold">
                                                 <div>
                                                     <p>Check-in</p>
-                                                    <p className="font-bold text-foreground">{stay.checkIn ? format(stay.checkIn.toDate(), 'p', { locale: es }) : 'N/D'}</p>
+                                                    <p className="font-bold text-foreground">{stay.checkIn ? format(stay.checkIn.toDate(), 'h:mm a', { locale: es }) : 'N/D'}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p>Check-out</p>
-                                                    <p className="font-bold text-foreground">{stay.expectedCheckOut ? format(stay.expectedCheckOut.toDate(), 'p', { locale: es }) : 'N/D'}</p>
+                                                    <p className="font-bold text-foreground">{stay.expectedCheckOut ? format(stay.expectedCheckOut.toDate(), 'h:mm a', { locale: es }) : 'N/D'}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -340,7 +340,7 @@ export default function RoomDetailsPage() {
                                                 <div className="flex justify-between items-center mb-2">
                                                     <div className='flex items-center gap-2'>
                                                         <History className="w-4 h-4 text-muted-foreground" />
-                                                        <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'p', { locale: es })}</p>
+                                                        <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
                                                     </div>
                                                     <Button variant="ghost" size="sm" onClick={() => checkAiOrderStatus(order)}>Consultar Estado IA</Button>
                                                 </div>
