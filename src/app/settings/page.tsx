@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble, Bell, Percent } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -40,6 +40,17 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <Link href="/settings/taxes">
+                        <Button>Administrar</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><BookCopy /> Catálogo de Productos</CardTitle>
+                    <CardDescription>Gestiona categorías, sub-categorías y productos.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/catalog">
                         <Button>Administrar</Button>
                     </Link>
                 </CardContent>
