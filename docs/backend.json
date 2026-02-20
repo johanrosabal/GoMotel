@@ -246,8 +246,11 @@
         },
         "imageUrl": {
           "type": "string",
-          "format": "uri",
-          "description": "URL for the product's image."
+          "description": "Data URI for the product's image."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the product is active and available for sale."
         }
       },
       "required": [

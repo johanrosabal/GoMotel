@@ -57,6 +57,7 @@ export interface Service {
   imageUrl?: string;
   categoryId?: string;
   subCategoryId?: string;
+  isActive?: boolean;
 }
 
 export interface StayExtension {

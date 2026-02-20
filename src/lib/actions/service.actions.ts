@@ -30,6 +30,7 @@ const toServiceObject = (doc: any): Service => {
     imageUrl: data.imageUrl,
     categoryId: data.categoryId,
     subCategoryId: data.subCategoryId,
+    isActive: data.isActive,
   };
 };
 
@@ -60,9 +61,10 @@ const serviceSchema = z.object({
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
   description: z.string().optional(),
-  imageUrl: z.string().url('URL de imagen no válida.').optional().or(z.literal('')),
+  imageUrl: z.string().optional(),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
+  isActive: z.coerce.boolean().optional().default(true),
 });
 
 export async function saveService(formData: FormData) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type ReactNode, useEffect } from 'react';
+import { useState, useTransition, type ReactNode, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +37,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Image as ImageIcon } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -56,9 +57,10 @@ const serviceSchema = z.object({
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
   description: z.string().optional(),
-  imageUrl: z.string().url('URL de imagen no válida.').optional().or(z.literal('')),
+  imageUrl: z.string().optional(),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
+  isActive: z.boolean().optional().default(true),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -85,6 +87,8 @@ export default function EditServiceDialog({ children, service, allServices, open
   const { firestore } = useFirebase();
   const [priceInput, setPriceInput] = useState('');
   const [costPriceInput, setCostPriceInput] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
@@ -98,6 +102,7 @@ export default function EditServiceDialog({ children, service, allServices, open
       imageUrl: '',
       categoryId: preselectedCategoryId,
       subCategoryId: preselectedSubCategoryId,
+      isActive: true,
     },
   });
 
@@ -120,6 +125,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         subCategoryId: service.subCategoryId || preselectedSubCategoryId,
         imageUrl: service.imageUrl || '',
         costPrice: service.costPrice || 0,
+        isActive: service.isActive !== false,
       } : {
         name: '',
         price: 0,
@@ -130,12 +136,27 @@ export default function EditServiceDialog({ children, service, allServices, open
         imageUrl: '',
         categoryId: preselectedCategoryId,
         subCategoryId: preselectedSubCategoryId,
+        isActive: true,
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
       setCostPriceInput(numberToString(defaultValues.costPrice || 0));
+      setImagePreview(defaultValues.imageUrl || null);
     }
   }, [open, service, form, preselectedCategoryId, preselectedSubCategoryId]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUrl = reader.result as string;
+            setImagePreview(dataUrl);
+            form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+        };
+        reader.readAsDataURL(file);
+    }
+  };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/[^\d]/g, '');
@@ -188,6 +209,7 @@ export default function EditServiceDialog({ children, service, allServices, open
     if (values.categoryId) formData.append('categoryId', values.categoryId);
     if (values.subCategoryId) formData.append('subCategoryId', values.subCategoryId);
     if (values.description) formData.append('description', values.description);
+    formData.append('isActive', String(values.isActive));
 
     startTransition(async () => {
       const result = await saveService(formData);
@@ -222,27 +244,44 @@ export default function EditServiceDialog({ children, service, allServices, open
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL de la Imagen (Opcional)</FormLabel>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20 rounded-md">
-                      <AvatarImage src={field.value || undefined} alt={form.getValues('name')} className="object-cover" />
-                      <AvatarFallback className="rounded-md">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <FormControl>
-                      <Input placeholder="https://ejemplo.com/imagen.png" {...field} />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+              <FormLabel>Imagen del Producto (Opcional)</FormLabel>
+                <div className="flex items-center gap-4">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="relative h-20 w-20 rounded-md p-0"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <Avatar className="h-full w-full rounded-md">
+                            <AvatarImage src={imagePreview || undefined} alt={form.getValues('name')} className="object-cover" />
+                            <AvatarFallback className="rounded-md bg-transparent">
+                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                            </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                    <div className="flex flex-col gap-1 w-full">
+                      <p className="text-xs text-muted-foreground">Haga clic en el recuadro para buscar una imagen.</p>
+                       {imagePreview && (
+                          <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive h-auto p-1 justify-start w-fit" onClick={() => {
+                              setImagePreview(null);
+                              form.setValue('imageUrl', '');
+                              if(fileInputRef.current) fileInputRef.current.value = '';
+                          }}>
+                              Eliminar imagen
+                          </Button>
+                      )}
+                    </div>
+                </div>
+              <FormMessage />
+            </FormItem>
             <div className="grid grid-cols-2 gap-4">
                <FormField
                 control={form.control}
@@ -313,6 +352,26 @@ export default function EditServiceDialog({ children, service, allServices, open
                   <FormMessage />
                 </FormItem>
               )}
+            />
+             <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel>Producto Activo</FormLabel>
+                            <p className="text-xs text-muted-foreground">
+                                Desactive para ocultar el producto de la venta.
+                            </p>
+                        </div>
+                        <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
             />
             <div className="grid grid-cols-2 gap-4">
                <FormField
