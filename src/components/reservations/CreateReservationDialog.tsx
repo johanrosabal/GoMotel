@@ -16,13 +16,11 @@ import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addMinutes, addHours, addDays, addWeeks, addMonths, format, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, Star, Clock, ClipboardList, HandCoins, Smartphone, CreditCard, CheckCircle } from 'lucide-react';
+import { Check, Star, Clock, CheckCircle } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -35,7 +33,11 @@ const reservationSchema = z.object({
   checkInDate: z.date(),
   guestId: z.string().optional(),
   checkInNow: z.boolean().default(false),
-  paymentOption: z.enum(['Cuenta Abierta', 'Efectivo', 'Sinpe Movil', 'Tarjeta']),
+  isOpenAccount: z.boolean().default(true),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+}).refine(data => data.isOpenAccount || !!data.paymentMethod, {
+    message: "Debe seleccionar un método de pago.",
+    path: ["paymentMethod"],
 });
 
 
@@ -75,7 +77,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       pricePlanName: undefined,
       checkInNow: false,
       checkInDate: new Date(),
-      paymentOption: 'Cuenta Abierta',
+      isOpenAccount: true,
+      paymentMethod: undefined,
     },
   });
 
@@ -105,7 +108,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const selectedPlanName = form.watch('pricePlanName');
   const checkInDateValue = form.watch('checkInDate');
   const checkInNow = form.watch('checkInNow');
-  const paymentOption = form.watch('paymentOption');
+  const isOpenAccount = form.watch('isOpenAccount');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
   const availablePlans = useMemo(() => {
@@ -127,7 +130,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       pricePlanName: undefined,
       checkInNow: false,
       checkInDate: new Date(),
-      paymentOption: 'Cuenta Abierta',
+      isOpenAccount: true,
+      paymentMethod: undefined,
     });
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
@@ -358,62 +362,55 @@ export default function CreateReservationDialog({ children }: CreateReservationD
               />
             )}
 
-            <FormField
-              control={form.control}
-              name="paymentOption"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Opciones de Pago</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <FormItem>
-                        <FormControl>
-                          <RadioGroupItem value="Cuenta Abierta" id="cuenta-abierta" className="sr-only" />
-                        </FormControl>
-                        <Label htmlFor="cuenta-abierta" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                          <ClipboardList className="mb-3 h-6 w-6" />
-                          Cuenta Abierta
-                        </Label>
-                      </FormItem>
-                       <FormItem>
-                        <FormControl>
-                          <RadioGroupItem value="Efectivo" id="efectivo" className="sr-only" />
-                        </FormControl>
-                        <Label htmlFor="efectivo" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                          <HandCoins className="mb-3 h-6 w-6" />
-                          Efectivo
-                        </Label>
-                      </FormItem>
-                       <FormItem>
-                        <FormControl>
-                          <RadioGroupItem value="Sinpe Movil" id="sinpe" className="sr-only" />
-                        </FormControl>
-                        <Label htmlFor="sinpe" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                          <Smartphone className="mb-3 h-6 w-6" />
-                          Sinpe Móvil
-                        </Label>
-                      </FormItem>
-                       <FormItem>
-                        <FormControl>
-                          <RadioGroupItem value="Tarjeta" id="tarjeta" className="sr-only" />
-                        </FormControl>
-                        <Label htmlFor="tarjeta" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                          <CreditCard className="mb-3 h-6 w-6" />
-                          Tarjeta
-                        </Label>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="isOpenAccount"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Cuenta Abierta</FormLabel>
+                      <p className="text-[13px] text-muted-foreground">
+                        Si se activa, la factura se liquida al final de la estancia.
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {!isOpenAccount && (
+                  <FormField
+                      control={form.control}
+                      name="paymentMethod"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Método de Pago por Adelantado</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Seleccione un método" />
+                                      </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      <SelectItem value="Efectivo">Efectivo</SelectItem>
+                                      <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
+                                      <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
               )}
-            />
+            </div>
             
-            {paymentOption !== 'Cuenta Abierta' && selectedPlan && (
+            {!isOpenAccount && selectedPlan && form.getValues('paymentMethod') && (
                 <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">
                     <div className="flex items-center gap-2 font-semibold">
                         <CheckCircle className="h-4 w-4" />

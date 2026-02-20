@@ -27,10 +27,14 @@ const reservationActionSchema = z.object({
   guestId: z.string().optional(),
   checkInNow: z.boolean(),
   checkInDate: z.coerce.date().optional(),
-  paymentOption: z.enum(['Cuenta Abierta', 'Efectivo', 'Sinpe Movil', 'Tarjeta']),
+  isOpenAccount: z.boolean(),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
+}).refine(data => data.isOpenAccount || !!data.paymentMethod, {
+    message: "Se requiere un método de pago si no es cuenta abierta.",
+    path: ["paymentMethod"],
 });
 
 
@@ -42,7 +46,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, paymentOption } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -95,9 +99,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
   try {
     const batch = writeBatch(db);
 
-    const isUpfrontPayment = paymentOption !== 'Cuenta Abierta';
+    const isUpfrontPayment = !isOpenAccount;
     const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
-    const paymentMethod = isUpfrontPayment ? paymentOption : 'Por Definir';
+    const paymentMethod = isUpfrontPayment ? upfrontPaymentMethod! : 'Por Definir';
     const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
 
     const reservationRef = doc(collection(db, 'reservations'));
