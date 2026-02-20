@@ -222,9 +222,12 @@ export default function EditServiceDialog({ children, service, allServices, open
     startTransition(async () => {
       const result = await saveService(formData);
       if (result.error) {
+        const errorDescription = typeof result.error === 'object'
+          ? Object.values(result.error).flat().join(' \n')
+          : String(result.error);
         toast({
-          title: 'Error',
-          description: 'No se pudo guardar el servicio.',
+          title: 'Error al Guardar',
+          description: errorDescription,
           variant: 'destructive',
         });
       } else {

@@ -120,10 +120,13 @@ export async function saveService(formData: FormData) {
     revalidatePath('/inventory');
     revalidatePath('/catalog');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to save service:', error);
+    if (error?.code === 'invalid-argument' && error?.message?.includes('exceeds the maximum size')) {
+        return { error: 'No se pudo guardar. La imagen es demasiado grande (límite de 1MB). Por favor, utilice una imagen más pequeña.' };
+    }
     if (error instanceof Error) {
-        return { error: error.message };
+        return { error: `Ocurrió un error: ${error.message}` };
     }
     return { error: 'Ocurrió un error inesperado.' };
   }
