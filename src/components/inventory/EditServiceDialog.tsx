@@ -482,13 +482,14 @@ export default function EditServiceDialog({ children, service, allServices, open
                             <Checkbox
                               checked={field.value?.includes(tax.id)}
                               onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), tax.id])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value) => value !== tax.id
-                                      )
-                                    )
+                                const currentIds = field.value || [];
+                                if (checked) {
+                                  field.onChange([...currentIds, tax.id]);
+                                } else {
+                                  field.onChange(
+                                    currentIds.filter((id) => id !== tax.id)
+                                  );
+                                }
                               }}
                             />
                           </FormControl>
