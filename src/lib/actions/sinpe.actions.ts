@@ -11,6 +11,8 @@ const sinpeAccountSchema = z.object({
   phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
+  limitAmount: z.coerce.number().min(0, "El monto límite no puede ser negativo.").optional(),
+  isActive: z.boolean().default(true),
 });
 
 export async function saveSinpeAccount(values: z.infer<typeof sinpeAccountSchema>) {
@@ -23,6 +25,8 @@ export async function saveSinpeAccount(values: z.infer<typeof sinpeAccountSchema
     const dataToSave = {
         ...data,
         balance: data.balance || 0,
+        limitAmount: data.limitAmount || 0,
+        isActive: data.isActive,
     };
 
     try {

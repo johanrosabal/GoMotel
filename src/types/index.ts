@@ -208,7 +208,10 @@ export interface SinpeAccount {
   phoneNumber: string;
   bankName: string;
   balance: number;
+  limitAmount?: number;
+  isActive?: boolean;
   createdAt: Timestamp;
 }
 
+    
     

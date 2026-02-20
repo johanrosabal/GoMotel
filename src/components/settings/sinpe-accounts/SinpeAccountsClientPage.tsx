@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { deleteSinpeAccount } from "@/lib/actions/sinpe.actions";
 import SinpeAccountFormDialog from "./SinpeAccountFormDialog";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 function ActionsMenu({ account }: { account: SinpeAccount }) {
     const { toast } = useToast();
@@ -66,7 +68,7 @@ export default function SinpeAccountsClientPage() {
 
     const sinpeAccountsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, "sinpeAccounts"), orderBy("accountHolder"));
+        return query(collection(firestore, "sinpeAccounts"), orderBy("createdAt", "asc"));
     }, [firestore]);
 
     const { data: sinpeAccounts, isLoading } = useCollection<SinpeAccount>(sinpeAccountsQuery);
@@ -83,25 +85,33 @@ export default function SinpeAccountsClientPage() {
             {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-40 w-full" />
+                        <Skeleton key={i} className="h-48 w-full" />
                     ))}
                 </div>
             ) : sinpeAccounts && sinpeAccounts.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sinpeAccounts.map(account => (
-                        <Card key={account.id}>
+                        <Card key={account.id} className={cn(!account.isActive && "bg-muted/50 border-dashed")}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <CardTitle>{account.accountHolder}</CardTitle>
                                         <CardDescription>{account.phoneNumber} - {account.bankName}</CardDescription>
                                     </div>
-                                    <ActionsMenu account={account} />
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={account.isActive ? "default" : "secondary"} className={cn(account.isActive && "bg-green-600")}>
+                                            {account.isActive ? 'Activa' : 'Inactiva'}
+                                        </Badge>
+                                        <ActionsMenu account={account} />
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-muted-foreground">Saldo Actual</p>
-                                <p className="text-2xl font-bold">{formatCurrency(account.balance)}</p>
+                                <p className="text-sm text-muted-foreground">Saldo / Límite Mensual</p>
+                                <p className="text-2xl font-bold">{formatCurrency(account.balance)} / <span className="text-lg text-muted-foreground">{formatCurrency(account.limitAmount || 0)}</span></p>
+                                {account.limitAmount && account.limitAmount > 0 && (
+                                    <Progress value={(account.balance / account.limitAmount) * 100} className="mt-2 h-2" />
+                                )}
                             </CardContent>
                         </Card>
                     ))}
@@ -114,4 +124,5 @@ export default function SinpeAccountsClientPage() {
         </div>
     );
 }
+    
     

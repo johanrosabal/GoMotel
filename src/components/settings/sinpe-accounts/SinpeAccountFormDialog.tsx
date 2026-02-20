@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { SinpeAccount } from '@/types';
 import { saveSinpeAccount } from '@/lib/actions/sinpe.actions';
+import { Switch } from '@/components/ui/switch';
 
 const sinpeAccountSchema = z.object({
   id: z.string().optional(),
@@ -18,7 +19,20 @@ const sinpeAccountSchema = z.object({
   phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
+  limitAmount: z.coerce.number().min(0, "El monto límite no puede ser negativo.").optional(),
+  isActive: z.boolean().default(true),
 });
+
+const stringToNumber = (numString: string): number => {
+    if (!numString) return 0;
+    const sanitized = numString.replace(/,/g, '');
+    return parseFloat(sanitized);
+};
+
+const numberToString = (num: number): string => {
+    if (isNaN(num) || num === null) return '';
+    return new Intl.NumberFormat('en-US').format(num);
+};
 
 interface SinpeAccountFormDialogProps {
   open: boolean;
@@ -29,14 +43,17 @@ interface SinpeAccountFormDialogProps {
 export default function SinpeAccountFormDialog({ open, onOpenChange, account }: SinpeAccountFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [limitAmountInput, setLimitAmountInput] = useState('');
 
   const form = useForm<z.infer<typeof sinpeAccountSchema>>({
     resolver: zodResolver(sinpeAccountSchema),
-    defaultValues: account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0 },
+    defaultValues: account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0, limitAmount: 500000, isActive: true },
   });
 
   useEffect(() => {
-    form.reset(account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0 });
+    const defaultValues = account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0, limitAmount: 500000, isActive: true };
+    form.reset(defaultValues);
+    setLimitAmountInput(numberToString(defaultValues.limitAmount || 500000));
   }, [account, open, form]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
@@ -54,6 +71,12 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
       }
     }
     fieldOnChange(maskedValue);
+  };
+  
+  const handleLimitAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d]/g, '');
+    setLimitAmountInput(new Intl.NumberFormat('en-US').format(parseInt(value, 10) || 0));
+    form.setValue('limitAmount', parseInt(value, 10) || 0);
   };
 
   const onSubmit = (values: z.infer<typeof sinpeAccountSchema>) => {
@@ -88,18 +111,52 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Teléfono</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="(506) 8888-8888"
+                        {...field}
+                        onChange={(e) => handlePhoneChange(e, field.onChange)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre del Banco</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: Banco Nacional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
-              name="phoneNumber"
+              name="limitAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número de Teléfono</FormLabel>
+                  <FormLabel>Monto Límite Mensual (₡)</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="(506) 8888-8888"
-                      {...field}
-                      onChange={(e) => handlePhoneChange(e, field.onChange)}
-                    />
+                     <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={limitAmountInput}
+                        onChange={handleLimitAmountChange}
+                        className="text-right"
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,14 +164,21 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
             />
             <FormField
               control={form.control}
-              name="bankName"
+              name="isActive"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del Banco</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: Banco Nacional" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                        <FormLabel>Cuenta Activa</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                            Solo las cuentas activas recibirán pagos.
+                        </p>
+                    </div>
+                    <FormControl>
+                        <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
                 </FormItem>
               )}
             />
@@ -130,4 +194,5 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
     </Dialog>
   );
 }
+    
     

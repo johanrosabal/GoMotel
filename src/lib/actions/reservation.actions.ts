@@ -13,6 +13,8 @@ import {
   updateDoc,
   deleteDoc,
   increment,
+  orderBy,
+  DocumentReference,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -126,13 +128,33 @@ export async function createReservation(values: z.infer<typeof reservationAction
 
     if (isUpfrontPayment) {
         if (paymentMethod === 'Sinpe Movil') {
-            const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'));
+            const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
             const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
-            if (!sinpeAccountsSnapshot.empty) {
-                const firstAccount = sinpeAccountsSnapshot.docs[0];
-                batch.update(firstAccount.ref, { balance: increment(paymentAmount) });
-            } else {
-                console.warn("SINPE Movil payment received, but no SINPE accounts are configured.");
+
+            let targetAccountRef: DocumentReference | null = null;
+            let targetAccountData: SinpeAccount | null = null;
+
+            for (const doc of sinpeAccountsSnapshot.docs) {
+                const account = { id: doc.id, ...doc.data() } as SinpeAccount;
+                const limit = account.limitAmount || Infinity;
+                if ((account.balance + paymentAmount) <= limit) {
+                    targetAccountRef = doc.ref;
+                    targetAccountData = account;
+                    break; // Use the first available account
+                }
+            }
+            
+            if (!targetAccountRef || !targetAccountData) {
+                return { error: "No hay cuentas SINPE Móvil disponibles o todas han alcanzado su límite de saldo." };
+            }
+
+            // Increment the balance
+            batch.update(targetAccountRef, { balance: increment(paymentAmount) });
+            
+            // Deactivate if the new balance meets or exceeds the limit
+            const newBalance = targetAccountData.balance + paymentAmount;
+            if (targetAccountData.limitAmount && newBalance >= targetAccountData.limitAmount) {
+                batch.update(targetAccountRef, { isActive: false });
             }
         }
         
@@ -398,6 +420,3 @@ export async function deleteReservation(reservationId: string) {
 }
 
     
-
-    
-
