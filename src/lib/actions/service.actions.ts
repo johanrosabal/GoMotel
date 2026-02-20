@@ -61,7 +61,7 @@ const serviceSchema = z.object({
   id: z.string().optional(),
   code: z.string().optional(),
   name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
-  price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
+  price: z.coerce.number().min(0, 'El precio de venta no puede ser negativo.'),
   costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   minStock: z.coerce.number().int().min(0, 'Las existencias mínimas no pueden ser negativas.').optional(),
@@ -85,8 +85,6 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
   
   const { id, code, ...data } = validatedFields.data;
 
-  // Explicitly build the object to be saved to prevent any undefined values.
-  // This is a more robust way to handle optional fields.
   const serviceData = {
     name: data.name,
     price: data.price,
@@ -111,25 +109,22 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
         code: code, // Pass code for updates
       });
     } else {
-      // Add new service with incremental code in a transaction
-      await runTransaction(db, async (transaction) => {
-        const servicesCollection = collection(db, 'services');
-        const servicesSnapshot = await transaction.get(query(servicesCollection));
-        
-        const existingCodes = servicesSnapshot.docs
-          .map(d => d.data().code)
-          .filter(Boolean)
-          .map(code => parseInt(String(code).replace(/\D/g, ''), 10))
-          .filter(num => !isNaN(num));
+       // Add new service with incremental code
+      const servicesCollection = collection(db, 'services');
+      const servicesSnapshot = await getDocs(query(servicesCollection));
+      
+      const existingCodes = servicesSnapshot.docs
+        .map(d => d.data().code)
+        .filter(Boolean)
+        .map(code => parseInt(String(code).replace(/\D/g, ''), 10))
+        .filter(num => !isNaN(num));
 
-        const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
-        const newCode = `P${String(nextCodeNumber).padStart(3, '0')}`;
+      const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+      const newCode = `P${String(nextCodeNumber).padStart(3, '0')}`;
 
-        const newServiceRef = doc(servicesCollection);
-        transaction.set(newServiceRef, { 
-            ...serviceData, 
-            code: newCode 
-        });
+      await addDoc(servicesCollection, { 
+          ...serviceData, 
+          code: newCode 
       });
     }
     revalidatePath('/inventory');
