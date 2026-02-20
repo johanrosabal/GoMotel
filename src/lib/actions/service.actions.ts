@@ -83,22 +83,32 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     };
   }
 
-  const { id, ...serviceDataToSave } = validatedFields.data;
-  const serviceData: Record<string, any> = {
-    ...serviceDataToSave,
-    taxIds: serviceDataToSave.taxIds || [],
-  };
+  const { id, ...data } = validatedFields.data;
 
-  // If imageUrl is an empty string (from form submission), treat as null to remove from Firestore.
-  if (serviceData.imageUrl === '') {
-      serviceData.imageUrl = null;
-  }
+  // Explicitly build the object to be saved to prevent any undefined values.
+  const serviceData = {
+    name: data.name,
+    price: data.price,
+    costPrice: data.costPrice ?? null,
+    stock: data.stock,
+    minStock: data.minStock ?? 10,
+    category: data.category,
+    description: data.description ?? null,
+    imageUrl: data.imageUrl || null, // Handle empty string from form
+    categoryId: data.categoryId || null,
+    subCategoryId: data.subCategoryId || null,
+    isActive: data.isActive !== false, // Default to true if undefined
+    taxIds: data.taxIds || [], // Ensure it's always an array
+  };
 
   try {
     if (id) {
       // Update existing service
       const serviceRef = doc(db, 'services', id);
-      await updateDoc(serviceRef, serviceData);
+      await updateDoc(serviceRef, {
+        ...serviceData,
+        code: data.code, // Pass code for updates
+      });
     } else {
       // Add new service with incremental code in a transaction
       await runTransaction(db, async (transaction) => {
@@ -107,8 +117,8 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
         
         const existingCodes = servicesSnapshot.docs
           .map(d => d.data().code)
-          .filter(Boolean) // Filter out services without a code
-          .map(code => parseInt(String(code).replace(/\D/g, ''), 10)) // Extract numbers
+          .filter(Boolean)
+          .map(code => parseInt(String(code).replace(/\D/g, ''), 10))
           .filter(num => !isNaN(num));
 
         const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
