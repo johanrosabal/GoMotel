@@ -33,12 +33,28 @@ export interface Room {
   statusUpdatedAt?: Timestamp;
 }
 
+export interface ProductCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProductSubCategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+}
+
 export interface Service {
   id:string;
   name: string;
   price: number;
   stock: number;
   category: 'Food' | 'Beverage' | 'Amenity';
+  description?: string;
+  categoryId?: string;
+  subCategoryId?: string;
 }
 
 export interface StayExtension {
@@ -143,5 +159,3 @@ export interface Client {
   visitCount?: number;
   createdAt: Timestamp;
 }
-
-    

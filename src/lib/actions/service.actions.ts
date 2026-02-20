@@ -25,6 +25,9 @@ const toServiceObject = (doc: any): Service => {
     price: data.price,
     stock: data.stock,
     category: data.category,
+    description: data.description,
+    categoryId: data.categoryId,
+    subCategoryId: data.subCategoryId,
   };
 };
 
@@ -53,6 +56,9 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
+  description: z.string().optional(),
+  categoryId: z.string().optional(),
+  subCategoryId: z.string().optional(),
 });
 
 export async function saveService(formData: FormData) {
@@ -77,6 +83,7 @@ export async function saveService(formData: FormData) {
       await addDoc(collection(db, 'services'), serviceData);
     }
     revalidatePath('/inventory');
+    revalidatePath('/catalog');
     return { success: true };
   } catch (error) {
     console.error('Failed to save service:', error);
@@ -92,6 +99,7 @@ export async function deleteService(serviceId: string) {
     try {
         await deleteDoc(doc(db, 'services', serviceId));
         revalidatePath('/inventory');
+        revalidatePath('/catalog');
         return { success: true };
     } catch (error) {
         console.error('Failed to delete service:', error);

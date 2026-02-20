@@ -24,6 +24,7 @@ import {
   CalendarPlus,
   Zap,
   Sparkles,
+  BookCopy,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -136,6 +137,12 @@ export default async function DashboardPage() {
           title: 'Panel de Habitaciones',
           description: 'Vista y gestión de todas las habitaciones.',
           icon: LayoutGrid,
+        },
+        {
+          href: '/catalog',
+          title: 'Catálogo de Productos',
+          description: 'Gestiona categorías, sub-categorías y productos.',
+          icon: BookCopy,
         },
         {
           href: '/settings',
