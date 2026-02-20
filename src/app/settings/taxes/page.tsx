@@ -17,7 +17,7 @@ export default function TaxesRootPage() {
             Administre los impuestos aplicables a los productos y servicios de su motel.
           </p>
         </div>
-        <Button asChild variant="outline">
+        <Button asChild>
           <Link href="/catalog">
             <BookCopy className="mr-2 h-4 w-4" />
             Ir al Catálogo
