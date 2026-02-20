@@ -448,10 +448,12 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                     <p className="text-sm text-muted-foreground text-center">Buscando cuenta SINPE disponible...</p>
                                 ) : targetSinpeAccount ? (
                                     <div className="space-y-3">
-                                        <div className='p-3 bg-muted rounded-md text-sm'>
-                                            <p className='font-semibold'>Transferir {formatCurrency(selectedPlan?.price || 0)} a:</p>
-                                            <p className="mt-1">Titular: <span className='font-bold'>{targetSinpeAccount.accountHolder}</span></p>
-                                            <p>Teléfono: <span className='font-bold'>{targetSinpeAccount.phoneNumber}</span></p>
+                                        <div className='p-4 bg-muted rounded-lg text-center'>
+                                            <p className='text-sm text-muted-foreground'>Transferir el monto de</p>
+                                            <p className='text-2xl font-bold tracking-tight text-primary'>{formatCurrency(selectedPlan?.price || 0)}</p>
+                                            <p className='text-sm text-muted-foreground mt-3'>a la cuenta SINPE Móvil:</p>
+                                            <p className='text-3xl font-mono font-extrabold tracking-widest my-2'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                            <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
                                         </div>
                                         <FormField
                                             control={form.control}
@@ -469,7 +471,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                                             Confirmar Pago Recibido
                                                         </FormLabel>
                                                         <FormDescription>
-                                                            Marque esta casilla para confirmar que ha recibido el pago SINPE.
+                                                            Marque esta casilla para confirmar que ha recibido el pago.
                                                         </FormDescription>
                                                         <FormMessage className="pt-1" />
                                                     </div>
