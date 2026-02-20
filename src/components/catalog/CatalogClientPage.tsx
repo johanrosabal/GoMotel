@@ -10,10 +10,11 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CategoryFormDialog from './CategoryFormDialog';
 import SubCategoryFormDialog from './SubCategoryFormDialog';
-import { deleteCategory } from '@/lib/actions/catalog.actions';
+import { deleteCategory, deleteSubCategory } from '@/lib/actions/catalog.actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import EditServiceDialog from '@/components/inventory/EditServiceDialog';
+import { deleteService } from '@/lib/actions/service.actions';
 
 function DeleteAction({ id, name, type, onDelete, children }: { id: string, name: string, type: string, onDelete: (id: string) => Promise<any>, children: React.ReactNode }) {
     return (
@@ -79,6 +80,20 @@ export default function CatalogClientPage() {
         }
     }
 
+    const handleDeleteSubCategory = async (id: string) => {
+        // TODO: Check if sub-category has products before deleting
+        await deleteSubCategory(id);
+        toast({ title: "Sub-categoría eliminada" });
+        if (selectedSubCategory?.id === id) {
+            setSelectedSubCategory(null);
+        }
+    }
+
+    const handleDeleteService = async (id: string) => {
+        await deleteService(id);
+        toast({ title: "Producto eliminado" });
+    }
+
     return (
         <div className="grid md:grid-cols-3 gap-6">
             {/* Categories Column */}
@@ -126,7 +141,16 @@ export default function CatalogClientPage() {
                                 <div key={sub.id} onClick={() => setSelectedSubCategory(sub)} className={cn("p-2 rounded-md cursor-pointer group", selectedSubCategory?.id === sub.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent')}>
                                    <div className="flex justify-between items-center">
                                         <span className="font-medium">{sub.name}</span>
-                                        {/* Actions here */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSubCategory(sub); setSubCategoryDialogOpen(true); }}>
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
+                                            <DeleteAction id={sub.id} name={sub.name} type="sub-categoría" onDelete={handleDeleteSubCategory}>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </Button>
+                                            </DeleteAction>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -151,7 +175,16 @@ export default function CatalogClientPage() {
                                 <div key={srv.id} className="p-2 rounded-md hover:bg-muted group">
                                     <div className="flex justify-between items-center">
                                         <span className="font-medium">{srv.name}</span>
-                                        {/* Actions here */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingService(srv); setServiceDialogOpen(true); }}>
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
+                                            <DeleteAction id={srv.id} name={srv.name} type="producto" onDelete={handleDeleteService}>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </Button>
+                                            </DeleteAction>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
