@@ -248,6 +248,10 @@
           "type": "number",
           "description": "The current available quantity of the service."
         },
+        "minStock": {
+          "type": "number",
+          "description": "The minimum stock level before it is considered low stock."
+        },
         "imageUrl": {
           "type": "string",
           "description": "Data URI for the product's image."

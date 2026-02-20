@@ -56,6 +56,7 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'El precio de venta no puede ser negativo.'),
   costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
+  minStock: z.coerce.number().int().min(0, 'Las existencias mínimas no pueden ser negativas.').optional(),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
@@ -99,6 +100,7 @@ export default function EditServiceDialog({ children, service, allServices, open
       price: 0,
       costPrice: 0,
       stock: 0,
+      minStock: 10,
       category: 'Food',
       description: '',
       imageUrl: '',
@@ -127,6 +129,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         subCategoryId: service.subCategoryId || preselectedSubCategoryId,
         imageUrl: service.imageUrl || '',
         costPrice: service.costPrice || 0,
+        minStock: service.minStock ?? 10,
         isActive: service.isActive !== false,
       } : {
         name: '',
@@ -134,6 +137,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         price: 0,
         costPrice: 0,
         stock: 0,
+        minStock: 10,
         category: 'Food',
         description: '',
         imageUrl: '',
@@ -208,6 +212,7 @@ export default function EditServiceDialog({ children, service, allServices, open
     if (values.costPrice) formData.append('costPrice', String(values.costPrice));
     if (values.imageUrl) formData.append('imageUrl', values.imageUrl);
     formData.append('stock', String(values.stock));
+    if (values.minStock != null) formData.append('minStock', String(values.minStock));
     formData.append('category', values.category);
     if (values.categoryId) formData.append('categoryId', values.categoryId);
     if (values.subCategoryId) formData.append('subCategoryId', values.subCategoryId);
@@ -432,19 +437,34 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
               />
             </div>
-             <FormField
-                control={form.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Existencias</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+             <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="stock"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Existencias</FormLabel>
+                        <FormControl>
+                        <Input type="number" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="minStock"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Exist. Mínimas</FormLabel>
+                        <FormControl>
+                        <Input type="number" {...field} placeholder="10" className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar Producto'}

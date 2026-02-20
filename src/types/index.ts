@@ -53,6 +53,7 @@ export interface Service {
   price: number;
   costPrice?: number;
   stock: number;
+  minStock?: number;
   category: 'Food' | 'Beverage' | 'Amenity';
   description?: string;
   imageUrl?: string;

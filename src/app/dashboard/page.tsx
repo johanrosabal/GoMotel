@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   const availableRooms = rooms.filter(
     (room) => room.status === 'Available'
   ).length;
-  const lowStockItems = services.filter((service) => service.stock < 10).length;
+  const lowStockItems = services.filter((service) => service.minStock != null && service.stock < service.minStock).length;
 
   const kpiData = [
     {
