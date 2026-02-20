@@ -57,6 +57,20 @@ const serviceSchema = z.object({
   description: z.string().optional(),
 });
 
+const stringToNumber = (numString: string): number => {
+    if (!numString) return 0;
+    const sanitized = numString.replace(/,/g, '');
+    return parseFloat(sanitized);
+};
+
+const numberToString = (num: number): string => {
+    if (isNaN(num) || num === null) return '';
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+};
+
 export default function EditServiceDialog({ children, service, allServices, open: controlledOpen, onOpenChange: setControlledOpen, categoryId: preselectedCategoryId, subCategoryId: preselectedSubCategoryId }: EditServiceDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -65,6 +79,7 @@ export default function EditServiceDialog({ children, service, allServices, open
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const [priceInput, setPriceInput] = useState('');
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
@@ -92,7 +107,7 @@ export default function EditServiceDialog({ children, service, allServices, open
 
   useEffect(() => {
     if (open) {
-      form.reset(service ? {
+      const defaultValues = service ? {
         ...service,
         categoryId: service.categoryId || preselectedCategoryId,
         subCategoryId: service.subCategoryId || preselectedSubCategoryId
@@ -104,9 +119,31 @@ export default function EditServiceDialog({ children, service, allServices, open
         categoryId: preselectedCategoryId,
         subCategoryId: preselectedSubCategoryId,
         description: '',
-      });
+      };
+      form.reset(defaultValues);
+      setPriceInput(numberToString(defaultValues.price));
     }
   }, [open, service, form, preselectedCategoryId, preselectedSubCategoryId]);
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d]/g, '');
+    if (value === '') {
+        setPriceInput('');
+        form.setValue('price', 0);
+        return;
+    }
+    value = value.replace(/^0+/, '');
+    while (value.length < 3) {
+      value = '0' + value;
+    }
+    const integerPart = value.slice(0, value.length - 2);
+    const decimalPart = value.slice(value.length - 2);
+    const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10) || 0);
+    const formattedValue = `${formattedInteger}.${decimalPart}`;
+    setPriceInput(formattedValue);
+    form.setValue('price', stringToNumber(formattedValue));
+  };
+
 
   const onSubmit = (values: z.infer<typeof serviceSchema>) => {
     const formData = new FormData();
@@ -231,7 +268,13 @@ export default function EditServiceDialog({ children, service, allServices, open
                   <FormItem>
                     <FormLabel>Precio</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={priceInput}
+                        onChange={handlePriceChange}
+                        className="text-right"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
