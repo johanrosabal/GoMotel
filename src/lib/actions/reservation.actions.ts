@@ -16,7 +16,7 @@ import {
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../firebase';
-import type { Reservation, Stay, RoomType } from '@/types';
+import type { Reservation, Stay, RoomType, Invoice } from '@/types';
 import { checkOut } from './room.actions';
 
 const reservationActionSchema = z.object({
@@ -95,9 +95,10 @@ export async function createReservation(values: z.infer<typeof reservationAction
   try {
     const batch = writeBatch(db);
 
-    const paymentStatus = paymentOption === 'Cuenta Abierta' ? 'Pendiente' : 'Pagado';
-    const paymentMethod = paymentOption === 'Cuenta Abierta' ? 'Por Definir' : paymentOption;
-    const paymentAmount = paymentStatus === 'Pagado' ? pricePlanAmount : 0;
+    const isUpfrontPayment = paymentOption !== 'Cuenta Abierta';
+    const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
+    const paymentMethod = isUpfrontPayment ? paymentOption : 'Por Definir';
+    const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
 
     const reservationRef = doc(collection(db, 'reservations'));
     const reservationPayload: Omit<Reservation, 'id'> = {
@@ -117,6 +118,31 @@ export async function createReservation(values: z.infer<typeof reservationAction
       paymentAmount,
     };
     batch.set(reservationRef, reservationPayload);
+
+    if (isUpfrontPayment) {
+        const invoiceRef = doc(collection(db, 'invoices'));
+        
+        const invoiceItems = [{
+            description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
+            quantity: 1,
+            unitPrice: pricePlanAmount,
+            total: pricePlanAmount
+        }];
+
+        const newInvoice: Omit<Invoice, 'id'> = {
+            reservationId: reservationRef.id,
+            clientId: guestId,
+            clientName: guestName,
+            createdAt: Timestamp.now(),
+            status: 'Pagada',
+            items: invoiceItems,
+            subtotal: pricePlanAmount,
+            taxes: [], // Taxes logic can be added later
+            total: pricePlanAmount,
+            paymentMethod: paymentMethod,
+        };
+        batch.set(invoiceRef, newInvoice);
+    }
 
     if (checkInNow) {
         const stayRef = doc(collection(db, 'stays'));
@@ -354,5 +380,7 @@ export async function deleteReservation(reservationId: string) {
         return { error: 'No se pudo eliminar la reservación.' };
     }
 }
+
+    
 
     

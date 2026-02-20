@@ -172,3 +172,34 @@ export interface Tax {
   percentage: number;
   description?: string;
 }
+
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface AppliedTax {
+    taxId: string;
+    name: string;
+    percentage: number;
+    amount: number;
+}
+
+export interface Invoice {
+    id: string;
+    reservationId?: string;
+    stayId?: string;
+    clientId?: string;
+    clientName: string;
+    createdAt: Timestamp;
+    status: 'Pagada' | 'Pendiente' | 'Anulada';
+    items: InvoiceItem[];
+    subtotal: number;
+    taxes: AppliedTax[];
+    total: number;
+    paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+}
+
+    
