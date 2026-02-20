@@ -51,6 +51,7 @@ interface EditServiceDialogProps {
 
 const serviceSchema = z.object({
   id: z.string().optional(),
+  code: z.string().optional(),
   name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
   price: z.coerce.number().min(0, 'El precio de venta no puede ser negativo.'),
   costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
@@ -94,6 +95,7 @@ export default function EditServiceDialog({ children, service, allServices, open
     resolver: zodResolver(serviceSchema),
     defaultValues: service || {
       name: '',
+      code: '',
       price: 0,
       costPrice: 0,
       stock: 0,
@@ -128,6 +130,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         isActive: service.isActive !== false,
       } : {
         name: '',
+        code: '',
         price: 0,
         costPrice: 0,
         stock: 0,
@@ -314,20 +317,36 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
               />
             </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>Nombre del Producto</FormLabel>
+                    <FormControl>
+                      <Input placeholder="p.ej., Botella de Agua" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código</FormLabel>
+                    <FormControl>
+                      <Input readOnly placeholder="Auto-generado" {...field} className="bg-muted text-center font-mono" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del Producto</FormLabel>
-                  <FormControl>
-                    <Input placeholder="p.ej., Botella de Agua" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="category"

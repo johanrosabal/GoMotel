@@ -224,6 +224,10 @@
           "type": "string",
           "description": "Unique identifier for the Service entity."
         },
+        "code": {
+          "type": "string",
+          "description": "A unique, auto-incrementing code for the product (e.g., P001)."
+        },
         "name": {
           "type": "string",
           "description": "The name of the service (e.g., bottled water, sandwich)."

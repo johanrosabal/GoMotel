@@ -107,6 +107,7 @@ export default function InventoryTable({ initialServices, allServices }: Invento
         <Table>
         <TableHeader>
             <TableRow>
+            <TableHead>Código</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Categoría</TableHead>
             <TableHead className="text-right">Precio</TableHead>
@@ -119,6 +120,9 @@ export default function InventoryTable({ initialServices, allServices }: Invento
         <TableBody>
             {services.map((service) => (
             <TableRow key={service.id}>
+                <TableCell>
+                  <Badge variant="outline">{service.code}</Badge>
+                </TableCell>
                 <TableCell className="font-medium">{service.name}</TableCell>
                 <TableCell>
                 <Badge variant="secondary">{categoryMap[service.category]}</Badge>

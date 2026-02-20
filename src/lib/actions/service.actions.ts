@@ -10,6 +10,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  runTransaction,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -22,6 +23,7 @@ const toServiceObject = (doc: any): Service => {
   return {
     id: doc.id,
     name: data.name,
+    code: data.code,
     price: data.price,
     costPrice: data.costPrice,
     stock: data.stock,
@@ -55,6 +57,7 @@ export async function getServices(): Promise<Service[]> {
 
 const serviceSchema = z.object({
   id: z.string().optional(),
+  code: z.string().optional(),
   name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
   costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
@@ -77,7 +80,13 @@ export async function saveService(formData: FormData) {
     };
   }
 
-  const { id, ...serviceData } = validatedFields.data;
+  const { id, ...serviceDataToSave } = validatedFields.data;
+  const serviceData: Record<string, any> = serviceDataToSave;
+
+  // If imageUrl is an empty string (from form submission), treat as null to remove from Firestore.
+  if (serviceData.imageUrl === '') {
+      serviceData.imageUrl = null;
+  }
 
   try {
     if (id) {
@@ -85,14 +94,35 @@ export async function saveService(formData: FormData) {
       const serviceRef = doc(db, 'services', id);
       await updateDoc(serviceRef, serviceData);
     } else {
-      // Add new service
-      await addDoc(collection(db, 'services'), serviceData);
+      // Add new service with incremental code in a transaction
+      await runTransaction(db, async (transaction) => {
+        const servicesCollection = collection(db, 'services');
+        const servicesSnapshot = await transaction.get(query(servicesCollection));
+        
+        const existingCodes = servicesSnapshot.docs
+          .map(d => d.data().code)
+          .filter(Boolean) // Filter out services without a code
+          .map(code => parseInt(String(code).replace(/\D/g, ''), 10)) // Extract numbers
+          .filter(num => !isNaN(num));
+
+        const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+        const newCode = `P${String(nextCodeNumber).padStart(3, '0')}`;
+
+        const newServiceRef = doc(servicesCollection);
+        transaction.set(newServiceRef, { 
+            ...serviceData, 
+            code: newCode 
+        });
+      });
     }
     revalidatePath('/inventory');
     revalidatePath('/catalog');
     return { success: true };
   } catch (error) {
     console.error('Failed to save service:', error);
+    if (error instanceof Error) {
+        return { error: error.message };
+    }
     return { error: 'Ocurrió un error inesperado.' };
   }
 }

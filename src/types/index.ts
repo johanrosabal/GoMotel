@@ -49,6 +49,7 @@ export interface ProductSubCategory {
 export interface Service {
   id:string;
   name: string;
+  code?: string;
   price: number;
   costPrice?: number;
   stock: number;
