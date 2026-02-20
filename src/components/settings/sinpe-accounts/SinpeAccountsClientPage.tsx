@@ -47,7 +47,7 @@ function ActionsMenu({ account }: { account: SinpeAccount }) {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Está seguro de eliminar?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta SINPE asociada al número "{account.phoneNumber}".
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta SINPE de "{account.accountHolder}".
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -66,7 +66,7 @@ export default function SinpeAccountsClientPage() {
 
     const sinpeAccountsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, "sinpeAccounts"), orderBy("phoneNumber"));
+        return query(collection(firestore, "sinpeAccounts"), orderBy("accountHolder"));
     }, [firestore]);
 
     const { data: sinpeAccounts, isLoading } = useCollection<SinpeAccount>(sinpeAccountsQuery);
@@ -92,10 +92,12 @@ export default function SinpeAccountsClientPage() {
                         <Card key={account.id}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
-                                    <CardTitle>{account.phoneNumber}</CardTitle>
+                                    <div>
+                                        <CardTitle>{account.accountHolder}</CardTitle>
+                                        <CardDescription>{account.phoneNumber} - {account.bankName}</CardDescription>
+                                    </div>
                                     <ActionsMenu account={account} />
                                 </div>
-                                <CardDescription>{account.bankName}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground">Saldo Actual</p>
@@ -112,3 +114,4 @@ export default function SinpeAccountsClientPage() {
         </div>
     );
 }
+    

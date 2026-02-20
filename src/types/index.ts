@@ -204,8 +204,11 @@ export interface Invoice {
 
 export interface SinpeAccount {
   id: string;
+  accountHolder: string;
   phoneNumber: string;
   bankName: string;
   balance: number;
   createdAt: Timestamp;
 }
+
+    

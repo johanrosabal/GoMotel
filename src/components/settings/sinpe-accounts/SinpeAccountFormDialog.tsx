@@ -14,6 +14,7 @@ import { saveSinpeAccount } from '@/lib/actions/sinpe.actions';
 
 const sinpeAccountSchema = z.object({
   id: z.string().optional(),
+  accountHolder: z.string().min(3, 'El nombre del titular es requerido.'),
   phoneNumber: z.string().min(8, 'El número de teléfono es requerido.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
@@ -31,17 +32,17 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
 
   const form = useForm<z.infer<typeof sinpeAccountSchema>>({
     resolver: zodResolver(sinpeAccountSchema),
-    defaultValues: account || { phoneNumber: '', bankName: '', balance: 0 },
+    defaultValues: account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0 },
   });
 
   useEffect(() => {
-    form.reset(account || { phoneNumber: '', bankName: '', balance: 0 });
+    form.reset(account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0 });
   }, [account, open, form]);
 
   const onSubmit = (values: z.infer<typeof sinpeAccountSchema>) => {
     startTransition(async () => {
       await saveSinpeAccount(values);
-      toast({ title: 'Éxito', description: `Cuenta SINPE para el número ${values.phoneNumber} guardada.` });
+      toast({ title: 'Éxito', description: `Cuenta SINPE para ${values.accountHolder} guardada.` });
       onOpenChange(false);
     });
   };
@@ -52,11 +53,24 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
         <DialogHeader>
           <DialogTitle>{account ? 'Editar Cuenta SINPE' : 'Nueva Cuenta SINPE'}</DialogTitle>
           <DialogDescription>
-            {account ? `Editando la cuenta del número ${account.phoneNumber}.` : 'Añada una nueva cuenta SINPE para recibir pagos.'}
+            {account ? `Editando la cuenta de ${account.accountHolder}.` : 'Añada una nueva cuenta SINPE para recibir pagos.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="accountHolder"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Titular de la Cuenta</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: Juan Pérez" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="phoneNumber"
@@ -95,3 +109,4 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
     </Dialog>
   );
 }
+    

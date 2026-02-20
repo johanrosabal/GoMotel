@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 
 const sinpeAccountSchema = z.object({
   id: z.string().optional(),
+  accountHolder: z.string().min(3, 'El nombre del titular es requerido.'),
   phoneNumber: z.string().min(8, 'El número de teléfono es requerido.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
@@ -54,3 +55,5 @@ export async function deleteSinpeAccount(id: string) {
         return { error: 'No se pudo eliminar la cuenta SINPE.' };
     }
 }
+
+    
