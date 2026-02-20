@@ -35,6 +35,8 @@ import { saveService } from '@/lib/actions/service.actions';
 import type { Service, ProductCategory, ProductSubCategory } from '@/types';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -49,12 +51,14 @@ interface EditServiceDialogProps {
 const serviceSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
-  price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
+  price: z.coerce.number().min(0, 'El precio de venta no puede ser negativo.'),
+  costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
+  description: z.string().optional(),
+  imageUrl: z.string().url('URL de imagen no válida.').optional().or(z.literal('')),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
-  description: z.string().optional(),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -80,17 +84,20 @@ export default function EditServiceDialog({ children, service, allServices, open
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [priceInput, setPriceInput] = useState('');
+  const [costPriceInput, setCostPriceInput] = useState('');
 
   const form = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: service || {
       name: '',
       price: 0,
+      costPrice: 0,
       stock: 0,
       category: 'Food',
+      description: '',
+      imageUrl: '',
       categoryId: preselectedCategoryId,
       subCategoryId: preselectedSubCategoryId,
-      description: '',
     },
   });
 
@@ -110,18 +117,23 @@ export default function EditServiceDialog({ children, service, allServices, open
       const defaultValues = service ? {
         ...service,
         categoryId: service.categoryId || preselectedCategoryId,
-        subCategoryId: service.subCategoryId || preselectedSubCategoryId
+        subCategoryId: service.subCategoryId || preselectedSubCategoryId,
+        imageUrl: service.imageUrl || '',
+        costPrice: service.costPrice || 0,
       } : {
         name: '',
         price: 0,
+        costPrice: 0,
         stock: 0,
         category: 'Food',
+        description: '',
+        imageUrl: '',
         categoryId: preselectedCategoryId,
         subCategoryId: preselectedSubCategoryId,
-        description: '',
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
+      setCostPriceInput(numberToString(defaultValues.costPrice || 0));
     }
   }, [open, service, form, preselectedCategoryId, preselectedSubCategoryId]);
 
@@ -143,6 +155,25 @@ export default function EditServiceDialog({ children, service, allServices, open
     setPriceInput(formattedValue);
     form.setValue('price', stringToNumber(formattedValue));
   };
+  
+  const handleCostPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d]/g, '');
+    if (value === '') {
+        setCostPriceInput('');
+        form.setValue('costPrice', 0);
+        return;
+    }
+    value = value.replace(/^0+/, '');
+    while (value.length < 3) {
+      value = '0' + value;
+    }
+    const integerPart = value.slice(0, value.length - 2);
+    const decimalPart = value.slice(value.length - 2);
+    const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10) || 0);
+    const formattedValue = `${formattedInteger}.${decimalPart}`;
+    setCostPriceInput(formattedValue);
+    form.setValue('costPrice', stringToNumber(formattedValue));
+  };
 
 
   const onSubmit = (values: z.infer<typeof serviceSchema>) => {
@@ -150,6 +181,8 @@ export default function EditServiceDialog({ children, service, allServices, open
     if(values.id) formData.append('id', values.id);
     formData.append('name', values.name);
     formData.append('price', String(values.price));
+    if (values.costPrice) formData.append('costPrice', String(values.costPrice));
+    if (values.imageUrl) formData.append('imageUrl', values.imageUrl);
     formData.append('stock', String(values.stock));
     formData.append('category', values.category);
     if (values.categoryId) formData.append('categoryId', values.categoryId);
@@ -189,6 +222,27 @@ export default function EditServiceDialog({ children, service, allServices, open
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL de la Imagen (Opcional)</FormLabel>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-20 w-20 rounded-md">
+                      <AvatarImage src={field.value || undefined} alt={form.getValues('name')} className="object-cover" />
+                      <AvatarFallback className="rounded-md">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <FormControl>
+                      <Input placeholder="https://ejemplo.com/imagen.png" {...field} />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
                <FormField
                 control={form.control}
@@ -261,12 +315,31 @@ export default function EditServiceDialog({ children, service, allServices, open
               )}
             />
             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Precio de Costo</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={costPriceInput}
+                        onChange={handleCostPriceChange}
+                        className="text-right"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Precio</FormLabel>
+                    <FormLabel>Precio de Venta</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
@@ -280,7 +353,8 @@ export default function EditServiceDialog({ children, service, allServices, open
                   </FormItem>
                 )}
               />
-              <FormField
+            </div>
+             <FormField
                 control={form.control}
                 name="stock"
                 render={({ field }) => (
@@ -293,7 +367,6 @@ export default function EditServiceDialog({ children, service, allServices, open
                   </FormItem>
                 )}
               />
-            </div>
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar Producto'}

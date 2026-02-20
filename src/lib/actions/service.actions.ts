@@ -23,9 +23,11 @@ const toServiceObject = (doc: any): Service => {
     id: doc.id,
     name: data.name,
     price: data.price,
+    costPrice: data.costPrice,
     stock: data.stock,
     category: data.category,
     description: data.description,
+    imageUrl: data.imageUrl,
     categoryId: data.categoryId,
     subCategoryId: data.subCategoryId,
   };
@@ -54,9 +56,11 @@ const serviceSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre del servicio es demasiado corto.'),
   price: z.coerce.number().min(0, 'El precio no puede ser negativo.'),
+  costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   category: z.enum(['Food', 'Beverage', 'Amenity']),
   description: z.string().optional(),
+  imageUrl: z.string().url('URL de imagen no válida.').optional().or(z.literal('')),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
 });

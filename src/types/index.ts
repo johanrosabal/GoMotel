@@ -50,9 +50,11 @@ export interface Service {
   id:string;
   name: string;
   price: number;
+  costPrice?: number;
   stock: number;
   category: 'Food' | 'Beverage' | 'Amenity';
   description?: string;
+  imageUrl?: string;
   categoryId?: string;
   subCategoryId?: string;
 }
