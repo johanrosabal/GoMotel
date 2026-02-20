@@ -34,6 +34,7 @@ const toServiceObject = (doc: any): Service => {
     categoryId: data.categoryId,
     subCategoryId: data.subCategoryId,
     isActive: data.isActive,
+    taxIds: data.taxIds || [],
   };
 };
 
@@ -70,11 +71,11 @@ const serviceSchema = z.object({
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
   isActive: z.coerce.boolean().optional().default(true),
+  taxIds: z.array(z.string()).optional(),
 });
 
-export async function saveService(formData: FormData) {
-  const rawData = Object.fromEntries(formData.entries());
-  const validatedFields = serviceSchema.safeParse(rawData);
+export async function saveService(values: z.infer<typeof serviceSchema>) {
+  const validatedFields = serviceSchema.safeParse(values);
 
   if (!validatedFields.success) {
     return {
@@ -83,7 +84,10 @@ export async function saveService(formData: FormData) {
   }
 
   const { id, ...serviceDataToSave } = validatedFields.data;
-  const serviceData: Record<string, any> = serviceDataToSave;
+  const serviceData: Record<string, any> = {
+    ...serviceDataToSave,
+    taxIds: serviceDataToSave.taxIds || [],
+  };
 
   // If imageUrl is an empty string (from form submission), treat as null to remove from Firestore.
   if (serviceData.imageUrl === '') {

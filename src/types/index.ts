@@ -60,6 +60,7 @@ export interface Service {
   categoryId?: string;
   subCategoryId?: string;
   isActive?: boolean;
+  taxIds?: string[];
 }
 
 export interface StayExtension {

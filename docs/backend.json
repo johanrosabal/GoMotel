@@ -259,6 +259,13 @@
         "isActive": {
           "type": "boolean",
           "description": "Indicates if the product is active and available for sale."
+        },
+        "taxIds": {
+          "type": "array",
+          "description": "A list of tax IDs applicable to this service.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

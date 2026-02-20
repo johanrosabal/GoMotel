@@ -4,6 +4,7 @@ import { useState, useTransition, type ReactNode, useEffect, useRef } from 'reac
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
@@ -32,12 +33,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveService } from '@/lib/actions/service.actions';
-import type { Service, ProductCategory, ProductSubCategory } from '@/types';
+import type { Service, ProductCategory, ProductSubCategory, Tax } from '@/types';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Image as ImageIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -63,6 +65,7 @@ const serviceSchema = z.object({
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
   isActive: z.boolean().optional().default(true),
+  taxIds: z.array(z.string()).optional(),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -107,6 +110,7 @@ export default function EditServiceDialog({ children, service, allServices, open
       categoryId: preselectedCategoryId,
       subCategoryId: preselectedSubCategoryId,
       isActive: true,
+      taxIds: [],
     },
   });
 
@@ -121,6 +125,9 @@ export default function EditServiceDialog({ children, service, allServices, open
   }, [firestore, selectedCategoryId]);
   const { data: subCategories, isLoading: isLoadingSubCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
 
+  const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes'), orderBy('name')) : null, [firestore]);
+  const { data: taxes, isLoading: isLoadingTaxes } = useCollection<Tax>(taxesQuery);
+
   useEffect(() => {
     if (open) {
       const defaultValues = service ? {
@@ -131,6 +138,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         costPrice: service.costPrice || 0,
         minStock: service.minStock ?? 10,
         isActive: service.isActive !== false,
+        taxIds: service.taxIds || [],
       } : {
         name: '',
         code: '',
@@ -144,6 +152,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         categoryId: preselectedCategoryId,
         subCategoryId: preselectedSubCategoryId,
         isActive: true,
+        taxIds: [],
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
@@ -205,22 +214,8 @@ export default function EditServiceDialog({ children, service, allServices, open
 
 
   const onSubmit = (values: z.infer<typeof serviceSchema>) => {
-    const formData = new FormData();
-    if(values.id) formData.append('id', values.id);
-    formData.append('name', values.name);
-    formData.append('price', String(values.price));
-    if (values.costPrice) formData.append('costPrice', String(values.costPrice));
-    if (values.imageUrl) formData.append('imageUrl', values.imageUrl);
-    formData.append('stock', String(values.stock));
-    if (values.minStock != null) formData.append('minStock', String(values.minStock));
-    formData.append('category', values.category);
-    if (values.categoryId) formData.append('categoryId', values.categoryId);
-    if (values.subCategoryId) formData.append('subCategoryId', values.subCategoryId);
-    if (values.description) formData.append('description', values.description);
-    formData.append('isActive', String(values.isActive));
-
     startTransition(async () => {
-      const result = await saveService(formData);
+      const result = await saveService(values);
       if (result.error) {
         const errorDescription = typeof result.error === 'object'
           ? Object.values(result.error).flat().join(' \n')
@@ -468,6 +463,48 @@ export default function EditServiceDialog({ children, service, allServices, open
                     )}
                 />
             </div>
+             <FormField
+              control={form.control}
+              name="taxIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Impuestos Aplicables</FormLabel>
+                  <div className="space-y-3 rounded-md border p-4 max-h-40 overflow-y-auto">
+                    {isLoadingTaxes ? (
+                      <p className="text-sm text-muted-foreground">Cargando impuestos...</p>
+                    ) : taxes && taxes.length > 0 ? (
+                      taxes.map((tax) => (
+                        <FormItem
+                          key={tax.id}
+                          className="flex flex-row items-start space-x-3 space-y-0"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(tax.id)}
+                              onCheckedChange={(checked) => {
+                                return checked
+                                  ? field.onChange([...(field.value || []), tax.id])
+                                  : field.onChange(
+                                      field.value?.filter(
+                                        (value) => value !== tax.id
+                                      )
+                                    )
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {tax.name} ({tax.percentage}%)
+                          </FormLabel>
+                        </FormItem>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay impuestos configurados. <Link href="/settings/taxes" className="text-primary underline">Crear uno</Link></p>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Guardando...' : 'Guardar Producto'}
