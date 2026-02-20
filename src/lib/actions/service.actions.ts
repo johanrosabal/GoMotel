@@ -70,7 +70,7 @@ const serviceSchema = z.object({
   imageUrl: z.string().optional(),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
-  isActive: z.coerce.boolean().optional().default(true),
+  isActive: z.boolean().optional().default(true),
   taxIds: z.array(z.string()).optional(),
 });
 
@@ -82,23 +82,24 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
       error: validatedFields.error.flatten().fieldErrors,
     };
   }
-
-  const { id, ...data } = validatedFields.data;
+  
+  const { id, code, ...data } = validatedFields.data;
 
   // Explicitly build the object to be saved to prevent any undefined values.
+  // This is a more robust way to handle optional fields.
   const serviceData = {
     name: data.name,
     price: data.price,
-    costPrice: data.costPrice ?? null,
     stock: data.stock,
-    minStock: data.minStock ?? 10,
     category: data.category,
-    description: data.description ?? null,
-    imageUrl: data.imageUrl || null, // Handle empty string from form
-    categoryId: data.categoryId || null,
-    subCategoryId: data.subCategoryId || null,
-    isActive: data.isActive !== false, // Default to true if undefined
-    taxIds: data.taxIds || [], // Ensure it's always an array
+    costPrice: data.costPrice ?? 0,
+    minStock: data.minStock ?? 10,
+    description: data.description ?? '',
+    imageUrl: data.imageUrl ?? null,
+    categoryId: data.categoryId ?? null,
+    subCategoryId: data.subCategoryId ?? null,
+    isActive: data.isActive ?? true,
+    taxIds: data.taxIds ?? [],
   };
 
   try {
@@ -107,7 +108,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
       const serviceRef = doc(db, 'services', id);
       await updateDoc(serviceRef, {
         ...serviceData,
-        code: data.code, // Pass code for updates
+        code: code, // Pass code for updates
       });
     } else {
       // Add new service with incremental code in a transaction
