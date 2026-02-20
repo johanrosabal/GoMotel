@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Percent,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -66,6 +67,10 @@ export function CommandMenu({ open, setOpen }: Props) {
            <CommandItem onSelect={() => runCommand(() => router.push('/users'))}>
             <Users className="mr-2 h-4 w-4" />
             <span>Gestión de Usuarios</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push('/settings/taxes'))}>
+            <Percent className="mr-2 h-4 w-4" />
+            <span>Gestión de Impuestos</span>
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />

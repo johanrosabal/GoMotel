@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble, Bell } from 'lucide-react';
+import { BedDouble, Bell, Percent } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -30,6 +30,17 @@ export default function SettingsPage() {
                 <CardContent>
                     <Link href="/settings/sounds">
                         <Button>Seleccionar Sonido</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><Percent /> Gestión de Impuestos</CardTitle>
+                    <CardDescription>Defina los impuestos aplicables a productos y servicios.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/taxes">
+                        <Button>Administrar</Button>
                     </Link>
                 </CardContent>
             </Card>

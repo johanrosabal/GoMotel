@@ -658,6 +658,33 @@
         "role",
         "status"
       ]
+    },
+    "Tax": {
+      "title": "Tax",
+      "type": "object",
+      "description": "Represents a tax rate applicable to services or products.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Tax."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tax (e.g., IVA, Sales Tax)."
+        },
+        "percentage": {
+          "type": "number",
+          "description": "The tax rate as a percentage (e.g., 13 for 13%)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the tax."
+        }
+      },
+      "required": [
+        "name",
+        "percentage"
+      ]
     }
   },
   "auth": {
@@ -823,6 +850,22 @@
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/taxes/{taxId}",
+        "definition": {
+          "entityName": "Tax",
+          "schema": {
+            "$ref": "#/backend/entities/Tax"
+          },
+          "description": "Stores tax rates applicable to products and services. Requires admin privileges.",
+          "params": [
+            {
+              "name": "taxId",
+              "description": "The unique identifier for the tax."
             }
           ]
         }

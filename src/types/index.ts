@@ -159,3 +159,10 @@ export interface Client {
   visitCount?: number;
   createdAt: Timestamp;
 }
+
+export interface Tax {
+  id: string;
+  name: string;
+  percentage: number;
+  description?: string;
+}
