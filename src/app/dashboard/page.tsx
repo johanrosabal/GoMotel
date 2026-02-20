@@ -26,6 +26,7 @@ import {
   Sparkles,
   BookCopy,
   Percent,
+  Smartphone,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -150,6 +151,12 @@ export default async function DashboardPage() {
           title: 'Gestión de Impuestos',
           description: 'Define y gestiona los impuestos aplicables.',
           icon: Percent,
+        },
+        {
+            href: '/settings/sinpe-accounts',
+            title: 'Gestión de SINPE',
+            description: 'Administra las cuentas SINPE Móvil para pagos.',
+            icon: Smartphone,
         },
         {
           href: '/settings',

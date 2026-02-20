@@ -202,4 +202,10 @@ export interface Invoice {
     paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
 }
 
-    
+export interface SinpeAccount {
+  id: string;
+  phoneNumber: string;
+  bankName: string;
+  balance: number;
+  createdAt: Timestamp;
+}

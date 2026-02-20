@@ -11,12 +11,13 @@ import {
   addDoc,
   getDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  increment,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../firebase';
-import type { Reservation, Stay, RoomType, Invoice } from '@/types';
+import type { Reservation, Stay, RoomType, Invoice, SinpeAccount } from '@/types';
 import { checkOut } from './room.actions';
 
 const reservationActionSchema = z.object({
@@ -124,8 +125,18 @@ export async function createReservation(values: z.infer<typeof reservationAction
     batch.set(reservationRef, reservationPayload);
 
     if (isUpfrontPayment) {
-        const invoiceRef = doc(collection(db, 'invoices'));
+        if (paymentMethod === 'Sinpe Movil') {
+            const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'));
+            const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+            if (!sinpeAccountsSnapshot.empty) {
+                const firstAccount = sinpeAccountsSnapshot.docs[0];
+                batch.update(firstAccount.ref, { balance: increment(paymentAmount) });
+            } else {
+                console.warn("SINPE Movil payment received, but no SINPE accounts are configured.");
+            }
+        }
         
+        const invoiceRef = doc(collection(db, 'invoices'));
         const invoiceItems = [{
             description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
             quantity: 1,
@@ -177,7 +188,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
             const clientSnap = await getDoc(clientRef);
             if (clientSnap.exists()) {
                 const currentCount = clientSnap.data().visitCount || 0;
-                batch.update(clientRef, { visitCount: currentCount + 1 });
+                batch.update(clientRef, { visitCount: increment(1) });
             }
         }
     }
@@ -189,6 +200,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     revalidatePath('/dashboard/rooms');
     revalidatePath(`/rooms/${roomId}`);
     if (guestId) revalidatePath('/clients');
+    if (paymentMethod === 'Sinpe Movil') revalidatePath('/settings/sinpe-accounts');
 
 
     return { success: true };
@@ -272,7 +284,7 @@ export async function checkInFromReservation(reservationId: string) {
         const clientSnap = await getDoc(clientRef);
         if (clientSnap.exists()) {
             const currentCount = clientSnap.data().visitCount || 0;
-            batch.update(clientRef, { visitCount: currentCount + 1 });
+            batch.update(clientRef, { visitCount: increment(1) });
         }
     }
 
@@ -388,3 +400,4 @@ export async function deleteReservation(reservationId: string) {
     
 
     
+
