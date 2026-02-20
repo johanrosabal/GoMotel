@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 const sinpeAccountSchema = z.object({
   id: z.string().optional(),
   accountHolder: z.string().min(3, 'El nombre del titular es requerido.'),
-  phoneNumber: z.string().min(8, 'El número de teléfono es requerido.'),
+  phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
 });

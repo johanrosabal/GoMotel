@@ -15,7 +15,7 @@ import { saveSinpeAccount } from '@/lib/actions/sinpe.actions';
 const sinpeAccountSchema = z.object({
   id: z.string().optional(),
   accountHolder: z.string().min(3, 'El nombre del titular es requerido.'),
-  phoneNumber: z.string().min(8, 'El número de teléfono es requerido.'),
+  phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
   bankName: z.string().min(2, 'El nombre del banco es requerido.'),
   balance: z.coerce.number().optional(),
 });
@@ -38,6 +38,23 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
   useEffect(() => {
     form.reset(account || { accountHolder: '', phoneNumber: '', bankName: '', balance: 0 });
   }, [account, open, form]);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    let numbers = e.target.value.replace(/\D/g, '');
+    
+    if (numbers.startsWith('506')) {
+      numbers = numbers.substring(3);
+    }
+    const value = numbers.slice(0, 8);
+    let maskedValue = '';
+    if (value.length > 0) {
+      maskedValue = `(506) ${value.slice(0, 4)}`;
+      if (value.length > 4) {
+        maskedValue += `-${value.slice(4)}`;
+      }
+    }
+    fieldOnChange(maskedValue);
+  };
 
   const onSubmit = (values: z.infer<typeof sinpeAccountSchema>) => {
     startTransition(async () => {
@@ -78,7 +95,11 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                 <FormItem>
                   <FormLabel>Número de Teléfono</FormLabel>
                   <FormControl>
-                    <Input placeholder="88888888" {...field} />
+                    <Input
+                      placeholder="(506) 8888-8888"
+                      {...field}
+                      onChange={(e) => handlePhoneChange(e, field.onChange)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
