@@ -217,4 +217,13 @@ export interface SinpeAccount {
   createdAt: Timestamp;
 }
 
-    
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  createdAt: Timestamp;
+}

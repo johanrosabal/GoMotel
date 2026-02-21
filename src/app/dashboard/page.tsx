@@ -28,6 +28,7 @@ import {
   Percent,
   Smartphone,
   Receipt,
+  Truck,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -170,6 +171,12 @@ export default async function DashboardPage() {
             title: 'Facturación',
             description: 'Consulte el historial de todas las facturas generadas.',
             icon: Receipt,
+        },
+        {
+          href: '/suppliers',
+          title: 'Gestión de Proveedores',
+          description: 'Administre los proveedores de sus productos.',
+          icon: Truck,
         },
         {
           href: '/settings',
