@@ -15,9 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 import type { Service } from '@/types';
 import { createOrder } from '@/lib/actions/order.actions';
 import { ScrollArea } from '../ui/scroll-area';
-import { Plus, Minus, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, ImageIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { updateInventory } from '@/ai/flows/realtime-inventory-updates';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface OrderServiceDialogProps {
   children: ReactNode;
@@ -35,6 +36,8 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   const [isPending, startTransition] = useTransition();
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
+
+  const activeServices = availableServices.filter(s => s.isActive);
 
   const handleAddToCart = (service: Service) => {
     setCart((prevCart) => {
@@ -107,11 +110,19 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 <h3 className="font-semibold mb-2">Servicios Disponibles</h3>
                 <ScrollArea className="flex-1 pr-4 border rounded-lg">
                     <div className='p-2 space-y-2'>
-                    {availableServices.map((service) => (
+                    {activeServices.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-2 rounded-md border">
-                            <div>
-                                <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - {service.source === 'Internal' ? 'Producción Interna' : `Existencias: ${service.stock}`}</p>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-12 w-12 rounded-md">
+                                    <AvatarImage src={service.imageUrl || undefined} alt={service.name} className="object-cover" />
+                                    <AvatarFallback className="rounded-md bg-muted">
+                                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-medium">{service.name}</p>
+                                    <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - {service.source === 'Internal' ? 'Producción Interna' : `Existencias: ${service.stock}`}</p>
+                                </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
