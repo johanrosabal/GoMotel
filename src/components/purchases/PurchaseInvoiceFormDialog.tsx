@@ -47,6 +47,21 @@ interface PurchaseInvoiceFormDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const stringToNumber = (numString: string): number => {
+    if (!numString) return 0;
+    const sanitized = numString.replace(/,/g, '');
+    return parseFloat(sanitized);
+};
+
+const numberToString = (num: number): string => {
+    if (isNaN(num) || num === null || num === 0) return '';
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+};
+
+
 export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -56,7 +71,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceDay, setInvoiceDay] = useState<string>('');
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
   const [invoiceYear, setInvoiceYear] = useState<string>('');
-  const [supplierSearch, setSupplierSearch] = useState('');
+  const [costPriceInputs, setCostPriceInputs] = useState<string[]>([]);
+
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -87,14 +103,20 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const items = form.watch('items');
   const taxesIncluded = form.watch('taxesIncluded');
 
+  useEffect(() => {
+    setCostPriceInputs(items.map(item => numberToString(item.costPrice)));
+  }, [items]);
+
   const availableProducts = useMemo(() => {
     if (!services) return [];
     return services.filter(service => {
       const notInCart = !fields.some(field => field.serviceId === service.id);
       if (!notInCart) return false;
+      // If a supplier is selected, show products from that supplier OR products with no supplier
       if (selectedSupplierId) {
         return !service.supplierId || service.supplierId === selectedSupplierId;
       }
+      // If no supplier is selected, show all products not in cart
       return true;
     });
   }, [services, selectedSupplierId, fields]);
@@ -103,13 +125,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     if (!productSearch) return availableProducts;
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
-
-  const searchedSuppliers = useMemo(() => {
-    if (!suppliers) return [];
-    if (!supplierSearch) return suppliers;
-    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  }, [suppliers, supplierSearch]);
-
 
   const { subtotal, totalTax, totalAmount } = useMemo(() => {
     let currentSubtotal = 0;
@@ -187,6 +202,42 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       }
     }
   }, [invoiceDay, invoiceMonth, invoiceYear, form]);
+
+  const handleCostPriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    let value = e.target.value.replace(/[^\d]/g, '');
+
+    // Limit to 8 digits for the integer part
+    if (value.length > 10) { // 8 for integer, 2 for decimal
+      value = value.slice(0, 10);
+    }
+    
+    if (value === '') {
+        const newCostPriceInputs = [...costPriceInputs];
+        newCostPriceInputs[index] = '';
+        setCostPriceInputs(newCostPriceInputs);
+        form.setValue(`items.${index}.costPrice`, 0, { shouldValidate: true });
+        return;
+    }
+    
+    value = value.replace(/^0+/, '');
+    
+    while (value.length < 3) {
+      value = '0' + value;
+    }
+
+    const integerPart = value.slice(0, value.length - 2);
+    const decimalPart = value.slice(value.length - 2);
+    
+    const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10) || 0);
+
+    const formattedValue = `${formattedInteger}.${decimalPart}`;
+    
+    const newInputs = [...costPriceInputs];
+    newInputs[index] = formattedValue;
+    setCostPriceInputs(newInputs);
+    
+    form.setValue(`items.${index}.costPrice`, stringToNumber(formattedValue), { shouldValidate: true });
+};
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => String(currentYear - i));
@@ -331,7 +382,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
             </div>
             
             <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                <div className="flex justify-between items-center">
+                 <div className="flex justify-between items-center">
                     <h3 className="text-sm font-medium">Artículos de la Factura</h3>
                     <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
                         <PopoverTrigger asChild>
@@ -388,17 +439,22 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                         </TableCell>
                                          <TableCell>
                                             <Input
-                                              type="number"
-                                              step="0.01"
-                                              {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })}
+                                              type="text"
+                                              inputMode="decimal"
+                                              value={costPriceInputs[index] ?? ''}
+                                              onChange={(e) => handleCostPriceChange(e, index)}
                                               onKeyDown={(e) => {
                                                   if (['-', 'e', '+'].includes(e.key)) {
                                                       e.preventDefault();
                                                   }
                                               }}
-                                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                              min="0"
+                                              className="text-right"
                                             />
+                                            {form.formState.errors.items?.[index]?.costPrice && (
+                                                <p className="text-sm font-medium text-destructive pt-1">
+                                                    {form.formState.errors.items[index]?.costPrice?.message}
+                                                </p>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
                                         <TableCell>
