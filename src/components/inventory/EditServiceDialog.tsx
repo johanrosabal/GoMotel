@@ -590,7 +590,7 @@ export default function EditServiceDialog({ children, service, allServices, open
             </Form>
         </div>
 
-        <DialogFooter className="p-6 pt-4 border-t bg-background sticky bottom-0">
+        <DialogFooter className="p-6 pt-4 border-t bg-background">
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button type="submit" form="edit-service-form" disabled={isPending}>
             {isPending ? 'Guardando...' : 'Guardar Producto'}
