@@ -33,6 +33,7 @@ const reservationActionSchema = z.object({
   isOpenAccount: z.boolean(),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().optional(),
+  voucherNumber: z.string().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -47,6 +48,14 @@ const reservationActionSchema = z.object({
 }, {
     message: "El pago SINPE debe ser confirmado.",
     path: ["paymentConfirmed"],
+}).refine(data => {
+    if (!data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
+        return data.voucherNumber && data.voucherNumber.trim() !== '';
+    }
+    return true;
+}, {
+    message: "El número de voucher es requerido.",
+    path: ["voucherNumber"],
 });
 
 
@@ -58,7 +67,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -115,6 +124,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
     const paymentMethod = isUpfrontPayment ? upfrontPaymentMethod! : 'Por Definir';
     const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
+    
+    // --- Get Stay Ref if it's a direct check-in ---
+    const stayRef = checkInNow ? doc(collection(db, 'stays')) : null;
 
     const reservationRef = doc(collection(db, 'reservations'));
     const reservationPayload: Omit<Reservation, 'id'> = {
@@ -132,6 +144,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
       paymentStatus,
       paymentMethod,
       paymentAmount,
+      voucherNumber: voucherNumber ?? undefined,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -177,6 +190,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
 
         const newInvoice: Omit<Invoice, 'id'> = {
             reservationId: reservationRef.id,
+            stayId: stayRef?.id, // Use stayRef.id if it exists
             clientId: guestId,
             clientName: guestName,
             createdAt: Timestamp.now(),
@@ -186,12 +200,12 @@ export async function createReservation(values: z.infer<typeof reservationAction
             taxes: [], // Taxes logic can be added later
             total: pricePlanAmount,
             paymentMethod: paymentMethod,
+            voucherNumber: voucherNumber ?? undefined,
         };
         batch.set(invoiceRef, newInvoice);
     }
 
-    if (checkInNow) {
-        const stayRef = doc(collection(db, 'stays'));
+    if (checkInNow && stayRef) {
         const newStay: Omit<Stay, 'id'> = {
           roomId: roomId,
           roomNumber: roomData.number,
@@ -209,6 +223,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           paymentStatus,
           paymentMethod,
           paymentAmount,
+          voucherNumber: voucherNumber ?? undefined,
         };
         batch.set(stayRef, newStay);
         
@@ -218,7 +233,6 @@ export async function createReservation(values: z.infer<typeof reservationAction
             const clientRef = doc(db, 'clients', guestId);
             const clientSnap = await getDoc(clientRef);
             if (clientSnap.exists()) {
-                const currentCount = clientSnap.data().visitCount || 0;
                 batch.update(clientRef, { visitCount: increment(1) });
             }
         }
@@ -301,8 +315,20 @@ export async function checkInFromReservation(reservationId: string) {
       paymentStatus: reservation.paymentStatus,
       paymentMethod: reservation.paymentMethod,
       paymentAmount: reservation.paymentAmount,
+      voucherNumber: reservation.voucherNumber,
     };
     batch.set(stayRef, newStay);
+
+    // If reservation was paid upfront, find the invoice and add the stayId
+    if (reservation.paymentStatus === 'Pagado') {
+        const invoicesRef = collection(db, 'invoices');
+        const invoiceQuery = query(invoicesRef, where('reservationId', '==', reservationId));
+        const invoiceSnapshot = await getDocs(invoiceQuery);
+        if (!invoiceSnapshot.empty) {
+            const invoiceDoc = invoiceSnapshot.docs[0];
+            batch.update(invoiceDoc.ref, { stayId: stayRef.id });
+        }
+    }
     
     // Update room
     batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
@@ -314,7 +340,6 @@ export async function checkInFromReservation(reservationId: string) {
         const clientRef = doc(db, 'clients', guestId);
         const clientSnap = await getDoc(clientRef);
         if (clientSnap.exists()) {
-            const currentCount = clientSnap.data().visitCount || 0;
             batch.update(clientRef, { visitCount: increment(1) });
         }
     }
