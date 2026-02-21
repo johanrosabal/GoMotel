@@ -368,11 +368,12 @@ export default function EditServiceDialog({ children, service, allServices, open
                     <FormLabel>Proveedor (Opcional)</FormLabel>
                     <Select
                       onValueChange={(value) => {
-                        field.onChange(value);
-                        const supplier = suppliers?.find(s => s.id === value);
+                        const finalValue = value === 'none' ? '' : value;
+                        field.onChange(finalValue);
+                        const supplier = suppliers?.find(s => s.id === finalValue);
                         form.setValue('supplierName', supplier?.name || '');
                       }}
-                      value={field.value}
+                      value={field.value || 'none'}
                       disabled={isLoadingSuppliers}
                     >
                       <FormControl>
@@ -381,7 +382,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Ninguno</SelectItem>
+                        <SelectItem value="none">Ninguno</SelectItem>
                         {suppliers?.map(supplier => (
                           <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
                         ))}
@@ -558,5 +559,3 @@ export default function EditServiceDialog({ children, service, allServices, open
     </Dialog>
   );
 }
-
-    
