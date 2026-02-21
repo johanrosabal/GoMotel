@@ -56,6 +56,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceDay, setInvoiceDay] = useState<string>('');
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
   const [invoiceYear, setInvoiceYear] = useState<string>('');
+  const [supplierSearch, setSupplierSearch] = useState('');
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -102,6 +103,13 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     if (!productSearch) return availableProducts;
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
+
+  const searchedSuppliers = useMemo(() => {
+    if (!suppliers) return [];
+    if (!supplierSearch) return suppliers;
+    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
+
 
   const { subtotal, totalTax, totalAmount } = useMemo(() => {
     let currentSubtotal = 0;
@@ -244,28 +252,20 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     name="supplierId"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Proveedor</FormLabel>
-                        <Select
-                            onValueChange={(value) => {
-                                field.onChange(value);
-                                const supplier = suppliers?.find(s => s.id === value);
-                                form.setValue('supplierName', supplier?.name || '');
-                            }}
-                            value={field.value}
-                            disabled={isLoadingSuppliers}
-                        >
-                            <FormControl>
+                          <FormLabel>Proveedor</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
+                                <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
                                 </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {suppliers?.map(supplier => (
-                                <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
+                                </FormControl>
+                                <SelectContent>
+                                    {suppliers?.map(supplier => (
+                                    <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                          <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -374,10 +374,31 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                     <TableRow key={item.id}>
                                         <TableCell>{item.serviceName}</TableCell>
                                         <TableCell>
-                                            <Input type="number" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1" />
+                                            <Input
+                                              type="number"
+                                              {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
+                                              onKeyDown={(e) => {
+                                                  if (['-', 'e', '+', '.'].includes(e.key)) {
+                                                      e.preventDefault();
+                                                  }
+                                              }}
+                                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                              min="1"
+                                            />
                                         </TableCell>
                                          <TableCell>
-                                            <Input type="number" step="0.01" {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="0" />
+                                            <Input
+                                              type="number"
+                                              step="0.01"
+                                              {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })}
+                                              onKeyDown={(e) => {
+                                                  if (['-', 'e', '+'].includes(e.key)) {
+                                                      e.preventDefault();
+                                                  }
+                                              }}
+                                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                              min="0"
+                                            />
                                         </TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
                                         <TableCell>
