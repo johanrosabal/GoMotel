@@ -224,7 +224,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Número de Factura</FormLabel>
-                        <FormControl><Input placeholder="FAC-12345" {...field} /></FormControl>
+                        <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
