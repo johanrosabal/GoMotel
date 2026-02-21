@@ -15,12 +15,12 @@ import { Textarea } from '@/components/ui/textarea';
 const supplierSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
-  contactName: z.string().optional(),
+  contactName: z.string().optional().or(z.literal('')),
   email: z.string().email('Correo electrónico inválido.').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  address: z.string().optional(),
+  phone: z.string().optional().or(z.literal('')),
+  address: z.string().optional().or(z.literal('')),
   googleMapsUrl: z.string().url('URL de Google Maps inválida.').optional().or(z.literal('')),
-  notes: z.string().optional(),
+  notes: z.string().optional().or(z.literal('')),
 });
 
 interface SupplierFormDialogProps {
