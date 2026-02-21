@@ -123,6 +123,12 @@ export default async function DashboardPage() {
           icon: Users,
         },
         {
+          href: '/purchases',
+          title: 'Registrar Compras',
+          description: 'Añada productos al inventario registrando nuevas compras.',
+          icon: ShoppingCart,
+        },
+        {
           href: '/inventory',
           title: 'Gestión de Inventario',
           description: 'Controle los niveles de stock y el valor de sus activos.',
