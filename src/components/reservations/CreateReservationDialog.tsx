@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy as fbOrderBy, where } from 'firebase/firestore';
+import { collection, query, where, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { Room, Client, RoomType, PricePlan, SinpeAccount } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
@@ -39,6 +39,7 @@ const reservationSchema = z.object({
   isOpenAccount: z.boolean().default(true),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().default(false),
+  voucherNumber: z.string().optional(),
 }).refine(data => data.isOpenAccount || !!data.paymentMethod, {
     message: "Debe seleccionar un método de pago.",
     path: ["paymentMethod"],
@@ -50,6 +51,14 @@ const reservationSchema = z.object({
 }, {
     message: 'Debe confirmar que el pago fue recibido.',
     path: ['paymentConfirmed'],
+}).refine(data => {
+    if (!data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
+        return data.voucherNumber && data.voucherNumber.trim() !== '';
+    }
+    return true;
+}, {
+    message: "El número de voucher es requerido.",
+    path: ["voucherNumber"],
 });
 
 
@@ -98,6 +107,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       isOpenAccount: true,
       paymentMethod: undefined,
       paymentConfirmed: false,
+      voucherNumber: '',
     },
   });
 
@@ -167,6 +177,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       isOpenAccount: true,
       paymentMethod: undefined,
       paymentConfirmed: false,
+      voucherNumber: '',
     });
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
@@ -454,49 +465,64 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                     )}
                                 />
                                 {paymentMethod === 'Sinpe Movil' && (
-                                        <div className='space-y-4 pt-4 border-t'>
-                                            {isLoadingSinpe ? (
-                                                <p className="text-sm text-muted-foreground text-center">Buscando cuenta SINPE disponible...</p>
-                                            ) : targetSinpeAccount ? (
-                                                <div className="space-y-3">
-                                                    <div className='p-4 bg-muted rounded-lg text-center'>
-                                                        <p className='text-sm text-muted-foreground'>Transferir el monto de</p>
-                                                        <p className='text-2xl font-bold tracking-tight text-primary'>{formatCurrency(selectedPlan?.price || 0)}</p>
-                                                        <p className='text-sm text-muted-foreground mt-3'>a la cuenta SINPE Móvil:</p>
-                                                        <p className='py-2 text-3xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                        <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
-                                                    </div>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="paymentConfirmed"
-                                                        render={({ field }) => (
-                                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
-                                                                <FormControl>
-                                                                    <Checkbox
-                                                                        checked={field.value}
-                                                                        onCheckedChange={field.onChange}
-                                                                    />
-                                                                </FormControl>
-                                                                <div className="space-y-1 leading-none">
-                                                                    <FormLabel>
-                                                                        Confirmar Pago Recibido
-                                                                    </FormLabel>
-                                                                    <FormDescription>
-                                                                        Marque esta casilla para confirmar que ha recibido el pago.
-                                                                    </FormDescription>
-                                                                    <FormMessage className="pt-1" />
-                                                                </div>
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                    <div className='space-y-4 pt-4 border-t'>
+                                        {isLoadingSinpe ? (
+                                            <p className="text-sm text-muted-foreground text-center">Buscando cuenta SINPE disponible...</p>
+                                        ) : targetSinpeAccount ? (
+                                            <div className="space-y-3">
+                                                <div className='p-4 bg-muted rounded-lg text-center'>
+                                                    <p className='text-sm text-muted-foreground'>Transferir el monto de</p>
+                                                    <p className='text-2xl font-bold tracking-tight text-primary'>{formatCurrency(selectedPlan?.price || 0)}</p>
+                                                    <p className='text-sm text-muted-foreground mt-3'>a la cuenta SINPE Móvil:</p>
+                                                    <p className='py-2 text-3xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                    <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
                                                 </div>
-                                            ) : (
-                                                <div className='p-3 bg-destructive/10 text-destructive rounded-md text-sm font-semibold text-center'>
-                                                    No hay cuentas SINPE disponibles o todas han alcanzado su límite.
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                <FormField
+                                                    control={form.control}
+                                                    name="paymentConfirmed"
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value}
+                                                                    onCheckedChange={field.onChange}
+                                                                />
+                                                            </FormControl>
+                                                            <div className="space-y-1 leading-none">
+                                                                <FormLabel>
+                                                                    Confirmar Pago Recibido
+                                                                </FormLabel>
+                                                                <FormDescription>
+                                                                    Marque esta casilla para confirmar que ha recibido el pago.
+                                                                </FormDescription>
+                                                                <FormMessage className="pt-1" />
+                                                            </div>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className='p-3 bg-destructive/10 text-destructive rounded-md text-sm font-semibold text-center'>
+                                                No hay cuentas SINPE disponibles o todas han alcanzado su límite.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {paymentMethod === 'Tarjeta' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="voucherNumber"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Número de Voucher</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Ingrese el número de voucher" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
                         )}
                         {!isOpenAccount && selectedPlan && paymentMethod && paymentMethod !== 'Sinpe Movil' && (

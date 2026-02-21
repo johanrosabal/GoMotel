@@ -92,6 +92,7 @@ export interface Stay {
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
+  voucherNumber?: string;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
@@ -112,6 +113,7 @@ export interface Reservation {
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
+  voucherNumber?: string;
 }
 
 export interface OrderItem {
@@ -200,6 +202,7 @@ export interface Invoice {
     taxes: AppliedTax[];
     total: number;
     paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+    voucherNumber?: string;
 }
 
 export interface SinpeAccount {
@@ -212,6 +215,3 @@ export interface SinpeAccount {
   isActive?: boolean;
   createdAt: Timestamp;
 }
-
-    
-    

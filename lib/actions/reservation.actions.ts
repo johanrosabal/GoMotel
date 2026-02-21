@@ -33,6 +33,7 @@ const reservationActionSchema = z.object({
   isOpenAccount: z.boolean(),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().optional(),
+  voucherNumber: z.string().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -47,6 +48,14 @@ const reservationActionSchema = z.object({
 }, {
     message: "El pago SINPE debe ser confirmado.",
     path: ["paymentConfirmed"],
+}).refine(data => {
+    if (!data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
+        return data.voucherNumber && data.voucherNumber.trim() !== '';
+    }
+    return true;
+}, {
+    message: "El número de voucher es requerido.",
+    path: ["voucherNumber"],
 });
 
 
@@ -58,7 +67,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -132,6 +141,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
       paymentStatus,
       paymentMethod,
       paymentAmount,
+      voucherNumber: voucherNumber ?? undefined,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -186,6 +196,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
             taxes: [], // Taxes logic can be added later
             total: pricePlanAmount,
             paymentMethod: paymentMethod,
+            voucherNumber: voucherNumber ?? undefined,
         };
         batch.set(invoiceRef, newInvoice);
     }
@@ -209,6 +220,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           paymentStatus,
           paymentMethod,
           paymentAmount,
+          voucherNumber: voucherNumber ?? undefined,
         };
         batch.set(stayRef, newStay);
         
@@ -301,6 +313,7 @@ export async function checkInFromReservation(reservationId: string) {
       paymentStatus: reservation.paymentStatus,
       paymentMethod: reservation.paymentMethod,
       paymentAmount: reservation.paymentAmount,
+      voucherNumber: reservation.voucherNumber,
     };
     batch.set(stayRef, newStay);
     
@@ -427,5 +440,3 @@ export async function deleteReservation(reservationId: string) {
         return { error: 'No se pudo eliminar la reservación.' };
     }
 }
-
-    
