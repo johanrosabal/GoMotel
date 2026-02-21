@@ -44,9 +44,9 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     });
   };
 
-  const { duration, roomTotal, servicesTotal, finalTotal } = useMemo(() => {
+  const { duration, roomTotal, servicesTotal, amountPaid, totalDue } = useMemo(() => {
     if (!stay || !room) {
-      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, finalTotal: 0 };
+      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0 };
     }
     
     let roomTotalCalc: number;
@@ -66,13 +66,17 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
     
     const servicesTotalCalc = orders.reduce((sum, order) => sum + order.total, 0);
-    const finalTotalCalc = roomTotalCalc + servicesTotalCalc;
+    
+    const paidAmount = stay.paymentStatus === 'Pagado' ? (stay.paymentAmount || 0) : 0;
+    const totalBill = roomTotalCalc + servicesTotalCalc;
+    const finalTotalDue = totalBill - paidAmount;
 
     return {
       duration: durationText,
       roomTotal: roomTotalCalc,
       servicesTotal: servicesTotalCalc,
-      finalTotal: finalTotalCalc,
+      amountPaid: paidAmount,
+      totalDue: finalTotalDue < 0 ? 0 : finalTotalDue,
     };
   }, [stay, room, orders]);
 
@@ -115,11 +119,17 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                         <span className="text-muted-foreground">Servicios y Pedidos</span>
                         <span>{formatCurrency(servicesTotal)}</span>
                     </div>
+                     {amountPaid > 0 && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                            <span className="font-medium">Adelanto Pagado ({stay?.paymentMethod})</span>
+                            <span className="font-medium">-{formatCurrency(amountPaid)}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="!mt-4 pt-4 border-t flex justify-between font-bold text-xl">
-                    <span>Factura Total</span>
-                    <span>{formatCurrency(finalTotal)}</span>
+                    <span>Total a Pagar</span>
+                    <span>{formatCurrency(totalDue)}</span>
                 </div>
             </div>
         </ScrollArea>
