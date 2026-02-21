@@ -35,11 +35,23 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
 
   const form = useForm<z.infer<typeof supplierSchema>>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: supplier || { name: '', contactName: '', email: '', phone: '', address: '', googleMapsUrl: '', notes: '' },
+    defaultValues: { name: '', contactName: '', email: '', phone: '', address: '', googleMapsUrl: '', notes: '' },
   });
 
   useEffect(() => {
-    form.reset(supplier || { name: '', contactName: '', email: '', phone: '', address: '', googleMapsUrl: '', notes: '' });
+    if (open) {
+        const defaultValues = {
+            id: supplier?.id,
+            name: supplier?.name || '',
+            contactName: supplier?.contactName || '',
+            email: supplier?.email || '',
+            phone: supplier?.phone || '',
+            address: supplier?.address || '',
+            googleMapsUrl: supplier?.googleMapsUrl || '',
+            notes: supplier?.notes || '',
+        };
+        form.reset(defaultValues);
+    }
   }, [supplier, open, form]);
 
   const onSubmit = (values: z.infer<typeof supplierSchema>) => {
@@ -184,5 +196,3 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
     </Dialog>
   );
 }
-
-    
