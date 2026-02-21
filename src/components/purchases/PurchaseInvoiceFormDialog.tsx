@@ -75,6 +75,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceYear, setInvoiceYear] = useState<string>('');
   const [costPriceInputs, setCostPriceInputs] = useState<string[]>([]);
   const [discountValueInput, setDiscountValueInput] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -123,9 +124,13 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return services.filter(service => {
         const notInCart = !fields.some(field => field.serviceId === service.id);
         if (!notInCart) return false;
+        
+        // If a supplier is selected, only show products from that supplier OR products with no supplier
         if (selectedSupplierId) {
             return !service.supplierId || service.supplierId === selectedSupplierId;
         }
+
+        // If no supplier is selected, show all products not in cart
         return true;
     });
 }, [services, selectedSupplierId, fields]);
@@ -134,6 +139,12 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     if (!productSearch) return availableProducts;
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
+
+  const searchedSuppliers = useMemo(() => {
+      if (!suppliers) return [];
+      if (!supplierSearch) return suppliers;
+      return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
 
   const { subtotal, totalDiscount, totalTax, totalAmount } = useMemo(() => {
     let grossSubtotal = 0;
@@ -201,6 +212,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       setInvoiceMonth('');
       setInvoiceYear('');
       setDiscountValueInput('');
+      setSupplierSearch('');
     } else {
       const today = new Date();
       form.setValue('invoiceDate', today, { shouldValidate: true });
@@ -230,8 +242,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const handleCostPriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     let value = e.target.value.replace(/[^\d]/g, '');
 
-    if (value.length > 10) { 
-      value = value.slice(0, 10);
+    if (value.length > 11) { // 8 for integers, 1 for dot, 2 for decimals. Total 11.
+      value = value.slice(0, 11);
     }
     
     if (value === '') {
@@ -361,18 +373,47 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     render={({ field }) => (
                         <FormItem>
                           <FormLabel>Proveedor</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {suppliers?.map(supplier => (
-                                <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between text-muted-foreground"
+                                        >
+                                            {field.value
+                                                ? suppliers?.find(s => s.id === field.value)?.name
+                                                : "Seleccione un proveedor"
+                                            }
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                    <Command>
+                                        <CommandInput 
+                                            placeholder="Buscar proveedor..." 
+                                            value={supplierSearch} 
+                                            onValueChange={setSupplierSearch}
+                                        />
+                                        <CommandList>
+                                            <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
+                                            <CommandGroup>
+                                                {searchedSuppliers.map((supplier) => (
+                                                <CommandItem
+                                                    value={supplier.name}
+                                                    key={supplier.id}
+                                                    onSelect={() => {
+                                                        form.setValue("supplierId", supplier.id)
+                                                    }}
+                                                >
+                                                    {supplier.name}
+                                                </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                           <FormMessage />
                         </FormItem>
                     )}
@@ -443,8 +484,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     <h3 className="text-sm font-medium">Artículos de la Factura</h3>
                     <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
                         <PopoverTrigger asChild>
-                            <Button type="button" variant="outline" size="sm">
-                                <PlusCircle className="h-4 w-4 mr-2" />
+                            <Button type="button" variant="outline" size="sm" className="gap-2">
+                                <PlusCircle className="h-4 w-4" />
                                 Añadir Producto
                             </Button>
                         </PopoverTrigger>
@@ -559,20 +600,21 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                         <FormItem>
                             <FormLabel>Tipo de Descuento (Opcional)</FormLabel>
                             <Select onValueChange={(value) => {
-                                if (value) {
-                                    field.onChange(value);
-                                } else {
+                                if (value === 'none') {
                                     field.onChange(undefined);
                                     form.setValue('discountValue', undefined);
+                                    setDiscountValueInput('');
+                                } else {
+                                    field.onChange(value);
                                 }
-                            }} value={field.value}>
+                            }} value={field.value || 'none'}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sin descuento" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Sin descuento</SelectItem>
+                                    <SelectItem value="none">Sin descuento</SelectItem>
                                     <SelectItem value="percentage">Porcentaje (%)</SelectItem>
                                     <SelectItem value="fixed">Monto Fijo (₡)</SelectItem>
                                 </SelectContent>
