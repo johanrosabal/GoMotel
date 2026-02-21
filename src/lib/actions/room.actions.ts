@@ -12,10 +12,11 @@ import {
   updateDoc,
   where,
   addDoc,
+  limit,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension } from '@/types';
+import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension, Invoice, InvoiceItem } from '@/types';
 import { z } from 'zod';
 import { formatDistance, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -171,17 +172,77 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
   const ordersCollection = collection(db, 'orders');
   const q = query(ordersCollection, where('stayId', '==', stayId));
   const ordersSnapshot = await getDocs(q);
-  const servicesTotal = ordersSnapshot.docs.reduce((acc, doc) => {
-    const order = doc.data() as Order;
-    if (order.status === 'Cancelado') {
-      return acc;
-    }
-    return acc + order.total;
-  }, 0);
+  const activeOrders = ordersSnapshot.docs.filter(d => d.data().status !== 'Cancelado');
+  const servicesTotal = activeOrders.reduce((acc, doc) => acc + (doc.data() as Order).total, 0);
 
   const finalTotal = roomTotal + servicesTotal;
+  const amountPaid = stay.paymentAmount || 0;
+  const totalDue = finalTotal - amountPaid;
 
   const batch = writeBatch(db);
+  let invoiceIdForReturn: string | undefined;
+  
+  // --- Invoice Logic ---
+  // Create a new invoice for the final bill.
+  const invoicesRef = collection(db, 'invoices');
+  const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+  const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+  let nextInvoiceNumberInt = 1;
+  if (!lastInvoiceSnap.empty) {
+      const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+      if (lastInvoiceData.invoiceNumber) {
+          const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+          if (!isNaN(lastNumber)) {
+              nextInvoiceNumberInt = lastNumber + 1;
+          }
+      }
+  }
+  const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+  
+  const invoiceRef = doc(collection(db, 'invoices'));
+  invoiceIdForReturn = invoiceRef.id;
+
+  const invoiceItems: InvoiceItem[] = [];
+  invoiceItems.push({
+      description: `Cargos de Estancia (Hab. ${room.number})`,
+      quantity: 1,
+      unitPrice: roomTotal,
+      total: roomTotal
+  });
+
+  if (servicesTotal > 0) {
+      invoiceItems.push({
+          description: `Servicios y Pedidos`,
+          quantity: 1,
+          unitPrice: servicesTotal,
+          total: servicesTotal
+      });
+  }
+
+  if (amountPaid > 0) {
+      invoiceItems.push({
+          description: `Adelanto Pagado (${stay.paymentMethod || 'N/A'})`,
+          quantity: 1,
+          unitPrice: -amountPaid,
+          total: -amountPaid,
+      });
+  }
+
+  const newInvoice: Omit<Invoice, 'id'> = {
+      invoiceNumber: newInvoiceNumber,
+      stayId: stayId,
+      clientId: stay.guestId,
+      clientName: stay.guestName,
+      createdAt: Timestamp.now(),
+      status: 'Pagada',
+      items: invoiceItems,
+      subtotal: finalTotal,
+      taxes: [], 
+      total: totalDue,
+      paymentMethod: 'Efectivo', // Placeholder
+  };
+  batch.set(invoiceRef, newInvoice);
+
   
   // If the stay is linked to a reservation, update the reservation's status to 'Completed'.
   if (stay.reservationId) {
@@ -216,7 +277,8 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
     revalidatePath('/');
     revalidatePath(`/rooms/${roomId}`);
     revalidatePath('/reservations');
-    return { success: true };
+    revalidatePath('/billing/invoices');
+    return { success: true, invoiceId: invoiceIdForReturn };
   } catch (error) {
     console.error('Check-out failed:', error);
     return { error: 'Ocurrió un error inesperado durante el check-out.' };

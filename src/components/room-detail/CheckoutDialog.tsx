@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type ReactNode, useMemo } from 'react';
+import React, { useState, useTransition, type ReactNode, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
-import React from 'react';
+import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 
 interface CheckoutDialogProps {
   children: ReactNode;
@@ -31,16 +31,24 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(null);
 
   const handleCheckout = () => {
     if (!stay || !room) return;
-    setOpen(false);
+    
     startTransition(async () => {
       const result = await checkOut(stay.id, room.id);
+      setOpen(false); // Close checkout dialog immediately
       if (result.error) {
         toast({ title: 'Falló el Check-Out', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
+        if (result.invoiceId) {
+            setGeneratedInvoiceId(result.invoiceId);
+            setSuccessModalOpen(true);
+        } else {
+            toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
+        }
       }
     });
   };
@@ -85,79 +93,86 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
   }, [stay, room, orders]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirmar Check-Out</DialogTitle>
-          <DialogDescription>Revise la factura final antes de realizar el check-out del huésped.</DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-96 pr-4">
-            <div className="space-y-4">
-                <div className="p-4 rounded-lg border bg-muted/50">
-                    <h3 className="font-semibold mb-2">Resumen de Facturación</h3>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Huésped:</span>
-                            <span>{stay?.guestName}</span>
-                        </div>
-                         {stay?.pricePlanName && (
+    <React.Fragment>
+        <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+            <DialogTitle>Confirmar Check-Out</DialogTitle>
+            <DialogDescription>Revise la factura final antes de realizar el check-out del huésped.</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-96 pr-4">
+                <div className="space-y-4">
+                    <div className="p-4 rounded-lg border bg-muted/50">
+                        <h3 className="font-semibold mb-2">Resumen de Facturación</h3>
+                        <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Plan Seleccionado:</span>
-                                <span>{stay.pricePlanName}</span>
+                                <span className="text-muted-foreground">Huésped:</span>
+                                <span>{stay?.guestName}</span>
+                            </div>
+                            {stay?.pricePlanName && (
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Plan Seleccionado:</span>
+                                    <span>{stay.pricePlanName}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Duración de la Estancia:</span>
+                                <span>~{duration}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Cargo de Habitación</span>
+                            <span>{formatCurrency(roomTotal)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Servicios y Pedidos</span>
+                            <span>{formatCurrency(servicesTotal)}</span>
+                        </div>
+                        {servicesTotal > 0 && (
+                            <div className="pl-4 ml-2 border-l-2 space-y-1 mt-1">
+                                {activeOrders.map(order => (
+                                    <React.Fragment key={order.id}>
+                                        {order.items.map(item => (
+                                            <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between text-muted-foreground">
+                                                <span>{item.quantity}x {item.name}</span>
+                                                <span>{formatCurrency(item.price * item.quantity)}</span>
+                                            </div>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
                             </div>
                         )}
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Duración de la Estancia:</span>
-                            <span>~{duration}</span>
-                        </div>
+                        {amountPaid > 0 && (
+                            <div className="flex justify-between text-green-600 dark:text-green-400 !mt-2">
+                                <span className="font-medium">Adelanto Pagado ({stay?.paymentMethod})</span>
+                                <span className="font-medium">-{formatCurrency(amountPaid)}</span>
+                            </div>
+                        )}
                     </div>
-                </div>
 
-                <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cargo de Habitación</span>
-                        <span>{formatCurrency(roomTotal)}</span>
+                    <div className="!mt-4 pt-4 border-t flex justify-between font-bold text-xl">
+                        <span>Total a Pagar</span>
+                        <span>{formatCurrency(totalDue)}</span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Servicios y Pedidos</span>
-                        <span>{formatCurrency(servicesTotal)}</span>
-                    </div>
-                     {servicesTotal > 0 && (
-                        <div className="pl-4 ml-2 border-l-2 space-y-1 mt-1">
-                            {activeOrders.map(order => (
-                                <React.Fragment key={order.id}>
-                                    {order.items.map(item => (
-                                        <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between text-muted-foreground">
-                                            <span>{item.quantity}x {item.name}</span>
-                                            <span>{formatCurrency(item.price * item.quantity)}</span>
-                                        </div>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    )}
-                     {amountPaid > 0 && (
-                        <div className="flex justify-between text-green-600 dark:text-green-400 !mt-2">
-                            <span className="font-medium">Adelanto Pagado ({stay?.paymentMethod})</span>
-                            <span className="font-medium">-{formatCurrency(amountPaid)}</span>
-                        </div>
-                    )}
                 </div>
-
-                <div className="!mt-4 pt-4 border-t flex justify-between font-bold text-xl">
-                    <span>Total a Pagar</span>
-                    <span>{formatCurrency(totalDue)}</span>
-                </div>
-            </div>
-        </ScrollArea>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleCheckout} disabled={isPending} variant="destructive">
-            {isPending ? 'Procesando...' : 'Confirmar y Realizar Check-Out'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            </ScrollArea>
+            <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCheckout} disabled={isPending} variant="destructive">
+                {isPending ? 'Procesando...' : 'Confirmar y Realizar Check-Out'}
+            </Button>
+            </DialogFooter>
+        </DialogContent>
+        </Dialog>
+        <InvoiceSuccessDialog
+            open={successModalOpen}
+            onOpenChange={setSuccessModalOpen}
+            invoiceId={generatedInvoiceId}
+        />
+    </React.Fragment>
   );
 }
