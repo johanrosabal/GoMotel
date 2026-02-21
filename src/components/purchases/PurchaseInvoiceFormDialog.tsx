@@ -373,7 +373,32 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
             </div>
             
             <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                <h3 className="text-sm font-medium">Artículos de la Factura</h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium">Artículos de la Factura</h3>
+                    <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <Button type="button" variant="outline" size="sm">
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Añadir Producto
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+                            <Command>
+                                <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
+                                <CommandList>
+                                    <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
+                                    <CommandGroup>
+                                        {searchedProducts.map((product) => (
+                                            <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
+                                                {product.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
                 <div className="border rounded-md flex-1">
                     <ScrollArea className="h-full">
                         <Table>
@@ -414,31 +439,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     </ScrollArea>
                 </div>
                  {form.formState.errors.items && <p className="text-sm font-medium text-destructive">{form.formState.errors.items.message}</p>}
-
-                 <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
-                    <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="w-full justify-start gap-2">
-                            <PlusCircle className="h-4 w-4" />
-                            Añadir Producto
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                         <Command>
-                            <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
-                            <CommandList>
-                                <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
-                                <CommandGroup>
-                                    {searchedProducts.map((product) => (
-                                        <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
-                                            {product.name}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-
             </div>
             
             <FormField
