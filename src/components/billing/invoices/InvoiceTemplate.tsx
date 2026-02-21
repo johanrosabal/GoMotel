@@ -27,13 +27,10 @@ const InvoiceTemplate = React.forwardRef<HTMLDivElement, { invoice: Invoice }>((
                 <div>
                     <p className="text-sm font-semibold text-gray-500">FACTURAR A</p>
                     <p className="font-bold">{invoice.clientName}</p>
-                    {invoice.clientId && <p className="text-sm text-gray-600">ID Cliente: {invoice.clientId}</p>}
                 </div>
                 <div className="text-right">
                     <p className="text-sm font-semibold text-gray-500">FECHA DE FACTURA</p>
                     <p>{invoice.createdAt ? format(invoice.createdAt.toDate(), "dd 'de' MMMM, yyyy", { locale: es }) : 'N/A'}</p>
-                    <p className="mt-4 text-sm font-semibold text-gray-500">N° de Reserva/Estancia</p>
-                    <p>{invoice.reservationId || invoice.stayId || 'N/A'}</p>
                 </div>
             </div>
             
