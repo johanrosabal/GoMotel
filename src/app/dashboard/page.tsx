@@ -123,9 +123,9 @@ export default async function DashboardPage() {
           icon: Users,
         },
         {
-          href: '/inventory',
-          title: 'Inventario de Servicios',
-          description: 'Administración de productos y servicios.',
+          href: '/catalog',
+          title: 'Gestionar Inventario',
+          description: 'Añada productos, edite precios y controle los niveles de stock.',
           icon: Package,
         },
       ],
@@ -140,12 +140,6 @@ export default async function DashboardPage() {
           title: 'Panel de Habitaciones',
           description: 'Vista y gestión de todas las habitaciones.',
           icon: LayoutGrid,
-        },
-        {
-          href: '/catalog',
-          title: 'Catálogo de Productos',
-          description: 'Gestiona categorías, sub-categorías y productos.',
-          icon: BookCopy,
         },
         {
           href: '/settings/taxes',
@@ -331,5 +325,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
-    
