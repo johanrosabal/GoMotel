@@ -23,6 +23,9 @@ const purchaseInvoiceSchema = z.object({
   subtotal: z.number().optional(),
   totalTax: z.number().optional(),
   taxesIncluded: z.boolean().optional(),
+  discountType: z.enum(['percentage', 'fixed']).optional(),
+  discountValue: z.number().optional(),
+  totalDiscount: z.number().optional(),
 });
 
 export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoiceSchema>) {
@@ -64,5 +67,3 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
         return { error: 'No se pudo guardar la factura de compra.' };
     }
 }
-
-  

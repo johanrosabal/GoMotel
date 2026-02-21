@@ -1007,6 +1007,22 @@
         "taxesIncluded": {
           "type": "boolean",
           "description": "Indicates if taxes are included in the item cost prices."
+        },
+        "discountType": {
+          "type": "string",
+          "description": "The type of discount applied, if any.",
+          "enum": [
+            "percentage",
+            "fixed"
+          ]
+        },
+        "discountValue": {
+          "type": "number",
+          "description": "The value of the discount applied (either percentage or fixed amount)."
+        },
+        "totalDiscount": {
+          "type": "number",
+          "description": "The total calculated discount amount."
         }
       },
       "required": [

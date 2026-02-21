@@ -38,6 +38,8 @@ const purchaseInvoiceSchema = z.object({
   invoiceDate: z.date({ required_error: "La fecha es requerida." }),
   items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la factura."),
   taxesIncluded: z.boolean().default(false),
+  discountType: z.enum(['percentage', 'fixed']).optional(),
+  discountValue: z.coerce.number().min(0, "El descuento no puede ser negativo.").optional(),
 });
 
 type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
@@ -91,6 +93,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       invoiceDate: new Date(),
       items: [],
       taxesIncluded: false,
+      discountType: undefined,
+      discountValue: undefined,
     },
   });
 
@@ -102,6 +106,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const selectedSupplierId = form.watch('supplierId');
   const items = form.watch('items');
   const taxesIncluded = form.watch('taxesIncluded');
+  const discountType = form.watch('discountType');
+  const discountValue = form.watch('discountValue');
 
   useEffect(() => {
     setCostPriceInputs(items.map(item => numberToString(item.costPrice)));
@@ -112,11 +118,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return services.filter(service => {
       const notInCart = !fields.some(field => field.serviceId === service.id);
       if (!notInCart) return false;
-      // If a supplier is selected, show products from that supplier OR products with no supplier
       if (selectedSupplierId) {
         return !service.supplierId || service.supplierId === selectedSupplierId;
       }
-      // If no supplier is selected, show all products not in cart
       return true;
     });
   }, [services, selectedSupplierId, fields]);
@@ -126,44 +130,56 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
 
-  const { subtotal, totalTax, totalAmount } = useMemo(() => {
-    let currentSubtotal = 0;
-    let currentTotalTax = 0;
-
+  const { subtotal, totalDiscount, totalTax, totalAmount } = useMemo(() => {
+    let grossSubtotal = 0;
     items.forEach(item => {
         const itemTotal = item.quantity * item.costPrice;
-        let itemSubtotal = itemTotal;
-        let itemTax = 0;
-
         if (taxesIncluded) {
-            const itemTaxes = (item.taxIds || [])
-                .map(taxId => allTaxes?.find(t => t.id === taxId))
-                .filter((t): t is Tax => !!t);
-            
+            const itemTaxes = (item.taxIds || []).map(taxId => allTaxes?.find(t => t.id === taxId)).filter((t): t is Tax => !!t);
             const totalTaxRate = itemTaxes.reduce((sum, tax) => sum + tax.percentage, 0);
-            itemSubtotal = itemTotal / (1 + totalTaxRate / 100);
-            itemTax = itemTotal - itemSubtotal;
+            grossSubtotal += itemTotal / (1 + totalTaxRate / 100);
         } else {
-            const itemTaxes = (item.taxIds || [])
-                .map(taxId => allTaxes?.find(t => t.id === taxId))
-                .filter((t): t is Tax => !!t);
-
-            itemTaxes.forEach(tax => {
-                itemTax += itemSubtotal * (tax.percentage / 100);
-            });
+            grossSubtotal += itemTotal;
         }
-        currentSubtotal += itemSubtotal;
-        currentTotalTax += itemTax;
     });
 
-    const currentTotalAmount = currentSubtotal + currentTotalTax;
+    let calculatedDiscount = 0;
+    if (discountType === 'percentage' && discountValue) {
+        calculatedDiscount = grossSubtotal * (discountValue / 100);
+    } else if (discountType === 'fixed' && discountValue) {
+        calculatedDiscount = discountValue;
+    }
+    calculatedDiscount = Math.min(grossSubtotal, calculatedDiscount);
 
+    const subtotalAfterDiscount = grossSubtotal - calculatedDiscount;
+
+    let calculatedTotalTax = 0;
+    items.forEach(item => {
+        let itemSubtotal = item.quantity * item.costPrice;
+        if (taxesIncluded) {
+            const itemTaxes = (item.taxIds || []).map(taxId => allTaxes?.find(t => t.id === taxId)).filter((t): t is Tax => !!t);
+            const totalTaxRate = itemTaxes.reduce((sum, tax) => sum + tax.percentage, 0);
+            itemSubtotal = (item.quantity * item.costPrice) / (1 + totalTaxRate / 100);
+        }
+        
+        const itemProportion = grossSubtotal > 0 ? itemSubtotal / grossSubtotal : 0;
+        const discountedItemSubtotal = subtotalAfterDiscount * itemProportion;
+
+        const itemTaxes = (item.taxIds || []).map(taxId => allTaxes?.find(t => t.id === taxId)).filter((t): t is Tax => !!t);
+        itemTaxes.forEach(tax => {
+            calculatedTotalTax += discountedItemSubtotal * (tax.percentage / 100);
+        });
+    });
+
+    const finalTotalAmount = subtotalAfterDiscount + calculatedTotalTax;
+    
     return { 
-        subtotal: currentSubtotal,
-        totalTax: currentTotalTax,
-        totalAmount: currentTotalAmount,
+        subtotal: grossSubtotal,
+        totalDiscount: calculatedDiscount,
+        totalTax: calculatedTotalTax,
+        totalAmount: finalTotalAmount,
     };
-  }, [items, taxesIncluded, allTaxes]);
+  }, [items, taxesIncluded, allTaxes, discountType, discountValue]);
 
   useEffect(() => {
     if (!open) {
@@ -173,6 +189,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         invoiceDate: new Date(),
         items: [],
         taxesIncluded: false,
+        discountType: undefined,
+        discountValue: undefined,
       });
       setInvoiceDay('');
       setInvoiceMonth('');
@@ -206,8 +224,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const handleCostPriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     let value = e.target.value.replace(/[^\d]/g, '');
 
-    // Limit to 8 digits for the integer part
-    if (value.length > 10) { // 8 for integer, 2 for decimal
+    if (value.length > 10) { 
       value = value.slice(0, 10);
     }
     
@@ -259,6 +276,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         ...values,
         supplierName: supplier.name,
         subtotal,
+        totalDiscount,
         totalTax,
         totalAmount,
     };
@@ -493,12 +511,69 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     </FormItem>
                 )}
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="discountType"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Tipo de Descuento (Opcional)</FormLabel>
+                            <Select onValueChange={(value) => {
+                                if (value) {
+                                    field.onChange(value);
+                                } else {
+                                    field.onChange(undefined);
+                                    form.setValue('discountValue', undefined);
+                                }
+                            }} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sin descuento" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                                    <SelectItem value="fixed">Monto Fijo (₡)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="discountValue"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor del Descuento</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="number"
+                                    placeholder="0"
+                                    disabled={!discountType}
+                                    step={discountType === 'percentage' ? '0.01' : '1'}
+                                    {...field}
+                                    onChange={e => field.onChange(e.target.valueAsNumber)}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
 
             <div className="space-y-1 rounded-lg border p-4">
                 <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span>{formatCurrency(subtotal)}</span>
                 </div>
+                 {totalDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-destructive">
+                        <span className="font-medium">Descuento:</span>
+                        <span>-{formatCurrency(totalDiscount)}</span>
+                    </div>
+                )}
                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Impuestos:</span>
                     <span>{formatCurrency(totalTax)}</span>

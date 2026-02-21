@@ -252,6 +252,7 @@ export interface PurchaseInvoice {
   subtotal?: number;
   totalTax?: number;
   taxesIncluded?: boolean;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  totalDiscount?: number;
 }
-
-  
