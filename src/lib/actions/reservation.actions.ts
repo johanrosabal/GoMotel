@@ -133,7 +133,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const reservationRef = doc(collection(db, 'reservations'));
     const reservationPayload: Omit<Reservation, 'id'> = {
       guestName,
-      guestId: guestId ?? undefined,
+      guestId: guestId || null,
       roomId,
       roomNumber: roomData.number,
       roomType: roomData.roomTypeName,
@@ -210,8 +210,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
         const newInvoice: Omit<Invoice, 'id'> = {
             invoiceNumber: newInvoiceNumber,
             reservationId: reservationRef.id,
-            stayId: stayRef?.id,
-            clientId: guestId,
+            stayId: stayRef?.id || null,
+            clientId: guestId || null,
             clientName: guestName,
             createdAt: Timestamp.now(),
             status: 'Pagada',
@@ -238,7 +238,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           total: 0,
           isPaid: paymentStatus === 'Pagado',
           reservationId: reservationRef.id,
-          guestId: guestId,
+          guestId: guestId || null,
           pricePlanName: pricePlanName,
           pricePlanAmount: pricePlanAmount,
           renewalCount: 0,
@@ -333,7 +333,7 @@ export async function checkInFromReservation(reservationId: string) {
       total: 0,
       isPaid: reservation.paymentStatus === 'Pagado',
       reservationId: reservationId,
-      guestId: reservation.guestId,
+      guestId: reservation.guestId || null,
       pricePlanName: reservation.pricePlanName,
       pricePlanAmount: reservation.pricePlanAmount,
       renewalCount: 0,

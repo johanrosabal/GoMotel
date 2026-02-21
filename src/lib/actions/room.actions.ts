@@ -116,7 +116,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     checkOut: null,
     total: 0,
     isPaid: false,
-    guestId: guestId,
+    guestId: guestId || null,
     pricePlanName: pricePlanName,
     pricePlanAmount: pricePlanAmount,
     renewalCount: 0,
@@ -231,7 +231,7 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
   const newInvoice: Omit<Invoice, 'id'> = {
       invoiceNumber: newInvoiceNumber,
       stayId: stayId,
-      clientId: stay.guestId,
+      clientId: stay.guestId || null,
       clientName: stay.guestName,
       createdAt: Timestamp.now(),
       status: 'Pagada',
