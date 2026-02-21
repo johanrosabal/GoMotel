@@ -41,7 +41,6 @@ import { Image as ImageIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -257,8 +256,8 @@ export default function EditServiceDialog({ children, service, allServices, open
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>{service ? 'Editar Producto' : 'Añadir Nuevo Producto'}</DialogTitle>
           <DialogDescription>
             {service
@@ -266,10 +265,10 @@ export default function EditServiceDialog({ children, service, allServices, open
               : 'Añadir un nuevo producto a su inventario.'}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 -mr-6 pr-6">
-                <div className="space-y-4 pr-1">
+
+        <div className="flex-1 overflow-y-auto">
+            <Form {...form}>
+              <form id="edit-service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
                     <FormField
                     control={form.control}
                     name="source"
@@ -587,16 +586,16 @@ export default function EditServiceDialog({ children, service, allServices, open
                         </FormItem>
                     )}
                     />
-                </div>
-            </ScrollArea>
-            <DialogFooter className="mt-auto pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? 'Guardando...' : 'Guardar Producto'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              </form>
+            </Form>
+        </div>
+
+        <DialogFooter className="p-6 pt-4 border-t bg-background sticky bottom-0">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button type="submit" form="edit-service-form" disabled={isPending}>
+            {isPending ? 'Guardando...' : 'Guardar Producto'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
