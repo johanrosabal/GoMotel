@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Supplier, Service, Tax } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, X, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency } from '@/lib/utils';
 import { es } from 'date-fns/locale';
@@ -38,8 +38,9 @@ const purchaseInvoiceSchema = z.object({
   invoiceDate: z.date({ required_error: "La fecha es requerida." }),
   items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la factura."),
   taxesIncluded: z.boolean().default(false),
-  discountType: z.enum(['percentage', 'fixed']).optional(),
+  discountType: z.enum(['percentage', 'fixed', 'none']).optional(),
   discountValue: z.coerce.number().min(0, "El descuento no puede ser negativo.").optional(),
+  imageUrls: z.array(z.string()).max(5, "No puede subir más de 5 imágenes.").optional(),
 });
 
 type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
@@ -63,6 +64,7 @@ const numberToString = (num: number): string => {
     }).format(num);
 };
 
+const MAX_IMAGES = 5;
 
 export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
@@ -75,7 +77,10 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceYear, setInvoiceYear] = useState<string>('');
   const [costPriceInputs, setCostPriceInputs] = useState<string[]>([]);
   const [discountValueInput, setDiscountValueInput] = useState('');
-  const [supplierSearch, setSupplierSearch] = useState('');
+  const supplierSearchInputRef = useRef<HTMLInputElement>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -94,8 +99,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       invoiceDate: new Date(),
       items: [],
       taxesIncluded: false,
-      discountType: undefined,
+      discountType: 'none',
       discountValue: undefined,
+      imageUrls: [],
     },
   });
 
@@ -109,6 +115,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const taxesIncluded = form.watch('taxesIncluded');
   const discountType = form.watch('discountType');
   const discountValue = form.watch('discountValue');
+  const imageUrls = form.watch('imageUrls', []);
 
   useEffect(() => {
     setCostPriceInputs(items.map(item => numberToString(item.costPrice)));
@@ -142,9 +149,10 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
 
   const searchedSuppliers = useMemo(() => {
       if (!suppliers) return [];
+      const supplierSearch = supplierSearchInputRef.current?.value || '';
       if (!supplierSearch) return suppliers;
       return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  }, [suppliers, supplierSearch]);
+  }, [suppliers, supplierSearchInputRef.current?.value]);
 
   const { subtotal, totalDiscount, totalTax, totalAmount } = useMemo(() => {
     let grossSubtotal = 0;
@@ -205,14 +213,15 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         invoiceDate: new Date(),
         items: [],
         taxesIncluded: false,
-        discountType: undefined,
+        discountType: 'none',
         discountValue: undefined,
+        imageUrls: [],
       });
       setInvoiceDay('');
       setInvoiceMonth('');
       setInvoiceYear('');
       setDiscountValueInput('');
-      setSupplierSearch('');
+      
     } else {
       const today = new Date();
       form.setValue('invoiceDate', today, { shouldValidate: true });
@@ -307,6 +316,37 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+        const files = Array.from(event.target.files);
+        const currentImagesCount = imageUrls.length;
+        if (currentImagesCount + files.length > MAX_IMAGES) {
+            toast({
+                title: 'Límite de imágenes alcanzado',
+                description: `Puede subir un máximo de ${MAX_IMAGES} imágenes.`,
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                form.setValue('imageUrls', [...form.getValues('imageUrls') || [], dataUrl], { shouldValidate: true });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    // Reset file input to allow selecting the same file again
+    event.target.value = '';
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    form.setValue('imageUrls', imageUrls.filter((_, index) => index !== indexToRemove), { shouldValidate: true });
+  };
+
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => String(currentYear - i));
   const months = Array.from({ length: 12 }, (_, i) => ({
@@ -373,47 +413,24 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     render={({ field }) => (
                         <FormItem>
                           <FormLabel>Proveedor</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            className="w-full justify-between text-muted-foreground"
-                                        >
-                                            {field.value
-                                                ? suppliers?.find(s => s.id === field.value)?.name
-                                                : "Seleccione un proveedor"
-                                            }
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                                    <Command>
-                                        <CommandInput 
-                                            placeholder="Buscar proveedor..." 
-                                            value={supplierSearch} 
-                                            onValueChange={setSupplierSearch}
-                                        />
-                                        <CommandList>
-                                            <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
-                                            <CommandGroup>
-                                                {searchedSuppliers.map((supplier) => (
-                                                <CommandItem
-                                                    value={supplier.name}
-                                                    key={supplier.id}
-                                                    onSelect={() => {
-                                                        form.setValue("supplierId", supplier.id)
-                                                    }}
-                                                >
-                                                    {supplier.name}
-                                                </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccione un proveedor" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {isLoadingSuppliers ? (
+                                        <div className="p-2 text-sm">Cargando...</div>
+                                    ) : (
+                                        searchedSuppliers.map((supplier) => (
+                                            <SelectItem key={supplier.id} value={supplier.id}>
+                                                {supplier.name}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
                           <FormMessage />
                         </FormItem>
                     )}
@@ -574,6 +591,47 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                  {form.formState.errors.items && <p className="text-sm font-medium text-destructive">{form.formState.errors.items.message}</p>}
             </div>
             
+             <div className="space-y-2">
+                <Label>Fotos de la Factura (Opcional)</Label>
+                <div className="grid grid-cols-5 gap-2">
+                    {imageUrls.map((url, index) => (
+                        <div key={index} className="relative group aspect-square">
+                            <img src={url} alt={`Factura ${index + 1}`} className="object-cover w-full h-full rounded-md border" />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleRemoveImage(index)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    {Array.from({ length: MAX_IMAGES - imageUrls.length }).map((_, index) => (
+                        <button
+                            key={`placeholder-${index}`}
+                            type="button"
+                            className="flex items-center justify-center aspect-square w-full rounded-md border-2 border-dashed text-muted-foreground hover:bg-muted/50 transition-colors"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Plus className="h-6 w-6" />
+                            <span className="sr-only">Añadir imagen</span>
+                        </button>
+                    ))}
+                </div>
+                <Input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                />
+                {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
+            </div>
+
+
             <FormField
                 control={form.control}
                 name="taxesIncluded"
@@ -605,7 +663,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                     form.setValue('discountValue', undefined);
                                     setDiscountValueInput('');
                                 } else {
-                                    field.onChange(value);
+                                    field.onChange(value as 'percentage' | 'fixed');
                                 }
                             }} value={field.value || 'none'}>
                                 <FormControl>
@@ -633,7 +691,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                     type={discountType === 'fixed' ? 'text' : 'number'}
                                     inputMode={discountType === 'percentage' ? 'decimal' : 'text'}
                                     placeholder="0"
-                                    disabled={!discountType}
+                                    disabled={!discountType || discountType === 'none'}
                                     step={discountType === 'percentage' ? '0.01' : undefined}
                                     value={discountValueInput}
                                     onChange={handleDiscountValueChange}

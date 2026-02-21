@@ -255,4 +255,5 @@ export interface PurchaseInvoice {
   discountType?: 'percentage' | 'fixed';
   discountValue?: number;
   totalDiscount?: number;
+  imageUrls?: string[];
 }

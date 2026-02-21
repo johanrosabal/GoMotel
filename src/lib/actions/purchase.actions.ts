@@ -26,6 +26,7 @@ const purchaseInvoiceSchema = z.object({
   discountType: z.enum(['percentage', 'fixed']).optional(),
   discountValue: z.number().optional(),
   totalDiscount: z.number().optional(),
+  imageUrls: z.array(z.string()).optional(),
 });
 
 export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoiceSchema>) {
