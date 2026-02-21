@@ -1,29 +1,53 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, writeBatch, increment } from 'firebase/firestore';
+import { doc, writeBatch, increment, addDoc, collection, Timestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
   serviceName: z.string(),
-  quantity: z.number().int().positive(),
+  quantity: z.coerce.number().int().min(1),
+  costPrice: z.coerce.number().min(0),
 });
 
-const purchaseSchema = z.array(purchaseItemSchema);
+const purchaseInvoiceSchema = z.object({
+  supplierId: z.string(),
+  supplierName: z.string(),
+  invoiceNumber: z.string().min(1),
+  invoiceDate: z.date(),
+  items: z.array(purchaseItemSchema).min(1),
+  totalAmount: z.number(),
+});
 
-export async function registerPurchase(items: z.infer<typeof purchaseSchema>) {
-    const validatedFields = purchaseSchema.safeParse(items);
+export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoiceSchema>) {
+    const validatedFields = purchaseInvoiceSchema.safeParse(values);
     if (!validatedFields.success) {
-        return { error: 'Datos de compra inválidos.' };
+        console.error(validatedFields.error.flatten().fieldErrors);
+        return { error: 'Datos de factura de compra inválidos.' };
     }
 
+    const { items, ...invoiceData } = validatedFields.data;
     const batch = writeBatch(db);
 
-    validatedFields.data.forEach(item => {
+    const purchaseInvoiceRef = doc(collection(db, 'purchaseInvoices'));
+    batch.set(purchaseInvoiceRef, {
+        ...invoiceData,
+        invoiceDate: Timestamp.fromDate(invoiceData.invoiceDate),
+        createdAt: Timestamp.now(),
+        items: items.map(item => ({
+            ...item,
+            total: item.quantity * item.costPrice,
+        })),
+    });
+
+    items.forEach(item => {
         const serviceRef = doc(db, 'services', item.serviceId);
-        batch.update(serviceRef, { stock: increment(item.quantity) });
+        batch.update(serviceRef, { 
+            stock: increment(item.quantity),
+            costPrice: item.costPrice // Update cost price
+        });
     });
 
     try {
@@ -32,7 +56,7 @@ export async function registerPurchase(items: z.infer<typeof purchaseSchema>) {
         revalidatePath('/purchases');
         return { success: true };
     } catch (e) {
-        console.error('Error registering purchase:', e);
-        return { error: 'No se pudo registrar la compra en el inventario.' };
+        console.error('Error saving purchase invoice:', e);
+        return { error: 'No se pudo guardar la factura de compra.' };
     }
 }

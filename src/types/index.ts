@@ -231,4 +231,21 @@ export interface Supplier {
   createdAt: Timestamp;
 }
 
-    
+export interface PurchaseInvoiceItem {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  costPrice: number;
+  total: number;
+}
+
+export interface PurchaseInvoice {
+  id: string;
+  invoiceNumber: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceDate: Timestamp;
+  createdAt: Timestamp;
+  items: PurchaseInvoiceItem[];
+  totalAmount: number;
+}

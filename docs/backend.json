@@ -953,6 +953,93 @@
         "name",
         "createdAt"
       ]
+    },
+    "PurchaseInvoice": {
+      "title": "Purchase Invoice",
+      "type": "object",
+      "description": "Represents a record of a purchase from a supplier.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Purchase Invoice."
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The supplier's invoice number."
+        },
+        "supplierId": {
+          "type": "string",
+          "description": "Reference to the Supplier."
+        },
+        "supplierName": {
+          "type": "string",
+          "description": "Denormalized name of the supplier."
+        },
+        "invoiceDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date of the purchase invoice."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the purchase was recorded."
+        },
+        "items": {
+          "type": "array",
+          "description": "List of items purchased.",
+          "items": {
+            "$ref": "#/backend/entities/PurchaseInvoiceItem"
+          }
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount of the invoice."
+        }
+      },
+      "required": [
+        "invoiceNumber",
+        "supplierId",
+        "supplierName",
+        "invoiceDate",
+        "createdAt",
+        "items",
+        "totalAmount"
+      ]
+    },
+    "PurchaseInvoiceItem": {
+      "title": "Purchase Invoice Item",
+      "type": "object",
+      "description": "A single line item on a purchase invoice.",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the Service purchased."
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "Denormalized name of the service."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity purchased."
+        },
+        "costPrice": {
+          "type": "number",
+          "description": "Cost price per unit for this purchase."
+        },
+        "total": {
+          "type": "number",
+          "description": "Total cost for this line item (quantity * costPrice)."
+        }
+      },
+      "required": [
+        "serviceId",
+        "serviceName",
+        "quantity",
+        "costPrice",
+        "total"
+      ]
     }
   },
   "auth": {
@@ -1185,9 +1272,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/purchaseInvoices/{purchaseInvoiceId}",
+        "definition": {
+          "entityName": "PurchaseInvoice",
+          "schema": {
+            "$ref": "#/backend/entities/PurchaseInvoice"
+          },
+          "description": "Stores records of purchases from suppliers, including invoice details and items purchased. Requires admin privileges.",
+          "params": [
+            {
+              "name": "purchaseInvoiceId",
+              "description": "The unique identifier of the purchase invoice."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore data structure is designed to manage a motel's operations, including room check-in/out, service orders, inventory, and billing. The structure prioritizes authorization independence and supports secure list operations.\\n\\n**Authorization Independence and QAPs:**\\n\\n*   Path-based ownership is used for private user data (none in the current data model, but can be easily extended). This avoids the need for `get()` calls in security rules and enables atomic operations.\\n*   Since all the collections requires Admin privileges, no additional attributes are denormalized as no user-level authorization rules are needed, simplifying security rules and improving performance.\\n*   Structural segregation ensures all documents in each collection share the same security requirements (admin-only access).  This simplifies security rules.\\n\\n**Explanation of Collections:**\\n\\n*   `/rooms`: Stores room information. All operations require admin privileges.\\n*   `/services`: Stores service information. All operations require admin privileges.\\n*   `/orders`: Stores order information. All operations require admin privileges. Includes `roomId` to associate orders with rooms.\\n*   `/transactions`: Stores transaction information. All operations require admin privileges. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.\\n*   `/roles_admin/{uid}`: Used to grant admin access. The existence of a document in this collection grants admin privileges to the corresponding user.\\n\\nThis design enables robust security rules. For example, listing rooms is secure because no user-generated content is involved. All write operations are restricted to admins, which can be enforced by checking the existence of a document in `/roles_admin/{uid}`."
   }
 }
-    

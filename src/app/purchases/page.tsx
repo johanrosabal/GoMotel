@@ -8,17 +8,17 @@ export default function PurchasesRootPage() {
       <div className="space-y-1.5">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
           <ShoppingCart className="h-8 w-8" />
-          Registrar Compra a Proveedor
+          Historial de Compras
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Filtre por proveedor para ver sus productos y añada las cantidades compradas para actualizar el inventario.
+          Consulte y registre facturas de compra de sus proveedores para mantener el inventario actualizado.
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Ingreso de Productos</CardTitle>
+          <CardTitle>Registro de Compras</CardTitle>
           <CardDescription>
-            Seleccione un proveedor para registrar un nuevo ingreso de productos al inventario.
+            Listado de todas las facturas de compra registradas.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -28,5 +28,3 @@ export default function PurchasesRootPage() {
     </div>
   );
 }
-
-    

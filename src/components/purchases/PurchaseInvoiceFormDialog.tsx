@@ -1,0 +1,305 @@
+'use client';
+import { useState, useTransition, useEffect, useMemo } from 'react';
+import { z } from 'zod';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { Supplier, Service } from '@/types';
+import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn, formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '../ui/scroll-area';
+
+const purchaseItemSchema = z.object({
+  serviceId: z.string(),
+  serviceName: z.string(),
+  quantity: z.coerce.number().int().min(1, "La cantidad debe ser al menos 1."),
+  costPrice: z.coerce.number().min(0, "El costo no puede ser negativo."),
+});
+
+const purchaseInvoiceSchema = z.object({
+  supplierId: z.string({ required_error: "Debe seleccionar un proveedor." }),
+  invoiceNumber: z.string().min(1, "El número de factura es requerido."),
+  invoiceDate: z.date({ required_error: "La fecha es requerida." }),
+  items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la factura."),
+});
+
+type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
+
+interface PurchaseInvoiceFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const stringToNumber = (numString: string): number => {
+    if (!numString) return 0;
+    const sanitized = numString.replace(/,/g, '');
+    return parseFloat(sanitized);
+};
+
+const numberToString = (num: number): string => {
+    if (isNaN(num) || num === null) return '';
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+};
+
+
+export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: PurchaseInvoiceFormDialogProps) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+
+  const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
+  const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
+
+  const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'services'), orderBy('name')) : null, [firestore]);
+  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+
+  const form = useForm<PurchaseInvoiceFormValues>({
+    resolver: zodResolver(purchaseInvoiceSchema),
+    defaultValues: {
+      supplierId: undefined,
+      invoiceNumber: '',
+      invoiceDate: new Date(),
+      items: [],
+    },
+  });
+
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "items"
+  });
+
+  const selectedSupplierId = form.watch('supplierId');
+  const items = form.watch('items');
+
+  const availableProducts = useMemo(() => {
+    if (!services) return [];
+    // Filter products by selected supplier and also exclude products already in the form
+    return services.filter(service => 
+      (selectedSupplierId && service.supplierId === selectedSupplierId) &&
+      !fields.some(field => field.serviceId === service.id)
+    );
+  }, [services, selectedSupplierId, fields]);
+  
+  const searchedProducts = useMemo(() => {
+    if (!productSearch) return availableProducts;
+    return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [productSearch, availableProducts]);
+
+  const totalAmount = useMemo(() => {
+    return items.reduce((total, item) => total + (item.quantity * item.costPrice), 0);
+  }, [items]);
+
+  useEffect(() => {
+    if (!open) {
+      form.reset({
+        supplierId: undefined,
+        invoiceNumber: '',
+        invoiceDate: new Date(),
+        items: [],
+      });
+    }
+  }, [open, form]);
+
+  const onSubmit = (values: PurchaseInvoiceFormValues) => {
+    const supplier = suppliers?.find(s => s.id === values.supplierId);
+    if (!supplier) {
+        toast({ title: "Error", description: "Proveedor no válido.", variant: 'destructive' });
+        return;
+    }
+
+    const payload = {
+        ...values,
+        supplierName: supplier.name,
+        totalAmount,
+    };
+    
+    startTransition(async () => {
+      const result = await savePurchaseInvoice(payload);
+      if (result.error) {
+        toast({ title: 'Error al registrar la compra', description: result.error, variant: 'destructive' });
+      } else {
+        toast({ title: '¡Éxito!', description: 'La factura de compra ha sido registrada y el inventario actualizado.' });
+        onOpenChange(false);
+      }
+    });
+  };
+
+  const addProductToForm = (service: Service) => {
+    append({
+        serviceId: service.id,
+        serviceName: service.name,
+        quantity: 1,
+        costPrice: service.costPrice || 0,
+    });
+    setProductSearch("");
+    setProductSearchOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Registrar Factura de Compra</DialogTitle>
+          <DialogDescription>
+            Complete los detalles de la factura para actualizar el inventario.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 flex flex-col min-h-0">
+             <div className="grid md:grid-cols-3 gap-4">
+                <FormField
+                    control={form.control}
+                    name="supplierId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Proveedor</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
+                            <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Seleccione un proveedor" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>{suppliers?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="invoiceNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Número de Factura</FormLabel>
+                        <FormControl><Input placeholder="FAC-12345" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="invoiceDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de Factura</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? (format(field.value, "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            
+            <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                <h3 className="text-sm font-medium">Artículos de la Factura</h3>
+                <div className="border rounded-md flex-1">
+                    <ScrollArea className="h-full">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-muted">
+                                <TableRow>
+                                    <TableHead>Producto</TableHead>
+                                    <TableHead className="w-[100px]">Cantidad</TableHead>
+                                    <TableHead className="w-[150px]">Costo Unit.</TableHead>
+                                    <TableHead className="w-[150px] text-right">Subtotal</TableHead>
+                                    <TableHead className="w-[50px]"><span className="sr-only">Quitar</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {fields.map((item, index) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell>{item.serviceName}</TableCell>
+                                        <TableCell>
+                                            <Input type="number" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} className="text-right" />
+                                        </TableCell>
+                                         <TableCell>
+                                            <Input type="number" step="0.01" {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })} className="text-right" />
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
+                                        <TableCell>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {fields.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Añada productos a la factura.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </div>
+                 {form.formState.errors.items && <p className="text-sm font-medium text-destructive">{form.formState.errors.items.message}</p>}
+
+                 <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                    <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="w-full justify-start gap-2" disabled={!selectedSupplierId}>
+                            <PlusCircle className="h-4 w-4" />
+                            {selectedSupplierId ? 'Añadir Producto' : 'Seleccione un proveedor primero'}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                         <Command>
+                            <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
+                            <CommandList>
+                                <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
+                                <CommandGroup>
+                                    {searchedProducts.map((product) => (
+                                        <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
+                                            {product.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+
+            </div>
+
+            <div className="flex justify-end font-bold text-xl pt-2">
+                <span>Total: {formatCurrency(totalAmount)}</span>
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? 'Guardando...' : 'Guardar Factura de Compra'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
