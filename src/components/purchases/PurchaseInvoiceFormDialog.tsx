@@ -54,7 +54,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [supplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
-  const [supplierSearch, setSupplierSearch] = useState("");
   const [invoiceDay, setInvoiceDay] = useState<string>('');
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
   const [invoiceYear, setInvoiceYear] = useState<string>('');
@@ -100,13 +99,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     if (!productSearch) return availableProducts;
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
-
-  const filteredSuppliers = useMemo(() => {
-    if (!suppliers) return [];
-    if (!supplierSearch) return suppliers;
-    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  }, [suppliers, supplierSearch]);
-
 
   const { subtotal, totalTax, totalAmount } = useMemo(() => {
     let currentSubtotal = 0;
@@ -274,22 +266,17 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                             </PopoverTrigger>
                             <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                                 <Command>
-                                    <CommandInput 
-                                      placeholder="Buscar proveedor..." 
-                                      value={supplierSearch}
-                                      onValueChange={setSupplierSearch}
-                                    />
+                                    <CommandInput placeholder="Buscar proveedor..." />
                                     <CommandList>
                                         <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
                                         <CommandGroup>
-                                            {filteredSuppliers.map((supplier) => (
+                                            {suppliers?.map((supplier) => (
                                                 <CommandItem
                                                     value={supplier.name}
                                                     key={supplier.id}
                                                     onSelect={() => {
                                                         form.setValue("supplierId", supplier.id)
                                                         setSupplierSearchOpen(false)
-                                                        setSupplierSearch("")
                                                     }}
                                                 >
                                                     <Check
