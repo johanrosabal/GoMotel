@@ -13,11 +13,9 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Supplier, Service } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn, formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -65,6 +63,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const { firestore } = useFirebase();
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const [invoiceDay, setInvoiceDay] = useState<string>('');
+  const [invoiceMonth, setInvoiceMonth] = useState<string>('');
+  const [invoiceYear, setInvoiceYear] = useState<string>('');
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -116,8 +117,43 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         invoiceDate: new Date(),
         items: [],
       });
+      setInvoiceDay('');
+      setInvoiceMonth('');
+      setInvoiceYear('');
+    } else {
+      const today = new Date();
+      form.setValue('invoiceDate', today, { shouldValidate: true });
+      setInvoiceDay(String(today.getDate()));
+      setInvoiceMonth(String(today.getMonth() + 1));
+      setInvoiceYear(String(today.getFullYear()));
     }
   }, [open, form]);
+
+  useEffect(() => {
+    if (invoiceDay && invoiceMonth && invoiceYear) {
+      const day = parseInt(invoiceDay, 10);
+      const month = parseInt(invoiceMonth, 10) - 1; // JS months are 0-indexed
+      const year = parseInt(invoiceYear, 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        const date = new Date(year, month, day);
+        if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+            form.setValue('invoiceDate', date, { shouldValidate: true });
+            form.clearErrors('invoiceDate');
+        } else {
+            form.setError('invoiceDate', { type: 'manual', message: 'Fecha no válida.' });
+        }
+      }
+    }
+  }, [invoiceDay, invoiceMonth, invoiceYear, form]);
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => String(currentYear - i));
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
+  }));
+  const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+  const days = invoiceYear && invoiceMonth ? Array.from({ length: daysInMonth(parseInt(invoiceYear, 10), parseInt(invoiceMonth, 10)) }, (_, i) => String(i + 1)) : Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: PurchaseInvoiceFormValues) => {
     const supplier = suppliers?.find(s => s.id === values.supplierId);
@@ -197,22 +233,47 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     control={form.control}
                     name="invoiceDate"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de Factura</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                {field.value ? (format(field.value, "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                        <FormItem>
+                          <FormLabel>Fecha de Factura</FormLabel>
+                          <div className="grid grid-cols-3 gap-2">
+                             <Select onValueChange={setInvoiceDay} value={invoiceDay}>
+                               <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Día" />
+                                </SelectTrigger>
+                               </FormControl>
+                               <SelectContent>
+                                {days.map((d) => (
+                                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                               </SelectContent>
+                             </Select>
+                              <Select onValueChange={setInvoiceMonth} value={invoiceMonth}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Mes" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {months.map((m) => (
+                                    <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select onValueChange={setInvoiceYear} value={invoiceYear}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Año" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {years.map((y) => (
+                                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                          </div>
+                          <FormMessage />
                         </FormItem>
                     )}
                 />
