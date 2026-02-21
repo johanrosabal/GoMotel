@@ -9,7 +9,8 @@ import {
   query,
   where,
   orderBy,
-  getDoc
+  getDoc,
+  increment,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -93,4 +94,44 @@ export async function getOrdersForStay(stayId: string): Promise<Order[]> {
         console.error('Error fetching orders for stay:', error);
         return [];
     }
+}
+
+export async function cancelOrder(orderId: string) {
+  if (!orderId) {
+    return { error: 'ID de pedido no válido.' };
+  }
+
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    const orderSnap = await getDoc(orderRef);
+
+    if (!orderSnap.exists()) {
+      return { error: 'El pedido no fue encontrado.' };
+    }
+    const orderData = orderSnap.data() as Order;
+
+    if (orderData.status === 'Cancelado') {
+      return { error: 'Este pedido ya ha sido cancelado.' };
+    }
+    
+    const batch = writeBatch(db);
+
+    // Revert stock for each item in the order
+    for (const item of orderData.items) {
+      const serviceRef = doc(db, 'services', item.serviceId);
+      batch.update(serviceRef, { stock: increment(item.quantity) });
+    }
+
+    // Mark order as cancelled
+    batch.update(orderRef, { status: 'Cancelado' });
+
+    await batch.commit();
+
+    revalidatePath(`/rooms/*`);
+    revalidatePath('/inventory');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to cancel order:', error);
+    return { error: 'Ocurrió un error inesperado al cancelar el pedido.' };
+  }
 }

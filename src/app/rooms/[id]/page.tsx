@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { doc, onSnapshot, Timestamp, collection, query, where, orderBy } from 'firebase/firestore'
@@ -17,7 +17,7 @@ import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
 import CheckoutDialog from '@/components/room-detail/CheckoutDialog'
 import { getServices } from '@/lib/actions/service.actions'
 import { updateRoomStatus } from '@/lib/actions/room.actions'
-import { realtimeOrderStatusUpdates } from '@/ai/flows/realtime-order-status-updates'
+import { cancelOrder } from '@/lib/actions/order.actions'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator'
 import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
 import { Progress } from '@/components/ui/progress'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Badge } from '@/components/ui/badge'
 
 
 function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
@@ -54,6 +55,7 @@ export default function RoomDetailsPage() {
     const [timeInStatus, setTimeInStatus] = useState('');
     const [isOverdue, setIsOverdue] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [isCancelling, startCancelTransition] = useTransition();
 
     useEffect(() => {
         if (!roomId) return
@@ -185,11 +187,16 @@ export default function RoomDetailsPage() {
         }
     }
     
-    const checkAiOrderStatus = async (order: Order) => {
-        toast({ title: "Consultando IA", description: "Obteniendo estado del pedido de la IA..." });
-        const result = await realtimeOrderStatusUpdates({ roomNumber: room?.number || 'Unknown' });
-        toast({ title: `Estado IA para Hab. ${room?.number}`, description: `Estado: ${result.orderStatus}, Artículos: ${result.items}` });
-    }
+    const handleCancelOrder = (orderId: string) => {
+        startCancelTransition(async () => {
+            const result = await cancelOrder(orderId);
+            if (result.error) {
+                toast({ title: 'Error al cancelar', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Pedido Cancelado', description: 'El pedido ha sido cancelado y el stock ha sido revertido.' });
+            }
+        });
+    };
 
     if (loading) {
         return (
@@ -373,13 +380,18 @@ export default function RoomDetailsPage() {
                                 {orders.length > 0 ? (
                                     <ul className="space-y-4">
                                         {orders.map(order => (
-                                            <li key={order.id} className="p-3 border rounded-lg bg-muted/50">
+                                            <li key={order.id} className={cn("p-3 border rounded-lg bg-muted/50", order.status === 'Cancelado' && 'opacity-60 bg-red-500/5')}>
                                                 <div className="flex justify-between items-center mb-2">
                                                     <div className='flex items-center gap-2'>
                                                         <History className="w-4 h-4 text-muted-foreground" />
                                                         <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
+                                                        <Badge variant={order.status === 'Cancelado' ? 'destructive' : 'secondary'}>{order.status}</Badge>
                                                     </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => checkAiOrderStatus(order)}>Consultar Estado IA</Button>
+                                                    {order.status !== 'Cancelado' && (
+                                                        <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling}>
+                                                            {isCancelling ? 'Cancelando...' : 'Cancelar'}
+                                                        </Button>
+                                                    )}
                                                 </div>
                                                 <ul className="pl-6 space-y-1 text-sm">
                                                     {order.items.map(item => (
@@ -389,7 +401,7 @@ export default function RoomDetailsPage() {
                                                         </li>
                                                     ))}
                                                 </ul>
-                                                <div className="text-right font-semibold mt-2 pt-2 border-t">Total: {formatCurrency(order.total)}</div>
+                                                <div className={cn("text-right font-semibold mt-2 pt-2 border-t", order.status === 'Cancelado' && 'line-through text-muted-foreground')}>Total: {formatCurrency(order.total)}</div>
                                             </li>
                                         ))}
                                     </ul>
