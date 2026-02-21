@@ -27,6 +27,11 @@ export default function RoomGrid() {
       return rooms?.slice().sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })) || [];
   }, [rooms]);
 
+  const staysByRoomId = useMemo(() => {
+    if (!activeStays) return new Map<string, Stay>();
+    return new Map(activeStays.map(stay => [stay.roomId, stay]));
+  }, [activeStays]);
+
   useEffect(() => {
     const checkOverdueStays = () => {
       if (!activeStays) return;
@@ -68,9 +73,16 @@ export default function RoomGrid() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {sortedRooms.map((room) => (
-        <RoomCard key={room.id} room={room} isOverdue={overdueRoomIds.has(room.id)} />
-      ))}
+      {sortedRooms.map((room) => {
+        const stay = staysByRoomId.get(room.id);
+        return (
+            <RoomCard 
+                key={room.id} 
+                room={room} 
+                stay={stay}
+                isOverdue={overdueRoomIds.has(room.id)} />
+        );
+      })}
     </div>
   );
 }
