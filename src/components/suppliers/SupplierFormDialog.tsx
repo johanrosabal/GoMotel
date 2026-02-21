@@ -19,6 +19,7 @@ const supplierSchema = z.object({
   email: z.string().email('Correo electrónico inválido.').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
+  googleMapsUrl: z.string().url('URL de Google Maps inválida.').optional().or(z.literal('')),
   notes: z.string().optional(),
 });
 
@@ -34,11 +35,11 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
 
   const form = useForm<z.infer<typeof supplierSchema>>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: supplier || { name: '', contactName: '', email: '', phone: '', address: '', notes: '' },
+    defaultValues: supplier || { name: '', contactName: '', email: '', phone: '', address: '', googleMapsUrl: '', notes: '' },
   });
 
   useEffect(() => {
-    form.reset(supplier || { name: '', contactName: '', email: '', phone: '', address: '', notes: '' });
+    form.reset(supplier || { name: '', contactName: '', email: '', phone: '', address: '', googleMapsUrl: '', notes: '' });
   }, [supplier, open, form]);
 
   const onSubmit = (values: z.infer<typeof supplierSchema>) => {
@@ -147,6 +148,19 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
             />
              <FormField
               control={form.control}
+              name="googleMapsUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL de Google Maps (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input type="url" placeholder="https://www.google.com/maps/..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
@@ -170,3 +184,5 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
     </Dialog>
   );
 }
+
+    

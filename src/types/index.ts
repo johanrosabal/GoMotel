@@ -224,6 +224,9 @@ export interface Supplier {
   email?: string;
   phone?: string;
   address?: string;
+  googleMapsUrl?: string;
   notes?: string;
   createdAt: Timestamp;
 }
+
+    

@@ -12,6 +12,7 @@ const supplierSchema = z.object({
   email: z.string().email('Correo electrónico inválido.').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
+  googleMapsUrl: z.string().url('URL de Google Maps inválida.').optional().or(z.literal('')),
   notes: z.string().optional(),
 });
 
@@ -47,3 +48,5 @@ export async function deleteSupplier(id: string) {
         return { error: 'No se pudo eliminar el proveedor.' };
     }
 }
+
+    
