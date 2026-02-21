@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '../ui/checkbox';
 import { FormDescription } from '../ui/form';
 import { Separator } from '../ui/separator';
+import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -70,6 +71,9 @@ export default function CreateReservationDialog({ children }: CreateReservationD
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
+
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [invoiceInfo, setInvoiceInfo] = useState<{ invoiceNumber: string; clientName: string; total: number; } | null>(null);
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -240,8 +244,13 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       if (result.error) {
         toast({ title: 'Error al Procesar', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
         setOpen(false);
+        if (result.invoice) {
+            setInvoiceInfo(result.invoice);
+            setSuccessModalOpen(true);
+        } else {
+            toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
+        }
       }
     });
   };
@@ -249,6 +258,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const isLoading = isLoadingRooms || isLoadingRoomTypes || isLoadingSinpe;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
@@ -560,5 +570,11 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         </Form>
       </DialogContent>
     </Dialog>
+    <InvoiceSuccessDialog
+        open={successModalOpen}
+        onOpenChange={setSuccessModalOpen}
+        invoiceInfo={invoiceInfo}
+    />
+    </>
   );
 }

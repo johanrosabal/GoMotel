@@ -15,6 +15,7 @@ import {
   increment,
   orderBy,
   DocumentReference,
+  limit,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -148,6 +149,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
     };
     batch.set(reservationRef, reservationPayload);
 
+    let invoiceDataForReturn: { invoiceNumber: string; clientName: string; total: number; } | undefined = undefined;
+
     if (isUpfrontPayment) {
         if (paymentMethod === 'Sinpe Movil') {
             const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
@@ -180,6 +183,23 @@ export async function createReservation(values: z.infer<typeof reservationAction
             }
         }
         
+        // --- Invoice Number Generation ---
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+
+        let nextInvoiceNumberInt = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastNumber)) {
+                    nextInvoiceNumberInt = lastNumber + 1;
+                }
+            }
+        }
+        const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+        
         const invoiceRef = doc(collection(db, 'invoices'));
         const invoiceItems = [{
             description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
@@ -189,8 +209,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
         }];
 
         const newInvoice: Omit<Invoice, 'id'> = {
+            invoiceNumber: newInvoiceNumber,
             reservationId: reservationRef.id,
-            stayId: stayRef?.id, // Use stayRef.id if it exists
+            stayId: stayRef?.id,
             clientId: guestId,
             clientName: guestName,
             createdAt: Timestamp.now(),
@@ -203,6 +224,12 @@ export async function createReservation(values: z.infer<typeof reservationAction
             voucherNumber: voucherNumber ?? undefined,
         };
         batch.set(invoiceRef, newInvoice);
+
+        invoiceDataForReturn = {
+            invoiceNumber: newInvoiceNumber,
+            clientName: guestName,
+            total: pricePlanAmount,
+        };
     }
 
     if (checkInNow && stayRef) {
@@ -247,6 +274,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
     if (guestId) revalidatePath('/clients');
     if (paymentMethod === 'Sinpe Movil') revalidatePath('/settings/sinpe-accounts');
 
+    if (invoiceDataForReturn) {
+        return { success: true, invoice: invoiceDataForReturn };
+    }
 
     return { success: true };
   } catch (error) {
