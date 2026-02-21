@@ -161,6 +161,9 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         </div>
 
         <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
           <Button onClick={handleSubmitOrder} disabled={isPending || cart.length === 0}>
             {isPending ? 'Enviando Pedido...' : 'Enviar Pedido'}
           </Button>
