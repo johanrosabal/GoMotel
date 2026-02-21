@@ -17,6 +17,7 @@ const UpdateInventoryInputSchema = z.object({
     z.object({
       serviceName: z.string().describe('El nombre del servicio pedido.'),
       quantity: z.number().int().positive().describe('La cantidad del servicio pedido.'),
+      source: z.enum(['Purchased', 'Internal']).optional().describe('La fuente del producto (comprado o producción interna).'),
     })
   ).describe('Un array de pedidos de servicio para la habitación.'),
 });
@@ -36,14 +37,20 @@ const updateInventoryPrompt = ai.definePrompt({
   name: 'updateInventoryPrompt',
   input: {schema: UpdateInventoryInputSchema},
   output: {schema: UpdateInventoryOutputSchema},
-  prompt: `Eres un experto en gestión de inventario de motel. Basado en los pedidos de servicio proporcionados para una habitación específica, determinarás si el inventario se puede actualizar con éxito.
+  prompt: `Eres un asistente de gestión de motel. Tu tarea es confirmar la actualización del inventario después de un pedido.
 
-Pedidos de Servicio para la Habitación {{{roomNumber}}}:
+Recibiste los siguientes pedidos de servicio:
 {{#each serviceOrders}}
-- Servicio: {{{serviceName}}}, Cantidad: {{{quantity}}}
+- Servicio: {{{serviceName}}}, Cantidad: {{{quantity}}}, Fuente: {{#if source}}{{{source}}}{{else}}Purchased{{/if}}
 {{/each}}
 
-Determina si la actualización del inventario es exitosa según las existencias disponibles. Devuelve un estado de éxito (verdadero o falso) y un mensaje descriptivo.`,
+Tu respuesta debe seguir estas reglas:
+1.  Para productos con fuente 'Internal', el pedido se registra pero no afecta al stock numérico.
+2.  Para productos con fuente 'Purchased', el stock ya fue verificado y descontado por el sistema.
+3.  Tu mensaje de salida debe ser una confirmación general.
+
+Ejemplo de mensaje de salida: "Confirmado. Se ha descontado el stock para los productos comprados y se ha registrado el pedido para los productos de cocina."
+Devuelve siempre 'success: true' y el mensaje de confirmación.`,
 });
 
 const updateInventoryFlow = ai.defineFlow(

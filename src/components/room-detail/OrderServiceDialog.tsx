@@ -84,7 +84,11 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         // Call AI for inventory update simulation
         const aiResult = await updateInventory({
             roomNumber: 'current',
-            serviceOrders: cart.map(item => ({ serviceName: item.service.name, quantity: item.quantity })),
+            serviceOrders: cart.map(item => ({
+                serviceName: item.service.name,
+                quantity: item.quantity,
+                source: item.service.source,
+            })),
         });
         toast({ title: "Verificación de Inventario IA", description: aiResult.message });
         
