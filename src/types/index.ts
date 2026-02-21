@@ -257,4 +257,6 @@ export interface PurchaseInvoice {
   totalDiscount?: number;
   imageUrls?: string[];
   status?: 'Activa' | 'Anulada';
+  createdByName?: string;
+  createdByUid?: string;
 }

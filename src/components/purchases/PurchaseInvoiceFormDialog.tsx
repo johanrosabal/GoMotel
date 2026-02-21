@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import PurchaseInvoiceTemplate from './PurchaseInvoiceTemplate';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
@@ -76,7 +77,8 @@ const MAX_IMAGES = 5;
 export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchaseInvoice, readOnly = false }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
+  const { userProfile } = useUserProfile();
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [invoiceDay, setInvoiceDay] = useState<string>('');
@@ -408,6 +410,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
         totalDiscount,
         totalTax,
         totalAmount,
+        createdByName: purchaseInvoice?.createdByName || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.email),
+        createdByUid: purchaseInvoice?.createdByUid || user?.uid,
     };
     
     startTransition(async () => {

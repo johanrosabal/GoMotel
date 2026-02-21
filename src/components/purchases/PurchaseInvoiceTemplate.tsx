@@ -23,16 +23,20 @@ const PurchaseInvoiceTemplate = React.forwardRef<HTMLDivElement, { invoice: Purc
         </header>
 
         <main className="my-10">
-            <div className="grid grid-cols-2 gap-8">
+            <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-semibold text-gray-500">PROVEEDOR</p>
+                    <p className="text-sm font-semibold text-gray-500 uppercase">Proveedor</p>
                     <p className="font-bold">{invoice.supplierName}</p>
                 </div>
-                <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-500">FECHA DE FACTURA</p>
-                    <p>{invoice.invoiceDate ? format(invoice.invoiceDate.toDate(), "dd 'de' MMMM, yyyy", { locale: es }) : 'N/A'}</p>
-                    <p className="text-sm font-semibold text-gray-500 mt-2">FECHA DE REGISTRO</p>
-                    <p>{invoice.createdAt ? format(invoice.createdAt.toDate(), "dd 'de' MMMM, yyyy", { locale: es }) : 'N/A'}</p>
+                <div className="text-right flex gap-6">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-500 uppercase">Fecha Factura</p>
+                        <p>{invoice.invoiceDate ? format(invoice.invoiceDate.toDate(), "dd 'de' MMMM, yyyy", { locale: es }) : 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-500 uppercase">Fecha Registro</p>
+                        <p>{invoice.createdAt ? format(invoice.createdAt.toDate(), "dd MMM yyyy, h:mm a", { locale: es }) : 'N/A'}</p>
+                    </div>
                 </div>
             </div>
             
@@ -66,9 +70,9 @@ const PurchaseInvoiceTemplate = React.forwardRef<HTMLDivElement, { invoice: Purc
                         <p>{formatCurrency(invoice.subtotal || 0)}</p>
                     </div>
                      {invoice.totalDiscount && invoice.totalDiscount > 0 && (
-                        <div className="flex justify-between text-red-600">
+                        <div className="flex justify-between text-sm">
                             <p className="text-gray-500">Descuento:</p>
-                            <p>-{formatCurrency(invoice.totalDiscount)}</p>
+                            <p className="text-red-600">-{formatCurrency(invoice.totalDiscount)}</p>
                         </div>
                     )}
                     <div className="flex justify-between">
@@ -85,6 +89,7 @@ const PurchaseInvoiceTemplate = React.forwardRef<HTMLDivElement, { invoice: Purc
         
         <footer className="text-center text-xs text-gray-400 pt-10 mt-10 border-t border-gray-200">
             <p>Este es un comprobante de una factura de compra registrada en el sistema.</p>
+            {invoice.createdByName && <p className="mt-2">Registrado por: <span className="font-semibold">{invoice.createdByName}</span></p>}
         </footer>
     </div>
 ));
