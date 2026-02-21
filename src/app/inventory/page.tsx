@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default async function InventoryPage() {
   const initialServices = await getServices();
-  const allServices = await getServices();
 
   return (
     <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
@@ -18,7 +17,7 @@ export default async function InventoryPage() {
             </div>
         </CardHeader>
         <CardContent>
-            <InventoryTable initialServices={initialServices} allServices={allServices} />
+            <InventoryTable initialServices={initialServices} />
         </CardContent>
       </Card>
     </div>
