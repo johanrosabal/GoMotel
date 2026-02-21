@@ -992,9 +992,21 @@
             "$ref": "#/backend/entities/PurchaseInvoiceItem"
           }
         },
+        "subtotal": {
+          "type": "number",
+          "description": "The total amount before taxes."
+        },
+        "totalTax": {
+          "type": "number",
+          "description": "The total amount of taxes."
+        },
         "totalAmount": {
           "type": "number",
           "description": "Total amount of the invoice."
+        },
+        "taxesIncluded": {
+          "type": "boolean",
+          "description": "Indicates if taxes are included in the item cost prices."
         }
       },
       "required": [
@@ -1031,6 +1043,13 @@
         "total": {
           "type": "number",
           "description": "Total cost for this line item (quantity * costPrice)."
+        },
+        "taxIds": {
+          "type": "array",
+          "description": "A list of tax IDs applicable to this item at the time of purchase.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -1293,3 +1312,4 @@
     "reasoning": "The Firestore data structure is designed to manage a motel's operations, including room check-in/out, service orders, inventory, and billing. The structure prioritizes authorization independence and supports secure list operations.\\n\\n**Authorization Independence and QAPs:**\\n\\n*   Path-based ownership is used for private user data (none in the current data model, but can be easily extended). This avoids the need for `get()` calls in security rules and enables atomic operations.\\n*   Since all the collections requires Admin privileges, no additional attributes are denormalized as no user-level authorization rules are needed, simplifying security rules and improving performance.\\n*   Structural segregation ensures all documents in each collection share the same security requirements (admin-only access).  This simplifies security rules.\\n\\n**Explanation of Collections:**\\n\\n*   `/rooms`: Stores room information. All operations require admin privileges.\\n*   `/services`: Stores service information. All operations require admin privileges.\\n*   `/orders`: Stores order information. All operations require admin privileges. Includes `roomId` to associate orders with rooms.\\n*   `/transactions`: Stores transaction information. All operations require admin privileges. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.\\n*   `/roles_admin/{uid}`: Used to grant admin access. The existence of a document in this collection grants admin privileges to the corresponding user.\\n\\nThis design enables robust security rules. For example, listing rooms is secure because no user-generated content is involved. All write operations are restricted to admins, which can be enforced by checking the existence of a document in `/roles_admin/{uid}`."
   }
 }
+  

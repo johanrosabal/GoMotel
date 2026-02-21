@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, writeBatch, increment, addDoc, collection, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, writeBatch, increment, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 
@@ -10,15 +10,19 @@ const purchaseItemSchema = z.object({
   serviceName: z.string(),
   quantity: z.coerce.number().int().min(1),
   costPrice: z.coerce.number().min(0),
+  taxIds: z.array(z.string()).optional(),
 });
 
 const purchaseInvoiceSchema = z.object({
   supplierId: z.string(),
   supplierName: z.string(),
-  invoiceNumber: z.string().min(1),
+  invoiceNumber: z.string().min(1).max(25),
   invoiceDate: z.date(),
   items: z.array(purchaseItemSchema).min(1),
   totalAmount: z.number(),
+  subtotal: z.number().optional(),
+  totalTax: z.number().optional(),
+  taxesIncluded: z.boolean().optional(),
 });
 
 export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoiceSchema>) {
@@ -60,3 +64,5 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
         return { error: 'No se pudo guardar la factura de compra.' };
     }
 }
+
+  

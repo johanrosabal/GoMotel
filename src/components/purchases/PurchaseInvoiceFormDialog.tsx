@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import type { Supplier, Service } from '@/types';
+import type { Supplier, Service, Tax } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2 } from 'lucide-react';
@@ -20,12 +20,16 @@ import { es } from 'date-fns/locale';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '../ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
   serviceName: z.string(),
   quantity: z.coerce.number().int().min(1, "La cantidad debe ser al menos 1."),
   costPrice: z.coerce.number().min(0, "El costo no puede ser negativo."),
+  taxIds: z.array(z.string()).optional(),
 });
 
 const purchaseInvoiceSchema = z.object({
@@ -33,6 +37,7 @@ const purchaseInvoiceSchema = z.object({
   invoiceNumber: z.string().min(1, "El número de factura es requerido.").max(25, "El número de factura no debe exceder los 25 caracteres."),
   invoiceDate: z.date({ required_error: "La fecha es requerida." }),
   items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la factura."),
+  taxesIncluded: z.boolean().default(false),
 });
 
 type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
@@ -41,21 +46,6 @@ interface PurchaseInvoiceFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const stringToNumber = (numString: string): number => {
-    if (!numString) return 0;
-    const sanitized = numString.replace(/,/g, '');
-    return parseFloat(sanitized);
-};
-
-const numberToString = (num: number): string => {
-    if (isNaN(num) || num === null) return '';
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(num);
-};
-
 
 export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
@@ -72,6 +62,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
 
   const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'services'), orderBy('name')) : null, [firestore]);
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+  
+  const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes'), orderBy('name')) : null, [firestore]);
+  const { data: allTaxes, isLoading: isLoadingTaxes } = useCollection<Tax>(taxesQuery);
 
   const form = useForm<PurchaseInvoiceFormValues>({
     resolver: zodResolver(purchaseInvoiceSchema),
@@ -80,22 +73,23 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       invoiceNumber: '',
       invoiceDate: new Date(),
       items: [],
+      taxesIncluded: false,
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items"
   });
 
   const selectedSupplierId = form.watch('supplierId');
   const items = form.watch('items');
+  const taxesIncluded = form.watch('taxesIncluded');
 
   const availableProducts = useMemo(() => {
     if (!services) return [];
-    // Filter products by selected supplier and also exclude products already in the form
     return services.filter(service => 
-      (selectedSupplierId && service.supplierId === selectedSupplierId) &&
+      (selectedSupplierId ? service.supplierId === selectedSupplierId : true) &&
       !fields.some(field => field.serviceId === service.id)
     );
   }, [services, selectedSupplierId, fields]);
@@ -105,9 +99,44 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
 
-  const totalAmount = useMemo(() => {
-    return items.reduce((total, item) => total + (item.quantity * item.costPrice), 0);
-  }, [items]);
+  const { subtotal, totalTax, totalAmount } = useMemo(() => {
+    let currentSubtotal = 0;
+    let currentTotalTax = 0;
+
+    items.forEach(item => {
+        const itemTotal = item.quantity * item.costPrice;
+        let itemSubtotal = itemTotal;
+        let itemTax = 0;
+
+        if (taxesIncluded) {
+            const itemTaxes = (item.taxIds || [])
+                .map(taxId => allTaxes?.find(t => t.id === taxId))
+                .filter((t): t is Tax => !!t);
+            
+            const totalTaxRate = itemTaxes.reduce((sum, tax) => sum + tax.percentage, 0);
+            itemSubtotal = itemTotal / (1 + totalTaxRate / 100);
+            itemTax = itemTotal - itemSubtotal;
+        } else {
+            const itemTaxes = (item.taxIds || [])
+                .map(taxId => allTaxes?.find(t => t.id === taxId))
+                .filter((t): t is Tax => !!t);
+
+            itemTaxes.forEach(tax => {
+                itemTax += itemSubtotal * (tax.percentage / 100);
+            });
+        }
+        currentSubtotal += itemSubtotal;
+        currentTotalTax += itemTax;
+    });
+
+    const currentTotalAmount = currentSubtotal + currentTotalTax;
+
+    return { 
+        subtotal: currentSubtotal,
+        totalTax: currentTotalTax,
+        totalAmount: currentTotalAmount,
+    };
+  }, [items, taxesIncluded, allTaxes]);
 
   useEffect(() => {
     if (!open) {
@@ -116,6 +145,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         invoiceNumber: '',
         invoiceDate: new Date(),
         items: [],
+        taxesIncluded: false,
       });
       setInvoiceDay('');
       setInvoiceMonth('');
@@ -165,6 +195,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     const payload = {
         ...values,
         supplierName: supplier.name,
+        subtotal,
+        totalTax,
         totalAmount,
     };
     
@@ -185,6 +217,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         serviceName: service.name,
         quantity: 1,
         costPrice: service.costPrice || 0,
+        taxIds: service.taxIds || [],
     });
     setProductSearch("");
     setProductSearchOpen(false);
@@ -232,7 +265,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                  <FormField
                     control={form.control}
                     name="invoiceDate"
-                    render={({ field }) => (
+                    render={() => (
                         <FormItem>
                           <FormLabel>Fecha de Factura</FormLabel>
                           <div className="grid grid-cols-3 gap-2">
@@ -324,9 +357,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
 
                  <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
                     <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="w-full justify-start gap-2" disabled={!selectedSupplierId}>
+                        <Button type="button" variant="outline" className="w-full justify-start gap-2">
                             <PlusCircle className="h-4 w-4" />
-                            {selectedSupplierId ? 'Añadir Producto' : 'Seleccione un proveedor primero'}
+                            Añadir Producto
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -347,9 +380,39 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                 </Popover>
 
             </div>
+            
+            <FormField
+                control={form.control}
+                name="taxesIncluded"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel>Los costos unitarios incluyen impuestos</FormLabel>
+                        </div>
+                        <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
 
-            <div className="flex justify-end font-bold text-xl pt-2">
-                <span>Total: {formatCurrency(totalAmount)}</span>
+            <div className="space-y-1 rounded-lg border p-4">
+                <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                </div>
+                 <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Impuestos:</span>
+                    <span>{formatCurrency(totalTax)}</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between font-bold text-lg">
+                    <span>Total:</span>
+                    <span>{formatCurrency(totalAmount)}</span>
+                </div>
             </div>
 
             <DialogFooter className="pt-4 border-t">
@@ -364,3 +427,4 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     </Dialog>
   );
 }
+  

@@ -237,6 +237,7 @@ export interface PurchaseInvoiceItem {
   quantity: number;
   costPrice: number;
   total: number;
+  taxIds?: string[];
 }
 
 export interface PurchaseInvoice {
@@ -248,4 +249,9 @@ export interface PurchaseInvoice {
   createdAt: Timestamp;
   items: PurchaseInvoiceItem[];
   totalAmount: number;
+  subtotal?: number;
+  totalTax?: number;
+  taxesIncluded?: boolean;
 }
+
+  
