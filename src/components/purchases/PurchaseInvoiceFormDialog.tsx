@@ -54,6 +54,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [supplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
   const [invoiceDay, setInvoiceDay] = useState<string>('');
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
   const [invoiceYear, setInvoiceYear] = useState<string>('');
@@ -82,6 +83,12 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     control: form.control,
     name: "items"
   });
+
+  const filteredSuppliers = useMemo(() => {
+    if (!suppliers) return [];
+    if (!supplierSearch) return suppliers;
+    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
 
   const selectedSupplierId = form.watch('supplierId');
   const items = form.watch('items');
@@ -266,17 +273,22 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                             </PopoverTrigger>
                             <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                                 <Command>
-                                    <CommandInput placeholder="Buscar proveedor..." />
+                                    <CommandInput
+                                      placeholder="Buscar proveedor..."
+                                      value={supplierSearch}
+                                      onValueChange={setSupplierSearch}
+                                    />
                                     <CommandList>
                                         <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
                                         <CommandGroup>
-                                            {suppliers?.map((supplier) => (
+                                            {filteredSuppliers.map((supplier) => (
                                                 <CommandItem
                                                     value={supplier.name}
                                                     key={supplier.id}
                                                     onSelect={() => {
                                                         form.setValue("supplierId", supplier.id)
                                                         setSupplierSearchOpen(false)
+                                                        setSupplierSearch('');
                                                     }}
                                                 >
                                                     <Check
@@ -475,4 +487,3 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     </Dialog>
   );
 }
-  
