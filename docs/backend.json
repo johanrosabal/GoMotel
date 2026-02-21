@@ -1023,6 +1023,14 @@
         "totalDiscount": {
           "type": "number",
           "description": "The total calculated discount amount."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the purchase invoice.",
+          "enum": [
+            "Activa",
+            "Anulada"
+          ]
         }
       },
       "required": [

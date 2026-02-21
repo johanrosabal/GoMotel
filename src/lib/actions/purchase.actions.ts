@@ -27,6 +27,7 @@ const purchaseInvoiceSchema = z.object({
   discountValue: z.number().optional(),
   totalDiscount: z.number().optional(),
   imageUrls: z.array(z.string()).optional(),
+  status: z.enum(['Activa', 'Anulada']).optional(),
 });
 
 export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoiceSchema>) {
@@ -50,6 +51,7 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
         ...invoiceData,
         invoiceDate: Timestamp.fromDate(invoiceData.invoiceDate),
         createdAt: Timestamp.now(),
+        status: 'Activa',
         items: items.map(item => ({
             ...item,
             total: item.quantity * item.costPrice,

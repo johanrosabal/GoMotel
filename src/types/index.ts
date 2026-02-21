@@ -256,4 +256,5 @@ export interface PurchaseInvoice {
   discountValue?: number;
   totalDiscount?: number;
   imageUrls?: string[];
+  status?: 'Activa' | 'Anulada';
 }
