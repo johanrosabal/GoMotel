@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Edit, Trash2, XCircle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, XCircle, Eye } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useState, useTransition } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -53,6 +53,10 @@ function ActionsMenu({ purchase, onEdit }: { purchase: PurchaseInvoice, onEdit: 
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={() => onEdit(purchase)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalle
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => onEdit(purchase)} disabled={isVoided}>
                         <Edit className="mr-2 h-4 w-4" />
