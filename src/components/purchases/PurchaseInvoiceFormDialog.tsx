@@ -91,14 +91,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return services.filter(service => {
       const notInCart = !fields.some(field => field.serviceId === service.id);
       if (!notInCart) return false;
-
-      // If a supplier is selected, show products from that supplier OR products with no supplier.
-      // Hide products assigned to a different supplier.
       if (selectedSupplierId) {
         return !service.supplierId || service.supplierId === selectedSupplierId;
       }
-
-      // If no supplier is selected, show all products (which is the default behavior before selecting a supplier).
       return true;
     });
   }, [services, selectedSupplierId, fields]);
@@ -379,10 +374,10 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                     <TableRow key={item.id}>
                                         <TableCell>{item.serviceName}</TableCell>
                                         <TableCell>
-                                            <Input type="number" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} className="text-right" />
+                                            <Input type="number" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1" />
                                         </TableCell>
                                          <TableCell>
-                                            <Input type="number" step="0.01" {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })} className="text-right" />
+                                            <Input type="number" step="0.01" {...form.register(`items.${index}.costPrice`, { valueAsNumber: true })} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="0" />
                                         </TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
                                         <TableCell>
