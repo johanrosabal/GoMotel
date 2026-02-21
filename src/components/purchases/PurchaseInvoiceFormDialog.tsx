@@ -73,6 +73,7 @@ const numberToString = (num: number): string => {
 };
 
 const MAX_IMAGES = 5;
+const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
 
 export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchaseInvoice, readOnly = false }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
@@ -390,7 +391,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
     value: String(i + 1),
     label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
   }));
-  const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const days = invoiceYear && invoiceMonth ? Array.from({ length: daysInMonth(parseInt(invoiceYear, 10), parseInt(invoiceMonth, 10)) }, (_, i) => String(i + 1)) : Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: PurchaseInvoiceFormValues) => {
@@ -446,16 +446,16 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
             {readOnly ? `Viendo detalles de la factura N° ${purchaseInvoice?.invoiceNumber}.` : (purchaseInvoice ? `Editando la factura N° ${purchaseInvoice.invoiceNumber}`: 'Complete los detalles de la factura para actualizar el inventario.')}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 gap-4">
-            <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="details">Detalles de Factura</TabsTrigger>
-                    <TabsTrigger value="images">Imágenes Adjuntas ({imageUrls.length})</TabsTrigger>
-                </TabsList>
-                <TabsContent value="details" className="flex-1 overflow-y-auto -mx-1 px-1 mt-4">
-                    <div className="space-y-4 pr-3">
-                         <div className="grid md:grid-cols-3 gap-4">
+        <div className="flex-1 overflow-y-auto pr-6 pl-1">
+            <Form {...form}>
+            <form id="purchase-invoice-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <Tabs defaultValue="details">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="details">Detalles de Factura</TabsTrigger>
+                        <TabsTrigger value="images">Imágenes Adjuntas ({imageUrls.length})</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="details" className="mt-4 space-y-4">
+                        <div className="grid md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="supplierId"
@@ -545,7 +545,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                             />
                         </div>
                         <div className="flex flex-col space-y-2">
-                              <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center">
                                 <h3 className="text-sm font-medium">Artículos de la Factura</h3>
                                 {!readOnly && (
                                     <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
@@ -591,16 +591,16 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                     <TableCell>{item.serviceName}</TableCell>
                                                     <TableCell>
                                                         <Input
-                                                          type="number"
-                                                          {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
-                                                          onKeyDown={(e) => {
-                                                              if (['-', 'e', '+', '.'].includes(e.key)) {
-                                                                  e.preventDefault();
-                                                              }
-                                                          }}
-                                                          className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                          min="1"
-                                                          readOnly={readOnly}
+                                                            type="number"
+                                                            {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
+                                                            onKeyDown={(e) => {
+                                                                if (['-', 'e', '+', '.'].includes(e.key)) {
+                                                                    e.preventDefault();
+                                                                }
+                                                            }}
+                                                            className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            min="1"
+                                                            readOnly={readOnly}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -662,7 +662,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 </FormItem>
                             )}
                         />
-                         <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="discountType"
@@ -715,10 +715,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 )}
                             />
                         </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="images" className="flex-1 overflow-y-auto -mx-1 px-1 mt-4">
-                    <div className="space-y-2 pr-3">
+                    </TabsContent>
+                    <TabsContent value="images" className="mt-4 space-y-2">
                         <Label>Fotos de la Factura (Opcional)</Label>
                         <div className="grid grid-cols-5 gap-2">
                             {imageUrls.map((url, index) => (
@@ -760,22 +758,24 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                             />
                         )}
                         {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
-                    </div>
-                </TabsContent>
-            </Tabs>
-            
+                    </TabsContent>
+                </Tabs>
+            </form>
+            </Form>
+        </div>
+        <div className="mt-auto flex-shrink-0 space-y-4 pt-4">
             <div className="space-y-1 rounded-lg border p-4">
                 <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span>{formatCurrency(subtotal)}</span>
                 </div>
-                 {totalDiscount > 0 && (
+                    {totalDiscount > 0 && (
                     <div className="flex justify-between text-sm text-destructive">
                         <span className="font-medium">Descuento:</span>
                         <span>-{formatCurrency(totalDiscount)}</span>
                     </div>
                 )}
-                 <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Impuestos:</span>
                     <span>{formatCurrency(totalTax)}</span>
                 </div>
@@ -786,21 +786,20 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                 </div>
             </div>
 
-            <DialogFooter className="pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
-              {readOnly && purchaseInvoice ? (
-                  <Button type="button" onClick={handleDownloadPdf}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Exportar a PDF
-                  </Button>
-              ) : (
-                <Button type="submit" disabled={isPending || (!purchaseInvoice && isProfileLoading)}>
-                    {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
-                </Button>
-              )}
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
+                {readOnly && purchaseInvoice ? (
+                    <Button type="button" onClick={handleDownloadPdf}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar a PDF
+                    </Button>
+                ) : (
+                    <Button type="submit" form="purchase-invoice-form" disabled={isPending || (!purchaseInvoice && isProfileLoading)}>
+                        {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
+                    </Button>
+                )}
             </DialogFooter>
-          </form>
-        </Form>
+        </div>
         {readOnly && purchaseInvoice && (
             <div className="absolute -left-[9999px] top-0">
                 <PurchaseInvoiceTemplate invoice={purchaseInvoice} ref={invoiceRefForPDF} />
