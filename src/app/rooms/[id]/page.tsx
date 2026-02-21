@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { doc, collection, query, where } from 'firebase/firestore'
+import { doc, collection, query, where, orderBy } from 'firebase/firestore'
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase'
 import type { Room, Stay, Order, Service } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,16 +69,20 @@ export default function RoomDetailsPage() {
     const { data: stay, isLoading: isLoadingStay } = useDoc<Stay>(stayRef);
 
     const ordersQuery = useMemoFirebase(() => {
-        if (!firestore || !stay?.id) return null;
-        return query(collection(firestore, 'orders'), where('stayId', '==', stay.id));
-    }, [firestore, stay?.id]);
+        if (!firestore) return null;
+        // Fetch all recent orders and filter client-side. This avoids potential indexing issues with the 'where' clause.
+        return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
+    }, [firestore]);
     
     const { data: rawOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
     const orders = useMemo(() => {
-        if (!rawOrders) return [];
-        return [...rawOrders].sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
-    }, [rawOrders]);
+        if (!rawOrders || !stay?.id) return [];
+        // Manually filter orders for the current stay
+        const stayOrders = rawOrders.filter(o => o.stayId === stay.id);
+        // The sorting is already handled by the query, but we can re-sort if needed.
+        return stayOrders;
+    }, [rawOrders, stay?.id]);
 
     const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
 
@@ -405,5 +409,3 @@ export default function RoomDetailsPage() {
         </div>
     )
 }
-
-    
