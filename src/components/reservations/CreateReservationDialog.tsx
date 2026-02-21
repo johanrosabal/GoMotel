@@ -73,7 +73,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [invoiceInfo, setInvoiceInfo] = useState<{ invoiceNumber: string; clientName: string; total: number; } | null>(null);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -245,8 +245,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
         toast({ title: 'Error al Procesar', description: result.error, variant: 'destructive' });
       } else {
         setOpen(false);
-        if (result.invoice) {
-            setInvoiceInfo(result.invoice);
+        if (result.invoiceId) {
+            setInvoiceId(result.invoiceId);
             setSuccessModalOpen(true);
         } else {
             toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
@@ -573,7 +573,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     <InvoiceSuccessDialog
         open={successModalOpen}
         onOpenChange={setSuccessModalOpen}
-        invoiceInfo={invoiceInfo}
+        invoiceId={invoiceId}
     />
     </>
   );

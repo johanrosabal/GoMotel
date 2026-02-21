@@ -120,6 +120,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
   // --- Database Operations ---
   try {
     const batch = writeBatch(db);
+    let invoiceIdForReturn: string | undefined;
 
     const isUpfrontPayment = !isOpenAccount;
     const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
@@ -148,8 +149,6 @@ export async function createReservation(values: z.infer<typeof reservationAction
       voucherNumber: voucherNumber ?? undefined,
     };
     batch.set(reservationRef, reservationPayload);
-
-    let invoiceDataForReturn: { invoiceNumber: string; clientName: string; total: number; } | undefined = undefined;
 
     if (isUpfrontPayment) {
         if (paymentMethod === 'Sinpe Movil') {
@@ -225,11 +224,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
         };
         batch.set(invoiceRef, newInvoice);
 
-        invoiceDataForReturn = {
-            invoiceNumber: newInvoiceNumber,
-            clientName: guestName,
-            total: pricePlanAmount,
-        };
+        invoiceIdForReturn = invoiceRef.id;
     }
 
     if (checkInNow && stayRef) {
@@ -274,8 +269,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
     if (guestId) revalidatePath('/clients');
     if (paymentMethod === 'Sinpe Movil') revalidatePath('/settings/sinpe-accounts');
 
-    if (invoiceDataForReturn) {
-        return { success: true, invoice: invoiceDataForReturn };
+    if (invoiceIdForReturn) {
+        return { success: true, invoiceId: invoiceIdForReturn };
     }
 
     return { success: true };
