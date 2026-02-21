@@ -74,7 +74,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
   const [invoiceYear, setInvoiceYear] = useState<string>('');
   const [costPriceInputs, setCostPriceInputs] = useState<string[]>([]);
-
+  const [discountValueInput, setDiscountValueInput] = useState('');
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
@@ -112,18 +112,25 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   useEffect(() => {
     setCostPriceInputs(items.map(item => numberToString(item.costPrice)));
   }, [items]);
+  
+  useEffect(() => {
+    form.setValue('discountValue', undefined);
+    setDiscountValueInput('');
+  }, [discountType, form]);
 
   const availableProducts = useMemo(() => {
     if (!services) return [];
     return services.filter(service => {
-      const notInCart = !fields.some(field => field.serviceId === service.id);
-      if (!notInCart) return false;
-      if (selectedSupplierId) {
-        return !service.supplierId || service.supplierId === selectedSupplierId;
-      }
-      return true;
+        const notInCart = !fields.some(field => field.serviceId === service.id);
+        if (!notInCart) return false;
+        // Show product if it has no supplier or if its supplier matches the selected one
+        if (selectedSupplierId) {
+            return !service.supplierId || service.supplierId === selectedSupplierId;
+        }
+        // If no supplier is selected, show all products not in cart
+        return true;
     });
-  }, [services, selectedSupplierId, fields]);
+}, [services, selectedSupplierId, fields]);
   
   const searchedProducts = useMemo(() => {
     if (!productSearch) return availableProducts;
@@ -195,6 +202,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
       setInvoiceDay('');
       setInvoiceMonth('');
       setInvoiceYear('');
+      setDiscountValueInput('');
     } else {
       const today = new Date();
       form.setValue('invoiceDate', today, { shouldValidate: true });
@@ -255,6 +263,39 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     
     form.setValue(`items.${index}.costPrice`, stringToNumber(formattedValue), { shouldValidate: true });
 };
+  
+  const handleDiscountValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const discountType = form.getValues('discountType');
+
+    if (discountType === 'fixed') {
+        let numbers = value.replace(/[^\d]/g, '');
+        if (numbers === '') {
+            setDiscountValueInput('');
+            form.setValue('discountValue', undefined, { shouldValidate: true });
+            return;
+        }
+        numbers = numbers.replace(/^0+/, '');
+        while (numbers.length < 3) {
+            numbers = '0' + numbers;
+        }
+        const integerPart = numbers.slice(0, numbers.length - 2);
+        const decimalPart = numbers.slice(numbers.length - 2);
+        const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10) || 0);
+        const formattedValue = `${formattedInteger}.${decimalPart}`;
+        setDiscountValueInput(formattedValue);
+        form.setValue('discountValue', stringToNumber(formattedValue), { shouldValidate: true });
+    } else { // for 'percentage' or undefined
+        const sanitizedValue = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+        if (parseFloat(sanitizedValue) > 100 && discountType === 'percentage') {
+            setDiscountValueInput('100');
+            form.setValue('discountValue', 100, { shouldValidate: true });
+        } else {
+            setDiscountValueInput(sanitizedValue);
+            form.setValue('discountValue', parseFloat(sanitizedValue) || 0, { shouldValidate: true });
+        }
+    }
+  };
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => String(currentYear - i));
@@ -322,18 +363,18 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     render={({ field }) => (
                         <FormItem>
                           <FormLabel>Proveedor</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {suppliers?.map(supplier => (
-                                    <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {suppliers?.map(supplier => (
+                                <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                           <FormMessage />
                         </FormItem>
                     )}
@@ -548,12 +589,14 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                             <FormLabel>Valor del Descuento</FormLabel>
                             <FormControl>
                                 <Input
-                                    type="number"
+                                    type={discountType === 'fixed' ? 'text' : 'number'}
+                                    inputMode={discountType === 'percentage' ? 'decimal' : 'text'}
                                     placeholder="0"
                                     disabled={!discountType}
-                                    step={discountType === 'percentage' ? '0.01' : '1'}
-                                    {...field}
-                                    onChange={e => field.onChange(e.target.valueAsNumber)}
+                                    step={discountType === 'percentage' ? '0.01' : undefined}
+                                    value={discountValueInput}
+                                    onChange={handleDiscountValueChange}
+                                    className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                             </FormControl>
                             <FormMessage />
