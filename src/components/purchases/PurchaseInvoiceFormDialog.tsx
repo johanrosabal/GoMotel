@@ -123,11 +123,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     return services.filter(service => {
         const notInCart = !fields.some(field => field.serviceId === service.id);
         if (!notInCart) return false;
-        // Show product if it has no supplier or if its supplier matches the selected one
         if (selectedSupplierId) {
             return !service.supplierId || service.supplierId === selectedSupplierId;
         }
-        // If no supplier is selected, show all products not in cart
         return true;
     });
 }, [services, selectedSupplierId, fields]);
@@ -574,6 +572,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Sin descuento</SelectItem>
                                     <SelectItem value="percentage">Porcentaje (%)</SelectItem>
                                     <SelectItem value="fixed">Monto Fijo (₡)</SelectItem>
                                 </SelectContent>
