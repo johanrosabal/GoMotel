@@ -13,9 +13,9 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Supplier, Service, Tax } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,6 +52,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [supplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [invoiceDay, setInvoiceDay] = useState<string>('');
   const [invoiceMonth, setInvoiceMonth] = useState<string>('');
@@ -239,14 +240,61 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
                     control={form.control}
                     name="supplierId"
                     render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex flex-col">
                         <FormLabel>Proveedor</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSuppliers}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Seleccione un proveedor" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>{suppliers?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                        </Select>
+                        <Popover open={supplierSearchOpen} onOpenChange={setSupplierSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={supplierSearchOpen}
+                                        className={cn(
+                                            "w-full justify-between",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                        disabled={isLoadingSuppliers}
+                                    >
+                                        {field.value
+                                            ? suppliers?.find(
+                                                (supplier) => supplier.id === field.value
+                                            )?.name
+                                            : "Seleccione un proveedor"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar proveedor..." />
+                                    <CommandList>
+                                        <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
+                                        <CommandGroup>
+                                            {suppliers?.map((supplier) => (
+                                                <CommandItem
+                                                    value={supplier.name}
+                                                    key={supplier.id}
+                                                    onSelect={() => {
+                                                        form.setValue("supplierId", supplier.id)
+                                                        setSupplierSearchOpen(false)
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            supplier.id === field.value
+                                                                ? "opacity-100"
+                                                                : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {supplier.name}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                         <FormMessage />
                         </FormItem>
                     )}
