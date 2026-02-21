@@ -113,10 +113,10 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                     {activeServices.map((service) => (
                         <div key={service.id} className="flex items-center justify-between p-2 rounded-md border">
                             <div className="flex items-center gap-3">
-                                <Avatar className="h-12 w-12 rounded-md">
+                                <Avatar className="h-16 w-16 rounded-md">
                                     <AvatarImage src={service.imageUrl || undefined} alt={service.name} className="object-cover" />
                                     <AvatarFallback className="rounded-md bg-muted">
-                                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
