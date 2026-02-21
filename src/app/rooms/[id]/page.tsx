@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { doc, onSnapshot, Timestamp, collection, query, where, orderBy } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { doc, collection, query, where } from 'firebase/firestore'
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase'
 import type { Room, Stay, Order, Service } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,72 +46,45 @@ export default function RoomDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const roomId = params.id as string
-    const [room, setRoom] = useState<Room | null>(null)
-    const [stay, setStay] = useState<Stay | null>(null)
-    const [orders, setOrders] = useState<Order[]>([])
+    
     const [availableServices, setAvailableServices] = useState<Service[]>([])
-    const [loading, setLoading] = useState(true)
     const { toast } = useToast()
     const [timeInStatus, setTimeInStatus] = useState('');
     const [isOverdue, setIsOverdue] = useState(false);
     const [progress, setProgress] = useState(0);
     const [isCancelling, startCancelTransition] = useTransition();
 
+    const { firestore } = useFirebase();
+
+    const roomRef = useMemoFirebase(() => {
+        if (!firestore || !roomId) return null;
+        return doc(firestore, 'rooms', roomId);
+    }, [firestore, roomId]);
+    const { data: room, isLoading: isLoadingRoom } = useDoc<Room>(roomRef);
+
+    const stayRef = useMemoFirebase(() => {
+        if (!firestore || !room?.currentStayId) return null;
+        return doc(firestore, 'stays', room.currentStayId);
+    }, [firestore, room?.currentStayId]);
+    const { data: stay, isLoading: isLoadingStay } = useDoc<Stay>(stayRef);
+
+    const ordersQuery = useMemoFirebase(() => {
+        if (!firestore || !stay?.id) return null;
+        return query(collection(firestore, 'orders'), where('stayId', '==', stay.id));
+    }, [firestore, stay?.id]);
+    
+    const { data: rawOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+
+    const orders = useMemo(() => {
+        if (!rawOrders) return [];
+        return [...rawOrders].sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    }, [rawOrders]);
+
+    const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
+
     useEffect(() => {
-        if (!roomId) return
-
-        const roomUnsub = onSnapshot(doc(db, 'rooms', roomId), (doc) => {
-            if (doc.exists()) {
-                const data = doc.data()
-                const roomData: Room = { 
-                    id: doc.id,
-                    ...data,
-                    number: data.number,
-                    status: data.status,
-                    ratePerHour: data.ratePerHour,
-                    type: data.type || 'Sencilla',
-                    capacity: data.capacity || 1,
-                    description: data.description || '',
-                    statusUpdatedAt: data.statusUpdatedAt,
-                } as Room;
-                setRoom(roomData)
-                if (!roomData.currentStayId) {
-                    setStay(null)
-                    setOrders([])
-                }
-            } else {
-                toast({ title: 'Error', description: 'Habitación no encontrada.', variant: 'destructive' })
-            }
-            setLoading(false)
-        })
-
         getServices().then(setAvailableServices)
-
-        return () => roomUnsub()
-    }, [roomId, toast])
-
-
-    useEffect(() => {
-        if (!room?.currentStayId) return
-
-        const stayUnsub = onSnapshot(doc(db, 'stays', room.currentStayId), (doc) => {
-            if (doc.exists()) {
-                setStay({ id: doc.id, ...doc.data() } as Stay)
-            }
-        })
-        
-        const ordersQuery = query(collection(db, 'orders'), where('stayId', '==', room.currentStayId));
-        const ordersUnsub = onSnapshot(ordersQuery, (snapshot) => {
-            const newOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-            newOrders.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
-            setOrders(newOrders);
-        });
-
-        return () => {
-            stayUnsub();
-            ordersUnsub();
-        }
-    }, [room?.currentStayId])
+    }, [])
 
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined;
@@ -209,7 +182,7 @@ export default function RoomDetailsPage() {
         )
     }
 
-    if (!room) {
+    if (!room && !loading) {
         return (
             <div className="container py-4 sm:py-6 lg:py-8">
                 <Card>
@@ -221,6 +194,8 @@ export default function RoomDetailsPage() {
             </div>
         )
     }
+    
+    if (!room) return null; // Should not happen if loading is false, but for TS safety.
 
     const renderRoomActions = () => {
         switch (room.status) {
@@ -430,3 +405,5 @@ export default function RoomDetailsPage() {
         </div>
     )
 }
+
+    
