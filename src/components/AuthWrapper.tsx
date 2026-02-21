@@ -17,13 +17,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       return; // Wait until user status is determined
     }
 
-    const isPublicRoute = publicRoutes.includes(pathname);
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/invoices/');
 
     if (!user && !isPublicRoute) {
       // If user is not logged in and not on a public route, redirect to login
       router.push('/');
-    } else if (user && isPublicRoute) {
-      // If user is logged in and on a public route (login/register), redirect to home
+    } else if (user && publicRoutes.includes(pathname)) {
+      // If user is logged in and on a base public route (login/register), redirect to home
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router, pathname]);
@@ -53,11 +53,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   // If user is not logged in and not on a public page, we are about to redirect, so show nothing.
-  if (!user && !publicRoutes.includes(pathname)) {
+  if (!user && !publicRoutes.includes(pathname) && !pathname.startsWith('/invoices/')) {
       return null;
   }
   
-  // If user is logged in and on a public page, we are about to redirect, show nothing.
+  // If user is logged in and on a public page (but not a public invoice page), we are about to redirect, show nothing.
   if(user && publicRoutes.includes(pathname)) {
       return null;
   }
