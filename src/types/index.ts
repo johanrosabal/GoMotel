@@ -191,6 +191,7 @@ export interface AppliedTax {
 
 export interface Invoice {
     id: string;
+    invoiceNumber: string;
     reservationId?: string;
     stayId?: string;
     clientId?: string;
@@ -215,3 +216,5 @@ export interface SinpeAccount {
   isActive?: boolean;
   createdAt: Timestamp;
 }
+
+    

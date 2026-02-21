@@ -15,6 +15,7 @@ import {
   increment,
   orderBy,
   DocumentReference,
+  limit,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -124,6 +125,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
     const paymentMethod = isUpfrontPayment ? upfrontPaymentMethod! : 'Por Definir';
     const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
+    
+    // --- Get Stay Ref if it's a direct check-in ---
+    const stayRef = checkInNow ? doc(collection(db, 'stays')) : null;
 
     const reservationRef = doc(collection(db, 'reservations'));
     const reservationPayload: Omit<Reservation, 'id'> = {
@@ -177,6 +181,23 @@ export async function createReservation(values: z.infer<typeof reservationAction
             }
         }
         
+        // --- Invoice Number Generation ---
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+
+        let nextInvoiceNumberInt = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastNumber)) {
+                    nextInvoiceNumberInt = lastNumber + 1;
+                }
+            }
+        }
+        const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+        
         const invoiceRef = doc(collection(db, 'invoices'));
         const invoiceItems = [{
             description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
@@ -186,7 +207,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
         }];
 
         const newInvoice: Omit<Invoice, 'id'> = {
+            invoiceNumber: newInvoiceNumber,
             reservationId: reservationRef.id,
+            stayId: stayRef?.id,
             clientId: guestId,
             clientName: guestName,
             createdAt: Timestamp.now(),
@@ -201,8 +224,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
         batch.set(invoiceRef, newInvoice);
     }
 
-    if (checkInNow) {
-        const stayRef = doc(collection(db, 'stays'));
+    if (checkInNow && stayRef) {
         const newStay: Omit<Stay, 'id'> = {
           roomId: roomId,
           roomNumber: roomData.number,
@@ -230,7 +252,6 @@ export async function createReservation(values: z.infer<typeof reservationAction
             const clientRef = doc(db, 'clients', guestId);
             const clientSnap = await getDoc(clientRef);
             if (clientSnap.exists()) {
-                const currentCount = clientSnap.data().visitCount || 0;
                 batch.update(clientRef, { visitCount: increment(1) });
             }
         }
@@ -316,6 +337,17 @@ export async function checkInFromReservation(reservationId: string) {
       voucherNumber: reservation.voucherNumber,
     };
     batch.set(stayRef, newStay);
+
+    // If reservation was paid upfront, find the invoice and add the stayId
+    if (reservation.paymentStatus === 'Pagado') {
+        const invoicesRef = collection(db, 'invoices');
+        const invoiceQuery = query(invoicesRef, where('reservationId', '==', reservationId));
+        const invoiceSnapshot = await getDocs(invoiceQuery);
+        if (!invoiceSnapshot.empty) {
+            const invoiceDoc = invoiceSnapshot.docs[0];
+            batch.update(invoiceDoc.ref, { stayId: stayRef.id });
+        }
+    }
     
     // Update room
     batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
@@ -327,7 +359,6 @@ export async function checkInFromReservation(reservationId: string) {
         const clientRef = doc(db, 'clients', guestId);
         const clientSnap = await getDoc(clientRef);
         if (clientSnap.exists()) {
-            const currentCount = clientSnap.data().visitCount || 0;
             batch.update(clientRef, { visitCount: increment(1) });
         }
     }
@@ -440,3 +471,5 @@ export async function deleteReservation(reservationId: string) {
         return { error: 'No se pudo eliminar la reservación.' };
     }
 }
+
+    

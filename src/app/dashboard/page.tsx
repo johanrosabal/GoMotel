@@ -27,6 +27,7 @@ import {
   BookCopy,
   Percent,
   Smartphone,
+  Receipt,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -157,6 +158,12 @@ export default async function DashboardPage() {
             title: 'Gestión de SINPE',
             description: 'Administra las cuentas SINPE Móvil para pagos.',
             icon: Smartphone,
+        },
+        {
+            href: '/billing/invoices',
+            title: 'Facturación',
+            description: 'Consulte el historial de todas las facturas generadas.',
+            icon: Receipt,
         },
         {
           href: '/settings',
@@ -324,3 +331,5 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+    
