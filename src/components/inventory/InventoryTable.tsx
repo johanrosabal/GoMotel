@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, ArchiveX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import EditServiceDialog from './EditServiceDialog';
 import DeleteServiceAlert from './DeleteServiceAlert';
+import ServiceSpoilageDialog from './ServiceSpoilageDialog';
 
 interface InventoryTableProps {
   initialServices: Service[];
@@ -41,6 +42,7 @@ const categoryMap: Record<Service['category'], string> = {
 function ActionsCell({ service, allServices }: { service: Service, allServices: Service[] }) {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isSpoilageDialogOpen, setIsSpoilageDialogOpen] = useState(false);
 
     return (
         <>
@@ -55,11 +57,17 @@ function ActionsCell({ service, allServices }: { service: Service, allServices: 
                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>Editar</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsSpoilageDialogOpen(true)}>
+                    <ArchiveX className="mr-2 h-4 w-4" />
+                    Registrar Merma
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             <EditServiceDialog service={service} allServices={allServices} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
             <DeleteServiceAlert serviceId={service.id} open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} />
+            <ServiceSpoilageDialog service={service} open={isSpoilageDialogOpen} onOpenChange={setIsSpoilageDialogOpen} />
         </>
     );
 }

@@ -11,6 +11,7 @@ import {
   updateDoc,
   deleteDoc,
   runTransaction,
+  increment,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -164,4 +165,41 @@ export async function deleteService(serviceId: string) {
     }
 }
 
-    
+const spoilageSchema = z.object({
+  serviceId: z.string(),
+  quantity: z.coerce.number().int().min(1, 'La cantidad debe ser mayor a 0.'),
+  notes: z.string().optional(),
+});
+
+export async function registerServiceSpoilage(values: z.infer<typeof spoilageSchema>) {
+    const validatedFields = spoilageSchema.safeParse(values);
+    if (!validatedFields.success) {
+        return { error: 'Datos de merma inválidos.' };
+    }
+
+    const { serviceId, quantity, notes } = validatedFields.data;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const serviceRef = doc(db, 'services', serviceId);
+            const serviceSnap = await transaction.get(serviceRef);
+            if (!serviceSnap.exists()) {
+                throw new Error(`El producto no fue encontrado.`);
+            }
+            const currentStock = serviceSnap.data().stock || 0;
+            if (quantity > currentStock) {
+                throw new Error(`No hay suficientes existencias para registrar la merma (Actual: ${currentStock}).`);
+            }
+            transaction.update(serviceRef, { stock: increment(-quantity) });
+
+            // TODO: In a real application, you would log this spoilage event for auditing.
+        });
+
+        revalidatePath('/inventory');
+        return { success: true };
+
+    } catch (e: any) {
+        console.error('Error registering service spoilage:', e);
+        return { error: e.message || 'No se pudo registrar la merma.' };
+    }
+}
