@@ -33,12 +33,6 @@ export default function PurchasesClientPage() {
     });
   }, [purchaseInvoices, searchTerm]);
   
-  const handleEdit = (purchase: PurchaseInvoice) => {
-    setEditingPurchase(purchase);
-    setIsReadOnly(false);
-    setIsFormOpen(true);
-  };
-
   const handleView = (purchase: PurchaseInvoice) => {
     setEditingPurchase(purchase);
     setIsReadOnly(true);
@@ -79,7 +73,7 @@ export default function PurchasesClientPage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <PurchaseInvoicesTable purchases={filteredInvoices} onEdit={handleEdit} onView={handleView} />
+        <PurchaseInvoicesTable purchases={filteredInvoices} onView={handleView} />
       )}
     </div>
   );

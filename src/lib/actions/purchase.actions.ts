@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, writeBatch, increment, addDoc, collection, Timestamp, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, writeBatch, increment, addDoc, collection, Timestamp, updateDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import type { PurchaseInvoice } from '@/types';
@@ -164,31 +164,55 @@ export async function voidPurchaseInvoice(purchaseInvoiceId: string) {
     }
 }
 
-export async function deletePurchaseInvoice(purchaseInvoiceId: string) {
-    if (!purchaseInvoiceId) {
-        return { error: 'ID de factura no válido.' };
+const spoilageItemSchema = z.object({
+  serviceId: z.string(),
+  spoilageQuantity: z.coerce.number().int().min(1, "La cantidad de merma debe ser al menos 1."),
+  originalQuantity: z.number().int(),
+});
+
+const registerSpoilageSchema = z.object({
+  purchaseInvoiceId: z.string(),
+  notes: z.string().optional(),
+  items: z.array(spoilageItemSchema).min(1, "Debe haber al menos un artículo con merma."),
+});
+
+export async function registerSpoilage(values: z.infer<typeof registerSpoilageSchema>) {
+    const validatedFields = registerSpoilageSchema.safeParse(values);
+    if (!validatedFields.success) {
+        return { error: 'Datos de merma inválidos.' };
     }
 
+    const { purchaseInvoiceId, items, notes } = validatedFields.data;
+
     try {
-        const invoiceRef = doc(db, 'purchaseInvoices', purchaseInvoiceId);
-        const invoiceSnap = await getDoc(invoiceRef);
+        await runTransaction(db, async (transaction) => {
+            const invoiceRef = doc(db, 'purchaseInvoices', purchaseInvoiceId);
+            const invoiceSnap = await transaction.get(invoiceRef);
+            if (!invoiceSnap.exists()) {
+                throw new Error("La factura de compra asociada no fue encontrada.");
+            }
+            
+            for (const item of items) {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceSnap = await transaction.get(serviceRef);
+                if (!serviceSnap.exists()) {
+                     throw new Error(`El producto no fue encontrado.`);
+                }
+                const currentStock = serviceSnap.data().stock || 0;
+                if (item.spoilageQuantity > currentStock) {
+                    throw new Error(`No hay suficientes existencias para registrar la merma (Actual: ${currentStock}).`);
+                }
+                transaction.update(serviceRef, { stock: increment(-item.spoilageQuantity) });
+            }
 
-        if (!invoiceSnap.exists()) {
-            return { error: 'La factura a eliminar no fue encontrada.' };
-        }
-        
-        const invoice = invoiceSnap.data() as PurchaseInvoice;
+            // TODO: Log the spoilage event in a `spoilageLogs` collection.
+        });
 
-        if (invoice.status === 'Activa') {
-            return { error: 'No se puede eliminar una factura activa. Primero debe anularla para revertir el inventario.' };
-        }
+        revalidatePath('/inventory');
+        return { success: true };
 
-        await deleteDoc(invoiceRef);
-
-        revalidatePath('/purchases');
-        return { success: 'Factura eliminada permanentemente.' };
-    } catch (e) {
-        console.error('Error deleting purchase invoice:', e);
-        return { error: 'No se pudo eliminar la factura.' };
+    } catch (e: any) {
+        console.error('Error registering spoilage:', e);
+        return { error: e.message || 'No se pudo registrar la merma.' };
     }
 }

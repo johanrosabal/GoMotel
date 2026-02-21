@@ -7,31 +7,20 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Edit, Trash2, XCircle, Eye } from 'lucide-react';
+import { MoreHorizontal, XCircle, Eye, ArchiveX } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useState, useTransition } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { voidPurchaseInvoice, deletePurchaseInvoice } from '@/lib/actions/purchase.actions';
+import { voidPurchaseInvoice } from '@/lib/actions/purchase.actions';
+import SpoilageFormDialog from './SpoilageFormDialog';
 
-function ActionsMenu({ purchase, onEdit, onView }: { purchase: PurchaseInvoice, onEdit: (p: PurchaseInvoice) => void, onView: (p: PurchaseInvoice) => void }) {
+function ActionsMenu({ purchase, onView }: { purchase: PurchaseInvoice, onView: (p: PurchaseInvoice) => void }) {
     const { toast } = useToast();
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isVoidDialogOpen, setIsVoidDialogOpen] = useState(false);
+    const [isSpoilageDialogOpen, setIsSpoilageDialogOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const isVoided = purchase.status === 'Anulada';
-
-    const handleDelete = () => {
-        setIsDeleteDialogOpen(false);
-        startTransition(async () => {
-            const result = await deletePurchaseInvoice(purchase.id);
-            if (result.error) {
-                toast({ title: "Error al eliminar", description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: "Factura eliminada", description: result.success });
-            }
-        });
-    }
 
     const handleVoid = () => {
         setIsVoidDialogOpen(false);
@@ -58,18 +47,13 @@ function ActionsMenu({ purchase, onEdit, onView }: { purchase: PurchaseInvoice, 
                         Ver Detalle
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => onEdit(purchase)} disabled={isVoided}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setIsVoidDialogOpen(true)} disabled={isVoided}>
                         <XCircle className="mr-2 h-4 w-4" />
-                        Anular
+                        Anular Factura
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
+                    <DropdownMenuItem onSelect={() => setIsSpoilageDialogOpen(true)} disabled={isVoided}>
+                        <ArchiveX className="mr-2 h-4 w-4" />
+                        Registrar Merma
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -89,28 +73,18 @@ function ActionsMenu({ purchase, onEdit, onView }: { purchase: PurchaseInvoice, 
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            
-            {/* Delete Dialog */}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Está seguro de eliminar esta factura?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Solo debe eliminar facturas que ya han sido anuladas. La eliminación no revierte el inventario.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar Permanentemente</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+
+            <SpoilageFormDialog
+                open={isSpoilageDialogOpen}
+                onOpenChange={setIsSpoilageDialogOpen}
+                purchaseInvoice={purchase}
+            />
         </>
     );
 }
 
 
-export default function PurchaseInvoicesTable({ purchases, onEdit, onView }: { purchases: PurchaseInvoice[], onEdit: (p: PurchaseInvoice) => void, onView: (p: PurchaseInvoice) => void }) {
+export default function PurchaseInvoicesTable({ purchases, onView }: { purchases: PurchaseInvoice[], onView: (p: PurchaseInvoice) => void }) {
     if (purchases.length === 0) {
         return (
             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -151,7 +125,7 @@ export default function PurchaseInvoicesTable({ purchases, onEdit, onView }: { p
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(purchase.totalAmount)}</TableCell>
                             <TableCell className="text-right">
-                                <ActionsMenu purchase={purchase} onEdit={onEdit} onView={onView} />
+                                <ActionsMenu purchase={purchase} onView={onView} />
                             </TableCell>
                         </TableRow>
                     ))}

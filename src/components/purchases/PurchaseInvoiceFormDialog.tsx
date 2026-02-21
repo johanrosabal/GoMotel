@@ -78,7 +78,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
-  const { userProfile } = useUserProfile();
+  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [invoiceDay, setInvoiceDay] = useState<string>('');
@@ -390,7 +390,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
     value: String(i + 1),
     label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
   }));
-  const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
   const days = invoiceYear && invoiceMonth ? Array.from({ length: daysInMonth(parseInt(invoiceYear, 10), parseInt(invoiceMonth, 10)) }, (_, i) => String(i + 1)) : Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: PurchaseInvoiceFormValues) => {
@@ -794,7 +793,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                       Exportar a PDF
                   </Button>
               ) : (
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending || (!purchaseInvoice && isProfileLoading)}>
                     {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
                 </Button>
               )}
