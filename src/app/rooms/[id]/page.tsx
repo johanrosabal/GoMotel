@@ -394,9 +394,15 @@ export default function RoomDetailsPage() {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed">
+                                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed p-6">
                                         <ConciergeBell className="mx-auto h-12 w-12" />
-                                        <p className="mt-4">Aún no se han pedido servicios para esta estancia.</p>
+                                        <p className="mt-4 mb-6">Aún no se han pedido servicios para esta estancia.</p>
+                                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
+                                            <Button>
+                                                <PlusCircle className="mr-2 h-4 w-4" />
+                                                Añadir Pedido
+                                            </Button>
+                                        </OrderServiceDialog>
                                     </div>
                                 )}
                                 </>
