@@ -23,6 +23,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '../ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
@@ -77,7 +78,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   const [invoiceYear, setInvoiceYear] = useState<string>('');
   const [costPriceInputs, setCostPriceInputs] = useState<string[]>([]);
   const [discountValueInput, setDiscountValueInput] = useState('');
-  const supplierSearchInputRef = useRef<HTMLInputElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,13 +146,6 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     if (!productSearch) return availableProducts;
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
-
-  const searchedSuppliers = useMemo(() => {
-      if (!suppliers) return [];
-      const supplierSearch = supplierSearchInputRef.current?.value || '';
-      if (!supplierSearch) return suppliers;
-      return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  }, [suppliers, supplierSearchInputRef.current?.value]);
 
   const { subtotal, totalDiscount, totalTax, totalAmount } = useMemo(() => {
     let grossSubtotal = 0;
@@ -405,306 +398,312 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 flex flex-col min-h-0">
-             <div className="grid md:grid-cols-3 gap-4">
-                <FormField
-                    control={form.control}
-                    name="supplierId"
-                    render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Proveedor</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccione un proveedor" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {isLoadingSuppliers ? (
-                                        <div className="p-2 text-sm">Cargando...</div>
-                                    ) : (
-                                        searchedSuppliers.map((supplier) => (
-                                            <SelectItem key={supplier.id} value={supplier.id}>
-                                                {supplier.name}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                          <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="invoiceNumber"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Número de Factura</FormLabel>
-                        <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="invoiceDate"
-                    render={() => (
-                        <FormItem>
-                          <FormLabel>Fecha de Factura</FormLabel>
-                          <div className="grid grid-cols-3 gap-2">
-                             <Select onValueChange={setInvoiceDay} value={invoiceDay}>
-                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Día" />
-                                </SelectTrigger>
-                               </FormControl>
-                               <SelectContent>
-                                {days.map((d) => (
-                                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                                ))}
-                               </SelectContent>
-                             </Select>
-                              <Select onValueChange={setInvoiceMonth} value={invoiceMonth}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Mes" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {months.map((m) => (
-                                    <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Select onValueChange={setInvoiceYear} value={invoiceYear}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Año" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {years.map((y) => (
-                                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-            
-            <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                 <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-medium">Artículos de la Factura</h3>
-                    <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
-                        <PopoverTrigger asChild>
-                            <Button type="button" variant="outline" size="sm" className="gap-2">
-                                <PlusCircle className="h-4 w-4" />
-                                Añadir Producto
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
-                            <Command>
-                                <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
-                                <CommandList>
-                                    <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
-                                    <CommandGroup>
-                                        {searchedProducts.map((product) => (
-                                            <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
-                                                {product.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div className="border rounded-md flex-1">
-                    <ScrollArea className="h-full">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-muted">
-                                <TableRow>
-                                    <TableHead>Producto</TableHead>
-                                    <TableHead className="w-[100px]">Cantidad</TableHead>
-                                    <TableHead className="w-[150px]">Costo Unit.</TableHead>
-                                    <TableHead className="w-[150px] text-right">Subtotal</TableHead>
-                                    <TableHead className="w-[50px]"><span className="sr-only">Quitar</span></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {fields.map((item, index) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>{item.serviceName}</TableCell>
-                                        <TableCell>
-                                            <Input
-                                              type="number"
-                                              {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
-                                              onKeyDown={(e) => {
-                                                  if (['-', 'e', '+', '.'].includes(e.key)) {
-                                                      e.preventDefault();
-                                                  }
-                                              }}
-                                              className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                              min="1"
-                                            />
-                                        </TableCell>
-                                         <TableCell>
-                                            <Input
-                                              type="text"
-                                              inputMode="decimal"
-                                              value={costPriceInputs[index] ?? ''}
-                                              onChange={(e) => handleCostPriceChange(e, index)}
-                                              onKeyDown={(e) => {
-                                                  if (['-', 'e', '+'].includes(e.key)) {
-                                                      e.preventDefault();
-                                                  }
-                                              }}
-                                              className="text-right"
-                                            />
-                                            {form.formState.errors.items?.[index]?.costPrice && (
-                                                <p className="text-sm font-medium text-destructive pt-1">
-                                                    {form.formState.errors.items[index]?.costPrice?.message}
-                                                </p>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
-                                        <TableCell>
-                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {fields.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Añada productos a la factura.</TableCell>
-                                    </TableRow>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 gap-4">
+            <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="details">Detalles de Factura</TabsTrigger>
+                    <TabsTrigger value="images">Imágenes Adjuntas ({imageUrls.length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="details" className="flex-1 overflow-y-auto -mx-1 px-1 mt-4">
+                    <div className="space-y-4 pr-3">
+                         <div className="grid md:grid-cols-3 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="supplierId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Proveedor</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seleccione un proveedor" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {isLoadingSuppliers ? (
+                                                    <div className="p-2 text-sm">Cargando...</div>
+                                                ) : (
+                                                    suppliers?.map((supplier) => (
+                                                        <SelectItem key={supplier.id} value={supplier.id}>
+                                                            {supplier.name}
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    <FormMessage />
+                                    </FormItem>
                                 )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </div>
-                 {form.formState.errors.items && <p className="text-sm font-medium text-destructive">{form.formState.errors.items.message}</p>}
-            </div>
-            
-             <div className="space-y-2">
-                <Label>Fotos de la Factura (Opcional)</Label>
-                <div className="grid grid-cols-5 gap-2">
-                    {imageUrls.map((url, index) => (
-                        <div key={index} className="relative group aspect-square">
-                            <img src={url} alt={`Factura ${index + 1}`} className="object-cover w-full h-full rounded-md border" />
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleRemoveImage(index)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ))}
-                    {Array.from({ length: MAX_IMAGES - imageUrls.length }).map((_, index) => (
-                        <button
-                            key={`placeholder-${index}`}
-                            type="button"
-                            className="flex items-center justify-center aspect-square w-full rounded-md border-2 border-dashed text-muted-foreground hover:bg-muted/50 transition-colors"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <Plus className="h-6 w-6" />
-                            <span className="sr-only">Añadir imagen</span>
-                        </button>
-                    ))}
-                </div>
-                <Input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                />
-                {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
-            </div>
-
-
-            <FormField
-                control={form.control}
-                name="taxesIncluded"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                            <FormLabel>Los costos unitarios incluyen impuestos</FormLabel>
-                        </div>
-                        <FormControl>
-                            <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
                             />
-                        </FormControl>
-                    </FormItem>
-                )}
-            />
+                            <FormField
+                                control={form.control}
+                                name="invoiceNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Número de Factura</FormLabel>
+                                    <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="invoiceDate"
+                                render={() => (
+                                    <FormItem>
+                                    <FormLabel>Fecha de Factura</FormLabel>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <Select onValueChange={setInvoiceDay} value={invoiceDay}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Día" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {days.map((d) => (
+                                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                        </Select>
+                                        <Select onValueChange={setInvoiceMonth} value={invoiceMonth}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Mes" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                            {months.map((m) => (
+                                                <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                                            ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select onValueChange={setInvoiceYear} value={invoiceYear}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Año" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                            {years.map((y) => (
+                                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                            ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div className="flex flex-col space-y-2">
+                              <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-medium">Artículos de la Factura</h3>
+                                <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button type="button" variant="outline" size="sm" className="gap-2">
+                                            <PlusCircle className="h-4 w-4" />
+                                            Añadir Producto
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
+                                            <CommandList>
+                                                <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
+                                                <CommandGroup>
+                                                    {searchedProducts.map((product) => (
+                                                        <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
+                                                            {product.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="border rounded-md">
+                                <ScrollArea className="h-48">
+                                    <Table>
+                                        <TableHeader className="sticky top-0 bg-muted">
+                                            <TableRow>
+                                                <TableHead>Producto</TableHead>
+                                                <TableHead className="w-[100px]">Cantidad</TableHead>
+                                                <TableHead className="w-[150px]">Costo Unit.</TableHead>
+                                                <TableHead className="w-[150px] text-right">Subtotal</TableHead>
+                                                <TableHead className="w-[50px]"><span className="sr-only">Quitar</span></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {fields.map((item, index) => (
+                                                <TableRow key={item.id}>
+                                                    <TableCell>{item.serviceName}</TableCell>
+                                                    <TableCell>
+                                                        <Input
+                                                          type="number"
+                                                          {...form.register(`items.${index}.quantity`, { valueAsNumber: true })}
+                                                          onKeyDown={(e) => {
+                                                              if (['-', 'e', '+', '.'].includes(e.key)) {
+                                                                  e.preventDefault();
+                                                              }
+                                                          }}
+                                                          className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                          min="1"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            value={costPriceInputs[index] ?? ''}
+                                                            onChange={(e) => handleCostPriceChange(e, index)}
+                                                            onKeyDown={(e) => {
+                                                                if (['-', 'e', '+'].includes(e.key)) {
+                                                                    e.preventDefault();
+                                                                }
+                                                            }}
+                                                            className="text-right"
+                                                        />
+                                                        {form.formState.errors.items?.[index]?.costPrice && (
+                                                            <p className="text-sm font-medium text-destructive pt-1">
+                                                                {form.formState.errors.items[index]?.costPrice?.message}
+                                                            </p>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
+                                                    <TableCell>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {fields.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Añada productos a la factura.</TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
+                            </div>
+                            {form.formState.errors.items && <p className="text-sm font-medium text-destructive">{form.formState.errors.items.message}</p>}
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="taxesIncluded"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel>Los costos unitarios incluyen impuestos</FormLabel>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                         <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="discountType"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Tipo de Descuento (Opcional)</FormLabel>
+                                        <Select onValueChange={(value) => {
+                                            if (value === 'none') {
+                                                field.onChange(undefined);
+                                                form.setValue('discountValue', undefined);
+                                                setDiscountValueInput('');
+                                            } else {
+                                                field.onChange(value as 'percentage' | 'fixed');
+                                            }
+                                        }} value={field.value || 'none'}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sin descuento" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="none">Sin descuento</SelectItem>
+                                                <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                                                <SelectItem value="fixed">Monto Fijo (₡)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="discountValue"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Valor del Descuento</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type={discountType === 'fixed' ? 'text' : 'number'}
+                                                inputMode={discountType === 'percentage' ? 'decimal' : 'text'}
+                                                placeholder="0"
+                                                disabled={!discountType || discountType === 'none'}
+                                                step={discountType === 'percentage' ? '0.01' : undefined}
+                                                value={discountValueInput}
+                                                onChange={handleDiscountValueChange}
+                                                className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    </div>
+                </TabsContent>
+                <TabsContent value="images" className="flex-1 overflow-y-auto -mx-1 px-1 mt-4">
+                    <div className="space-y-2 pr-3">
+                        <Label>Fotos de la Factura (Opcional)</Label>
+                        <div className="grid grid-cols-5 gap-2">
+                            {imageUrls.map((url, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                    <img src={url} alt={`Factura ${index + 1}`} className="object-cover w-full h-full rounded-md border" />
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleRemoveImage(index)}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            {Array.from({ length: MAX_IMAGES - imageUrls.length }).map((_, index) => (
+                                <button
+                                    key={`placeholder-${index}`}
+                                    type="button"
+                                    className="flex items-center justify-center aspect-square w-full rounded-md border-2 border-dashed text-muted-foreground hover:bg-muted/50 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Plus className="h-6 w-6" />
+                                    <span className="sr-only">Añadir imagen</span>
+                                </button>
+                            ))}
+                        </div>
+                        <Input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                        />
+                        {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
+                    </div>
+                </TabsContent>
+            </Tabs>
             
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="discountType"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Tipo de Descuento (Opcional)</FormLabel>
-                            <Select onValueChange={(value) => {
-                                if (value === 'none') {
-                                    field.onChange(undefined);
-                                    form.setValue('discountValue', undefined);
-                                    setDiscountValueInput('');
-                                } else {
-                                    field.onChange(value as 'percentage' | 'fixed');
-                                }
-                            }} value={field.value || 'none'}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sin descuento" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="none">Sin descuento</SelectItem>
-                                    <SelectItem value="percentage">Porcentaje (%)</SelectItem>
-                                    <SelectItem value="fixed">Monto Fijo (₡)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="discountValue"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Valor del Descuento</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type={discountType === 'fixed' ? 'text' : 'number'}
-                                    inputMode={discountType === 'percentage' ? 'decimal' : 'text'}
-                                    placeholder="0"
-                                    disabled={!discountType || discountType === 'none'}
-                                    step={discountType === 'percentage' ? '0.01' : undefined}
-                                    value={discountValueInput}
-                                    onChange={handleDiscountValueChange}
-                                    className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-
-
             <div className="space-y-1 rounded-lg border p-4">
                 <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal:</span>
