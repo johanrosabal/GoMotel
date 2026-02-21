@@ -13,9 +13,9 @@ export default async function InventoryPage() {
         <CardHeader>
             <div className="flex items-center justify-between">
                 <div>
-                    <CardTitle>Servicios e Inventario</CardTitle>
+                    <CardTitle>Gestión de Inventario</CardTitle>
                     <CardDescription>
-                    Administre los servicios de su motel y controle los niveles de stock.
+                    Controle los niveles de stock de sus productos y servicios.
                     </CardDescription>
                 </div>
                 <AddService allServices={allServices} />
