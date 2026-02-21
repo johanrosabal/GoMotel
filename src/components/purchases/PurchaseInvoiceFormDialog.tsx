@@ -13,7 +13,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Supplier, Service, Tax, PurchaseInvoice } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Plus } from 'lucide-react';
+import { PlusCircle, Trash2, X, Plus, Download } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency } from '@/lib/utils';
 import { es } from 'date-fns/locale';
@@ -24,6 +24,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import PurchaseInvoiceTemplate from './PurchaseInvoiceTemplate';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
@@ -83,6 +86,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
   const [discountValueInput, setDiscountValueInput] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const invoiceRefForPDF = useRef<HTMLDivElement>(null);
 
 
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
@@ -361,6 +365,20 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
 
   const handleRemoveImage = (indexToRemove: number) => {
     form.setValue('imageUrls', imageUrls.filter((_, index) => index !== indexToRemove), { shouldValidate: true });
+  };
+
+  const handleDownloadPdf = () => {
+    const input = invoiceRefForPDF.current;
+    if (!input || !purchaseInvoice) return;
+
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`compra-${purchaseInvoice.invoiceNumber}.pdf`);
+    });
   };
 
 
@@ -766,7 +784,12 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
 
             <DialogFooter className="pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
-              {!readOnly && (
+              {readOnly && purchaseInvoice ? (
+                  <Button type="button" onClick={handleDownloadPdf}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Exportar a PDF
+                  </Button>
+              ) : (
                 <Button type="submit" disabled={isPending}>
                     {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
                 </Button>
@@ -774,6 +797,11 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
             </DialogFooter>
           </form>
         </Form>
+        {readOnly && purchaseInvoice && (
+            <div className="absolute -left-[9999px] top-0">
+                <PurchaseInvoiceTemplate invoice={purchaseInvoice} ref={invoiceRefForPDF} />
+            </div>
+        )}
       </DialogContent>
     </Dialog>
   );
