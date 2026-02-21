@@ -50,12 +50,12 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
     const handleShareViaWhatsApp = () => {
         if (!invoice) return;
 
-        // 1. Download the PDF
+        // 1. Download the PDF to the local machine
         handleDownloadPdf();
 
-        // 2. Prepare and open WhatsApp link with a helpful message
+        // 2. Prepare a message for the user to send, instructing them to attach the downloaded file.
         const whatsappMessage = encodeURIComponent(
-            `¡Hola! Te comparto la factura #${invoice.invoiceNumber} por un monto de ${formatCurrency(invoice.total)}. El archivo PDF se acaba de descargar en tu dispositivo para que puedas adjuntarlo a este chat.`
+            `¡Hola! A continuación te adjunto el comprobante de tu factura #${invoice.invoiceNumber} por un monto de ${formatCurrency(invoice.total)}. ¡Gracias por tu preferencia!`
         );
         const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
