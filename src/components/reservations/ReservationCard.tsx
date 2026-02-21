@@ -8,6 +8,8 @@ import { es } from 'date-fns/locale';
 import { CalendarClock, Clock, AlertTriangle } from 'lucide-react';
 import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
+import { Progress } from '@/components/ui/progress';
+import { useState, useEffect } from 'react';
 
 const statusColorStyles: Record<Reservation['status'], string> = {
   Confirmed: 'border-blue-500',
@@ -34,6 +36,41 @@ const statusMap: Record<Reservation['status'], string> = {
 }
 
 export default function ReservationCard({ reservation, isOverdue = false }: { reservation: Reservation; isOverdue?: boolean }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (reservation.status !== 'Checked-in') {
+      setProgress(0);
+      return;
+    }
+
+    const calculateProgress = () => {
+      const now = new Date();
+      const checkInTime = reservation.checkInDate.toDate();
+      const expectedCheckOutTime = reservation.checkOutDate.toDate();
+
+      if (now >= expectedCheckOutTime) {
+        setProgress(100);
+        return;
+      }
+      if (now < checkInTime) {
+        setProgress(0);
+        return;
+      }
+
+      const totalDuration = expectedCheckOutTime.getTime() - checkInTime.getTime();
+      const elapsedTime = now.getTime() - checkInTime.getTime();
+      
+      const calculatedProgress = (elapsedTime / totalDuration) * 100;
+      setProgress(Math.min(100, calculatedProgress));
+    };
+
+    calculateProgress();
+    const interval = setInterval(calculateProgress, 60000); // Update every minute
+    return () => clearInterval(interval);
+
+  }, [reservation.checkInDate, reservation.checkOutDate, reservation.status]);
+  
   return (
     <Card key={reservation.id} className={cn(
         "flex flex-col relative border-l-4 hover:shadow-lg transition-shadow duration-200 h-full", 
@@ -68,17 +105,31 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     <p className="text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                 </div>
             </div>
-            <div className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-muted-foreground text-xs">Tiempo Restante</p>
-                    <TimeRemaining 
-                        checkOutDate={reservation.checkOutDate.toDate()} 
-                        status={reservation.status}
-                        className="text-xs"
-                    />
+            {reservation.status === 'Checked-in' ? (
+                <div className="space-y-1 pt-1">
+                    <div className="flex justify-between items-center text-xs">
+                        <p className="font-semibold text-muted-foreground">Progreso</p>
+                        <TimeRemaining 
+                            checkOutDate={reservation.checkOutDate.toDate()} 
+                            status={reservation.status}
+                            className="text-xs"
+                        />
+                    </div>
+                    <Progress value={progress} className="h-2" />
                 </div>
-            </div>
+            ) : (
+                <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-semibold text-muted-foreground text-xs">Tiempo Restante</p>
+                        <TimeRemaining 
+                            checkOutDate={reservation.checkOutDate.toDate()} 
+                            status={reservation.status}
+                            className="text-xs"
+                        />
+                    </div>
+                </div>
+            )}
         </CardContent>
         <div className="p-6 pt-0 mt-auto flex justify-end">
              {isOverdue ? (
