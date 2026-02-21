@@ -46,6 +46,12 @@ export interface ProductSubCategory {
   description?: string;
 }
 
+export interface IngredientItem {
+  serviceId: string;
+  name: string;
+  quantity: number;
+}
+
 export interface Service {
   id:string;
   name: string;
@@ -63,6 +69,8 @@ export interface Service {
   taxIds?: string[];
   supplierId?: string;
   supplierName?: string;
+  source?: 'Purchased' | 'Internal';
+  ingredients?: IngredientItem[];
 }
 
 export interface StayExtension {
@@ -260,3 +268,4 @@ export interface PurchaseInvoice {
   createdByName?: string;
   createdByUid?: string;
 }
+

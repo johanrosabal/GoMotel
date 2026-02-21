@@ -11,6 +11,7 @@ import {
   orderBy,
   getDoc,
   increment,
+  runTransaction,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -26,51 +27,75 @@ export async function createOrder(stayId: string, cart: CartItem[]) {
     return { error: 'ID de estancia no válido o carrito vacío.' };
   }
 
-  const batch = writeBatch(db);
-  const orderRef = doc(collection(db, 'orders'));
-  let totalOrderPrice = 0;
-
-  const orderItems: OrderItem[] = [];
-
-  for (const item of cart) {
-    const serviceRef = doc(db, 'services', item.service.id);
-    const newStock = item.service.stock - item.quantity;
-    
-    if (newStock < 0) {
-        return { error: `No hay suficientes existencias para ${item.service.name}.` };
-    }
-    
-    batch.update(serviceRef, { stock: newStock });
-    
-    const itemPrice = item.service.price * item.quantity;
-    totalOrderPrice += itemPrice;
-
-    orderItems.push({
-      serviceId: item.service.id,
-      name: item.service.name,
-      quantity: item.quantity,
-      price: item.service.price,
-    });
-  }
-
-  const newOrder: Omit<Order, 'id'> = {
-    stayId,
-    items: orderItems,
-    total: totalOrderPrice,
-    createdAt: Timestamp.now(),
-    status: 'Pendiente',
-  };
-
-  batch.set(orderRef, newOrder);
-
   try {
-    await batch.commit();
-    revalidatePath(`/rooms/*`); // Revalidate all room pages
+    await runTransaction(db, async (transaction) => {
+      const orderRef = doc(collection(db, 'orders'));
+      let totalOrderPrice = 0;
+      const orderItems: OrderItem[] = [];
+
+      for (const item of cart) {
+        const serviceRef = doc(db, 'services', item.service.id);
+        const serviceSnap = await transaction.get(serviceRef);
+
+        if (!serviceSnap.exists()) {
+          throw new Error(`El producto "${item.service.name}" no fue encontrado.`);
+        }
+        const serviceData = serviceSnap.data() as Service;
+        
+        if (serviceData.source === 'Internal') {
+          if (!serviceData.ingredients || serviceData.ingredients.length === 0) {
+            throw new Error(`El producto de producción interna '${serviceData.name}' no tiene ingredientes definidos.`);
+          }
+          // Handle ingredient stock deduction
+          for (const ingredient of serviceData.ingredients) {
+            const ingredientServiceRef = doc(db, 'services', ingredient.serviceId);
+            const ingredientSnap = await transaction.get(ingredientServiceRef);
+            if (!ingredientSnap.exists()) {
+              throw new Error(`El ingrediente "${ingredient.name}" no fue encontrado.`);
+            }
+            const ingredientData = ingredientSnap.data() as Service;
+            const requiredQuantity = ingredient.quantity * item.quantity;
+            if (ingredientData.stock < requiredQuantity) {
+              throw new Error(`Stock insuficiente para el ingrediente "${ingredient.name}". Se necesitan: ${requiredQuantity}, disponibles: ${ingredientData.stock}`);
+            }
+            transaction.update(ingredientServiceRef, { stock: increment(-requiredQuantity) });
+          }
+        } else {
+          // Handle regular purchased item stock deduction
+          if (serviceData.stock < item.quantity) {
+            throw new Error(`No hay suficientes existencias para ${serviceData.name}.`);
+          }
+          transaction.update(serviceRef, { stock: increment(-item.quantity) });
+        }
+
+
+        const itemPrice = serviceData.price * item.quantity;
+        totalOrderPrice += itemPrice;
+
+        orderItems.push({
+          serviceId: serviceData.id,
+          name: serviceData.name,
+          quantity: item.quantity,
+          price: serviceData.price,
+        });
+      }
+
+      const newOrder: Omit<Order, 'id'> = {
+        stayId,
+        items: orderItems,
+        total: totalOrderPrice,
+        createdAt: Timestamp.now(),
+        status: 'Pendiente',
+      };
+      transaction.set(orderRef, newOrder);
+    });
+
+    revalidatePath(`/rooms/*`);
     revalidatePath('/inventory');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create order:', error);
-    return { error: 'Ocurrió un error inesperado al realizar el pedido.' };
+    return { error: error.message || 'Ocurrió un error inesperado al realizar el pedido.' };
   }
 }
 
@@ -119,7 +144,21 @@ export async function cancelOrder(orderId: string) {
     // Revert stock for each item in the order
     for (const item of orderData.items) {
       const serviceRef = doc(db, 'services', item.serviceId);
-      batch.update(serviceRef, { stock: increment(item.quantity) });
+      const serviceSnap = await getDoc(serviceRef);
+      if (!serviceSnap.exists()) continue;
+      
+      const serviceData = serviceSnap.data() as Service;
+
+      if (serviceData.source === 'Internal') {
+        if (!serviceData.ingredients) continue;
+        for (const ingredient of serviceData.ingredients) {
+            const ingredientRef = doc(db, 'services', ingredient.serviceId);
+            const requiredQty = ingredient.quantity * item.quantity;
+            batch.update(ingredientRef, { stock: increment(requiredQty) });
+        }
+      } else {
+        batch.update(serviceRef, { stock: increment(item.quantity) });
+      }
     }
 
     // Mark order as cancelled
@@ -135,3 +174,4 @@ export async function cancelOrder(orderId: string) {
     return { error: 'Ocurrió un error inesperado al cancelar el pedido.' };
   }
 }
+
