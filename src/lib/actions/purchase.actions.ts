@@ -1,9 +1,10 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, writeBatch, increment, addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, writeBatch, increment, addDoc, collection, Timestamp, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
+import type { PurchaseInvoice } from '@/types';
 
 const purchaseItemSchema = z.object({
   serviceId: z.string(),
@@ -14,7 +15,8 @@ const purchaseItemSchema = z.object({
 });
 
 const purchaseInvoiceSchema = z.object({
-  supplierId: z.string(),
+  id: z.string().optional(),
+  supplierId: z.string({ required_error: "Debe seleccionar un proveedor." }),
   supplierName: z.string(),
   invoiceNumber: z.string().min(1, "El número de factura es requerido.").max(25, "El número de factura no debe exceder los 25 caracteres."),
   invoiceDate: z.date(),
@@ -34,45 +36,157 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
     const validatedFields = purchaseInvoiceSchema.safeParse(values);
     if (!validatedFields.success) {
         const fieldErrors = validatedFields.error.flatten().fieldErrors;
-        // Combine all error messages into a single string.
         const errorMessage = Object.values(fieldErrors)
             .map(errors => errors?.join(', '))
-            .filter(Boolean) // Filter out any undefined/null values
+            .filter(Boolean)
             .join('\n');
         console.error(fieldErrors);
         return { error: errorMessage || 'Datos de factura de compra inválidos.' };
     }
 
-    const { items, ...invoiceData } = validatedFields.data;
-    const batch = writeBatch(db);
-
-    const purchaseInvoiceRef = doc(collection(db, 'purchaseInvoices'));
-    batch.set(purchaseInvoiceRef, {
-        ...invoiceData,
-        invoiceDate: Timestamp.fromDate(invoiceData.invoiceDate),
-        createdAt: Timestamp.now(),
-        status: 'Activa',
-        items: items.map(item => ({
-            ...item,
-            total: item.quantity * item.costPrice,
-        })),
-    });
-
-    items.forEach(item => {
-        const serviceRef = doc(db, 'services', item.serviceId);
-        batch.update(serviceRef, { 
-            stock: increment(item.quantity),
-            costPrice: item.costPrice // Update cost price
-        });
-    });
-
+    const { id, items, ...invoiceData } = validatedFields.data;
+    
     try {
-        await batch.commit();
+        if (id) {
+            // EDIT LOGIC
+            const purchaseInvoiceRef = doc(db, 'purchaseInvoices', id);
+            const originalInvoiceSnap = await getDoc(purchaseInvoiceRef);
+            if (!originalInvoiceSnap.exists()) {
+                return { error: 'La factura que intenta editar no existe.' };
+            }
+            const originalInvoice = originalInvoiceSnap.data() as PurchaseInvoice;
+            
+            const batch = writeBatch(db);
+
+            // 1. Revert original stock changes
+            originalInvoice.items.forEach(item => {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                batch.update(serviceRef, { stock: increment(-item.quantity) });
+            });
+
+            // 2. Apply new stock changes
+            items.forEach(item => {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                batch.update(serviceRef, {
+                    stock: increment(item.quantity),
+                    costPrice: item.costPrice
+                });
+            });
+
+            // 3. Update invoice document
+            batch.update(purchaseInvoiceRef, {
+                ...invoiceData,
+                invoiceDate: Timestamp.fromDate(invoiceData.invoiceDate),
+                items: items.map(item => ({
+                    ...item,
+                    total: item.quantity * item.costPrice,
+                })),
+            });
+
+            await batch.commit();
+
+        } else {
+            // CREATE LOGIC
+            const batch = writeBatch(db);
+            const purchaseInvoiceRef = doc(collection(db, 'purchaseInvoices'));
+            batch.set(purchaseInvoiceRef, {
+                ...invoiceData,
+                invoiceDate: Timestamp.fromDate(invoiceData.invoiceDate),
+                createdAt: Timestamp.now(),
+                status: 'Activa',
+                items: items.map(item => ({
+                    ...item,
+                    total: item.quantity * item.costPrice,
+                })),
+            });
+
+            items.forEach(item => {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                batch.update(serviceRef, { 
+                    stock: increment(item.quantity),
+                    costPrice: item.costPrice
+                });
+            });
+
+            await batch.commit();
+        }
+
         revalidatePath('/inventory');
         revalidatePath('/purchases');
         return { success: true };
     } catch (e) {
         console.error('Error saving purchase invoice:', e);
         return { error: 'No se pudo guardar la factura de compra.' };
+    }
+}
+
+
+export async function voidPurchaseInvoice(purchaseInvoiceId: string) {
+    if (!purchaseInvoiceId) {
+        return { error: 'ID de factura no válido.' };
+    }
+
+    try {
+        const invoiceRef = doc(db, 'purchaseInvoices', purchaseInvoiceId);
+        const invoiceSnap = await getDoc(invoiceRef);
+
+        if (!invoiceSnap.exists()) {
+            return { error: 'La factura a anular no fue encontrada.' };
+        }
+        
+        const invoice = invoiceSnap.data() as PurchaseInvoice;
+        
+        if (invoice.status === 'Anulada') {
+            return { error: 'Esta factura ya ha sido anulada.' };
+        }
+
+        const batch = writeBatch(db);
+        
+        // Revert stock changes from this invoice
+        invoice.items.forEach(item => {
+            const serviceRef = doc(db, 'services', item.serviceId);
+            batch.update(serviceRef, { stock: increment(-item.quantity) });
+        });
+
+        // Mark invoice as voided
+        batch.update(invoiceRef, { status: 'Anulada' });
+        
+        await batch.commit();
+
+        revalidatePath('/inventory');
+        revalidatePath('/purchases');
+        return { success: 'Factura anulada y stock revertido.' };
+    } catch (e) {
+        console.error('Error voiding purchase invoice:', e);
+        return { error: 'No se pudo anular la factura.' };
+    }
+}
+
+export async function deletePurchaseInvoice(purchaseInvoiceId: string) {
+    if (!purchaseInvoiceId) {
+        return { error: 'ID de factura no válido.' };
+    }
+
+    try {
+        const invoiceRef = doc(db, 'purchaseInvoices', purchaseInvoiceId);
+        const invoiceSnap = await getDoc(invoiceRef);
+
+        if (!invoiceSnap.exists()) {
+            return { error: 'La factura a eliminar no fue encontrada.' };
+        }
+        
+        const invoice = invoiceSnap.data() as PurchaseInvoice;
+
+        if (invoice.status === 'Activa') {
+            return { error: 'No se puede eliminar una factura activa. Primero debe anularla para revertir el inventario.' };
+        }
+
+        await deleteDoc(invoiceRef);
+
+        revalidatePath('/purchases');
+        return { success: 'Factura eliminada permanentemente.' };
+    } catch (e) {
+        console.error('Error deleting purchase invoice:', e);
+        return { error: 'No se pudo eliminar la factura.' };
     }
 }

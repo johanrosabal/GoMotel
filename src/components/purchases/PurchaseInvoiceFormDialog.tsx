@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import type { Supplier, Service, Tax } from '@/types';
+import type { Supplier, Service, Tax, PurchaseInvoice } from '@/types';
 import { savePurchaseInvoice } from '@/lib/actions/purchase.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Plus } from 'lucide-react';
@@ -34,6 +34,7 @@ const purchaseItemSchema = z.object({
 });
 
 const purchaseInvoiceSchema = z.object({
+  id: z.string().optional(),
   supplierId: z.string({ required_error: "Debe seleccionar un proveedor." }),
   invoiceNumber: z.string().min(1, "El número de factura es requerido.").max(25, "El número de factura no debe exceder los 25 caracteres."),
   invoiceDate: z.date({ required_error: "La fecha es requerida." }),
@@ -49,6 +50,7 @@ type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
 interface PurchaseInvoiceFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  purchaseInvoice?: PurchaseInvoice;
 }
 
 const stringToNumber = (numString: string): number => {
@@ -67,7 +69,7 @@ const numberToString = (num: number): string => {
 
 const MAX_IMAGES = 5;
 
-export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: PurchaseInvoiceFormDialogProps) {
+export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchaseInvoice }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -132,12 +134,10 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
         const notInCart = !fields.some(field => field.serviceId === service.id);
         if (!notInCart) return false;
         
-        // If a supplier is selected, only show products from that supplier OR products with no supplier
         if (selectedSupplierId) {
             return !service.supplierId || service.supplierId === selectedSupplierId;
         }
 
-        // If no supplier is selected, show all products not in cart
         return true;
     });
 }, [services, selectedSupplierId, fields]);
@@ -199,30 +199,53 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
   }, [items, taxesIncluded, allTaxes, discountType, discountValue]);
 
   useEffect(() => {
-    if (!open) {
-      form.reset({
-        supplierId: undefined,
-        invoiceNumber: '',
-        invoiceDate: new Date(),
-        items: [],
-        taxesIncluded: false,
-        discountType: 'none',
-        discountValue: undefined,
-        imageUrls: [],
-      });
-      setInvoiceDay('');
-      setInvoiceMonth('');
-      setInvoiceYear('');
-      setDiscountValueInput('');
-      
-    } else {
-      const today = new Date();
-      form.setValue('invoiceDate', today, { shouldValidate: true });
-      setInvoiceDay(String(today.getDate()));
-      setInvoiceMonth(String(today.getMonth() + 1));
-      setInvoiceYear(String(today.getFullYear()));
+    if (open) {
+      if (purchaseInvoice) {
+        // Editing mode
+        form.reset({
+          id: purchaseInvoice.id,
+          supplierId: purchaseInvoice.supplierId,
+          invoiceNumber: purchaseInvoice.invoiceNumber,
+          invoiceDate: purchaseInvoice.invoiceDate.toDate(),
+          items: purchaseInvoice.items.map(item => ({
+            serviceId: item.serviceId,
+            serviceName: item.serviceName,
+            quantity: item.quantity,
+            costPrice: item.costPrice,
+            taxIds: item.taxIds || [],
+          })),
+          taxesIncluded: purchaseInvoice.taxesIncluded || false,
+          discountType: purchaseInvoice.discountType || 'none',
+          discountValue: purchaseInvoice.discountValue,
+          imageUrls: purchaseInvoice.imageUrls || [],
+        });
+
+        const date = purchaseInvoice.invoiceDate.toDate();
+        setInvoiceDay(String(date.getDate()));
+        setInvoiceMonth(String(date.getMonth() + 1));
+        setInvoiceYear(String(date.getFullYear()));
+        setDiscountValueInput(purchaseInvoice.discountValue ? String(purchaseInvoice.discountValue) : '');
+
+      } else {
+        // Creating mode
+        form.reset({
+          supplierId: undefined,
+          invoiceNumber: '',
+          invoiceDate: new Date(),
+          items: [],
+          taxesIncluded: false,
+          discountType: 'none',
+          discountValue: undefined,
+          imageUrls: [],
+        });
+        const today = new Date();
+        setInvoiceDay(String(today.getDate()));
+        setInvoiceMonth(String(today.getMonth() + 1));
+        setInvoiceYear(String(today.getFullYear()));
+        setDiscountValueInput('');
+      }
     }
-  }, [open, form]);
+  }, [open, purchaseInvoice, form]);
 
   useEffect(() => {
     if (invoiceDay && invoiceMonth && invoiceYear) {
@@ -358,6 +381,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
 
     const payload = {
         ...values,
+        id: purchaseInvoice?.id,
         supplierName: supplier.name,
         subtotal,
         totalDiscount,
@@ -392,9 +416,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Registrar Factura de Compra</DialogTitle>
+          <DialogTitle>{purchaseInvoice ? 'Editar Factura de Compra' : 'Registrar Factura de Compra'}</DialogTitle>
           <DialogDescription>
-            Complete los detalles de la factura para actualizar el inventario.
+            {purchaseInvoice ? `Editando la factura N° ${purchaseInvoice.invoiceNumber}`: 'Complete los detalles de la factura para actualizar el inventario.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
