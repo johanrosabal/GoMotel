@@ -390,6 +390,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
     value: String(i + 1),
     label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
   }));
+  const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const days = invoiceYear && invoiceMonth ? Array.from({ length: daysInMonth(parseInt(invoiceYear, 10), parseInt(invoiceMonth, 10)) }, (_, i) => String(i + 1)) : Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: PurchaseInvoiceFormValues) => {
