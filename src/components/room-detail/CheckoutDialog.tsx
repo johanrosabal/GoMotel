@@ -18,6 +18,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import React from 'react';
 
 interface CheckoutDialogProps {
   children: ReactNode;
@@ -44,20 +45,21 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     });
   };
 
-  const { duration, roomTotal, servicesTotal, amountPaid, totalDue } = useMemo(() => {
+  const { duration, roomTotal, servicesTotal, amountPaid, totalDue, activeOrders } = useMemo(() => {
     if (!stay || !room) {
-      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0 };
+      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0, activeOrders: [] as Order[] };
     }
     
     let roomTotalCalc: number;
+    // If pricePlanAmount exists, it includes the base plan + all extensions.
     if (stay.pricePlanAmount != null) {
       roomTotalCalc = stay.pricePlanAmount;
     } else {
       // Fallback for old data or stays without a price plan
       const checkInTime = stay.checkIn.toDate();
-      const checkOutTime = new Date();
+      const checkOutTime = new Date(); // Calculate up to now
       const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))); // Minimum 1 hour charge
       roomTotalCalc = durationHours * room.ratePerHour;
     }
 
@@ -65,7 +67,8 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     const checkOutTime = new Date();
     const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
     
-    const servicesTotalCalc = orders.reduce((sum, order) => sum + order.total, 0);
+    const currentActiveOrders = orders.filter(order => order.status !== 'Cancelado');
+    const servicesTotalCalc = currentActiveOrders.reduce((sum, order) => sum + order.total, 0);
     
     const paidAmount = stay.paymentStatus === 'Pagado' ? (stay.paymentAmount || 0) : 0;
     const totalBill = roomTotalCalc + servicesTotalCalc;
@@ -77,6 +80,7 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
       servicesTotal: servicesTotalCalc,
       amountPaid: paidAmount,
       totalDue: finalTotalDue < 0 ? 0 : finalTotalDue,
+      activeOrders: currentActiveOrders,
     };
   }, [stay, room, orders]);
 
@@ -119,8 +123,22 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                         <span className="text-muted-foreground">Servicios y Pedidos</span>
                         <span>{formatCurrency(servicesTotal)}</span>
                     </div>
+                     {servicesTotal > 0 && (
+                        <div className="pl-4 ml-2 border-l-2 space-y-1 mt-1">
+                            {activeOrders.map(order => (
+                                <React.Fragment key={order.id}>
+                                    {order.items.map(item => (
+                                        <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between text-muted-foreground">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span>{formatCurrency(item.price * item.quantity)}</span>
+                                        </div>
+                                    ))}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    )}
                      {amountPaid > 0 && (
-                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                        <div className="flex justify-between text-green-600 dark:text-green-400 !mt-2">
                             <span className="font-medium">Adelanto Pagado ({stay?.paymentMethod})</span>
                             <span className="font-medium">-{formatCurrency(amountPaid)}</span>
                         </div>

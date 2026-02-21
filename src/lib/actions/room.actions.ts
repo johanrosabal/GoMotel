@@ -173,6 +173,9 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
   const ordersSnapshot = await getDocs(q);
   const servicesTotal = ordersSnapshot.docs.reduce((acc, doc) => {
     const order = doc.data() as Order;
+    if (order.status === 'Cancelado') {
+      return acc;
+    }
     return acc + order.total;
   }, 0);
 
@@ -400,5 +403,3 @@ export async function extendStay(stayId: string, newPlanName: string) {
     return { error: 'No se pudo extender la estancia.' };
   }
 }
-
-    
