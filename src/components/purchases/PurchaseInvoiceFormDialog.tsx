@@ -88,10 +88,19 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange }: Purcha
 
   const availableProducts = useMemo(() => {
     if (!services) return [];
-    return services.filter(service => 
-      (selectedSupplierId ? service.supplierId === selectedSupplierId : true) &&
-      !fields.some(field => field.serviceId === service.id)
-    );
+    return services.filter(service => {
+      const notInCart = !fields.some(field => field.serviceId === service.id);
+      if (!notInCart) return false;
+
+      // If a supplier is selected, show products from that supplier OR products with no supplier.
+      // Hide products assigned to a different supplier.
+      if (selectedSupplierId) {
+        return !service.supplierId || service.supplierId === selectedSupplierId;
+      }
+
+      // If no supplier is selected, show all products (which is the default behavior before selecting a supplier).
+      return true;
+    });
   }, [services, selectedSupplierId, fields]);
   
   const searchedProducts = useMemo(() => {
