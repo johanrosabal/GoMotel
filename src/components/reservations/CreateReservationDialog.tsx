@@ -82,7 +82,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
   
   const sinpeAccountsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+    return query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), fbOrderBy('createdAt', 'asc'));
   }, [firestore]);
   const { data: activeSinpeAccounts, isLoading: isLoadingSinpe } = useCollection<SinpeAccount>(sinpeAccountsQuery);
 
@@ -463,7 +463,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                                         <p className='text-sm text-muted-foreground'>Transferir el monto de</p>
                                                         <p className='text-2xl font-bold tracking-tight text-primary'>{formatCurrency(selectedPlan?.price || 0)}</p>
                                                         <p className='text-sm text-muted-foreground mt-3'>a la cuenta SINPE Móvil:</p>
-                                                        <p className='text-3xl font-mono font-extrabold tracking-widest py-2'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                        <p className='py-2 text-3xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
                                                         <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
                                                     </div>
                                                     <FormField
