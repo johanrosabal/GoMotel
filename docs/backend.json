@@ -266,6 +266,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "supplierId": {
+          "type": "string",
+          "description": "Reference to the Supplier of this product."
+        },
+        "supplierName": {
+          "type": "string",
+          "description": "Denormalized name of the supplier for display."
         }
       },
       "required": [

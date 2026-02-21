@@ -61,6 +61,8 @@ export interface Service {
   subCategoryId?: string;
   isActive?: boolean;
   taxIds?: string[];
+  supplierId?: string;
+  supplierName?: string;
 }
 
 export interface StayExtension {

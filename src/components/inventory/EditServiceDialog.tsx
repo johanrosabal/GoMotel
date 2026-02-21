@@ -33,7 +33,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveService } from '@/lib/actions/service.actions';
-import type { Service, ProductCategory, ProductSubCategory, Tax } from '@/types';
+import type { Service, ProductCategory, ProductSubCategory, Tax, Supplier } from '@/types';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -66,6 +66,8 @@ const serviceSchema = z.object({
   subCategoryId: z.string().optional(),
   isActive: z.boolean().optional().default(true),
   taxIds: z.array(z.string()).optional(),
+  supplierId: z.string().optional(),
+  supplierName: z.string().optional(),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -111,6 +113,8 @@ export default function EditServiceDialog({ children, service, allServices, open
       subCategoryId: preselectedSubCategoryId,
       isActive: true,
       taxIds: [],
+      supplierId: '',
+      supplierName: '',
     },
   });
 
@@ -127,6 +131,9 @@ export default function EditServiceDialog({ children, service, allServices, open
 
   const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes'), orderBy('name')) : null, [firestore]);
   const { data: taxes, isLoading: isLoadingTaxes } = useCollection<Tax>(taxesQuery);
+  
+  const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
+  const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
 
   useEffect(() => {
     if (open) {
@@ -139,6 +146,8 @@ export default function EditServiceDialog({ children, service, allServices, open
         minStock: service.minStock ?? 10,
         isActive: service.isActive !== false,
         taxIds: service.taxIds || [],
+        supplierId: service.supplierId || '',
+        supplierName: service.supplierName || '',
       } : {
         name: '',
         code: '',
@@ -153,6 +162,8 @@ export default function EditServiceDialog({ children, service, allServices, open
         subCategoryId: preselectedSubCategoryId,
         isActive: true,
         taxIds: [],
+        supplierId: '',
+        supplierName: '',
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
@@ -349,7 +360,37 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
               />
             </div>
-
+             <FormField
+                control={form.control}
+                name="supplierId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proveedor (Opcional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const supplier = suppliers?.find(s => s.id === value);
+                        form.setValue('supplierName', supplier?.name || '');
+                      }}
+                      value={field.value}
+                      disabled={isLoadingSuppliers}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">Ninguno</SelectItem>
+                        {suppliers?.map(supplier => (
+                          <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <FormField
               control={form.control}
               name="category"
@@ -517,3 +558,5 @@ export default function EditServiceDialog({ children, service, allServices, open
     </Dialog>
   );
 }
+
+    

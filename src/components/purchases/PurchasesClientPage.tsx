@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import type { Service } from '@/types';
+import type { Service, Supplier } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { registerPurchase } from '@/lib/actions/purchase.actions';
-import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type PurchaseItem = {
   serviceId: string;
@@ -25,13 +25,19 @@ export default function PurchasesClientPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [purchaseItems, setPurchaseItems] = useState<Record<string, number>>({});
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('all');
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'services'), orderBy('name'));
   }, [firestore]);
-
-  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
+  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+  
+  const suppliersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'suppliers'), orderBy('name'));
+  }, [firestore]);
+  const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
 
   const handleQuantityChange = (serviceId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
@@ -69,8 +75,29 @@ export default function PurchasesClientPage() {
     });
   };
 
+  const filteredServices = useMemo(() => {
+    if (!services) return [];
+    if (selectedSupplierId === 'all') return services;
+    return services.filter(s => s.supplierId === selectedSupplierId);
+  }, [services, selectedSupplierId]);
+
+  const isLoading = isLoadingServices || isLoadingSuppliers;
+
   return (
     <div className="space-y-4">
+       <div className="flex justify-start">
+        <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId} disabled={isLoading}>
+          <SelectTrigger className="w-full sm:w-[280px]">
+            <SelectValue placeholder="Filtrar por proveedor..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Mostrar todos los productos</SelectItem>
+            {suppliers?.map(supplier => (
+              <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       {isLoading ? (
         <div className="space-y-2 rounded-md border p-4">
           <Skeleton className="h-12 w-full" />
@@ -90,7 +117,7 @@ export default function PurchasesClientPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {services?.map(service => (
+                        {filteredServices?.map(service => (
                         <TableRow key={service.id}>
                             <TableCell className="font-medium">{service.name}</TableCell>
                             <TableCell><Badge variant="outline">{service.code}</Badge></TableCell>
@@ -109,6 +136,11 @@ export default function PurchasesClientPage() {
                         ))}
                     </TableBody>
                  </Table>
+                 {filteredServices.length === 0 && (
+                    <div className="text-center p-8 text-muted-foreground">
+                        {selectedSupplierId === 'all' ? 'No hay productos en el catálogo.' : 'Este proveedor no tiene productos asignados.'}
+                    </div>
+                 )}
             </div>
              <div className="flex justify-end">
                 <Button onClick={handleSubmit} disabled={isPending || itemsToSubmit.length === 0}>
@@ -121,3 +153,5 @@ export default function PurchasesClientPage() {
     </div>
   );
 }
+
+    

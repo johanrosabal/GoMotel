@@ -35,6 +35,8 @@ const toServiceObject = (doc: any): Service => {
     subCategoryId: data.subCategoryId,
     isActive: data.isActive,
     taxIds: data.taxIds || [],
+    supplierId: data.supplierId,
+    supplierName: data.supplierName,
   };
 };
 
@@ -72,6 +74,8 @@ const serviceSchema = z.object({
   subCategoryId: z.string().optional(),
   isActive: z.boolean().optional().default(true),
   taxIds: z.array(z.string()).optional(),
+  supplierId: z.string().optional(),
+  supplierName: z.string().optional(),
 });
 
 export async function saveService(values: z.infer<typeof serviceSchema>) {
@@ -98,6 +102,8 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     subCategoryId: data.subCategoryId ?? null,
     isActive: data.isActive ?? true,
     taxIds: data.taxIds ?? [],
+    supplierId: data.supplierId ?? null,
+    supplierName: data.supplierName ?? null,
   };
 
   try {
@@ -157,3 +163,5 @@ export async function deleteService(serviceId: string) {
         return { error: 'Ocurrió un error inesperado.' };
     }
 }
+
+    
