@@ -82,10 +82,13 @@ export default function PurchasesClientPage() {
   }, [services, selectedSupplierId]);
 
   const isLoading = isLoadingServices || isLoadingSuppliers;
+  const buttonText = isPending 
+    ? 'Registrando...' 
+    : `Registrar Compra (${itemsToSubmit.length})`;
 
   return (
     <div className="space-y-4">
-       <div className="flex justify-start">
+       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId} disabled={isLoading}>
           <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Filtrar por proveedor..." />
@@ -97,6 +100,10 @@ export default function PurchasesClientPage() {
             ))}
           </SelectContent>
         </Select>
+         <Button onClick={handleSubmit} disabled={isPending || itemsToSubmit.length === 0} className="w-full sm:w-auto">
+            <Save className="mr-2 h-4 w-4" />
+            {buttonText}
+        </Button>
       </div>
       {isLoading ? (
         <div className="space-y-2 rounded-md border p-4">
@@ -145,7 +152,7 @@ export default function PurchasesClientPage() {
              <div className="flex justify-end">
                 <Button onClick={handleSubmit} disabled={isPending || itemsToSubmit.length === 0}>
                     <Save className="mr-2 h-4 w-4" />
-                    {isPending ? 'Registrando...' : 'Registrar Compra'}
+                    {buttonText}
                 </Button>
             </div>
         </>
@@ -153,5 +160,3 @@ export default function PurchasesClientPage() {
     </div>
   );
 }
-
-    
