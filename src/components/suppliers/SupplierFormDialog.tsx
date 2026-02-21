@@ -48,6 +48,24 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
       onOpenChange(false);
     });
   };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    let numbers = e.target.value.replace(/\D/g, '');
+    
+    if (numbers.startsWith('506')) {
+      numbers = numbers.substring(3);
+    }
+    const value = numbers.slice(0, 8);
+    let maskedValue = '';
+    if (value.length > 0) {
+      maskedValue = `(506) ${value.slice(0, 4)}`;
+      if (value.length > 4) {
+        maskedValue += `-${value.slice(4)}`;
+      }
+    }
+    fieldOnChange(maskedValue);
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,7 +125,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                     <FormItem>
                     <FormLabel>Teléfono (Opcional)</FormLabel>
                     <FormControl>
-                        <Input placeholder="(506) 2222-2222" {...field} />
+                        <Input placeholder="(506) 2222-2222" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
