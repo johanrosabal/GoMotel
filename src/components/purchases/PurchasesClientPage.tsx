@@ -16,6 +16,7 @@ export default function PurchasesClientPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState<PurchaseInvoice | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   const purchasesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -34,11 +35,19 @@ export default function PurchasesClientPage() {
   
   const handleEdit = (purchase: PurchaseInvoice) => {
     setEditingPurchase(purchase);
+    setIsReadOnly(false);
+    setIsFormOpen(true);
+  };
+
+  const handleView = (purchase: PurchaseInvoice) => {
+    setEditingPurchase(purchase);
+    setIsReadOnly(true);
     setIsFormOpen(true);
   };
   
   const handleAdd = () => {
     setEditingPurchase(undefined);
+    setIsReadOnly(false);
     setIsFormOpen(true);
   };
 
@@ -60,6 +69,7 @@ export default function PurchasesClientPage() {
             open={isFormOpen} 
             onOpenChange={setIsFormOpen} 
             purchaseInvoice={editingPurchase}
+            readOnly={isReadOnly}
           />
       </div>
       {isLoading ? (
@@ -69,7 +79,7 @@ export default function PurchasesClientPage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <PurchaseInvoicesTable purchases={filteredInvoices} onEdit={handleEdit} />
+        <PurchaseInvoicesTable purchases={filteredInvoices} onEdit={handleEdit} onView={handleView} />
       )}
     </div>
   );

@@ -51,6 +51,7 @@ interface PurchaseInvoiceFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   purchaseInvoice?: PurchaseInvoice;
+  readOnly?: boolean;
 }
 
 const stringToNumber = (numString: string): number => {
@@ -69,7 +70,7 @@ const numberToString = (num: number): string => {
 
 const MAX_IMAGES = 5;
 
-export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchaseInvoice }: PurchaseInvoiceFormDialogProps) {
+export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchaseInvoice, readOnly = false }: PurchaseInvoiceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -373,6 +374,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
   const days = invoiceYear && invoiceMonth ? Array.from({ length: daysInMonth(parseInt(invoiceYear, 10), parseInt(invoiceMonth, 10)) }, (_, i) => String(i + 1)) : Array.from({ length: 31 }, (_, i) => String(i + 1));
 
   const onSubmit = (values: PurchaseInvoiceFormValues) => {
+    if (readOnly) return;
+
     const supplier = suppliers?.find(s => s.id === values.supplierId);
     if (!supplier) {
         toast({ title: "Error", description: "Proveedor no válido.", variant: 'destructive' });
@@ -416,9 +419,9 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{purchaseInvoice ? 'Editar Factura de Compra' : 'Registrar Factura de Compra'}</DialogTitle>
+          <DialogTitle>{readOnly ? 'Detalle de Factura de Compra' : (purchaseInvoice ? 'Editar Factura de Compra' : 'Registrar Factura de Compra')}</DialogTitle>
           <DialogDescription>
-            {purchaseInvoice ? `Editando la factura N° ${purchaseInvoice.invoiceNumber}`: 'Complete los detalles de la factura para actualizar el inventario.'}
+            {readOnly ? `Viendo detalles de la factura N° ${purchaseInvoice?.invoiceNumber}.` : (purchaseInvoice ? `Editando la factura N° ${purchaseInvoice.invoiceNumber}`: 'Complete los detalles de la factura para actualizar el inventario.')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -437,7 +440,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Proveedor</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={readOnly}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Seleccione un proveedor" />
@@ -465,7 +468,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Número de Factura</FormLabel>
-                                    <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} /></FormControl>
+                                    <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} readOnly={readOnly} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )}
@@ -477,7 +480,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                     <FormItem>
                                     <FormLabel>Fecha de Factura</FormLabel>
                                     <div className="grid grid-cols-3 gap-2">
-                                        <Select onValueChange={setInvoiceDay} value={invoiceDay}>
+                                        <Select onValueChange={setInvoiceDay} value={invoiceDay} disabled={readOnly}>
                                         <FormControl>
                                             <SelectTrigger>
                                             <SelectValue placeholder="Día" />
@@ -489,7 +492,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                             ))}
                                         </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setInvoiceMonth} value={invoiceMonth}>
+                                        <Select onValueChange={setInvoiceMonth} value={invoiceMonth} disabled={readOnly}>
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Mes" />
@@ -501,7 +504,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                             ))}
                                             </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setInvoiceYear} value={invoiceYear}>
+                                        <Select onValueChange={setInvoiceYear} value={invoiceYear} disabled={readOnly}>
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Año" />
@@ -522,29 +525,31 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                         <div className="flex flex-col space-y-2">
                               <div className="flex justify-between items-center">
                                 <h3 className="text-sm font-medium">Artículos de la Factura</h3>
-                                <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button type="button" variant="outline" size="sm" className="gap-2">
-                                            <PlusCircle className="h-4 w-4" />
-                                            Añadir Producto
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
-                                            <CommandList>
-                                                <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
-                                                <CommandGroup>
-                                                    {searchedProducts.map((product) => (
-                                                        <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
-                                                            {product.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                {!readOnly && (
+                                    <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button type="button" variant="outline" size="sm" className="gap-2">
+                                                <PlusCircle className="h-4 w-4" />
+                                                Añadir Producto
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar producto..." value={productSearch} onValueChange={setProductSearch} />
+                                                <CommandList>
+                                                    <CommandEmpty>{isLoadingServices ? 'Cargando productos...' : 'No se encontraron productos.'}</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {searchedProducts.map((product) => (
+                                                            <CommandItem key={product.id} onSelect={() => addProductToForm(product)}>
+                                                                {product.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                )}
                             </div>
                             <div className="border rounded-md">
                                 <ScrollArea className="h-48">
@@ -555,7 +560,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                 <TableHead className="w-[100px]">Cantidad</TableHead>
                                                 <TableHead className="w-[150px]">Costo Unit.</TableHead>
                                                 <TableHead className="w-[150px] text-right">Subtotal</TableHead>
-                                                <TableHead className="w-[50px]"><span className="sr-only">Quitar</span></TableHead>
+                                                {!readOnly && <TableHead className="w-[50px]"><span className="sr-only">Quitar</span></TableHead>}
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -573,6 +578,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                           }}
                                                           className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                           min="1"
+                                                          readOnly={readOnly}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -587,6 +593,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                                 }
                                                             }}
                                                             className="text-right"
+                                                            readOnly={readOnly}
                                                         />
                                                         {form.formState.errors.items?.[index]?.costPrice && (
                                                             <p className="text-sm font-medium text-destructive pt-1">
@@ -595,16 +602,18 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
-                                                    <TableCell>
-                                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
+                                                    {!readOnly && (
+                                                        <TableCell>
+                                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    )}
                                                 </TableRow>
                                             ))}
                                             {fields.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Añada productos a la factura.</TableCell>
+                                                    <TableCell colSpan={readOnly ? 4 : 5} className="text-center h-24 text-muted-foreground">Añada productos a la factura.</TableCell>
                                                 </TableRow>
                                             )}
                                         </TableBody>
@@ -625,6 +634,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                         <Switch
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
+                                            disabled={readOnly}
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -645,7 +655,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                             } else {
                                                 field.onChange(value as 'percentage' | 'fixed');
                                             }
-                                        }} value={field.value || 'none'}>
+                                        }} value={field.value || 'none'} disabled={readOnly}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Sin descuento" />
@@ -671,7 +681,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                 type={discountType === 'fixed' ? 'text' : 'number'}
                                                 inputMode={discountType === 'percentage' ? 'decimal' : 'text'}
                                                 placeholder="0"
-                                                disabled={!discountType || discountType === 'none'}
+                                                disabled={readOnly || !discountType || discountType === 'none'}
                                                 step={discountType === 'percentage' ? '0.01' : undefined}
                                                 value={discountValueInput}
                                                 onChange={handleDiscountValueChange}
@@ -692,18 +702,20 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                             {imageUrls.map((url, index) => (
                                 <div key={index} className="relative group aspect-square">
                                     <img src={url} alt={`Factura ${index + 1}`} className="object-cover w-full h-full rounded-md border" />
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="icon"
-                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => handleRemoveImage(index)}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
+                                    {!readOnly && (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => handleRemoveImage(index)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
-                            {Array.from({ length: MAX_IMAGES - imageUrls.length }).map((_, index) => (
+                            {!readOnly && Array.from({ length: MAX_IMAGES - imageUrls.length }).map((_, index) => (
                                 <button
                                     key={`placeholder-${index}`}
                                     type="button"
@@ -715,14 +727,16 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 </button>
                             ))}
                         </div>
-                        <Input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                        />
+                        {!readOnly && (
+                            <Input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                            />
+                        )}
                         {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
                     </div>
                 </TabsContent>
@@ -751,10 +765,12 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
             </div>
 
             <DialogFooter className="pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? 'Guardando...' : 'Guardar Factura de Compra'}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
+              {!readOnly && (
+                <Button type="submit" disabled={isPending}>
+                    {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>

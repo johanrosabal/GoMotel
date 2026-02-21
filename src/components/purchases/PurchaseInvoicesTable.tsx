@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { voidPurchaseInvoice, deletePurchaseInvoice } from '@/lib/actions/purchase.actions';
 
-function ActionsMenu({ purchase, onEdit }: { purchase: PurchaseInvoice, onEdit: (p: PurchaseInvoice) => void }) {
+function ActionsMenu({ purchase, onEdit, onView }: { purchase: PurchaseInvoice, onEdit: (p: PurchaseInvoice) => void, onView: (p: PurchaseInvoice) => void }) {
     const { toast } = useToast();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isVoidDialogOpen, setIsVoidDialogOpen] = useState(false);
@@ -53,7 +53,7 @@ function ActionsMenu({ purchase, onEdit }: { purchase: PurchaseInvoice, onEdit: 
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={() => onEdit(purchase)}>
+                    <DropdownMenuItem onSelect={() => onView(purchase)}>
                         <Eye className="mr-2 h-4 w-4" />
                         Ver Detalle
                     </DropdownMenuItem>
@@ -110,7 +110,7 @@ function ActionsMenu({ purchase, onEdit }: { purchase: PurchaseInvoice, onEdit: 
 }
 
 
-export default function PurchaseInvoicesTable({ purchases, onEdit }: { purchases: PurchaseInvoice[], onEdit: (p: PurchaseInvoice) => void }) {
+export default function PurchaseInvoicesTable({ purchases, onEdit, onView }: { purchases: PurchaseInvoice[], onEdit: (p: PurchaseInvoice) => void, onView: (p: PurchaseInvoice) => void }) {
     if (purchases.length === 0) {
         return (
             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -151,7 +151,7 @@ export default function PurchaseInvoicesTable({ purchases, onEdit }: { purchases
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(purchase.totalAmount)}</TableCell>
                             <TableCell className="text-right">
-                                <ActionsMenu purchase={purchase} onEdit={onEdit} />
+                                <ActionsMenu purchase={purchase} onEdit={onEdit} onView={onView} />
                             </TableCell>
                         </TableRow>
                     ))}
