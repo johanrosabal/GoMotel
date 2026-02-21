@@ -32,12 +32,21 @@ const reservationActionSchema = z.object({
   checkInDate: z.coerce.date().optional(),
   isOpenAccount: z.boolean(),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+  paymentConfirmed: z.boolean().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
 }).refine(data => data.isOpenAccount || !!data.paymentMethod, {
     message: "Se requiere un método de pago si no es cuenta abierta.",
     path: ["paymentMethod"],
+}).refine(data => {
+    if (!data.isOpenAccount && data.paymentMethod === 'Sinpe Movil') {
+        return data.paymentConfirmed === true;
+    }
+    return true;
+}, {
+    message: "El pago SINPE debe ser confirmado.",
+    path: ["paymentConfirmed"],
 });
 
 
@@ -418,5 +427,3 @@ export async function deleteReservation(reservationId: string) {
         return { error: 'No se pudo eliminar la reservación.' };
     }
 }
-
-    
