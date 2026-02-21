@@ -38,6 +38,7 @@ const toServiceObject = (doc: any): Service => {
     taxIds: data.taxIds || [],
     supplierId: data.supplierId,
     supplierName: data.supplierName,
+    source: data.source,
   };
 };
 
@@ -77,6 +78,7 @@ const serviceSchema = z.object({
   taxIds: z.array(z.string()).optional(),
   supplierId: z.string().optional(),
   supplierName: z.string().optional(),
+  source: z.enum(['Purchased', 'Internal']).optional(),
 });
 
 export async function saveService(values: z.infer<typeof serviceSchema>) {
@@ -105,6 +107,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     taxIds: data.taxIds ?? [],
     supplierId: data.supplierId ?? null,
     supplierName: data.supplierName ?? null,
+    source: data.source ?? 'Purchased',
   };
 
   try {

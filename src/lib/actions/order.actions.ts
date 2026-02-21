@@ -42,26 +42,7 @@ export async function createOrder(stayId: string, cart: CartItem[]) {
         }
         const serviceData = serviceSnap.data() as Service;
         
-        if (serviceData.source === 'Internal') {
-          if (!serviceData.ingredients || serviceData.ingredients.length === 0) {
-            throw new Error(`El producto de producción interna '${serviceData.name}' no tiene ingredientes definidos.`);
-          }
-          // Handle ingredient stock deduction
-          for (const ingredient of serviceData.ingredients) {
-            const ingredientServiceRef = doc(db, 'services', ingredient.serviceId);
-            const ingredientSnap = await transaction.get(ingredientServiceRef);
-            if (!ingredientSnap.exists()) {
-              throw new Error(`El ingrediente "${ingredient.name}" no fue encontrado.`);
-            }
-            const ingredientData = ingredientSnap.data() as Service;
-            const requiredQuantity = ingredient.quantity * item.quantity;
-            if (ingredientData.stock < requiredQuantity) {
-              throw new Error(`Stock insuficiente para el ingrediente "${ingredient.name}". Se necesitan: ${requiredQuantity}, disponibles: ${ingredientData.stock}`);
-            }
-            transaction.update(ingredientServiceRef, { stock: increment(-requiredQuantity) });
-          }
-        } else {
-          // Handle regular purchased item stock deduction
+        if (serviceData.source !== 'Internal') {
           if (serviceData.stock < item.quantity) {
             throw new Error(`No hay suficientes existencias para ${serviceData.name}.`);
           }
@@ -149,14 +130,7 @@ export async function cancelOrder(orderId: string) {
       
       const serviceData = serviceSnap.data() as Service;
 
-      if (serviceData.source === 'Internal') {
-        if (!serviceData.ingredients) continue;
-        for (const ingredient of serviceData.ingredients) {
-            const ingredientRef = doc(db, 'services', ingredient.serviceId);
-            const requiredQty = ingredient.quantity * item.quantity;
-            batch.update(ingredientRef, { stock: increment(requiredQty) });
-        }
-      } else {
+      if (serviceData.source !== 'Internal') {
         batch.update(serviceRef, { stock: increment(item.quantity) });
       }
     }
@@ -174,4 +148,3 @@ export async function cancelOrder(orderId: string) {
     return { error: 'Ocurrió un error inesperado al cancelar el pedido.' };
   }
 }
-

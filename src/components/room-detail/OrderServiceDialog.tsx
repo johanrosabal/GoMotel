@@ -42,7 +42,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       if (existingItem) {
         return prevCart.map((item) =>
           item.service.id === service.id
-            ? { ...item, quantity: Math.min(item.quantity + 1, service.stock) }
+            ? { ...item, quantity: item.service.source === 'Internal' ? item.quantity + 1 : Math.min(item.quantity + 1, service.stock) }
             : item
         );
       }
@@ -111,14 +111,14 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                         <div key={service.id} className="flex items-center justify-between p-2 rounded-md border">
                             <div>
                                 <p className="font-medium">{service.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - Existencias: {service.stock}</p>
+                                <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - {service.source === 'Internal' ? 'Producción Interna' : `Existencias: ${service.stock}`}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
                                     <Minus className="h-4 w-4" />
                                 </Button>
                                 <span className="w-6 text-center">{getCartQuantity(service.id)}</span>
-                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={getCartQuantity(service.id) >= service.stock}>
+                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={service.source !== 'Internal' && getCartQuantity(service.id) >= service.stock}>
                                     <Plus className="h-4 w-4" />
                                 </Button>
                             </div>

@@ -40,6 +40,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Image as ImageIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -68,6 +69,7 @@ const serviceSchema = z.object({
   taxIds: z.array(z.string()).optional(),
   supplierId: z.string().optional(),
   supplierName: z.string().optional(),
+  source: z.enum(['Purchased', 'Internal']).default('Purchased'),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -115,10 +117,12 @@ export default function EditServiceDialog({ children, service, allServices, open
       taxIds: [],
       supplierId: '',
       supplierName: '',
+      source: 'Purchased',
     },
   });
 
   const selectedCategoryId = form.watch('categoryId');
+  const source = form.watch('source');
 
   const categoriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, [firestore]);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<ProductCategory>(categoriesQuery);
@@ -148,6 +152,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         taxIds: service.taxIds || [],
         supplierId: service.supplierId || '',
         supplierName: service.supplierName || '',
+        source: service.source || 'Purchased',
       } : {
         name: '',
         code: '',
@@ -164,6 +169,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         taxIds: [],
         supplierId: '',
         supplierName: '',
+        source: 'Purchased' as const,
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
@@ -261,6 +267,36 @@ export default function EditServiceDialog({ children, service, allServices, open
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="source"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Fuente del Producto</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Purchased" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Comprado</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Internal" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Producción Interna</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormItem>
               <FormLabel>Imagen del Producto (Opcional)</FormLabel>
                 <div className="flex items-center gap-4">
@@ -360,7 +396,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
               />
             </div>
-             <FormField
+             {source === 'Purchased' && <FormField
                 control={form.control}
                 name="supplierId"
                 render={({ field }) => (
@@ -391,7 +427,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              />}
             <FormField
               control={form.control}
               name="category"
@@ -438,7 +474,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
             />
             <div className="grid grid-cols-2 gap-4">
-               <FormField
+              {source === 'Purchased' && <FormField
                 control={form.control}
                 name="costPrice"
                 render={({ field }) => (
@@ -456,7 +492,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              />}
               <FormField
                 control={form.control}
                 name="price"
@@ -477,7 +513,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                 )}
               />
             </div>
-             <div className="grid grid-cols-2 gap-4">
+             {source === 'Purchased' && <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="stock"
@@ -504,7 +540,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                     </FormItem>
                     )}
                 />
-            </div>
+            </div>}
              <FormField
               control={form.control}
               name="taxIds"

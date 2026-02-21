@@ -62,14 +62,14 @@ const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
 ];
 
 const servicesToSeed: Omit<Service, 'id'>[] = [
-  { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage' },
-  { name: 'Coca-Cola', price: 3, stock: 80, category: 'Beverage' },
-  { name: 'Jugo de Naranja', price: 4, stock: 50, category: 'Beverage' },
-  { name: 'Club Sándwich', price: 12, stock: 20, category: 'Food' },
-  { name: 'Ensalada César', price: 10, stock: 15, category: 'Food' },
-  { name: 'Hamburguesa con Queso', price: 15, stock: 25, category: 'Food' },
-  { name: 'Toalla Extra', price: 1, stock: 200, category: 'Amenity' },
-  { name: 'Kit Dental', price: 2.5, stock: 150, category: 'Amenity' },
+  { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage', source: 'Purchased' },
+  { name: 'Coca-Cola', price: 3, stock: 80, category: 'Beverage', source: 'Purchased' },
+  { name: 'Jugo de Naranja', price: 4, stock: 50, category: 'Beverage', source: 'Purchased' },
+  { name: 'Club Sándwich', price: 12, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Ensalada César', price: 10, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Hamburguesa con Queso', price: 15, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Toalla Extra', price: 1, stock: 200, category: 'Amenity', source: 'Purchased' },
+  { name: 'Kit Dental', price: 2.5, stock: 150, category: 'Amenity', source: 'Purchased' },
 ];
 
 export async function seedDatabase() {

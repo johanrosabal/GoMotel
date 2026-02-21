@@ -283,43 +283,12 @@
             "Internal"
           ],
           "default": "Purchased"
-        },
-        "ingredients": {
-          "type": "array",
-          "description": "For internally produced items, this lists the required ingredients and their quantities.",
-          "items": {
-            "$ref": "#/backend/entities/IngredientItem"
-          }
         }
       },
       "required": [
         "id",
         "name",
         "price"
-      ]
-    },
-    "IngredientItem": {
-      "title": "Ingredient Item",
-      "type": "object",
-      "description": "Represents an ingredient and its quantity in a recipe.",
-      "properties": {
-        "serviceId": {
-          "type": "string",
-          "description": "Reference to the service/product used as an ingredient."
-        },
-        "name": {
-          "type": "string",
-          "description": "Denormalized name of the ingredient for display."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the ingredient required."
-        }
-      },
-      "required": [
-        "serviceId",
-        "name",
-        "quantity"
       ]
     },
     "Order": {
