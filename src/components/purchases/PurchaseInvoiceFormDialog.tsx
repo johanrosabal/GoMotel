@@ -30,7 +30,7 @@ const purchaseItemSchema = z.object({
 
 const purchaseInvoiceSchema = z.object({
   supplierId: z.string({ required_error: "Debe seleccionar un proveedor." }),
-  invoiceNumber: z.string().min(1, "El número de factura es requerido.").max(50, "El número de factura no debe exceder los 50 caracteres."),
+  invoiceNumber: z.string().min(1, "El número de factura es requerido.").max(25, "El número de factura no debe exceder los 25 caracteres."),
   invoiceDate: z.date({ required_error: "La fecha es requerida." }),
   items: z.array(purchaseItemSchema).min(1, "Debe agregar al menos un producto a la factura."),
 });
