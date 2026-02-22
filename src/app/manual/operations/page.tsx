@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble } from 'lucide-react';
+import { ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, ConciergeBell, FilePlus, Repeat, ShoppingCart, ArchiveX } from 'lucide-react';
 import Link from 'next/link';
 
 const Step = ({ icon, title, description, statuses, isLast = false }: { icon: React.ElementType, title: string, description: string, statuses: { type: string, name: string, color: string }[], isLast?: boolean }) => {
@@ -33,72 +33,111 @@ const Step = ({ icon, title, description, statuses, isLast = false }: { icon: Re
 
 export default function ManualOperationsPage() {
     return (
-        <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
+        <div className="container py-4 sm:py-6 lg:py-8 space-y-8">
             <div className="space-y-1.5">
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
                     <BookOpen className="h-8 w-8" />
-                    Manual Operativo
+                    Manual Operativo del Sistema
                 </h1>
                 <p className="text-muted-foreground max-w-3xl">
-                    Una guía detallada sobre el flujo de trabajo principal de la aplicación: el ciclo de vida de una reservación.
+                    Una guía completa sobre los flujos de trabajo principales de la aplicación, desde la gestión de huéspedes hasta el control de inventario.
                 </p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Ciclo de Vida de una Reservación</CardTitle>
+                    <CardTitle>Ciclo de Vida del Huésped</CardTitle>
                     <CardDescription>
-                        Desde la creación hasta que la habitación está lista para el siguiente huésped.
+                        Desde la reservación inicial hasta que la habitación está lista para el siguiente cliente.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-16 max-w-2xl mx-auto py-8">
+                    <div className="space-y-16 max-w-3xl mx-auto py-8">
                         <Step
                             icon={CalendarPlus}
-                            title="Paso 1: Creación de la Reservación"
-                            description="Se crea una nueva reservación para un huésped en una fecha futura. La habitación se bloquea para ese período."
+                            title="Paso 1: Reservación o Check-in Directo"
+                            description="Inicie el proceso agendando una reservación para una fecha futura o realizando un check-in inmediato (walk-in). Puede registrar pagos por adelantado (generando una factura inicial) o manejarlo como 'Cuenta Abierta'."
                             statuses={[
-                                { type: 'Reservación', name: 'Confirmada', color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' },
-                                { type: 'Habitación', name: 'Disponible', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' },
+                                { type: 'Reservación', name: 'Confirmada', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' },
+                                { type: 'Habitación', name: 'Disponible', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
+                                { type: 'Pago', name: 'Pagado / Pendiente', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' },
                             ]}
                         />
                         <Step
                             icon={LogIn}
-                            title="Paso 2: Check-in del Huésped"
-                            description="Cuando el huésped llega, se realiza el check-in desde la reservación confirmada o como un 'walk-in' en una habitación disponible. Se crea una 'Estancia' activa."
+                            title="Paso 2: Estancia Activa del Huésped"
+                            description="Una vez que el huésped hace check-in, se crea una 'Estancia' activa. Durante este tiempo, puede añadir pedidos de servicio (comida, bebidas) y extender la duración de la estancia según sea necesario."
                             statuses={[
-                                { type: 'Reservación', name: 'Checked-in', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' },
-                                { type: 'Estancia', name: 'Activa', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' },
-                                { type: 'Habitación', name: 'Ocupada', color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' },
+                                { type: 'Habitación', name: 'Ocupada', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' },
+                                { type: 'Pedido', name: 'Entregado', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400' },
+                                { type: 'Estancia', name: 'Extendida', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' },
                             ]}
                         />
                          <Step
                             icon={LogOut}
-                            title="Paso 3: Check-out del Huésped"
-                            description="Al finalizar la estancia, se realiza el check-out. Se calcula la factura final, la reservación se marca como completada y la habitación pasa a limpieza."
+                            title="Paso 3: Check-out y Facturación Final"
+                            description="Al finalizar, el sistema calcula la factura final, sumando los cargos de la habitación y todos los servicios consumidos, y restando cualquier pago adelantado. La habitación pasa automáticamente a limpieza."
                             statuses={[
-                                { type: 'Reservación', name: 'Completada', color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50' },
-                                { type: 'Estancia', name: 'Completada', color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50' },
-                                { type: 'Habitación', name: 'Limpieza', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50' },
+                                { type: 'Estancia', name: 'Completada', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' },
+                                { type: 'Factura', name: 'Pagada', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
+                                { type: 'Habitación', name: 'Limpieza', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
                             ]}
                         />
                         <Step
                             icon={Sparkles}
                             title="Paso 4: Proceso de Limpieza"
-                            description="El personal de limpieza prepara la habitación para el siguiente huésped. La habitación figura en la 'Cola de Limpieza'."
+                            description="Las habitaciones que requieren atención aparecen en la 'Cola de Limpieza'. El personal de limpieza se encarga de prepararlas."
                             statuses={[
-                                { type: 'Habitación', name: 'Limpieza', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50' },
+                                { type: 'Habitación', name: 'Limpieza', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
                             ]}
                         />
                         <Step
                             icon={BedDouble}
                             title="Paso 5: Habitación Disponible"
-                            description="Una vez que la limpieza ha finalizado, la habitación se marca como 'Disponible' y el ciclo puede comenzar de nuevo."
+                            description="Una vez finalizada la limpieza, la habitación se marca como 'Disponible' desde la cola de limpieza o los detalles de la habitación, dejándola lista para el próximo ciclo."
                             statuses={[
-                                { type: 'Habitación', name: 'Disponible', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' },
+                                { type: 'Habitación', name: 'Disponible', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
                             ]}
                             isLast
                         />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Flujo de Inventario y Compras</CardTitle>
+                    <CardDescription>
+                        Cómo se gestionan las existencias de los productos comprados.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 border-2 border-blue-200 shadow-sm">
+                            <ShoppingCart className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">1. Registrar Compra</h3>
+                            <p className="text-muted-foreground">Vaya a <Link href="/purchases" className="text-primary underline">Historial de Compras</Link> y registre una nueva factura de su proveedor. Esto añadirá automáticamente las cantidades compradas al stock de cada producto.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 border-2 border-green-200 shadow-sm">
+                            <ConciergeBell className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">2. Descuento por Venta</h3>
+                            <p className="text-muted-foreground">Cuando un huésped pide un servicio de un producto comprado, el stock se descuenta automáticamente al crear el pedido.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 border-2 border-red-200 shadow-sm">
+                            <ArchiveX className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">3. Registro de Merma</h3>
+                            <p className="text-muted-foreground">Si un producto se daña o vence, puede registrar una merma desde el <Link href="/purchases" className="text-primary underline">Historial de Compras</Link> para ajustar el inventario y mantener los datos precisos.</p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
