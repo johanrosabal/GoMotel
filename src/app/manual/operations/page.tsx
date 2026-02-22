@@ -174,37 +174,37 @@ export default function ManualOperationsPage() {
                     <SettingsStep 
                         icon={BedDouble}
                         title="Tipos de Habitación"
-                        description="Defina las categorías de sus habitaciones (ej. Sencilla, Suite), su capacidad, características y, lo más importante, los planes de precios que se usarán para la facturación."
+                        description="Uso: Defina las categorías de sus habitaciones (ej. Sencilla, Suite), su capacidad, características y, lo más importante, los planes de precios por tiempo que se usarán para la facturación de estancias."
                         href="/settings/room-types"
                     />
                     <SettingsStep 
                         icon={BookCopy}
                         title="Catálogo de Productos y Servicios"
-                        description="Organice su inventario creando categorías y subcategorías. Añada productos, establezca precios, y gestione el stock para productos comprados y la disponibilidad para los de cocina."
+                        description="Uso: Organice su inventario creando categorías y subcategorías. Añada productos, establezca precios de venta, y diferencie entre productos 'Comprados' (con control de stock) y de 'Producción Interna' (sin control de stock)."
                         href="/catalog"
                     />
                     <SettingsStep 
                         icon={Truck}
                         title="Proveedores"
-                        description="Mantenga un registro de sus proveedores. Almacenar esta información facilita y agiliza el registro de nuevas facturas de compra."
+                        description="Uso: Mantenga un registro de sus proveedores. Almacenar esta información es un prerequisito para poder registrar nuevas facturas de compra y añadir productos al inventario."
                         href="/suppliers"
                     />
                      <SettingsStep 
                         icon={Users}
                         title="Clientes"
-                        description="Cree una base de datos de sus clientes para agilizar el proceso de check-in, registrar sus visitas y ofrecer un servicio personalizado marcándolos como VIP."
+                        description="Uso: Cree una base de datos de sus clientes para agilizar el proceso de check-in buscando por nombre. Puede registrar sus visitas y ofrecer un servicio personalizado marcándolos como VIP."
                         href="/clients"
                     />
                      <SettingsStep 
                         icon={Percent}
                         title="Impuestos"
-                        description="Configure los diferentes tipos de impuestos (ej. IVA) que se aplicarán a los productos y servicios vendidos en su motel."
+                        description="Uso: Configure los diferentes tipos de impuestos (ej. IVA del 13%) que se aplicarán a los productos y servicios vendidos en su motel para la facturación automática."
                         href="/settings/taxes"
                     />
                      <SettingsStep 
                         icon={Smartphone}
                         title="Cuentas SINPE Móvil"
-                        description="Administre las cuentas bancarias que utiliza para recibir pagos mediante SINPE Móvil, incluyendo la configuración de límites de saldo mensuales para la rotación automática."
+                        description="Uso: Administre las cuentas que utiliza para recibir pagos mediante SINPE Móvil. Configure límites de saldo para la rotación automática de cuentas al recibir pagos."
                         href="/settings/sinpe-accounts"
                     />
                 </CardContent>
