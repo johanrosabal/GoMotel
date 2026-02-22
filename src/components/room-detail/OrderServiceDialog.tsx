@@ -30,6 +30,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
+import { Separator } from '../ui/separator';
 
 const Stepper = ({ step }: { step: number }) => {
     const steps = ['Seleccionar Productos', 'Revisar y Pagar', 'Confirmación'];
@@ -342,10 +343,17 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                             <p className="text-muted-foreground">Subtotal</p>
                                             <p>{formatCurrency(subtotal)}</p>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <p className="text-muted-foreground">Impuestos</p>
-                                            <p>{formatCurrency(totalTax)}</p>
-                                        </div>
+                                        {appliedTaxes.length > 0 && (
+                                            <div className="pl-4 py-1 space-y-0.5">
+                                                {appliedTaxes.map((tax) => (
+                                                <div key={tax.taxId} className="flex justify-between text-xs text-muted-foreground">
+                                                    <span>{tax.name} ({tax.percentage}%)</span>
+                                                    <span>{formatCurrency(tax.amount)}</span>
+                                                </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <Separator className="my-1" />
                                          <div className="flex justify-between font-bold text-lg pt-1">
                                             <p>Total</p>
                                             <p>{formatCurrency(grandTotal)}</p>
