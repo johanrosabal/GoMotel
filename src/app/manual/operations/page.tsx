@@ -1,6 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, ConciergeBell, FilePlus, Repeat, ShoppingCart, ArchiveX } from 'lucide-react';
+import { 
+    ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, 
+    ConciergeBell, ShoppingCart, ArchiveX, Database, BookCopy, Truck, Users, 
+    Percent, Smartphone 
+} from 'lucide-react';
 import Link from 'next/link';
 
 const Step = ({ icon, title, description, statuses, isLast = false }: { icon: React.ElementType, title: string, description: string, statuses: { type: string, name: string, color: string }[], isLast?: boolean }) => {
@@ -31,6 +35,23 @@ const Step = ({ icon, title, description, statuses, isLast = false }: { icon: Re
     );
 };
 
+const SettingsStep = ({ icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => {
+    const Icon = icon;
+    return (
+        <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 border-2 border-indigo-200 shadow-sm dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50">
+                <Icon className="h-6 w-6" />
+            </div>
+            <div>
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="text-muted-foreground">
+                    {description} <Link href={href} className="text-primary underline">Ir a la sección.</Link>
+                </p>
+            </div>
+        </div>
+    )
+}
+
 export default function ManualOperationsPage() {
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-8">
@@ -40,7 +61,7 @@ export default function ManualOperationsPage() {
                     Manual Operativo del Sistema
                 </h1>
                 <p className="text-muted-foreground max-w-3xl">
-                    Una guía completa sobre los flujos de trabajo principales de la aplicación, desde la gestión de huéspedes hasta el control de inventario.
+                    Una guía completa sobre los flujos de trabajo principales de la aplicación, desde la gestión de huéspedes hasta el control de inventario y configuraciones.
                 </p>
             </div>
 
@@ -108,12 +129,12 @@ export default function ManualOperationsPage() {
                 <CardHeader>
                     <CardTitle>Flujo de Inventario y Compras</CardTitle>
                     <CardDescription>
-                        Cómo se gestionan las existencias de los productos comprados.
+                        Cómo se gestionan las existencias de los productos comprados y de producción interna.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
                     <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 border-2 border-blue-200 shadow-sm">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 border-2 border-blue-200 shadow-sm dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50">
                             <ShoppingCart className="h-6 w-6" />
                         </div>
                         <div>
@@ -122,16 +143,16 @@ export default function ManualOperationsPage() {
                         </div>
                     </div>
                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 border-2 border-green-200 shadow-sm">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 border-2 border-green-200 shadow-sm dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50">
                             <ConciergeBell className="h-6 w-6" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">2. Descuento por Venta</h3>
-                            <p className="text-muted-foreground">Cuando un huésped pide un servicio de un producto comprado, el stock se descuenta automáticamente al crear el pedido.</p>
+                            <p className="text-muted-foreground">Cuando un huésped pide un servicio, el stock de los productos 'Comprados' se descuenta automáticamente al crear el pedido. Los productos de 'Producción Interna' no descuentan stock.</p>
                         </div>
                     </div>
                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 border-2 border-red-200 shadow-sm">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 border-2 border-red-200 shadow-sm dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50">
                             <ArchiveX className="h-6 w-6" />
                         </div>
                         <div>
@@ -139,6 +160,53 @@ export default function ManualOperationsPage() {
                             <p className="text-muted-foreground">Si un producto se daña o vence, puede registrar una merma desde el <Link href="/purchases" className="text-primary underline">Historial de Compras</Link> para ajustar el inventario y mantener los datos precisos.</p>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Database className="h-6 w-6" />Datos Maestros y Configuraciones</CardTitle>
+                    <CardDescription>
+                        Aprenda a configurar los parámetros fundamentales que controlan las operaciones del motel.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
+                    <SettingsStep 
+                        icon={BedDouble}
+                        title="Tipos de Habitación"
+                        description="Defina las categorías de sus habitaciones (ej. Sencilla, Suite), su capacidad, características y, lo más importante, los planes de precios que se usarán para la facturación."
+                        href="/settings/room-types"
+                    />
+                    <SettingsStep 
+                        icon={BookCopy}
+                        title="Catálogo de Productos y Servicios"
+                        description="Organice su inventario creando categorías y subcategorías. Añada productos, establezca precios, y gestione el stock para productos comprados y la disponibilidad para los de cocina."
+                        href="/catalog"
+                    />
+                    <SettingsStep 
+                        icon={Truck}
+                        title="Proveedores"
+                        description="Mantenga un registro de sus proveedores. Almacenar esta información facilita y agiliza el registro de nuevas facturas de compra."
+                        href="/suppliers"
+                    />
+                     <SettingsStep 
+                        icon={Users}
+                        title="Clientes"
+                        description="Cree una base de datos de sus clientes para agilizar el proceso de check-in, registrar sus visitas y ofrecer un servicio personalizado marcándolos como VIP."
+                        href="/clients"
+                    />
+                     <SettingsStep 
+                        icon={Percent}
+                        title="Impuestos"
+                        description="Configure los diferentes tipos de impuestos (ej. IVA) que se aplicarán a los productos y servicios vendidos en su motel."
+                        href="/settings/taxes"
+                    />
+                     <SettingsStep 
+                        icon={Smartphone}
+                        title="Cuentas SINPE Móvil"
+                        description="Administre las cuentas bancarias que utiliza para recibir pagos mediante SINPE Móvil, incluyendo la configuración de límites de saldo mensuales para la rotación automática."
+                        href="/settings/sinpe-accounts"
+                    />
                 </CardContent>
             </Card>
         </div>
