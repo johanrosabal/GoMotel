@@ -69,20 +69,12 @@ export default function RoomDetailsPage() {
     const { data: stay, isLoading: isLoadingStay } = useDoc<Stay>(stayRef);
 
     const ordersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !stay?.id) return null;
         // Fetch all recent orders and filter client-side. This avoids potential indexing issues with the 'where' clause.
-        return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
-    }, [firestore]);
+        return query(collection(firestore, 'orders'), where('stayId', '==', stay.id), orderBy('createdAt', 'desc'));
+    }, [firestore, stay?.id]);
     
-    const { data: rawOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
-
-    const orders = useMemo(() => {
-        if (!rawOrders || !stay?.id) return [];
-        // Manually filter orders for the current stay
-        const stayOrders = rawOrders.filter(o => o.stayId === stay.id);
-        // The sorting is already handled by the query, but we can re-sort if needed.
-        return stayOrders;
-    }, [rawOrders, stay?.id]);
+    const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
     const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
 
@@ -228,12 +220,7 @@ export default function RoomDetailsPage() {
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
-                        <ExtendStayDialog room={room} stay={stay}>
-                             <Button variant="secondary" className="w-full h-12 text-base sm:text-sm">
-                                <Repeat className="mr-2 h-5 w-5" /> Renovar Estancia
-                            </Button>
-                        </ExtendStayDialog>
-                        <CheckoutDialog stay={stay} room={room} orders={orders}>
+                        <CheckoutDialog stay={stay} room={room} orders={orders || []}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
@@ -361,7 +348,7 @@ export default function RoomDetailsPage() {
                         <CardContent className="flex-grow">
                              {room.status === 'Occupied' && stay ? (
                                 <>
-                                {orders.length > 0 ? (
+                                {orders && orders.length > 0 ? (
                                     <ul className="space-y-4">
                                         {orders.map(order => (
                                             <li key={order.id} className={cn("p-3 border rounded-lg bg-muted/50", order.status === 'Cancelado' && 'opacity-60 bg-red-500/5')}>
