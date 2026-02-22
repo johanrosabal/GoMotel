@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarClock, Clock, AlertTriangle } from 'lucide-react';
+import { CalendarClock, Clock, AlertTriangle, Ban } from 'lucide-react';
 import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
 import { Progress } from '@/components/ui/progress';
@@ -73,6 +73,8 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
 
   }, [reservation.checkInDate, reservation.checkOutDate, reservation.status]);
   
+  const isFinalState = ['Completed', 'Cancelled', 'No-show'].includes(reservation.status);
+
   return (
     <Card key={reservation.id} className={cn(
         "flex flex-col relative border-l-4 hover:shadow-lg transition-shadow duration-200 h-full", 
@@ -93,33 +95,44 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
             </div>
         </CardHeader>
         <CardContent className="flex-grow space-y-3 text-sm mt-4">
-            <div className="flex items-start gap-2">
-                <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-muted-foreground text-xs">Check-in</p>
-                    <p className="text-xs">{format(reservation.checkInDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
-                </div>
-            </div>
-             <div className="flex items-start gap-2">
-                <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-muted-foreground text-xs">Check-out</p>
-                    <p className="text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
-                </div>
-            </div>
-            {reservation.status === 'Checked-in' && !isOverdue ? (
-                <div className="space-y-1 pt-1">
-                    <div className="flex justify-between items-center text-xs">
-                        <p className="font-semibold text-muted-foreground">Progreso</p>
-                        <TimeRemaining 
-                            checkOutDate={reservation.checkOutDate.toDate()} 
-                            status={reservation.status}
-                            className="text-xs"
-                        />
+            {!isFinalState ? (
+                <>
+                    <div className="flex items-start gap-2">
+                        <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-muted-foreground text-xs">Check-in</p>
+                            <p className="text-xs">{format(reservation.checkInDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
+                        </div>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <div className="flex items-start gap-2">
+                        <CalendarClock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-muted-foreground text-xs">Check-out</p>
+                            <p className="text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
+                        </div>
+                    </div>
+
+                    {reservation.status === 'Checked-in' && !isOverdue ? (
+                        <div className="space-y-1 pt-1">
+                            <div className="flex justify-between items-center text-xs">
+                                <p className="font-semibold text-muted-foreground">Progreso</p>
+                                <TimeRemaining 
+                                    checkOutDate={reservation.checkOutDate.toDate()} 
+                                    status={reservation.status}
+                                    className="text-xs"
+                                />
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                        </div>
+                    ) : null}
+                </>
+            ) : (
+                <div className="flex items-center text-xs text-muted-foreground pt-1">
+                    <Ban className="w-4 h-4 mr-2" />
+                    Esta reservación ha finalizado.
                 </div>
-            ) : null}
+            )}
+
             {isOverdue && (
                 <Button asChild variant="destructive" size="sm" className="w-full font-bold animate-pulse !mt-4">
                     <Link href={`/rooms/${reservation.roomId}`}>
