@@ -111,6 +111,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   const [step, setStep] = useState(1);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [cashTendered, setCashTendered] = useState('');
   
   const form = useForm<z.infer<typeof orderPaymentSchema>>({
     resolver: zodResolver(orderPaymentSchema),
@@ -176,8 +177,19 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         setCart([]);
         form.reset();
         setInvoiceId(null);
+        setCashTendered('');
     }
   }, [open, form]);
+
+  useEffect(() => {
+    if (!payNow) {
+        setCashTendered('');
+    }
+  }, [payNow]);
+
+  useEffect(() => {
+    setCashTendered('');
+  }, [paymentMethod]);
 
   const activeServices = availableServices.filter(s => s.isActive && (s.source === 'Internal' || (s.source !== 'Internal' && s.stock > 0)));
 
@@ -459,6 +471,31 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                 </FormItem>
                                             )}
                                         />
+                                    )}
+                                     {paymentMethod === 'Efectivo' && (
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <FormItem>
+                                                <FormLabel>Paga con</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        placeholder="Monto recibido"
+                                                        value={cashTendered}
+                                                        onChange={(e) => setCashTendered(e.target.value.replace(/[^0-9]/g, ''))}
+                                                        className="text-right"
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                            {cashTendered && grandTotal > 0 && Number(cashTendered) >= grandTotal && (
+                                                <div className="flex justify-between items-center text-sm font-semibold">
+                                                    <FormLabel>Vuelto</FormLabel>
+                                                    <span className="text-lg text-primary">
+                                                        {formatCurrency(Number(cashTendered) - grandTotal)}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                      {paymentMethod && paymentMethod !== 'Sinpe Movil' && (
                                         <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">

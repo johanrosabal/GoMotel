@@ -64,6 +64,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const [cashTendered, setCashTendered] = useState('');
 
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore || !room) return null;
@@ -155,8 +156,19 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   useEffect(() => {
     if (open) {
       form.reset({ newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined });
+      setCashTendered('');
     }
   }, [open, form]);
+
+  useEffect(() => {
+    if (!payNow) {
+        setCashTendered('');
+    }
+  }, [payNow]);
+
+  useEffect(() => {
+    setCashTendered('');
+  }, [paymentMethod]);
 
   const isLoading = isLoadingRoomTypes || isLoadingOrders || isLoadingSinpe;
   const submitButtonText = payNow ? 'Pagar y Extender' : 'Extender (Pendiente)';
@@ -291,6 +303,31 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
                                             <FormItem><FormLabel>Número de Voucher</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )}
                                     />
+                                )}
+                                {paymentMethod === 'Efectivo' && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <FormItem>
+                                            <FormLabel>Paga con</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    placeholder="Monto recibido"
+                                                    value={cashTendered}
+                                                    onChange={(e) => setCashTendered(e.target.value.replace(/[^0-9]/g, ''))}
+                                                    className="text-right"
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                        {cashTendered && selectedPlan && Number(cashTendered) >= selectedPlan.price && (
+                                            <div className="flex justify-between items-center text-sm font-semibold">
+                                                <FormLabel>Vuelto</FormLabel>
+                                                <span className="text-lg text-primary">
+                                                    {formatCurrency(Number(cashTendered) - selectedPlan.price)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                                 {paymentMethod && paymentMethod !== 'Sinpe Movil' && (
                                      <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">

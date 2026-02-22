@@ -73,6 +73,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
+  const [cashTendered, setCashTendered] = useState('');
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
@@ -187,6 +188,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     });
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
+    setCashTendered('');
   }, [form, isWalkIn, initialRoomId]);
 
   useEffect(() => {
@@ -217,6 +219,9 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     }
   }, [checkInDateValue, selectedPlanName, availablePlans, checkInNow]);
 
+  useEffect(() => {
+    setCashTendered('');
+  }, [paymentMethod]);
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
     if (!calculatedCheckOut) {
@@ -535,6 +540,31 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                             </FormItem>
                                         )}
                                     />
+                                )}
+                                {paymentMethod === 'Efectivo' && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <FormItem>
+                                            <FormLabel>Paga con</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    placeholder="Monto recibido"
+                                                    value={cashTendered}
+                                                    onChange={(e) => setCashTendered(e.target.value.replace(/[^0-9]/g, ''))}
+                                                    className="text-right"
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                        {cashTendered && selectedPlan && Number(cashTendered) >= selectedPlan.price && (
+                                            <div className="flex justify-between items-center text-sm font-semibold">
+                                                <FormLabel>Vuelto</FormLabel>
+                                                <span className="text-lg text-primary">
+                                                    {formatCurrency(Number(cashTendered) - selectedPlan.price)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
