@@ -178,7 +178,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
     }
   }, [open, form]);
 
-  const activeServices = availableServices.filter(s => s.isActive);
+  const activeServices = availableServices.filter(s => s.isActive && (s.source === 'Internal' || (s.source !== 'Internal' && s.stock > 0)));
 
   const handleAddToCart = (service: Service) => {
     setCart((prevCart) => {
