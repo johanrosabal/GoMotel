@@ -7,6 +7,12 @@ import Link from 'next/link';
 
 export default async function UsersPage() {
   const users = await getUsers();
+  
+  const serializedUsers = users.map(user => ({
+      ...user,
+      createdAt: user.createdAt.toDate().toISOString(),
+      birthDate: user.birthDate.toDate().toISOString(),
+  }));
 
   return (
     <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
@@ -33,7 +39,7 @@ export default async function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <UsersTable users={users} />
+          <UsersTable users={serializedUsers} />
         </CardContent>
       </Card>
     </div>

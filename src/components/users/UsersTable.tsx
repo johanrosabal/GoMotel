@@ -14,7 +14,12 @@ import { es } from 'date-fns/locale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-export default function UsersTable({ users }: { users: UserProfile[] }) {
+type SerializedUserProfile = Omit<UserProfile, 'createdAt' | 'birthDate'> & {
+  createdAt: string;
+  birthDate: string;
+};
+
+export default function UsersTable({ users }: { users: SerializedUserProfile[] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
@@ -81,7 +86,7 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
                         {user.status === 'Active' ? 'Activo' : 'Pausado'}
                     </Badge>
                 </TableCell>
-                <TableCell>{format(user.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
+                <TableCell>{format(new Date(user.createdAt), 'dd MMM yyyy', { locale: es })}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
