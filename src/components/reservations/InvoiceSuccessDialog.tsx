@@ -60,7 +60,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
     };
 
 
-    if (!invoiceId || (!invoice && !isLoading)) return null;
+    if (!invoiceId) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

@@ -211,6 +211,7 @@ export interface Invoice {
     total: number;
     paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
     voucherNumber?: string;
+    orderId?: string;
 }
 
 export interface SinpeAccount {

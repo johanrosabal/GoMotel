@@ -23,7 +23,7 @@ export default function PublicInvoicePage({ invoiceData }: { invoiceData: Serial
         createdAt: {
             toDate: () => new Date(invoiceData.createdAt)
         }
-    } as any as Invoice; // Cast to make it compatible
+    } as unknown as Invoice; // Cast to make it compatible
 
     const handleDownloadPdf = () => {
         const input = invoiceRefForPDF.current;

@@ -60,15 +60,13 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     }
     
     let roomTotalCalc: number;
-    // If pricePlanAmount exists, it includes the base plan + all extensions.
     if (stay.pricePlanAmount != null) {
       roomTotalCalc = stay.pricePlanAmount;
     } else {
-      // Fallback for old data or stays without a price plan
       const checkInTime = stay.checkIn.toDate();
-      const checkOutTime = new Date(); // Calculate up to now
+      const checkOutTime = new Date();
       const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))); // Minimum 1 hour charge
+      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
       roomTotalCalc = durationHours * room.ratePerHour;
     }
 
