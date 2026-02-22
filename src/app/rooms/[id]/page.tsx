@@ -204,22 +204,20 @@ export default function RoomDetailsPage() {
                     </CreateReservationDialog>
                 )
             case 'Occupied':
-                if (isOverdue && stay) {
-                    return (
-                       <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue}>
-                           <Button variant="destructive" className="w-full h-16 sm:h-12 text-base sm:text-sm animate-pulse">
-                               <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
-                           </Button>
-                       </ExtendStayDialog>
-                   )
-               }
                 return (
                     <div className="space-y-2">
-                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
+                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
                             <Button className="w-full h-12 text-base sm:text-sm">
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
+                        {isOverdue && stay && (
+                           <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue}>
+                               <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse">
+                                   <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
+                               </Button>
+                           </ExtendStayDialog>
+                        )}
                         <CheckoutDialog stay={stay} room={room} orders={orders || []}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
