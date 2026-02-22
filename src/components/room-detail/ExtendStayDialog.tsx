@@ -20,7 +20,7 @@ import { es } from 'date-fns/locale';
 
 interface ExtendStayDialogProps {
   children: ReactNode;
-  stay: Stay;
+  stay?: Stay | null;
   room: Room;
   isOverdue?: boolean;
 }
@@ -57,7 +57,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   const selectedPlanName = form.watch('newPlanName');
 
   const calculatedCheckOut = useMemo(() => {
-    if (!selectedPlanName || !availablePlans.length) return null;
+    if (!selectedPlanName || !availablePlans.length || !stay) return null;
 
     const plan = availablePlans.find(p => p.name === selectedPlanName);
     if (!plan) return null;
@@ -77,9 +77,10 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
     }
     
     return format(checkOutTime, 'PPpp', { locale: es });
-  }, [selectedPlanName, availablePlans, stay.expectedCheckOut, isOverdue]);
+  }, [selectedPlanName, availablePlans, stay, isOverdue]);
 
   const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
+    if (!stay) return;
     startTransition(async () => {
       const result = await extendStay(stay.id, values.newPlanName);
       if (result.error) {
@@ -102,66 +103,68 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
-          <DialogDescription>
-            {isOverdue 
-              ? `La estancia de ${stay.guestName} ha vencido. Puede extender la estancia o realizar el check-out.`
-              : `Añada más tiempo a la estancia de ${stay.guestName}.`
-            }
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="newPlanName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Extender con Nuevo Plan</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan de extensión"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availablePlans.map(plan => (
-                        <SelectItem key={plan.name} value={plan.name}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      {stay && (
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+            <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
+            <DialogDescription>
+                {isOverdue 
+                ? `La estancia de ${stay.guestName} ha vencido. Puede extender la estancia o realizar el check-out.`
+                : `Añada más tiempo a la estancia de ${stay.guestName}.`
+                }
+            </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                control={form.control}
+                name="newPlanName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Extender con Nuevo Plan</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan de extensión"} />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {availablePlans.map(plan => (
+                            <SelectItem key={plan.name} value={plan.name}>
+                            {plan.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
 
-            {calculatedCheckOut && (
-                <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                        <Clock className="h-4 w-4" />
-                        <span>Nueva Salida Estimada</span>
+                {calculatedCheckOut && (
+                    <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                            <Clock className="h-4 w-4" />
+                            <span>Nueva Salida Estimada</span>
+                        </div>
+                        <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
                     </div>
-                    <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
-                </div>
-            )}
+                )}
 
-            <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1">
-                    {isPending ? 'Extendiendo...' : 'Extender Estancia'}
-                </Button>
-                <CheckoutDialog stay={stay} room={room} orders={orders || []}>
-                    <Button type="button" variant="destructive" className="flex-1">
-                        Realizar Check-Out
+                <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
+                    <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1">
+                        {isPending ? 'Extendiendo...' : 'Extender Estancia'}
                     </Button>
-                </CheckoutDialog>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+                    <CheckoutDialog stay={stay} room={room} orders={orders || []}>
+                        <Button type="button" variant="destructive" className="flex-1">
+                            Realizar Check-Out
+                        </Button>
+                    </CheckoutDialog>
+                </div>
+            </form>
+            </Form>
+        </DialogContent>
+      )}
     </Dialog>
   );
 }
