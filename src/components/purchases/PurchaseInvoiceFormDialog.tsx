@@ -157,7 +157,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
     return availableProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [productSearch, availableProducts]);
 
-  const { subtotal, totalDiscount, totalTax, totalAmount } = useMemo(() => {
+  const { subtotal, totalDiscount, totalTax, totalAmount, appliedTaxes } = useMemo(() => {
     let grossSubtotal = 0;
     items.forEach(item => {
         const itemTotal = item.quantity * item.costPrice;
@@ -180,7 +180,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
 
     const subtotalAfterDiscount = grossSubtotal - calculatedDiscount;
 
-    let calculatedTotalTax = 0;
+    const taxBreakdown = new Map<string, { name: string; percentage: number; amount: number }>();
+
     items.forEach(item => {
         let itemSubtotal = item.quantity * item.costPrice;
         if (taxesIncluded) {
@@ -194,10 +195,18 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
 
         const itemTaxes = (item.taxIds || []).map(taxId => allTaxes?.find(t => t.id === taxId)).filter((t): t is Tax => !!t);
         itemTaxes.forEach(tax => {
-            calculatedTotalTax += discountedItemSubtotal * (tax.percentage / 100);
+            const taxAmount = discountedItemSubtotal * (tax.percentage / 100);
+            
+            const existingTax = taxBreakdown.get(tax.id);
+            if (existingTax) {
+                existingTax.amount += taxAmount;
+            } else {
+                taxBreakdown.set(tax.id, { name: tax.name, percentage: tax.percentage, amount: taxAmount });
+            }
         });
     });
-
+    
+    const calculatedTotalTax = Array.from(taxBreakdown.values()).reduce((sum, tax) => sum + tax.amount, 0);
     const finalTotalAmount = subtotalAfterDiscount + calculatedTotalTax;
     
     return { 
@@ -205,6 +214,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
         totalDiscount: calculatedDiscount,
         totalTax: calculatedTotalTax,
         totalAmount: finalTotalAmount,
+        appliedTaxes: Array.from(taxBreakdown.values()),
     };
   }, [items, taxesIncluded, allTaxes, discountType, discountValue]);
 
@@ -771,14 +781,25 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span>{formatCurrency(subtotal)}</span>
                 </div>
-                    {totalDiscount > 0 && (
+                {totalDiscount > 0 && (
                     <div className="flex justify-between text-sm text-destructive">
                         <span className="font-medium">Descuento:</span>
                         <span>-{formatCurrency(totalDiscount)}</span>
                     </div>
                 )}
-                    <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Impuestos:</span>
+                 {appliedTaxes.length > 0 && (
+                    <div className="pl-4 mt-1 space-y-0.5">
+                        <p className="text-sm text-muted-foreground -ml-4">Impuestos:</p>
+                        {appliedTaxes.map((tax) => (
+                        <div key={tax.name} className="flex justify-between text-xs text-muted-foreground">
+                            <span>{tax.name} ({tax.percentage}%):</span>
+                            <span>{formatCurrency(tax.amount)}</span>
+                        </div>
+                        ))}
+                    </div>
+                )}
+                <div className="flex justify-between text-sm font-medium pt-1">
+                    <span className="text-muted-foreground">Total Impuestos:</span>
                     <span>{formatCurrency(totalTax)}</span>
                 </div>
                 <Separator className="my-2" />
