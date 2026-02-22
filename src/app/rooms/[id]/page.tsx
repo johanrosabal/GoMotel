@@ -228,6 +228,11 @@ export default function RoomDetailsPage() {
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
+                        <ExtendStayDialog room={room} stay={stay}>
+                             <Button variant="secondary" className="w-full h-12 text-base sm:text-sm">
+                                <Repeat className="mr-2 h-5 w-5" /> Renovar Estancia
+                            </Button>
+                        </ExtendStayDialog>
                         <CheckoutDialog stay={stay} room={room} orders={orders}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
