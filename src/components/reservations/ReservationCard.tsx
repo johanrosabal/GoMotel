@@ -119,18 +119,6 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     </div>
                     <Progress value={progress} className="h-2" />
                 </div>
-            ) : reservation.status !== 'Checked-in' ? (
-                <div className="flex items-start gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="font-semibold text-muted-foreground text-xs">Tiempo Restante</p>
-                        <TimeRemaining 
-                            checkOutDate={reservation.checkOutDate.toDate()} 
-                            status={reservation.status}
-                            className="text-xs"
-                        />
-                    </div>
-                </div>
             ) : null}
             {isOverdue && (
                 <Button asChild variant="destructive" size="sm" className="w-full font-bold animate-pulse !mt-4">
