@@ -13,10 +13,12 @@ import {
   where,
   addDoc,
   limit,
+  increment,
+  DocumentReference,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension, Invoice, InvoiceItem } from '@/types';
+import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension, Invoice, InvoiceItem, SinpeAccount } from '@/types';
 import { z } from 'zod';
 import { formatDistance, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -368,100 +370,190 @@ export async function saveRoom(formData: FormData) {
 const extendStaySchema = z.object({
   stayId: z.string(),
   newPlanName: z.string(),
+  payNow: z.boolean(),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+  paymentConfirmed: z.boolean().optional(),
+  voucherNumber: z.string().optional(),
+}).refine(data => {
+    if (data.payNow) return !!data.paymentMethod;
+    return true;
+}, {
+    message: "Debe seleccionar un método de pago.",
+    path: ["paymentMethod"],
+}).refine(data => {
+    if (data.payNow && data.paymentMethod === 'Sinpe Movil') {
+        return data.paymentConfirmed === true;
+    }
+    return true;
+}, {
+    message: 'Debe confirmar el pago SINPE.',
+    path: ['paymentConfirmed'],
+}).refine(data => {
+    if (data.payNow && data.paymentMethod === 'Tarjeta' && data.voucherNumber) {
+        return data.voucherNumber.trim() !== '';
+    }
+    return true;
+}, {
+    message: "El número de voucher es requerido.",
+    path: ["voucherNumber"],
 });
 
-export async function extendStay(stayId: string, newPlanName: string) {
-  const validatedFields = extendStaySchema.safeParse({ stayId, newPlanName });
-  if (!validatedFields.success) {
-    return { error: 'Datos de extensión inválidos.' };
-  }
-
-  const stayRef = doc(db, 'stays', stayId);
-  const staySnap = await getDoc(stayRef);
-  if (!staySnap.exists()) {
-    return { error: 'La estancia a extender no fue encontrada.' };
-  }
-  const stayData = staySnap.data() as Stay;
-
-  const roomSnap = await getDoc(doc(db, 'rooms', stayData.roomId));
-  if (!roomSnap.exists()) {
-    return { error: 'La habitación de la estancia no fue encontrada.' };
-  }
-  const roomData = roomSnap.data() as Room;
-
-  const roomTypeSnap = await getDoc(doc(db, 'roomTypes', roomData.roomTypeId));
-  if (!roomTypeSnap.exists()) {
-    return { error: 'El tipo de habitación no fue encontrado.' };
-  }
-  const roomTypeData = roomTypeSnap.data() as RoomType;
-
-  const newPlan = roomTypeData.pricePlans?.find(p => p.name === newPlanName);
-  if (!newPlan) {
-    return { error: 'El nuevo plan de precios no es válido para este tipo de habitación.' };
-  }
-
-  const now = new Date();
-  const currentCheckOut = stayData.expectedCheckOut.toDate();
-  const baseDate = now > currentCheckOut ? now : currentCheckOut; // Extend from now if overdue, otherwise from current checkout time
-
-  let newExpectedCheckOut = new Date(baseDate);
-  switch (newPlan.unit) {
-    case 'Minutes': newExpectedCheckOut = addMinutes(baseDate, newPlan.duration); break;
-    case 'Hours': newExpectedCheckOut = addHours(baseDate, newPlan.duration); break;
-    case 'Days': newExpectedCheckOut = addDays(baseDate, newPlan.duration); break;
-    case 'Weeks': newExpectedCheckOut = addWeeks(baseDate, newPlan.duration); break;
-    case 'Months': newExpectedCheckOut = addMonths(baseDate, newPlan.duration); break;
-  }
-
-  // Add the price of the new plan to the existing amount.
-  const newPricePlanAmount = (stayData.pricePlanAmount || 0) + newPlan.price;
-  
-  let newPricePlanName = stayData.pricePlanName || 'Estancia';
-  if (!newPricePlanName.includes('(Extendida)')) {
-    newPricePlanName = `${newPricePlanName} (Extendida)`;
-  }
-
-  const newRenewalCount = (stayData.renewalCount || 0) + 1;
-  const oldExtensionHistory = stayData.extensionHistory || [];
-
-  const newExtension: StayExtension = {
-      extendedAt: Timestamp.now(),
-      oldExpectedCheckOut: stayData.expectedCheckOut,
-      newExpectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
-      planName: newPlan.name,
-      planPrice: newPlan.price,
-  };
-
-  const newExtensionHistory = [...oldExtensionHistory, newExtension];
-
-
-  try {
-    const batch = writeBatch(db);
-
-    batch.update(stayRef, {
-      expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
-      pricePlanAmount: newPricePlanAmount,
-      pricePlanName: newPricePlanName,
-      renewalCount: newRenewalCount,
-      extensionHistory: newExtensionHistory,
-    });
-    
-    // Also update the corresponding reservation if it exists
-    if (stayData.reservationId) {
-        const reservationRef = doc(db, 'reservations', stayData.reservationId);
-        batch.update(reservationRef, {
-            checkOutDate: Timestamp.fromDate(newExpectedCheckOut)
-        });
+export async function extendStay(values: z.infer<typeof extendStaySchema>) {
+    const validatedFields = extendStaySchema.safeParse(values);
+    if (!validatedFields.success) {
+      console.error(validatedFields.error.flatten().fieldErrors);
+      return { error: 'Datos de extensión inválidos.' };
     }
-
-    await batch.commit();
-
-    revalidatePath(`/rooms/${stayData.roomId}`);
-    revalidatePath('/dashboard/rooms');
-    revalidatePath('/reservations');
-    return { success: true };
-  } catch (error) {
-    console.error('Error extending stay:', error);
-    return { error: 'No se pudo extender la estancia.' };
-  }
+  
+    const { stayId, newPlanName, payNow, paymentMethod, voucherNumber } = validatedFields.data;
+  
+    try {
+      const batch = writeBatch(db);
+      const stayRef = doc(db, 'stays', stayId);
+      const staySnap = await getDoc(stayRef);
+      if (!staySnap.exists()) {
+        return { error: 'La estancia a extender no fue encontrada.' };
+      }
+      const stayData = staySnap.data() as Stay;
+  
+      const roomSnap = await getDoc(doc(db, 'rooms', stayData.roomId));
+      if (!roomSnap.exists()) {
+        return { error: 'La habitación de la estancia no fue encontrada.' };
+      }
+      const roomData = roomSnap.data() as Room;
+  
+      const roomTypeSnap = await getDoc(doc(db, 'roomTypes', roomData.roomTypeId));
+      if (!roomTypeSnap.exists()) {
+        return { error: 'El tipo de habitación no fue encontrado.' };
+      }
+      const roomTypeData = roomTypeSnap.data() as RoomType;
+  
+      const newPlan = roomTypeData.pricePlans?.find(p => p.name === newPlanName);
+      if (!newPlan) {
+        return { error: 'El nuevo plan de precios no es válido para este tipo de habitación.' };
+      }
+  
+      const now = new Date();
+      const currentCheckOut = stayData.expectedCheckOut.toDate();
+      const baseDate = now > currentCheckOut ? now : currentCheckOut;
+  
+      let newExpectedCheckOut = new Date(baseDate);
+      switch (newPlan.unit) {
+        case 'Minutes': newExpectedCheckOut = addMinutes(baseDate, newPlan.duration); break;
+        case 'Hours': newExpectedCheckOut = addHours(baseDate, newPlan.duration); break;
+        case 'Days': newExpectedCheckOut = addDays(baseDate, newPlan.duration); break;
+        case 'Weeks': newExpectedCheckOut = addWeeks(baseDate, newPlan.duration); break;
+        case 'Months': newExpectedCheckOut = addMonths(baseDate, newPlan.duration); break;
+      }
+  
+      const newExtension: StayExtension = {
+          extendedAt: Timestamp.now(),
+          oldExpectedCheckOut: stayData.expectedCheckOut,
+          newExpectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
+          planName: newPlan.name,
+          planPrice: newPlan.price,
+      };
+  
+      const updatedStayData: Record<string, any> = {
+          expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
+          renewalCount: increment(1),
+          extensionHistory: [...(stayData.extensionHistory || []), newExtension],
+      };
+  
+      if (payNow) {
+          const invoicesRef = collection(db, 'invoices');
+          const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+          const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+          let nextInvoiceNumberInt = 1;
+          if (!lastInvoiceSnap.empty) {
+              const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+              if (lastInvoiceData.invoiceNumber) {
+                  const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                  if (!isNaN(lastNumber)) {
+                      nextInvoiceNumberInt = lastNumber + 1;
+                  }
+              }
+          }
+          const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+          
+          const invoiceRef = doc(collection(db, 'invoices'));
+          const invoiceItems = [{
+              description: `Extensión de Estancia: ${newPlan.name} para Hab. ${roomData.number}`,
+              quantity: 1,
+              unitPrice: newPlan.price,
+              total: newPlan.price
+          }];
+  
+          const newInvoice: Omit<Invoice, 'id'> = {
+              invoiceNumber: newInvoiceNumber,
+              stayId: stayId,
+              clientId: stayData.guestId || null,
+              clientName: stayData.guestName,
+              createdAt: Timestamp.now(),
+              status: 'Pagada',
+              items: invoiceItems,
+              subtotal: newPlan.price,
+              taxes: [],
+              total: newPlan.price,
+              paymentMethod: paymentMethod!,
+              voucherNumber: voucherNumber ?? undefined,
+          };
+          batch.set(invoiceRef, newInvoice);
+  
+          if (paymentMethod === 'Sinpe Movil') {
+              const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+              const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+              let targetAccountRef: DocumentReference | null = null;
+              let targetAccountData: SinpeAccount | null = null;
+              for (const doc of sinpeAccountsSnapshot.docs) {
+                  const account = { id: doc.id, ...doc.data() } as SinpeAccount;
+                  const limit = account.limitAmount || Infinity;
+                  if ((account.balance + newPlan.price) <= limit) {
+                      targetAccountRef = doc.ref;
+                      targetAccountData = account;
+                      break;
+                  }
+              }
+              if (!targetAccountRef || !targetAccountData) {
+                  throw new Error("No hay cuentas SINPE Móvil disponibles o todas han alcanzado su límite de saldo.");
+              }
+              batch.update(targetAccountRef, { balance: increment(newPlan.price) });
+              const newBalance = targetAccountData.balance + newPlan.price;
+              if (targetAccountData.limitAmount && newBalance >= targetAccountData.limitAmount) {
+                  batch.update(targetAccountRef, { isActive: false });
+              }
+          }
+          
+          updatedStayData.paymentAmount = increment(newPlan.price);
+          // If the stay was pending, and now it's paid, it's fully paid
+          if (stayData.paymentStatus === 'Pendiente') {
+            updatedStayData.paymentStatus = 'Pagado';
+          }
+      } else {
+        // If not paying now, ensure status is 'Pendiente'
+        updatedStayData.paymentStatus = 'Pendiente';
+      }
+      
+      batch.update(stayRef, updatedStayData);
+      
+      if (stayData.reservationId) {
+          const reservationRef = doc(db, 'reservations', stayData.reservationId);
+          batch.update(reservationRef, {
+              checkOutDate: Timestamp.fromDate(newExpectedCheckOut)
+          });
+      }
+  
+      await batch.commit();
+  
+      revalidatePath(`/rooms/${stayData.roomId}`);
+      revalidatePath('/dashboard/rooms');
+      revalidatePath('/reservations');
+      revalidatePath('/settings/sinpe-accounts');
+      revalidatePath('/billing/invoices');
+  
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error extending stay:', error);
+      return { error: error.message || 'No se pudo extender la estancia.' };
+    }
 }
