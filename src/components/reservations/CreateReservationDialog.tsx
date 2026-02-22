@@ -28,6 +28,8 @@ import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
+  initialRoomId?: string;
+  isWalkIn?: boolean;
 }
 
 const reservationSchema = z.object({
@@ -63,7 +65,7 @@ const reservationSchema = z.object({
 });
 
 
-export default function CreateReservationDialog({ children }: CreateReservationDialogProps) {
+export default function CreateReservationDialog({ children, initialRoomId, isWalkIn = false }: CreateReservationDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -104,9 +106,9 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     defaultValues: {
       guestName: '',
       guestId: undefined,
-      roomId: undefined,
+      roomId: isWalkIn ? initialRoomId : undefined,
       pricePlanName: undefined,
-      checkInNow: false,
+      checkInNow: isWalkIn,
       checkInDate: new Date(),
       isOpenAccount: true,
       paymentMethod: undefined,
@@ -174,9 +176,9 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     form.reset({
       guestName: '',
       guestId: undefined,
-      roomId: undefined,
+      roomId: isWalkIn ? initialRoomId : undefined,
       pricePlanName: undefined,
-      checkInNow: false,
+      checkInNow: isWalkIn,
       checkInDate: new Date(),
       isOpenAccount: true,
       paymentMethod: undefined,
@@ -185,7 +187,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
     });
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
-  }, [form]);
+  }, [form, isWalkIn, initialRoomId]);
 
   useEffect(() => {
     if (open) {
@@ -263,8 +265,8 @@ export default function CreateReservationDialog({ children }: CreateReservationD
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Crear Nueva Reservación</DialogTitle>
-          <DialogDescription>Complete los detalles para agendar una nueva reservación.</DialogDescription>
+          <DialogTitle>{isWalkIn ? 'Registrar Huésped (Walk-in)' : 'Crear Nueva Reservación'}</DialogTitle>
+          <DialogDescription>{isWalkIn ? 'Complete los detalles del huésped para registrarlo en esta habitación.' : 'Complete los detalles para agendar una nueva reservación.'}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -343,7 +345,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Habitación</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
                                         <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione"} />
@@ -403,6 +405,7 @@ export default function CreateReservationDialog({ children }: CreateReservationD
                                 <Switch
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    disabled={isWalkIn}
                                 />
                                 </FormControl>
                             </FormItem>

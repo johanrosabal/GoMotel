@@ -12,7 +12,7 @@ import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import CheckInDialog from '@/components/room-detail/CheckInDialog'
+import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
 import CheckoutDialog from '@/components/room-detail/CheckoutDialog'
 import { getServices } from '@/lib/actions/service.actions'
@@ -205,11 +205,11 @@ export default function RoomDetailsPage() {
         switch (room.status) {
             case 'Available':
                 return (
-                    <CheckInDialog roomId={room.id}>
+                    <CreateReservationDialog isWalkIn initialRoomId={room.id}>
                         <Button className="w-full h-16 sm:h-12 text-base sm:text-sm">
                             <LogIn className="mr-2 h-5 w-5" /> Registrar Huésped
                         </Button>
-                    </CheckInDialog>
+                    </CreateReservationDialog>
                 )
             case 'Occupied':
                 if (isOverdue && stay) {
