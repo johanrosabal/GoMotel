@@ -266,7 +266,10 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                     </Avatar>
                                     <div>
                                         <p className="font-medium">{service.name}</p>
-                                        <p className="text-sm text-muted-foreground">{formatCurrency(service.price)} - {service.source === 'Internal' ? 'Producción Interna' : `Existencias: ${service.stock}`}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {formatCurrency(service.price)}
+                                          {service.source !== 'Internal' && ` - Existencias: ${service.stock}`}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
