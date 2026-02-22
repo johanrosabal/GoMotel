@@ -238,6 +238,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Pedir Servicios</DialogTitle>
