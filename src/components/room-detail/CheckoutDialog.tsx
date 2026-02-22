@@ -19,6 +19,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
+import { Badge } from '../ui/badge';
 
 interface CheckoutDialogProps {
   children: ReactNode;
@@ -53,9 +54,9 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     });
   };
 
-  const { duration, roomTotal, servicesTotal, amountPaid, totalDue, activeOrders } = useMemo(() => {
+  const { duration, roomTotal, servicesTotal, amountPaid, totalDue, allOrders } = useMemo(() => {
     if (!stay || !room) {
-      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0, activeOrders: [] as Order[] };
+      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0, allOrders: [] as Order[] };
     }
     
     let roomTotalCalc: number;
@@ -75,10 +76,10 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     const checkOutTime = new Date();
     const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
     
-    const currentActiveOrders = orders.filter(order => order.status !== 'Cancelado');
-    const servicesTotalCalc = currentActiveOrders.reduce((sum, order) => sum + order.total, 0);
+    const unpaidOrders = orders.filter(order => order.status !== 'Cancelado' && order.paymentStatus !== 'Pagado');
+    const servicesTotalCalc = unpaidOrders.reduce((sum, order) => sum + order.total, 0);
     
-    const paidAmount = stay.paymentStatus === 'Pagado' ? (stay.paymentAmount || 0) : 0;
+    const paidAmount = stay.paymentAmount || 0;
     const totalBill = roomTotalCalc + servicesTotalCalc;
     const finalTotalDue = totalBill - paidAmount;
 
@@ -88,7 +89,7 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
       servicesTotal: servicesTotalCalc,
       amountPaid: paidAmount,
       totalDue: finalTotalDue < 0 ? 0 : finalTotalDue,
-      activeOrders: currentActiveOrders,
+      allOrders: orders.filter(order => order.status !== 'Cancelado'),
     };
   }, [stay, room, orders]);
 
@@ -128,18 +129,21 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                             <span className="text-muted-foreground">Cargo de Habitación</span>
                             <span>{formatCurrency(roomTotal)}</span>
                         </div>
-                        <div className="flex justify-between">
+                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Servicios y Pedidos</span>
                             <span>{formatCurrency(servicesTotal)}</span>
                         </div>
-                        {servicesTotal > 0 && (
+                        {allOrders.length > 0 && (
                             <div className="pl-4 ml-2 border-l-2 space-y-1 mt-1">
-                                {activeOrders.map(order => (
+                                {allOrders.map(order => (
                                     <React.Fragment key={order.id}>
                                         {order.items.map(item => (
-                                            <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between text-muted-foreground">
+                                            <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between items-center text-muted-foreground">
                                                 <span>{item.quantity}x {item.name}</span>
-                                                <span>{formatCurrency(item.price * item.quantity)}</span>
+                                                {order.paymentStatus === 'Pagado' 
+                                                    ? <Badge variant="secondary" className="text-xs">Pagado</Badge>
+                                                    : <span>{formatCurrency(item.price * item.quantity)}</span>
+                                                }
                                             </div>
                                         ))}
                                     </React.Fragment>

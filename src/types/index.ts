@@ -133,6 +133,10 @@ export interface Order {
   total: number;
   createdAt: Timestamp;
   status: 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
+  paymentStatus?: 'Pagado' | 'Pendiente';
+  paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
+  invoiceId?: string;
+  voucherNumber?: string;
 }
 
 export type UserRole = 'Administrador' | 'Recepcion';
