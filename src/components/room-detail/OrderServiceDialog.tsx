@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, type ReactNode, useEffect, useMemo } from 'react';
+import React, { useState, useTransition, type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,12 +32,12 @@ import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 
 const Stepper = ({ step }: { step: number }) => {
-    const steps = ['Seleccionar Productos', 'Revisar y Pagar'];
+    const steps = ['Seleccionar Productos', 'Revisar y Pagar', 'Confirmación'];
     return (
         <div className="flex items-start w-full mb-6 px-4">
             {steps.map((label, index) => (
                 <React.Fragment key={index}>
-                    <div className="flex flex-col items-center text-center w-24">
+                    <div className="flex flex-col items-center text-center w-28">
                         <div className={cn(
                             "flex items-center justify-center w-8 h-8 rounded-full border-2 font-bold",
                             step > index + 1 ? "bg-primary border-primary text-primary-foreground" :
@@ -174,6 +174,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         setStep(1);
         setCart([]);
         form.reset();
+        setInvoiceId(null);
     }
   }, [open, form]);
 
@@ -226,13 +227,10 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       if (result.error) {
         toast({ title: 'Pedido Fallido', description: result.error, variant: 'destructive' });
       } else {
-        setOpen(false);
         if (result.invoiceId) {
           setInvoiceId(result.invoiceId);
-          setSuccessModalOpen(true);
-        } else {
-          toast({ title: '¡Éxito!', description: 'El pedido se ha añadido a la cuenta.' });
         }
+        setStep(3);
       }
     });
   };
@@ -240,7 +238,6 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Pedir Servicios</DialogTitle>
@@ -467,6 +464,19 @@ export default function OrderServiceDialog({ children, stayId, availableServices
             </Form>
           )}
 
+          {step === 3 && (
+            <div className="flex flex-col items-center justify-center text-center py-10 flex-1">
+                <CheckCircle className="h-20 w-20 text-green-500 mb-4" />
+                <h3 className="text-2xl font-bold">¡Pedido Confirmado!</h3>
+                <p className="text-muted-foreground mt-2 max-w-sm">
+                    {invoiceId ? "La factura ha sido generada y el pedido está en proceso." : "El pedido ha sido añadido a la cuenta de la habitación."}
+                </p>
+                {invoiceId && (
+                     <p className="text-muted-foreground text-sm mt-1">Puede descargar o compartir la factura desde el diálogo de éxito que aparecerá al cerrar.</p>
+                )}
+            </div>
+          )}
+
           <DialogFooter className="mt-auto pt-4 border-t">
             {step === 1 && (
                 <>
@@ -490,6 +500,16 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                     Pagar y Confirmar
                 </Button>
                 </>
+            )}
+            {step === 3 && (
+                <Button type="button" onClick={() => {
+                    setOpen(false);
+                    if (invoiceId) {
+                        setSuccessModalOpen(true);
+                    }
+                }}>
+                    Cerrar
+                </Button>
             )}
           </DialogFooter>
         </DialogContent>
