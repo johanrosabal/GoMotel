@@ -139,6 +139,8 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
   const availableProducts = useMemo(() => {
     if (!services) return [];
     return services.filter(service => {
+        if (service.source === 'Internal') return false;
+
         const notInCart = !fields.some(field => field.serviceId === service.id);
         if (!notInCart) return false;
         
