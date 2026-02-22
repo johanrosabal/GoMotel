@@ -13,6 +13,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import RoomActionsMenu from './RoomActionsMenu';
 import { Progress } from '../ui/progress';
 import TimeRemaining from '../reservations/TimeRemaining';
+import { Button } from '../ui/button';
 
 interface RoomCardProps {
   room: Room;
@@ -110,16 +111,21 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
           </CardHeader>
           <CardContent className="mt-auto space-y-2">
             {room.status === 'Occupied' && stay ? (
-                <div className='space-y-1.5'>
-                    <div className="flex justify-between items-center text-xs">
-                        <StatusBadge status={room.status} isOverdue={isOverdue} />
-                        <TimeRemaining 
-                            checkOutDate={stay.expectedCheckOut.toDate()} 
-                            status={'Checked-in'}
-                            className="text-xs"
-                        />
+                <div className='space-y-3'>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                          <StatusBadge status={room.status} isOverdue={isOverdue} />
+                          <TimeRemaining 
+                              checkOutDate={stay.expectedCheckOut.toDate()} 
+                              status={'Checked-in'}
+                              className="text-xs"
+                          />
+                      </div>
+                      <Progress value={progress} className="h-2" />
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Button variant="secondary" size="sm" className="w-full font-bold">
+                      Gestionar Estancia
+                    </Button>
                 </div>
             ) : (
                 <div className="flex justify-between items-center gap-2">
