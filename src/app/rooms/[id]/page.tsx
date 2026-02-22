@@ -211,6 +211,7 @@ export default function RoomDetailsPage() {
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
+
                         {isOverdue && stay && (
                            <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue}>
                                <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse">
@@ -218,6 +219,7 @@ export default function RoomDetailsPage() {
                                </Button>
                            </ExtendStayDialog>
                         )}
+                        
                         <CheckoutDialog stay={stay} room={room} orders={orders || []}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
