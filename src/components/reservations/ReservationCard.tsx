@@ -10,6 +10,8 @@ import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
 import { Progress } from '@/components/ui/progress';
 import { useState, useEffect } from 'react';
+import { Button } from '../ui/button';
+import Link from 'next/link';
 
 const statusColorStyles: Record<Reservation['status'], string> = {
   Confirmed: 'border-blue-500',
@@ -105,7 +107,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     <p className="text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM yyyy, h:mm a", { locale: es })}</p>
                 </div>
             </div>
-            {reservation.status === 'Checked-in' ? (
+            {reservation.status === 'Checked-in' && !isOverdue ? (
                 <div className="space-y-1 pt-1">
                     <div className="flex justify-between items-center text-xs">
                         <p className="font-semibold text-muted-foreground">Progreso</p>
@@ -117,7 +119,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     </div>
                     <Progress value={progress} className="h-2" />
                 </div>
-            ) : (
+            ) : reservation.status !== 'Checked-in' ? (
                 <div className="flex items-start gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <div>
@@ -129,6 +131,14 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                         />
                     </div>
                 </div>
+            ) : null}
+            {isOverdue && (
+                <Button asChild variant="destructive" size="sm" className="w-full font-bold animate-pulse !mt-4">
+                    <Link href={`/rooms/${reservation.roomId}`}>
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Gestionar Estancia
+                    </Link>
+                </Button>
             )}
         </CardContent>
         <div className="p-6 pt-0 mt-auto flex justify-end">
