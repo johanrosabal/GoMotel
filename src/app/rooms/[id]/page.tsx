@@ -223,18 +223,16 @@ export default function RoomDetailsPage() {
                }
                 return (
                     <div className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
-                                <Button className="w-full h-12 text-base sm:text-sm">
-                                    <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
-                                </Button>
-                            </OrderServiceDialog>
-                            <ExtendStayDialog room={room} stay={stay}>
-                                <Button variant="outline" className="w-full h-12 text-base sm:text-sm">
-                                    <Repeat className="mr-2 h-5 w-5" /> Renovar Estancia
-                                </Button>
-                            </ExtendStayDialog>
-                        </div>
+                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
+                            <Button className="w-full h-12 text-base sm:text-sm">
+                                <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
+                            </Button>
+                        </OrderServiceDialog>
+                        <ExtendStayDialog room={room} stay={stay}>
+                            <Button variant="secondary" className="w-full h-12 text-base sm:text-sm">
+                                <Repeat className="mr-2 h-5 w-5" /> Renovar Estancia
+                            </Button>
+                        </ExtendStayDialog>
                         <CheckoutDialog stay={stay} room={room} orders={orders}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
