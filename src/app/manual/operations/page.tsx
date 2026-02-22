@@ -35,7 +35,7 @@ const Step = ({ icon, title, description, statuses, isLast = false }: { icon: Re
     );
 };
 
-const SettingsStep = ({ icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => {
+const SettingsStep = ({ icon, title, usage, useCase, href }: { icon: React.ElementType, title: string, usage: string, useCase: string, href: string }) => {
     const Icon = icon;
     return (
         <div className="flex items-start gap-4">
@@ -44,9 +44,10 @@ const SettingsStep = ({ icon, title, description, href }: { icon: React.ElementT
             </div>
             <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
-                <p className="text-muted-foreground">
-                    {description} <Link href={href} className="text-primary underline">Ir a la sección.</Link>
-                </p>
+                <div className="mt-1 text-muted-foreground space-y-2">
+                    <p><b>Uso:</b> {usage}</p>
+                    <p><b>Caso de Uso Profesional:</b> {useCase} <Link href={href} className="text-primary underline">Ir a la sección.</Link></p>
+                </div>
             </div>
         </div>
     )
@@ -174,37 +175,43 @@ export default function ManualOperationsPage() {
                     <SettingsStep 
                         icon={BedDouble}
                         title="Tipos de Habitación"
-                        description="Uso: Defina las categorías de sus habitaciones (ej. Sencilla, Suite), su capacidad, características y, lo más importante, los planes de precios por tiempo que se usarán para la facturación de estancias. Caso de Uso: Cree un plan 'Noche Romántica' de 12 horas para la Suite, o un plan 'Viajero Express' de 4 horas para la habitación Sencilla."
+                        usage="Definir las categorías de habitaciones (ej. Sencilla, Suite), su capacidad, características y, crucialmente, los planes de precios por tiempo para la facturación automática."
+                        useCase="Para una 'Suite', configure un plan 'Noche Romántica' de 12 horas con un precio premium. Para una 'Sencilla', un plan 'Viajero Express' de 4 horas, optimizando la tarificación según la demanda."
                         href="/settings/room-types"
                     />
                     <SettingsStep 
                         icon={BookCopy}
                         title="Catálogo de Productos y Servicios"
-                        description="Uso: Organice su inventario creando categorías y subcategorías. Añada productos, establezca precios de venta, y diferencie entre productos 'Comprados' (con control de stock) y de 'Producción Interna' (sin control de stock). Caso de Uso: Añada 'Botella de Agua' como producto comprado con control de stock, y 'Alitas BBQ' como producto de producción interna para que no se descuente de un inventario numérico."
+                        usage="Organizar el inventario en categorías/subcategorías, registrar productos, definir precios de venta y diferenciar entre 'Producción Interna' (cocina) y 'Comprados' (con control de stock)."
+                        useCase="Registre 'Botella de Agua' como producto 'Comprado' para control de inventario automatizado, y 'Alitas BBQ' como de 'Producción Interna' para registrar la venta sin afectar un stock numérico."
                         href="/catalog"
                     />
                     <SettingsStep 
                         icon={Truck}
                         title="Proveedores"
-                        description="Uso: Mantenga un registro de sus proveedores. Almacenar esta información es un prerequisito para poder registrar nuevas facturas de compra y añadir productos al inventario. Caso de Uso: Registre a 'Distribuidora La Central' como proveedor para poder asociarles futuras compras de bebidas y snacks, manteniendo un historial claro de adquisiciones."
+                        usage="Centralizar la información de todos los proveedores. Este es un prerrequisito para poder registrar facturas de compra y actualizar el inventario."
+                        useCase="Al registrar a 'Distribuidora La Central', se crea un historial de compras asociado que facilita la auditoría de costos, gestión de pagos y reorden de productos."
                         href="/suppliers"
                     />
                      <SettingsStep 
                         icon={Users}
                         title="Clientes"
-                        description="Uso: Cree una base de datos de sus clientes para agilizar el proceso de check-in buscando por nombre. Puede registrar sus visitas y ofrecer un servicio personalizado marcándolos como VIP. Caso de Uso: Un cliente frecuente llega sin reservación. Búsquelo rápidamente por su nombre en el diálogo de Check-in para autocompletar sus datos y agilizar su ingreso."
+                        usage="Construir una base de datos de clientes para agilizar el check-in, rastrear el historial de visitas y fidelizar a través de clasificaciones como VIP."
+                        useCase="Un cliente frecuente llega. El recepcionista busca su nombre, autocompleta sus datos al instante y, al ver su estado VIP, le ofrece un beneficio, mejorando la experiencia y la eficiencia."
                         href="/clients"
                     />
                      <SettingsStep 
                         icon={Percent}
                         title="Impuestos"
-                        description="Uso: Configure los diferentes tipos de impuestos (ej. IVA del 13%) que se aplicarán a los productos y servicios vendidos en su motel para la facturación automática. Caso de Uso: Cree el 'Impuesto de Valor Agregado (IVA)' con un 13% para luego poder asignarlo a todas las bebidas y comidas en el catálogo, automatizando su cálculo en la factura final."
+                        usage="Configurar las tasas de impuestos (ej. IVA) que se aplicarán automáticamente a los productos y servicios durante la facturación para asegurar el cumplimiento fiscal."
+                        useCase="Cree un impuesto 'IVA' del 13% y asígnelo a las bebidas y comidas. El sistema lo calculará y desglosará en la factura final de forma automática, sin cálculos manuales."
                         href="/settings/taxes"
                     />
                      <SettingsStep 
                         icon={Smartphone}
                         title="Cuentas SINPE Móvil"
-                        description="Uso: Administre las cuentas que utiliza para recibir pagos mediante SINPE Móvil. Configure límites de saldo para la rotación automática de cuentas al recibir pagos. Caso de Uso: Configure dos cuentas SINPE con un límite de ₡500,000 cada una. El sistema usará la primera hasta que alcance el límite y luego cambiará automáticamente a la segunda."
+                        usage="Administrar las cuentas para recibir pagos digitales. Permite establecer límites de saldo para una rotación automática y evitar exceder los topes mensuales."
+                        useCase="Configure dos cuentas SINPE con un límite. El sistema usará la primera hasta que se acerque al límite y luego cambiará automáticamente a la segunda, garantizando la continuidad del servicio."
                         href="/settings/sinpe-accounts"
                     />
                 </CardContent>
