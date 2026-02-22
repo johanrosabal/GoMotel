@@ -123,7 +123,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                       </div>
                       <Progress value={progress} className="h-2" />
                     </div>
-                    <Button variant="secondary" size="sm" className="w-full font-bold">
+                    <Button variant="secondary" size="sm" className="w-full font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse">
                       Gestionar Estancia
                     </Button>
                 </div>
