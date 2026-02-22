@@ -223,6 +223,19 @@ export default function OrderServiceDialog({ children, stayId, availableServices
     return cart.find((item) => item.service.id === serviceId)?.quantity || 0;
   };
   
+  const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    if (rawValue === '') {
+        setCashTendered('');
+    } else {
+        setCashTendered(new Intl.NumberFormat('en-US').format(Number(rawValue)));
+    }
+  };
+
+  const numericCashTendered = useMemo(() => {
+    return Number(cashTendered.replace(/\D/g, ''));
+  }, [cashTendered]);
+
   const handleSubmit = (paymentValues: z.infer<typeof orderPaymentSchema>) => {
     if (!stayId) return;
     
@@ -357,6 +370,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                         </div>
                                         {appliedTaxes.length > 0 && (
                                             <div className="pl-4 py-1 space-y-0.5">
+                                                <p className="text-sm text-muted-foreground -ml-4">Impuestos:</p>
                                                 {appliedTaxes.map((tax) => (
                                                 <div key={tax.taxId} className="flex justify-between text-xs text-muted-foreground">
                                                     <span>{tax.name} ({tax.percentage}%)</span>
@@ -482,16 +496,16 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                         inputMode="numeric"
                                                         placeholder="Monto recibido"
                                                         value={cashTendered}
-                                                        onChange={(e) => setCashTendered(e.target.value.replace(/[^0-9]/g, ''))}
+                                                        onChange={handleCashTenderedChange}
                                                         className="text-right"
                                                     />
                                                 </FormControl>
                                             </FormItem>
-                                            {cashTendered && grandTotal > 0 && Number(cashTendered) >= grandTotal && (
+                                            {cashTendered && grandTotal > 0 && numericCashTendered >= grandTotal && (
                                                 <div className="flex justify-between items-center text-sm font-semibold">
                                                     <FormLabel>Vuelto</FormLabel>
                                                     <span className="text-lg text-primary">
-                                                        {formatCurrency(Number(cashTendered) - grandTotal)}
+                                                        {formatCurrency(numericCashTendered - grandTotal)}
                                                     </span>
                                                 </div>
                                             )}

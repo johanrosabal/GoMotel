@@ -137,6 +137,19 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
     return format(checkOutTime, 'PPpp', { locale: es });
   }, [selectedPlanName, availablePlans, stay, isOverdue]);
 
+  const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    if (rawValue === '') {
+        setCashTendered('');
+    } else {
+        setCashTendered(new Intl.NumberFormat('en-US').format(Number(rawValue)));
+    }
+  };
+
+  const numericCashTendered = useMemo(() => {
+    return Number(cashTendered.replace(/\D/g, ''));
+  }, [cashTendered]);
+
   const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
     if (!stay) return;
     startTransition(async () => {
@@ -314,16 +327,16 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
                                                     inputMode="numeric"
                                                     placeholder="Monto recibido"
                                                     value={cashTendered}
-                                                    onChange={(e) => setCashTendered(e.target.value.replace(/[^0-9]/g, ''))}
+                                                    onChange={handleCashTenderedChange}
                                                     className="text-right"
                                                 />
                                             </FormControl>
                                         </FormItem>
-                                        {cashTendered && selectedPlan && Number(cashTendered) >= selectedPlan.price && (
+                                        {cashTendered && selectedPlan && numericCashTendered >= selectedPlan.price && (
                                             <div className="flex justify-between items-center text-sm font-semibold">
                                                 <FormLabel>Vuelto</FormLabel>
                                                 <span className="text-lg text-primary">
-                                                    {formatCurrency(Number(cashTendered) - selectedPlan.price)}
+                                                    {formatCurrency(numericCashTendered - selectedPlan.price)}
                                                 </span>
                                             </div>
                                         )}
