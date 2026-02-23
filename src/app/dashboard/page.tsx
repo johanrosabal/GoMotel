@@ -29,6 +29,7 @@ import {
   Smartphone,
   Receipt,
   Truck,
+  FileCode,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -208,6 +209,12 @@ export default async function DashboardPage() {
           title: 'Manual Operativo',
           description: 'Guía paso a paso del flujo de trabajo.',
           icon: BookOpen,
+        },
+        {
+          href: '/manual/project-docs',
+          title: 'Documentación Técnica',
+          description: 'Detalles de arquitectura, datos y flujos.',
+          icon: FileCode,
         },
         {
           href: '#',
