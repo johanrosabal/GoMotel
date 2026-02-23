@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { FileCode, Database, Workflow, ShieldCheck, Layers, Users } from 'lucide-react';
+import { FileCode, Database, Workflow, ShieldCheck, Layers, Users, FileText } from 'lucide-react';
 
 export default function ProjectDocsPage() {
     return (
@@ -136,8 +136,14 @@ export default function ProjectDocsPage() {
                             <AccordionTrigger>Flujo de Pagos y Facturación</AccordionTrigger>
                             <AccordionContent className="space-y-2">
                                 <p><strong>Cuenta Abierta vs. Pago Adelantado:</strong> Todas las acciones que generan un costo (reservar, extender, pedir) permiten dos modalidades: 'Cuenta Abierta' (se acumula para el final) o 'Pagar Ahora'.</p>
-                                <p><strong>Generación de Factura:</strong> Si se elige 'Pagar Ahora', se genera una <Badge variant="secondary">factura</Badge> automáticamente con el concepto y monto correspondiente.</p>
-                                <p><strong>Factura Final:</strong> En el check-out, se genera una factura final que consolida todos los cargos pendientes de la estancia.</p>
+                                <p><strong>Métodos de Pago:</strong> Para los pagos adelantados o en el check-out, el sistema soporta:
+                                    <ul className="list-disc list-inside pl-4 mt-1">
+                                        <li><strong>Efectivo:</strong> Con cálculo de vuelto automático.</li>
+                                        <li><strong>SINPE Móvil:</strong> Con un sistema de rotación de cuentas para evitar exceder los límites de saldo mensuales.</li>
+                                        <li><strong>Tarjeta:</strong> Requiere el ingreso de un número de voucher.</li>
+                                    </ul>
+                                </p>
+                                <p><strong>Generación de Factura:</strong> Si se elige 'Pagar Ahora', se genera una <Badge variant="secondary">factura</Badge> automáticamente con el concepto y monto correspondiente. En el check-out, se genera una factura final que consolida todos los cargos pendientes.</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
@@ -157,6 +163,36 @@ export default function ProjectDocsPage() {
                         <li><strong>Extensión de Estancias:</strong> Si una estancia está vencida, la base para calcular la nueva hora de check-out es la hora actual. Si no está vencida, es la hora de check-out original.</li>
                         <li><strong>Rotación de Cuentas SINPE:</strong> El sistema selecciona automáticamente la primera cuenta SINPE activa cuyo saldo, más el monto del pago, no exceda su límite mensual configurado.</li>
                         <li><strong>Roles de Usuario:</strong> El primer usuario en registrarse obtiene el rol de 'Administrador'. Los siguientes por defecto son 'Recepcion'. Solo los administradores pueden ver ciertas secciones, como la gestión de usuarios o la eliminación de reservaciones.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+
+            {/* Roles y Permisos */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6" />Roles y Permisos</CardTitle>
+                    <CardDescription>Definición de los roles de usuario y sus capacidades en el sistema.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <ul className="list-disc list-inside space-y-2">
+                        <li><strong>Administrador:</strong> Rol con acceso total al sistema. Puede gestionar usuarios, configurar todos los parámetros del sistema (tipos de habitación, impuestos, etc.), ver todos los reportes, y realizar todas las operaciones de recepción. El primer usuario registrado en el sistema recibe este rol automáticamente.</li>
+                        <li><strong>Recepción:</strong> Rol diseñado para el personal de recepción. Puede gestionar reservaciones, check-ins, check-outs, pedidos de servicio y ver reportes operativos. No tiene acceso a la configuración del sistema ni a la gestión de usuarios.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+
+            {/* Reportes y Consultas */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6" />Reportes y Consultas</CardTitle>
+                    <CardDescription>Módulos de consulta para el análisis de la operación.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <ul className="list-disc list-inside space-y-2">
+                        <li><strong>Registro de Estancias:</strong> Historial completo de todas las estancias, tanto activas como pasadas, con la capacidad de filtrar y buscar.</li>
+                        <li><strong>Gestión de Facturas:</strong> Acceso a todas las facturas generadas por el sistema, ya sea por pagos adelantados o check-outs.</li>
+                        <li><strong>Historial de Compras:</strong> Registro detallado de todas las facturas de compra a proveedores, permitiendo auditorías de costos.</li>
+                        <li><strong>Gestión de Inventario:</strong> Vista en tiempo real del stock de todos los productos, permitiendo un control preciso de los activos.</li>
                     </ul>
                 </CardContent>
             </Card>

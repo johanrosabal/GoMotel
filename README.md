@@ -35,13 +35,18 @@ El sistema está diseñado para cubrir todas las áreas críticas de la gestión
   - Deducción automática de stock al realizar pedidos de servicio.
 - **Gestión de Clientes (CRM)**: Base de datos de clientes para agilizar el check-in y ofrecer un servicio personalizado, con la capacidad de marcar clientes VIP.
 - **Facturación y Pagos**:
-  - Generación automática de facturas para pagos adelantados y check-outs.
-  - Desglose de impuestos y descuentos.
-  - Integración con SINPE Móvil, incluyendo lógica de rotación de cuentas basada en límites de saldo.
+  - Generación automática de facturas para pagos adelantados y check-outs con desglose de impuestos.
+  - Soporte para múltiples métodos de pago: **Efectivo** (con cálculo de vuelto), **Tarjeta** (con registro de voucher) y **SINPE Móvil**.
+  - Sistema de rotación automática de cuentas SINPE Móvil para gestionar límites de saldo.
+- **Reportes y Consultas**:
+  - Historial detallado de Estancias, Facturas y Compras a proveedores.
+  - Vista en tiempo real del inventario para control de stock.
 - **Administración del Sistema**:
   - Configuración de tipos de habitación con planes de precios personalizables.
   - Gestión de impuestos, proveedores y cuentas de pago.
-- **Roles y Permisos**: Sistema de roles simple ('Administrador', 'Recepcion') para controlar el acceso a diferentes funcionalidades.
+- **Roles y Permisos**: Sistema de roles simple para controlar el acceso a diferentes funcionalidades:
+  - **Administrador**: Control total del sistema, incluyendo configuración y gestión de usuarios.
+  - **Recepcion**: Acceso a las operaciones diarias del motel (reservaciones, check-in, etc.).
 
 ## 📁 Estructura del Proyecto
 
