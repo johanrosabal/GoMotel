@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition, useRef } from 'react';
@@ -26,6 +25,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -61,7 +61,7 @@ export default function ReportsClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 3, // Mayor escala para nitidez suprema
+            scale: 3,
             backgroundColor: '#ffffff',
             useCORS: true,
             logging: false,
@@ -336,7 +336,6 @@ export default function ReportsClientPage() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    {/* Pre-visualización interna para el modal (opcional, pero para PDF usamos el hidden ref) */}
                     <div className="flex-1 overflow-y-auto px-6 pb-6">
                         <div className="rounded-lg border">
                             <Table>
