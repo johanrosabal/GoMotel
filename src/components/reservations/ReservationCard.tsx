@@ -160,7 +160,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                         {isPending ? 'Procesando...' : (
                             <>
                                 <LogIn className="mr-2 h-4 w-4" /> 
-                                Registrar Ingreso (Check-in)
+                                Hacer Check-in
                             </>
                         )}
                     </Button>
