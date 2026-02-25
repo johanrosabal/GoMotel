@@ -28,8 +28,12 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
 
     const handleAdd = () => {
         if (!newNumber) return;
+        
+        // Aplicar formato 00 antes de guardar
+        const paddedNumber = newNumber.padStart(2, '0');
+        
         startTransition(async () => {
-            const result = await createRestaurantTable({ number: newNumber, type: newType });
+            const result = await createRestaurantTable({ number: paddedNumber, type: newType });
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
@@ -65,9 +69,15 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase">Número/ID</Label>
                             <Input 
-                                placeholder="Ej: 15" 
+                                placeholder="Ej: 01" 
                                 value={newNumber} 
-                                onChange={(e) => setNewNumber(e.target.value)}
+                                type="text"
+                                inputMode="numeric"
+                                onChange={(e) => {
+                                    // Solo permitir números y máximo 2 dígitos
+                                    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                    setNewNumber(val);
+                                }}
                                 className="h-10 font-bold"
                             />
                         </div>
