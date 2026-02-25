@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { getDashboardStats } from '@/lib/actions/report.actions';
 import { analyzePerformance } from '@/ai/flows/performance-analysis';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -28,6 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 
@@ -37,6 +39,7 @@ export default function ReportsClientPage() {
     const [isAnalyzing, startAnalysis] = useTransition();
     const [aiAnalysis, setAiAnalysis] = useState<any>(null);
     const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+    const stockReportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         getDashboardStats(7).then(res => {
@@ -49,6 +52,21 @@ export default function ReportsClientPage() {
         startAnalysis(async () => {
             const result = await analyzePerformance(data.rawForAI);
             setAiAnalysis(result);
+        });
+    };
+
+    const handleExportStockPdf = () => {
+        const input = stockReportRef.current;
+        if (!input) return;
+
+        html2canvas(input, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`reporte-stock-bajo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         });
     };
 
@@ -294,39 +312,45 @@ export default function ReportsClientPage() {
             {/* Low Stock Dialog */}
             <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
                 <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <PackageSearch className="h-5 w-5 text-yellow-600" />
-                            Productos con Stock Bajo
-                        </DialogTitle>
-                        <DialogDescription>
-                            Artículos que han alcanzado o superado su punto de reorden.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="text-xs font-bold uppercase">Producto</TableHead>
-                                        <TableHead className="text-center text-xs font-bold uppercase">Stock</TableHead>
-                                        <TableHead className="text-center text-xs font-bold uppercase">Mínimo</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data.lowStockDetails?.map((item: any) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="font-medium text-sm">{item.name}</TableCell>
-                                            <TableCell className="text-center font-bold text-destructive">{item.stock}</TableCell>
-                                            <TableCell className="text-center text-muted-foreground text-sm">{item.minStock}</TableCell>
+                    <div ref={stockReportRef} className="bg-background p-2">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <PackageSearch className="h-5 w-5 text-yellow-600" />
+                                Productos con Stock Bajo
+                            </DialogTitle>
+                            <DialogDescription>
+                                Artículos que han alcanzado o superado su punto de reorden. Generado el {format(new Date(), "dd/MM/yyyy", { locale: es })}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="text-xs font-bold uppercase">Producto</TableHead>
+                                            <TableHead className="text-center text-xs font-bold uppercase">Stock</TableHead>
+                                            <TableHead className="text-center text-xs font-bold uppercase">Mínimo</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data.lowStockDetails?.map((item: any) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell className="font-medium text-sm">{item.name}</TableCell>
+                                                <TableCell className="text-center font-bold text-destructive">{item.stock}</TableCell>
+                                                <TableCell className="text-center text-muted-foreground text-sm">{item.minStock}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setIsStockDialogOpen(false)}>Cerrar</Button>
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 border-t">
+                        <Button variant="outline" onClick={handleExportStockPdf} className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Exportar PDF
+                        </Button>
+                        <Button variant="secondary" onClick={() => setIsStockDialogOpen(false)}>Cerrar</Button>
                         <Button asChild>
                             <Link href="/inventory">Ir a Inventario</Link>
                         </Button>
