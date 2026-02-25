@@ -240,13 +240,17 @@ export default function CompanyInfoForm() {
                       <Button type="button" variant="outline" size="sm" onClick={() => appendPhone({ label: '', value: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Teléfono</Button>
                   </div>
                   <div className="space-y-4">
-                      {phoneFields.map((field, index) => (
+                      {phoneFields.length > 0 ? phoneFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
                               <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Principal" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)}/></FormControl><FormMessage /></FormItem>)} />
                               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
-                      ))}
+                      )) : (
+                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                            No se han añadido números de teléfono.
+                        </div>
+                      )}
                   </div>
               </div>
               <div>
@@ -255,13 +259,17 @@ export default function CompanyInfoForm() {
                       <Button type="button" variant="outline" size="sm" onClick={() => appendEmail({ label: '', value: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Correo</Button>
                   </div>
                   <div className="space-y-4">
-                      {emailFields.map((field, index) => (
+                      {emailFields.length > 0 ? emailFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
                               <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Soporte" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="soporte@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
-                      ))}
+                      )) : (
+                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                            No se han añadido correos electrónicos.
+                        </div>
+                      )}
                   </div>
               </div>
           </TabsContent>
@@ -272,7 +280,7 @@ export default function CompanyInfoForm() {
                       <Button type="button" variant="outline" size="sm" onClick={() => appendSocial({ platform: 'Facebook', url: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Red Social</Button>
                   </div>
                   <div className="space-y-4">
-                      {socialFields.map((field, index) => {
+                      {socialFields.length > 0 ? socialFields.map((field, index) => {
                            const Icon = socialIcons[form.watch(`socialMedia.${index}.platform`)];
                            return(
                             <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
@@ -281,7 +289,11 @@ export default function CompanyInfoForm() {
                                 <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                            )
-                        })}
+                        }) : (
+                            <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                                No se han añadido redes sociales.
+                            </div>
+                        )}
                   </div>
               </div>
               <div>
@@ -290,7 +302,7 @@ export default function CompanyInfoForm() {
                       <Button type="button" variant="outline" size="sm" onClick={() => appendBank({ bankName: '', accountHolder: '', accountNumber: '', iban: ''})}><PlusCircle className="mr-2 h-4 w-4" />Añadir Cuenta</Button>
                   </div>
                   <div className="space-y-4">
-                      {bankFields.map((field, index) => (
+                      {bankFields.length > 0 ? bankFields.map((field, index) => (
                           <div key={field.id} className="p-4 border rounded-lg bg-muted/50 space-y-4">
                               <div className="flex justify-end -mt-2 -mr-2"><Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBank(index)}><Trash2 className="h-4 w-4" /></Button></div>
                               <div className="grid sm:grid-cols-2 gap-4">
@@ -300,7 +312,11 @@ export default function CompanyInfoForm() {
                               <FormField control={form.control} name={`bankAccounts.${index}.accountNumber`} render={({ field }) => (<FormItem><FormLabel>Número de Cuenta</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name={`bankAccounts.${index}.iban`} render={({ field }) => (<FormItem><FormLabel>IBAN (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                           </div>
-                      ))}
+                      )) : (
+                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                            No se han añadido cuentas bancarias.
+                        </div>
+                      )}
                   </div>
               </div>
           </TabsContent>
