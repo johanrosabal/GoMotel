@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label';
 const companyInfoSchema = z.object({
   id: z.string().optional(),
   tradeName: z.string().min(1, 'El nombre comercial es requerido.'),
-  legalId: z.string().min(1, 'La cédula jurídica es requerida.'),
+  legalId: z.string().min(1, 'La cédula jurídica es requerida.').length(12, 'El formato debe ser X-XXX-XXXXXX.'),
   country: z.string().optional(),
   address: z.string().optional(),
   googleMapsUrl: z.string().url('URL inválida.').or(z.literal('')).optional(),
@@ -87,6 +87,23 @@ export default function CompanyInfoForm() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleLegalIdChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    const rawValue = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    const maxLength = 10;
+    const value = rawValue.slice(0, maxLength);
+
+    let maskedValue = '';
+    if (value.length > 4) {
+      maskedValue = `${value.slice(0, 1)}-${value.slice(1, 4)}-${value.slice(4)}`;
+    } else if (value.length > 1) {
+      maskedValue = `${value.slice(0, 1)}-${value.slice(1)}`;
+    } else {
+      maskedValue = value;
+    }
+
+    fieldOnChange(maskedValue);
   };
 
   const onSubmit = (values: z.infer<typeof companyInfoSchema>) => {
@@ -158,7 +175,17 @@ export default function CompanyInfoForm() {
                           <FormItem><FormLabel>Nombre Comercial</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="legalId" render={({ field }) => (
-                          <FormItem><FormLabel>Cédula Jurídica</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem>
+                            <FormLabel>Cédula Jurídica</FormLabel>
+                            <FormControl>
+                                <Input
+                                    {...field}
+                                    placeholder="X-XXX-XXXXXX"
+                                    onChange={(e) => handleLegalIdChange(e, field.onChange)}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
                       )} />
                   </div>
                   <FormField control={form.control} name="country" render={({ field }) => (
