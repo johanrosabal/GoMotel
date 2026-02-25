@@ -407,7 +407,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-2 pb-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -439,7 +439,7 @@ export default function PosClientPage() {
                                                 {/* Middle: Number and Time */}
                                                 <div className="flex-1 flex flex-col items-center justify-center py-4 relative w-full">
                                                     <span className={cn(
-                                                        "font-black text-8xl tracking-tighter transition-colors",
+                                                        "font-black text-7xl tracking-tighter transition-colors",
                                                         hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                     
