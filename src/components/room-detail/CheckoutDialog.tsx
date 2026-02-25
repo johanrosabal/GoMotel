@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState, useTransition, type ReactNode, useMemo } from 'react';
+import React, { useState, useTransition, type ReactNode, useMemo, useEffect } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
   DialogContent,
@@ -13,13 +16,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { checkOut } from '@/lib/actions/room.actions';
-import type { Room, Stay, Order } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import type { Room, Stay, Order, SinpeAccount } from '@/types';
+import { formatCurrency, cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Badge } from '../ui/badge';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { CheckCircle, Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface CheckoutDialogProps {
   children: ReactNode;
@@ -28,68 +38,108 @@ interface CheckoutDialogProps {
   orders: Order[];
 }
 
+const checkoutPaymentSchema = z.object({
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']),
+  paymentConfirmed: z.boolean().default(false),
+  voucherNumber: z.string().optional(),
+}).refine(data => {
+    if (data.paymentMethod === 'Sinpe Movil') return !!data.paymentConfirmed;
+    return true;
+}, {
+    message: 'Debe confirmar el pago SINPE.',
+    path: ['paymentConfirmed'],
+}).refine(data => {
+    if (data.paymentMethod === 'Tarjeta') return data.voucherNumber && data.voucherNumber.trim() !== '';
+    return true;
+}, {
+    message: "El número de voucher es requerido.",
+    path: ["voucherNumber"],
+});
+
 export default function CheckoutDialog({ children, stay, room, orders }: CheckoutDialogProps) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(1); // 1: Summary, 2: Payment
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(null);
+  const [cashTendered, setCashTendered] = useState('');
 
-  const handleCheckout = () => {
+  const form = useForm<z.infer<typeof checkoutPaymentSchema>>({
+    resolver: zodResolver(checkoutPaymentSchema),
+    defaultValues: { paymentMethod: 'Efectivo', paymentConfirmed: false, voucherNumber: '' },
+  });
+
+  const paymentMethod = form.watch('paymentMethod');
+
+  const sinpeAccountsQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc')) : null, 
+    [firestore]
+  );
+  const { data: activeSinpeAccounts, isLoading: isLoadingSinpe } = useCollection<SinpeAccount>(sinpeAccountsQuery);
+
+  const billing = useMemo(() => {
+    if (!stay || !room) return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, upfrontPaid: 0, totalDue: 0, unpaidOrders: [] };
+    
+    const roomTotal = stay.pricePlanAmount || 0;
+    const unpaidOrders = orders.filter(o => o.status !== 'Cancelado' && o.paymentStatus !== 'Pagado');
+    const servicesTotal = unpaidOrders.reduce((sum, o) => sum + o.total, 0);
+    const upfrontPaid = stay.paymentAmount || 0;
+    const totalDue = (roomTotal + servicesTotal) - upfrontPaid;
+
+    const duration = formatDistance(new Date(), stay.checkIn.toDate(), { locale: es });
+
+    return { duration, roomTotal, servicesTotal, upfrontPaid, totalDue: totalDue < 0 ? 0 : totalDue, unpaidOrders };
+  }, [stay, room, orders]);
+
+  const targetSinpeAccount = useMemo(() => {
+    if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts) return null;
+    for (const account of activeSinpeAccounts) {
+        const limit = account.limitAmount || Infinity;
+        if ((account.balance + billing.totalDue) <= limit) return account;
+    }
+    return null;
+  }, [paymentMethod, activeSinpeAccounts, billing.totalDue]);
+
+  useEffect(() => {
+    if (!open) {
+        setStep(1);
+        form.reset();
+        setCashTendered('');
+    }
+  }, [open, form]);
+
+  const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    setCashTendered(rawValue === '' ? '' : new Intl.NumberFormat('en-US').format(Number(rawValue)));
+  };
+
+  const numericCashTendered = Number(cashTendered.replace(/\D/g, ''));
+
+  const handleProcessCheckout = (values: z.infer<typeof checkoutPaymentSchema>) => {
     if (!stay || !room) return;
     
     startTransition(async () => {
-      const result = await checkOut(stay.id, room.id);
-      setOpen(false); // Close checkout dialog immediately
+      const result = await checkOut(stay.id, room.id, {
+          paymentMethod: values.paymentMethod,
+          voucherNumber: values.voucherNumber,
+          amountPaid: billing.totalDue,
+      });
+
       if (result.error) {
-        toast({ title: 'Falló el Check-Out', description: result.error, variant: 'destructive' });
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
+        setOpen(false);
         if (result.invoiceId) {
             setGeneratedInvoiceId(result.invoiceId);
             setSuccessModalOpen(true);
         } else {
-            toast({ title: '¡Éxito!', description: 'El huésped ha realizado el check-out.' });
+            toast({ title: '¡Éxito!', description: 'Check-out completado correctamente.' });
         }
       }
     });
   };
-
-  const { duration, roomTotal, servicesTotal, amountPaid, totalDue, allOrders } = useMemo(() => {
-    if (!stay || !room) {
-      return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, amountPaid: 0, totalDue: 0, allOrders: [] as Order[] };
-    }
-    
-    let roomTotalCalc: number;
-    if (stay.pricePlanAmount != null) {
-      roomTotalCalc = stay.pricePlanAmount;
-    } else {
-      const checkInTime = stay.checkIn.toDate();
-      const checkOutTime = new Date();
-      const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-      const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
-      roomTotalCalc = durationHours * room.ratePerHour;
-    }
-
-    const checkInTime = stay.checkIn.toDate();
-    const checkOutTime = new Date();
-    const durationText = formatDistance(checkOutTime, checkInTime, { includeSeconds: false, locale: es });
-    
-    const unpaidOrders = orders.filter(order => order.status !== 'Cancelado' && order.paymentStatus !== 'Pagado');
-    const servicesTotalCalc = unpaidOrders.reduce((sum, order) => sum + order.total, 0);
-    
-    const paidAmount = stay.paymentAmount || 0;
-    const totalBill = roomTotalCalc + servicesTotalCalc;
-    const finalTotalDue = totalBill - paidAmount;
-
-    return {
-      duration: durationText,
-      roomTotal: roomTotalCalc,
-      servicesTotal: servicesTotalCalc,
-      amountPaid: paidAmount,
-      totalDue: finalTotalDue < 0 ? 0 : finalTotalDue,
-      allOrders: orders.filter(order => order.status !== 'Cancelado'),
-    };
-  }, [stay, room, orders]);
 
   return (
     <React.Fragment>
@@ -97,76 +147,203 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
-            <DialogTitle>Confirmar Check-Out</DialogTitle>
-            <DialogDescription>Revise la factura final antes de realizar el check-out del huésped.</DialogDescription>
+                <DialogTitle>{step === 1 ? 'Resumen de Check-Out' : 'Procesar Pago'}</DialogTitle>
+                <DialogDescription>
+                    {step === 1 
+                        ? `Liquidación de cuenta para ${stay?.guestName}.` 
+                        : `Seleccione el método de pago para los ${formatCurrency(billing.totalDue)} pendientes.`}
+                </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-96 pr-4">
-                <div className="space-y-4">
-                    <div className="p-4 rounded-lg border bg-muted/50">
-                        <h3 className="font-semibold mb-2">Resumen de Facturación</h3>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Huésped:</span>
-                                <span>{stay?.guestName}</span>
+
+            <ScrollArea className="max-h-[60vh] pr-4">
+                {step === 1 ? (
+                    <div className="space-y-6 py-2">
+                        <div className="p-4 rounded-xl bg-muted/50 border space-y-3">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground font-medium uppercase tracking-tighter">Estancia</span>
+                                <span className="font-bold">{billing.duration}</span>
                             </div>
-                            {stay?.pricePlanName && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Plan Seleccionado:</span>
-                                    <span>{stay.pricePlanName}</span>
+                            <Separator />
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>Hospedaje ({stay?.pricePlanName})</span>
+                                    <span className="font-semibold">{formatCurrency(billing.roomTotal)}</span>
+                                </div>
+                                {billing.unpaidOrders.length > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span>Consumos y Servicios</span>
+                                        <span className="font-semibold">{formatCurrency(billing.servicesTotal)}</span>
+                                    </div>
+                                )}
+                                {billing.upfrontPaid > 0 && (
+                                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-bold">
+                                        <span>Pagos Adelantados</span>
+                                        <span>-{formatCurrency(billing.upfrontPaid)}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <Separator className="bg-border/50" />
+                            <div className="flex justify-between items-center pt-1">
+                                <span className="text-lg font-black uppercase tracking-tight">Total Pendiente</span>
+                                <span className="text-2xl font-black text-primary">{formatCurrency(billing.totalDue)}</span>
+                            </div>
+                        </div>
+
+                        {billing.unpaidOrders.length > 0 && (
+                            <div className="space-y-2">
+                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Detalle de Consumos</h4>
+                                <div className="space-y-1">
+                                    {billing.unpaidOrders.map(order => (
+                                        <div key={order.id} className="p-2 border rounded-lg bg-background text-xs space-y-1">
+                                            {order.items.map(item => (
+                                                <div key={item.serviceId} className="flex justify-between">
+                                                    <span>{item.quantity}x {item.name}</span>
+                                                    <span>{formatCurrency(item.price * item.quantity)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <Form {...form}>
+                        <form id="checkout-payment-form" className="space-y-4 py-2">
+                            <FormField
+                                control={form.control}
+                                name="paymentMethod"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Método de Pago</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-12 text-base font-bold">
+                                                    <SelectValue placeholder="Seleccione método" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Efectivo" className="py-3">
+                                                    <div className="flex items-center gap-3"><Wallet className="h-4 w-4" /> Efectivo</div>
+                                                </SelectItem>
+                                                <SelectItem value="Sinpe Movil" className="py-3">
+                                                    <div className="flex items-center gap-3"><Smartphone className="h-4 w-4" /> SINPE Móvil</div>
+                                                </SelectItem>
+                                                <SelectItem value="Tarjeta" className="py-3">
+                                                    <div className="flex items-center gap-3"><CreditCard className="h-4 w-4" /> Tarjeta (Voucher)</div>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {paymentMethod === 'Efectivo' && (
+                                <div className="p-4 rounded-xl bg-muted/30 border space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Monto Recibido</Label>
+                                        <Input
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="₡0.00"
+                                            value={cashTendered}
+                                            onChange={handleCashTenderedChange}
+                                            className="h-12 text-right text-xl font-bold"
+                                        />
+                                    </div>
+                                    {numericCashTendered >= billing.totalDue && (
+                                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                                            <span className="font-bold text-sm uppercase">Vuelto</span>
+                                            <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - billing.totalDue)}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Duración de la Estancia:</span>
-                                <span>~{duration}</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Cargo de Habitación</span>
-                            <span>{formatCurrency(roomTotal)}</span>
-                        </div>
-                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Servicios y Pedidos</span>
-                            <span>{formatCurrency(servicesTotal)}</span>
-                        </div>
-                        {allOrders.length > 0 && (
-                            <div className="pl-4 ml-2 border-l-2 space-y-1 mt-1">
-                                {allOrders.map(order => (
-                                    <React.Fragment key={order.id}>
-                                        {order.items.map(item => (
-                                            <div key={`${order.id}-${item.serviceId}`} className="text-xs flex justify-between items-center text-muted-foreground">
-                                                <span>{item.quantity}x {item.name}</span>
-                                                {order.paymentStatus === 'Pagado' 
-                                                    ? <Badge variant="secondary" className="text-xs">Pagado</Badge>
-                                                    : <span>{formatCurrency(item.price * item.quantity)}</span>
-                                                }
+                            {paymentMethod === 'Sinpe Movil' && (
+                                <div className="space-y-4">
+                                    {isLoadingSinpe ? (
+                                        <p className="text-center text-sm py-4">Buscando cuenta disponible...</p>
+                                    ) : targetSinpeAccount ? (
+                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4 text-center">
+                                            <p className="text-sm text-muted-foreground">Solicitar transferencia a:</p>
+                                            <div className="space-y-1">
+                                                <p className="text-3xl font-black font-mono tracking-tighter">{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                <p className="text-sm font-bold uppercase">{targetSinpeAccount.accountHolder}</p>
                                             </div>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                        )}
-                        {amountPaid > 0 && (
-                            <div className="flex justify-between text-green-600 dark:text-green-400 !mt-2">
-                                <span className="font-medium">Adelanto Pagado ({stay?.paymentMethod})</span>
-                                <span className="font-medium">-{formatCurrency(amountPaid)}</span>
-                            </div>
-                        )}
-                    </div>
+                                            <FormField
+                                                control={form.control}
+                                                name="paymentConfirmed"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 text-left shadow-sm">
+                                                        <FormControl>
+                                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                        <div className="space-y-1 leading-none">
+                                                            <FormLabel className="font-bold">He recibido el pago</FormLabel>
+                                                            <p className="text-xs text-muted-foreground">Confirme que el dinero ya está en la cuenta.</p>
+                                                        </div>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm text-center font-bold border border-destructive/20">
+                                            No hay cuentas SINPE disponibles con límite suficiente. Use otro método.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                    <div className="!mt-4 pt-4 border-t flex justify-between font-bold text-xl">
-                        <span>Total a Pagar</span>
-                        <span>{formatCurrency(totalDue)}</span>
-                    </div>
-                </div>
+                            {paymentMethod === 'Tarjeta' && (
+                                <FormField
+                                    control={form.control}
+                                    name="voucherNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Número de Voucher</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ingrese el código de transacción" {...field} className="h-12 font-mono text-center text-lg" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                        </form>
+                    </Form>
+                )}
             </ScrollArea>
-            <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCheckout} disabled={isPending} variant="destructive">
-                {isPending ? 'Procesando...' : 'Confirmar y Realizar Check-Out'}
-            </Button>
+
+            <DialogFooter className="gap-2 pt-4 border-t">
+                {step === 1 ? (
+                    <>
+                        <Button variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12">Cancelar</Button>
+                        <Button onClick={() => setStep(2)} className="flex-1 h-12 font-bold shadow-lg">
+                            Pasar a Cobro <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="h-12">
+                            <ChevronLeft className="mr-2 h-4 w-4" /> Volver
+                        </Button>
+                        <Button 
+                            form="checkout-payment-form" 
+                            onClick={form.handleSubmit(handleProcessCheckout)} 
+                            disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)} 
+                            variant="destructive" 
+                            className="flex-1 h-12 font-black uppercase tracking-wider shadow-red-500/20 shadow-xl"
+                        >
+                            {isPending ? 'Procesando...' : (
+                                <>
+                                    <CheckCircle className="mr-2 h-5 w-5" /> Finalizar y Cobrar
+                                </>
+                            )}
+                        </Button>
+                    </>
+                )}
             </DialogFooter>
         </DialogContent>
         </Dialog>

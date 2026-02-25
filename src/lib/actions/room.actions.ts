@@ -142,7 +142,15 @@ export async function checkIn(roomId: string, formData: FormData) {
   }
 }
 
-export async function checkOut(stayId: string, roomId: string, options?: { reason?: string; notes?: string }) {
+export async function checkOut(
+    stayId: string, 
+    roomId: string, 
+    paymentDetails?: {
+        paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+        voucherNumber?: string;
+        amountPaid: number;
+    }
+) {
   if (!stayId || !roomId) {
     return { error: 'ID de estancia o habitación no válido.' };
   }
@@ -161,31 +169,31 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
   if (stay.pricePlanAmount != null) {
     roomTotal = stay.pricePlanAmount;
   } else {
-    // Fallback for old data: calculate based on duration
     const checkInTime = stay.checkIn.toDate();
     const checkOutTime = new Date();
     const durationMs = checkOutTime.getTime() - checkInTime.getTime();
-    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))); // Minimum 1 hour charge
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
     roomTotal = durationHours * room.ratePerHour;
   }
 
-
-  // Calculate total from services
   const ordersCollection = collection(db, 'orders');
   const q = query(ordersCollection, where('stayId', '==', stayId));
   const ordersSnapshot = await getDocs(q);
   const activeOrders = ordersSnapshot.docs.filter(d => d.data().status !== 'Cancelado');
-  const servicesTotal = activeOrders.reduce((acc, doc) => acc + (doc.data() as Order).total, 0);
+  const servicesTotal = activeOrders.reduce((acc, doc) => {
+      const data = doc.data() as Order;
+      // Only sum orders that haven't been paid upfront
+      return acc + (data.paymentStatus === 'Pagado' ? 0 : data.total);
+  }, 0);
 
   const finalTotal = roomTotal + servicesTotal;
-  const amountPaid = stay.paymentAmount || 0;
-  const totalDue = finalTotal - amountPaid;
+  const upfrontPaid = stay.paymentAmount || 0;
+  const totalDueAtCheckout = finalTotal - upfrontPaid;
 
   const batch = writeBatch(db);
   let invoiceIdForReturn: string | undefined;
   
   // --- Invoice Logic ---
-  // Create a new invoice for the final bill.
   const invoicesRef = collection(db, 'invoices');
   const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
   const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
@@ -194,9 +202,7 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
       const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
       if (lastInvoiceData.invoiceNumber) {
           const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
-          if (!isNaN(lastNumber)) {
-              nextInvoiceNumberInt = lastNumber + 1;
-          }
+          if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
       }
   }
   const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
@@ -206,7 +212,7 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
 
   const invoiceItems: InvoiceItem[] = [];
   invoiceItems.push({
-      description: `Cargos de Estancia (Hab. ${room.number})`,
+      description: `Estancia Hab. ${room.number} (${stay.pricePlanName || 'Tarifa base'})`,
       quantity: 1,
       unitPrice: roomTotal,
       total: roomTotal
@@ -214,23 +220,23 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
 
   if (servicesTotal > 0) {
       invoiceItems.push({
-          description: `Servicios y Pedidos`,
+          description: `Servicios y Consumos Pendientes`,
           quantity: 1,
           unitPrice: servicesTotal,
           total: servicesTotal
       });
   }
 
-  if (amountPaid > 0) {
+  if (upfrontPaid > 0) {
       invoiceItems.push({
-          description: `Adelanto Pagado (${stay.paymentMethod || 'N/A'})`,
+          description: `Pagos Adelantados Recibidos`,
           quantity: 1,
-          unitPrice: -amountPaid,
-          total: -amountPaid,
+          unitPrice: -upfrontPaid,
+          total: -upfrontPaid,
       });
   }
 
-  const newInvoice: Omit<Invoice, 'id'> = {
+  const finalInvoice: Omit<Invoice, 'id'> = {
       invoiceNumber: newInvoiceNumber,
       stayId: stayId,
       clientId: stay.guestId || null,
@@ -240,13 +246,30 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
       items: invoiceItems,
       subtotal: finalTotal,
       taxes: [], 
-      total: totalDue,
-      paymentMethod: 'Efectivo', // Placeholder
+      total: Math.max(0, totalDueAtCheckout),
+      paymentMethod: paymentDetails?.paymentMethod || 'Efectivo',
+      voucherNumber: paymentDetails?.voucherNumber,
   };
-  batch.set(invoiceRef, newInvoice);
+  batch.set(invoiceRef, finalInvoice);
 
-  
-  // If the stay is linked to a reservation, update the reservation's status to 'Completed'.
+  // --- SINPE Balance Update ---
+  if (paymentDetails?.paymentMethod === 'Sinpe Movil') {
+      const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+      const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+      let targetAccountRef: DocumentReference | null = null;
+      for (const doc of sinpeAccountsSnapshot.docs) {
+          const account = doc.data() as SinpeAccount;
+          if ((account.balance + totalDueAtCheckout) <= (account.limitAmount || Infinity)) {
+              targetAccountRef = doc.ref;
+              break;
+          }
+      }
+      if (targetAccountRef) {
+          batch.update(targetAccountRef, { balance: increment(totalDueAtCheckout) });
+      }
+  }
+
+  // Update reservation status if exists
   if (stay.reservationId) {
     const reservationRef = doc(db, 'reservations', stay.reservationId);
     batch.update(reservationRef, { status: 'Completed' });
@@ -254,23 +277,16 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
 
   // Update stay
   const stayRef = doc(db, 'stays', stayId);
-  
-  const stayUpdateData: Record<string, any> = {
+  batch.update(stayRef, {
     checkOut: Timestamp.now(),
     total: finalTotal,
-    isPaid: true, // Assuming payment is collected at checkout
-  };
+    isPaid: true,
+    paymentStatus: 'Pagado',
+    paymentMethod: paymentDetails?.paymentMethod || stay.paymentMethod || 'Efectivo',
+    paymentAmount: increment(totalDueAtCheckout > 0 ? totalDueAtCheckout : 0),
+  });
 
-  if (options?.reason) {
-    stayUpdateData.checkOutReason = options.reason;
-  }
-  if (options?.notes) {
-    stayUpdateData.checkOutNotes = options.notes;
-  }
-  
-  batch.update(stayRef, stayUpdateData);
-
-  // Update room
+  // Update room status
   const roomRef = doc(db, 'rooms', roomId);
   batch.update(roomRef, { status: 'Cleaning', currentStayId: null, statusUpdatedAt: Timestamp.now() });
 
@@ -280,6 +296,7 @@ export async function checkOut(stayId: string, roomId: string, options?: { reaso
     revalidatePath(`/rooms/${roomId}`);
     revalidatePath('/reservations');
     revalidatePath('/billing/invoices');
+    revalidatePath('/dashboard/rooms');
     return { success: true, invoiceId: invoiceIdForReturn };
   } catch (error) {
     console.error('Check-out failed:', error);
