@@ -404,7 +404,7 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 transition-all duration-300 p-4 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     order 
                                                         ? "bg-primary/[0.03] border-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
@@ -416,31 +416,37 @@ export default function PosClientPage() {
                                                 )}
 
                                                 <div className={cn(
-                                                    "mb-2 p-3 rounded-xl transition-all duration-300 shadow-sm border",
-                                                    order ? "bg-primary text-primary-foreground scale-110 shadow-primary/20" : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                                    "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
+                                                    order 
+                                                        ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/10" 
+                                                        : "bg-muted/30 text-muted-foreground border-border group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20"
                                                 )}>
-                                                    <Icon className="h-6 w-6" />
+                                                    <Icon className="h-5 w-5" />
                                                 </div>
                                                 
-                                                <span className={cn(
-                                                    "font-black text-3xl tracking-tight transition-colors",
-                                                    order ? "text-primary" : "text-foreground"
-                                                )}>{table.number}</span>
+                                                <div className="flex-1 flex flex-col items-center justify-center">
+                                                    <span className={cn(
+                                                        "font-black text-4xl tracking-tighter transition-colors",
+                                                        order ? "text-primary" : "text-foreground"
+                                                    )}>{table.number}</span>
+                                                </div>
                                                 
-                                                {order ? (
-                                                    <div className="mt-3 flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
-                                                        <Badge variant="default" className="font-black text-[11px] tracking-tight bg-primary px-2.5 h-6 shadow-md shadow-primary/20">
-                                                            {formatCurrency(order.total)}
-                                                        </Badge>
-                                                        <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
-                                                            <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
+                                                <div className="pb-4 w-full px-2">
+                                                    {order ? (
+                                                        <div className="flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
+                                                            <Badge variant="default" className="font-black text-[11px] tracking-tight bg-primary px-2.5 h-6 shadow-md shadow-primary/20">
+                                                                {formatCurrency(order.total)}
+                                                            </Badge>
+                                                            <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                                                                <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Abrir Cuenta</span>
-                                                    </div>
-                                                )}
+                                                    ) : (
+                                                        <div className="opacity-60 group-hover:opacity-100 transition-opacity text-center">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Abrir Cuenta</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </button>
                                         );
                                     })}
