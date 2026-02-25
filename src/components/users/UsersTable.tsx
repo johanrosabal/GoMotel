@@ -103,6 +103,8 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
             <SelectItem value="all">Todos los Roles</SelectItem>
             <SelectItem value="Administrador">Administrador</SelectItem>
             <SelectItem value="Recepcion">Recepción</SelectItem>
+            <SelectItem value="Conserje">Conserje</SelectItem>
+            <SelectItem value="Contador">Contador</SelectItem>
           </SelectContent>
         </Select>
       </div>

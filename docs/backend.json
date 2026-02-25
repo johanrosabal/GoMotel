@@ -671,7 +671,9 @@
           "description": "The user's role in the application.",
           "enum": [
             "Administrador",
-            "Recepcion"
+            "Recepcion",
+            "Conserje",
+            "Contador"
           ]
         },
         "status": {

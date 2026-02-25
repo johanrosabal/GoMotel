@@ -139,7 +139,7 @@ export interface Order {
   voucherNumber?: string;
 }
 
-export type UserRole = 'Administrador' | 'Recepcion';
+export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador';
 
 export interface UserProfile {
   id: string;

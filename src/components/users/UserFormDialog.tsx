@@ -21,7 +21,7 @@ const userFormSchema = z.object({
   secondLastName: z.string().max(25).optional(),
   email: z.string().email('Correo electrónico inválido.'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.').optional(),
-  role: z.enum(['Administrador', 'Recepcion']),
+  role: z.enum(['Administrador', 'Recepcion', 'Conserje', 'Contador']),
   idCard: z.string().min(1, 'La cédula es requerida.'),
   phoneNumber: z.string().min(1, 'El teléfono es requerido.'),
   birthDate: z.string().min(1, 'La fecha de nacimiento es requerida.'),
@@ -142,6 +142,8 @@ export default function UserFormDialog({ children, user, open: controlledOpen, o
                             <SelectContent>
                                 <SelectItem value="Administrador">Administrador</SelectItem>
                                 <SelectItem value="Recepcion">Recepción</SelectItem>
+                                <SelectItem value="Conserje">Conserje</SelectItem>
+                                <SelectItem value="Contador">Contador</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
