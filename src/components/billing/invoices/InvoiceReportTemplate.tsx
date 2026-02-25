@@ -34,7 +34,7 @@ const InvoiceReportTemplate = React.forwardRef<HTMLDivElement, InvoiceReportTemp
     return (
         <div 
             ref={ref} 
-            className="bg-white p-12 text-gray-900" 
+            className="bg-white p-12 text-gray-900 flex flex-col" 
             style={{ 
                 width: '210mm', 
                 minHeight: '297mm', 
@@ -97,7 +97,7 @@ const InvoiceReportTemplate = React.forwardRef<HTMLDivElement, InvoiceReportTemp
             </div>
 
             {/* Tabla de Detalle */}
-            <div className="mb-10">
+            <div className="mb-10 flex-grow">
                 <h2 className="text-xs font-bold text-gray-800 uppercase mb-3 border-l-4 border-gray-800 pl-2">Detalle Cronológico de Facturas</h2>
                 <table className="w-full border-collapse">
                     <thead>

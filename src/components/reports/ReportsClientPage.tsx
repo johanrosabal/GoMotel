@@ -10,7 +10,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
     Download, ArrowRight, DollarSign, PieChart as PieIcon,
-    Receipt, PackageSearch, FileText, CheckCircle2
+    Receipt, PackageSearch
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -61,17 +61,32 @@ export default function ReportsClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 3, 
+            scale: 2, 
             backgroundColor: '#ffffff',
             useCORS: true,
             logging: false,
         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pdfWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                heightLeft -= pdfHeight;
+            }
+
             pdf.save(`REPORTE-STOCK-${format(new Date(), 'yyyyMMdd')}.pdf`);
         });
     };
@@ -92,7 +107,6 @@ export default function ReportsClientPage() {
 
     return (
         <div className="space-y-6">
-            {/* KPI Section */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -152,7 +166,6 @@ export default function ReportsClientPage() {
                 </Card>
             </div>
 
-            {/* AI Analysis Button */}
             <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
                 <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -195,7 +208,6 @@ export default function ReportsClientPage() {
             </Card>
 
             <div className="grid gap-6 md:grid-cols-2">
-                {/* Revenue Chart */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -220,7 +232,6 @@ export default function ReportsClientPage() {
                     </CardContent>
                 </Card>
 
-                {/* Payment Methods Chart */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -253,7 +264,6 @@ export default function ReportsClientPage() {
                 </Card>
             </div>
 
-            {/* Detailed Breakdown Table */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -315,7 +325,6 @@ export default function ReportsClientPage() {
                 </CardFooter>
             </Card>
 
-            {/* Low Stock Dialog */}
             <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
                 <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
                     <DialogHeader className="p-6 pb-4">
@@ -355,11 +364,10 @@ export default function ReportsClientPage() {
                         </div>
                     </div>
 
-                    {/* PDF HIDDEN TEMPLATE - Refined Accounting Style */}
                     <div className="absolute -left-[9999px] top-0">
                         <div 
                             ref={stockReportRef} 
-                            className="bg-white p-12 text-gray-900" 
+                            className="bg-white p-12 text-gray-900 flex flex-col" 
                             style={{ 
                                 width: '210mm', 
                                 minHeight: '297mm', 
@@ -368,7 +376,6 @@ export default function ReportsClientPage() {
                                 wordSpacing: 'normal'
                             }}
                         >
-                            {/* Membrete Contable */}
                             <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
                                 <div className="space-y-1">
                                     <h1 className="text-xl font-bold text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
@@ -390,7 +397,6 @@ export default function ReportsClientPage() {
                                 </div>
                             </div>
 
-                            {/* Cuerpo del Reporte */}
                             <div className="mb-6 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
                                 <h2 className="text-xs font-bold text-yellow-800 mb-1">AVISO DE REABASTECIMIENTO</h2>
                                 <p className="text-[10px] text-yellow-700 leading-relaxed">
@@ -398,30 +404,31 @@ export default function ReportsClientPage() {
                                 </p>
                             </div>
 
-                            <table className="w-full border-collapse mb-10">
-                                <thead>
-                                    <tr className="bg-gray-800 text-white text-left">
-                                        <th className="p-2 border border-gray-800 text-[9px] font-bold">DESCRIPCIÓN DEL PRODUCTO</th>
-                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK REAL</th>
-                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK MÍN.</th>
-                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-right">CANT. A PEDIR</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data.lowStockDetails?.map((item: any, index: number) => (
-                                        <tr key={item.id} className={cn("text-[10px]", index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
-                                            <td className="p-2 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
-                                            <td className="p-2 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
-                                            <td className="p-2 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
-                                            <td className="p-2 border border-gray-200 text-right font-bold text-gray-900">
-                                                {item.minStock - item.stock} Unidades
-                                            </td>
+                            <div className="flex-grow">
+                                <table className="w-full border-collapse mb-10">
+                                    <thead>
+                                        <tr className="bg-gray-800 text-white text-left">
+                                            <th className="p-2 border border-gray-800 text-[9px] font-bold">DESCRIPCIÓN DEL PRODUCTO</th>
+                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK REAL</th>
+                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK MÍN.</th>
+                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-right">CANT. A PEDIR</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {data.lowStockDetails?.map((item: any, index: number) => (
+                                            <tr key={item.id} className={cn("text-[10px]", index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                                                <td className="p-2 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
+                                                <td className="p-2 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
+                                                <td className="p-2 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
+                                                <td className="p-2 border border-gray-200 text-right font-bold text-gray-900">
+                                                    {item.minStock - item.stock} Unidades
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                            {/* Resumen Final */}
                             <div className="grid grid-cols-2 gap-6 mb-12">
                                 <div className="border p-3 rounded bg-gray-50">
                                     <h3 className="text-[8px] font-bold text-gray-400 mb-2 border-b pb-1">RESUMEN GENERAL</h3>
@@ -443,8 +450,7 @@ export default function ReportsClientPage() {
                                 </div>
                             </div>
 
-                            {/* Área de Firmas */}
-                            <div className="grid grid-cols-2 gap-12 pt-6 border-t border-gray-100">
+                            <div className="mt-auto grid grid-cols-2 gap-12 pt-6 border-t border-gray-100">
                                 <div className="text-center space-y-2">
                                     <div className="h-12 border-b border-gray-300"></div>
                                     <div>

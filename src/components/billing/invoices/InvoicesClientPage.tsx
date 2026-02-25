@@ -2,7 +2,7 @@
 
 import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import type { Invoice, CompanyProfile } from "@/types";
+import type { Invoice } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import InvoicesTable from "./InvoicesTable";
 import { useState, useMemo, useRef } from "react";
@@ -11,10 +11,8 @@ import { Button } from "@/components/ui/button";
 import { 
     Calendar as CalendarIcon, 
     Download, 
-    FileText, 
     Search, 
-    X,
-    ChevronDown
+    X
 } from "lucide-react";
 import { 
     Select, 
@@ -31,7 +29,6 @@ import {
     startOfMonth, 
     isWithinInterval 
 } from "date-fns";
-import { es } from "date-fns/locale";
 import { 
     Popover, 
     PopoverContent, 
@@ -94,11 +91,9 @@ export default function InvoicesClientPage() {
         return invoices.filter(invoice => {
             const invoiceDate = invoice.createdAt.toDate();
             
-            // Search filter
             const searchContent = `${invoice.clientName} ${invoice.invoiceNumber}`.toLowerCase();
             const searchMatch = searchContent.includes(searchTerm.toLowerCase());
             
-            // Date filter
             let dateMatch = true;
             if (dateRange.from && dateRange.to) {
                 dateMatch = isWithinInterval(invoiceDate, { 
@@ -118,23 +113,40 @@ export default function InvoicesClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 3, 
+            scale: 2, 
             useCORS: true,
             backgroundColor: '#ffffff',
             logging: false
         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
+            
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pdfWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // Primera página
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+            heightLeft -= pdfHeight;
+
+            // Páginas subsiguientes si el reporte es largo
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                heightLeft -= pdfHeight;
+            }
+
             pdf.save(`REPORTE-VENTAS-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
         });
     };
 
     return (
         <div className="space-y-6">
-            {/* Filters Bar */}
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end bg-muted/20 p-4 rounded-xl border">
                 <div className="grid gap-2 w-full lg:w-auto">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Búsqueda</label>
@@ -250,7 +262,6 @@ export default function InvoicesClientPage() {
                 </div>
             )}
 
-            {/* Hidden PDF Template */}
             <div className="absolute -left-[9999px] top-0">
                 <InvoiceReportTemplate 
                     invoices={filteredInvoices} 
