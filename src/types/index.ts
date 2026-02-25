@@ -1,3 +1,4 @@
+
 'use client';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -31,6 +32,14 @@ export interface Room {
   roomTypeId: string;
   roomTypeName: string;
   statusUpdatedAt?: Timestamp;
+}
+
+export interface RestaurantTable {
+  id: string;
+  number: string;
+  type: 'Table' | 'Bar';
+  status: 'Available' | 'Occupied';
+  currentOrderId?: string | null;
 }
 
 export interface ProductCategory {
@@ -123,12 +132,13 @@ export interface OrderItem {
   serviceId: string;
   name: string;
   quantity: number;
-  price: number; // Price per item at the time of order
+  price: number;
 }
 
 export interface Order {
   id: string;
-  stayId: string;
+  locationType: 'Stay' | 'Table' | 'Bar' | 'Takeout';
+  locationId?: string;
   items: OrderItem[];
   total: number;
   createdAt: Timestamp;
@@ -137,6 +147,7 @@ export interface Order {
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   invoiceId?: string;
   voucherNumber?: string;
+  stayId?: string; // For compatibility with older code
 }
 
 export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador';

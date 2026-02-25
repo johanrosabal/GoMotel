@@ -215,6 +215,19 @@
         "ratePerHour"
       ]
     },
+    "RestaurantTable": {
+      "title": "Restaurant Table",
+      "type": "object",
+      "description": "Represents a physical table or spot in the restaurant/bar.",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "type": { "type": "string", "enum": ["Table", "Bar"] },
+        "status": { "type": "string", "enum": ["Available", "Occupied"] },
+        "currentOrderId": { "type": "string" }
+      },
+      "required": ["number", "type", "status"]
+    },
     "Service": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Service",
@@ -296,31 +309,39 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents an order for services placed for a room.",
+      "description": "Represents an order for services.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Order entity."
         },
-        "roomId": {
+        "locationType": {
           "type": "string",
-          "description": "Reference to Room. (Relationship: Room 1:N Order)"
+          "enum": ["Stay", "Table", "Bar", "Takeout"],
+          "description": "Where this order is being served."
         },
-        "serviceIds": {
+        "locationId": {
+          "type": "string",
+          "description": "The ID of the room stay or restaurant table."
+        },
+        "items": {
           "type": "array",
-          "description": "References to Services. (Relationship: Order 1:N Service)",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "serviceId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" }
+            }
           }
         },
-        "orderTime": {
+        "createdAt": {
           "type": "string",
-          "description": "The date and time the order was placed.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The status of the order (e.g., pending, processing, completed).",
           "enum": [
             "Pendiente",
             "En preparación",
@@ -328,295 +349,16 @@
             "Cancelado"
           ]
         },
-        "totalPrice": {
+        "total": {
           "type": "number",
           "description": "The total price of the order."
         }
       },
       "required": [
-        "id",
-        "roomId",
-        "serviceIds",
-        "orderTime",
+        "items",
+        "createdAt",
         "status",
-        "totalPrice"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Represents a transaction for a room stay and services.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
-        },
-        "roomId": {
-          "type": "string",
-          "description": "Reference to Room. (Relationship: Room 1:N Transaction)"
-        },
-        "checkInTime": {
-          "type": "string",
-          "description": "The date and time the room was checked in.",
-          "format": "date-time"
-        },
-        "checkOutTime": {
-          "type": "string",
-          "description": "The date and time the room was checked out.",
-          "format": "date-time"
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total amount for the transaction."
-        },
-        "orderIds": {
-          "type": "array",
-          "description": "References to Orders associated with the transaction. (Relationship: Transaction 1:N Order)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "roomId",
-        "checkInTime",
-        "checkOutTime",
-        "totalAmount",
-        "orderIds"
-      ]
-    },
-    "Stay": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Stay",
-      "type": "object",
-      "description": "Represents an active or past stay of a guest in a room.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Stay."
-        },
-        "roomId": {
-          "type": "string",
-          "description": "Reference to the Room."
-        },
-        "roomNumber": {
-          "type": "string",
-          "description": "Denormalized room number."
-        },
-        "guestName": {
-          "type": "string",
-          "description": "Name of the guest."
-        },
-        "checkIn": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Actual check-in time."
-        },
-        "expectedCheckOut": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Expected check-out time."
-        },
-        "checkOut": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Actual check-out time."
-        },
-        "total": {
-          "type": "number",
-          "description": "Final bill amount."
-        },
-        "isPaid": {
-          "type": "boolean",
-          "description": "Payment status."
-        },
-        "reservationId": {
-          "type": "string",
-          "description": "Optional reference to the Reservation."
-        },
-        "checkOutReason": {
-          "type": "string",
-          "description": "The reason for an early checkout.",
-          "enum": [
-            "Salida voluntaria",
-            "Incumplimiento de normas",
-            "Daños a la propiedad",
-            "Emergencia",
-            "Otro"
-          ]
-        },
-        "checkOutNotes": {
-          "type": "string",
-          "description": "Additional notes about the early checkout."
-        },
-        "renewalCount": {
-          "type": "number",
-          "description": "The number of times the stay has been extended."
-        },
-        "extensionHistory": {
-          "type": "array",
-          "description": "A history of all extensions applied to this stay.",
-          "items": {
-            "$ref": "#/backend/entities/StayExtension"
-          }
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "Payment method used for the stay.",
-          "enum": [
-            "Efectivo",
-            "Sinpe Movil",
-            "Tarjeta",
-            "Por Definir"
-          ]
-        },
-        "paymentStatus": {
-          "type": "string",
-          "description": "Payment status of the stay.",
-          "enum": [
-            "Pagado",
-            "Pendiente"
-          ]
-        },
-        "paymentAmount": {
-          "type": "number",
-          "description": "The amount paid for the stay, if any."
-        }
-      },
-      "required": [
-        "roomId",
-        "roomNumber",
-        "guestName",
-        "checkIn",
-        "expectedCheckOut"
-      ]
-    },
-    "StayExtension": {
-      "title": "Stay Extension",
-      "type": "object",
-      "description": "Records an instance of a stay being extended.",
-      "properties": {
-        "extendedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the extension was processed."
-        },
-        "oldExpectedCheckOut": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The checkout time before this extension."
-        },
-        "newExpectedCheckOut": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The new checkout time after this extension."
-        },
-        "planName": {
-          "type": "string",
-          "description": "The name of the price plan used for this extension."
-        },
-        "planPrice": {
-          "type": "number",
-          "description": "The price of the plan used for this extension."
-        }
-      },
-      "required": [
-        "extendedAt",
-        "oldExpectedCheckOut",
-        "newExpectedCheckOut",
-        "planName",
-        "planPrice"
-      ]
-    },
-    "roles_admin": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "roles_admin",
-      "type": "object",
-      "description": "Defines admin roles for users. The existence of a document with a user's UID grants them admin privileges.",
-      "properties": {
-        "admin": {
-          "type": "boolean",
-          "description": "Must be true to grant admin access."
-        }
-      },
-      "required": [
-        "admin"
-      ]
-    },
-    "PricePlan": {
-      "title": "Price Plan",
-      "type": "object",
-      "description": "Defines a pricing plan based on duration.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the price plan (e.g., Nightly Rate)."
-        },
-        "duration": {
-          "type": "number",
-          "description": "The value for the duration unit (e.g., 8 for 8 hours)."
-        },
-        "unit": {
-          "type": "string",
-          "description": "The unit of time for the duration.",
-          "enum": [
-            "Hours",
-            "Days",
-            "Weeks",
-            "Months"
-          ]
-        },
-        "price": {
-          "type": "number",
-          "description": "The cost of this plan."
-        }
-      },
-      "required": [
-        "name",
-        "duration",
-        "unit",
-        "price"
-      ]
-    },
-    "RoomType": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Room Type",
-      "type": "object",
-      "description": "Defines a category of room with specific features and pricing.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the room type (e.g., Single, Double, Suite)."
-        },
-        "code": {
-          "type": "string",
-          "description": "A unique code for the room type (e.g., 01, 02)."
-        },
-        "capacity": {
-          "type": "number",
-          "description": "Maximum number of occupants for this room type."
-        },
-        "features": {
-          "type": "array",
-          "description": "A list of features for this room type.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "pricePlans": {
-          "type": "array",
-          "description": "A list of pricing plans for this room type.",
-          "items": {
-            "$ref": "#/backend/entities/PricePlan"
-          }
-        }
-      },
-      "required": [
-        "name",
-        "code",
-        "capacity"
+        "total"
       ]
     },
     "UserProfile": {
@@ -913,277 +655,6 @@
         "isActive",
         "createdAt"
       ]
-    },
-    "Supplier": {
-      "title": "Supplier",
-      "type": "object",
-      "description": "Represents a product or service supplier.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Supplier."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the supplier company."
-        },
-        "contactName": {
-          "type": "string",
-          "description": "The name of the primary contact person."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The supplier's email address."
-        },
-        "phone": {
-          "type": "string",
-          "description": "The supplier's phone number."
-        },
-        "address": {
-          "type": "string",
-          "description": "The supplier's physical address."
-        },
-        "googleMapsUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "URL to the supplier's location on Google Maps."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Internal notes about the supplier."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the supplier was registered."
-        }
-      },
-      "required": [
-        "name",
-        "createdAt"
-      ]
-    },
-    "PurchaseInvoice": {
-      "title": "Purchase Invoice",
-      "type": "object",
-      "description": "Represents a record of a purchase from a supplier.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Purchase Invoice."
-        },
-        "invoiceNumber": {
-          "type": "string",
-          "description": "The supplier's invoice number."
-        },
-        "supplierId": {
-          "type": "string",
-          "description": "Reference to the Supplier."
-        },
-        "supplierName": {
-          "type": "string",
-          "description": "Denormalized name of the supplier."
-        },
-        "invoiceDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Date of the purchase invoice."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the purchase was recorded."
-        },
-        "items": {
-          "type": "array",
-          "description": "List of items purchased.",
-          "items": {
-            "$ref": "#/backend/entities/PurchaseInvoiceItem"
-          }
-        },
-        "subtotal": {
-          "type": "number",
-          "description": "The total amount before taxes."
-        },
-        "totalTax": {
-          "type": "number",
-          "description": "The total amount of taxes."
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "Total amount of the invoice."
-        },
-        "taxesIncluded": {
-          "type": "boolean",
-          "description": "Indicates if taxes are included in the item cost prices."
-        },
-        "discountType": {
-          "type": "string",
-          "description": "The type of discount applied, if any.",
-          "enum": [
-            "percentage",
-            "fixed"
-          ]
-        },
-        "discountValue": {
-          "type": "number",
-          "description": "The value of the discount applied (either percentage or fixed amount)."
-        },
-        "totalDiscount": {
-          "type": "number",
-          "description": "The total calculated discount amount."
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the purchase invoice.",
-          "enum": [
-            "Activa",
-            "Anulada"
-          ]
-        }
-      },
-      "required": [
-        "invoiceNumber",
-        "supplierId",
-        "supplierName",
-        "invoiceDate",
-        "createdAt",
-        "items",
-        "totalAmount"
-      ]
-    },
-    "PurchaseInvoiceItem": {
-      "title": "Purchase Invoice Item",
-      "type": "object",
-      "description": "A single line item on a purchase invoice.",
-      "properties": {
-        "serviceId": {
-          "type": "string",
-          "description": "Reference to the Service purchased."
-        },
-        "serviceName": {
-          "type": "string",
-          "description": "Denormalized name of the service."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "Quantity purchased."
-        },
-        "costPrice": {
-          "type": "number",
-          "description": "Cost price per unit for this purchase."
-        },
-        "total": {
-          "type": "number",
-          "description": "Total cost for this line item (quantity * costPrice)."
-        },
-        "taxIds": {
-          "type": "array",
-          "description": "A list of tax IDs applicable to this item at the time of purchase.",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "serviceId",
-        "serviceName",
-        "quantity",
-        "costPrice",
-        "total"
-      ]
-    },
-    "CompanyProfile": {
-      "title": "Company Profile",
-      "type": "object",
-      "description": "Stores the company's official business information.",
-      "properties": {
-        "tradeName": {
-          "type": "string",
-          "description": "The commercial name of the company."
-        },
-        "legalId": {
-          "type": "string",
-          "description": "The legal identification number (e.g., Cédula Jurídica)."
-        },
-        "country": {
-          "type": "string",
-          "description": "Country of operation."
-        },
-        "address": {
-          "type": "string",
-          "description": "The physical address of the company."
-        },
-        "googleMapsUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "URL to the company's location on Google Maps."
-        },
-        "websiteUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "The company's official website URL."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "Data URI for the company's logo."
-        },
-        "phoneNumbers": {
-            "type": "array",
-            "description": "List of company contact phone numbers.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "label": { "type": "string", "description": "Label for the phone number (e.g., 'Reservations', 'Main')." },
-                    "value": { "type": "string", "description": "The phone number." }
-                },
-                "required": ["label", "value"]
-            }
-        },
-        "emails": {
-            "type": "array",
-            "description": "List of company contact email addresses.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "label": { "type": "string", "description": "Label for the email (e.g., 'Info', 'Support')." },
-                    "value": { "type": "string", "format": "email", "description": "The email address." }
-                },
-                "required": ["label", "value"]
-            }
-        },
-        "socialMedia": {
-            "type": "array",
-            "description": "List of company social media profiles.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "platform": { "type": "string", "enum": ["Facebook", "Instagram", "Twitter", "TikTok", "LinkedIn"] },
-                    "url": { "type": "string", "format": "uri" }
-                },
-                "required": ["platform", "url"]
-            }
-        },
-        "bankAccounts": {
-            "type": "array",
-            "description": "List of company bank accounts for reference.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "bankName": { "type": "string" },
-                    "accountHolder": { "type": "string" },
-                    "accountNumber": { "type": "string" },
-                    "iban": { "type": "string" }
-                },
-                "required": ["bankName", "accountHolder", "accountNumber"]
-            }
-        }
-      },
-      "required": [
-        "tradeName",
-        "legalId"
-      ]
     }
   },
   "auth": {
@@ -1194,35 +665,12 @@
   "firestore": {
     "structure": [
       {
-        "path": "/rooms/{roomId}",
+        "path": "/restaurantTables/{tableId}",
         "definition": {
-          "entityName": "Room",
-          "schema": {
-            "$ref": "#/backend/entities/Room"
-          },
-          "description": "Stores information about rooms. Requires admin privileges to create, read, update, or delete.",
-          "params": [
-            {
-              "name": "roomId",
-              "description": "The unique identifier of the room."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/services/{serviceId}",
-        "definition": {
-          "entityName": "Service",
-          "schema": {
-            "$ref": "#/backend/entities/Service"
-          },
-          "description": "Stores information about services offered. Requires admin privileges to create, read, update, or delete.",
-          "params": [
-            {
-              "name": "serviceId",
-              "description": "The unique identifier of the service."
-            }
-          ]
+          "entityName": "RestaurantTable",
+          "schema": { "$ref": "#/backend/entities/RestaurantTable" },
+          "description": "Stores state of restaurant tables and bar spots.",
+          "params": [{ "name": "tableId", "description": "Unique ID" }]
         }
       },
       {
@@ -1232,7 +680,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores information about orders. Requires admin privileges to create, read, update, or delete. Includes `roomId` to associate orders with rooms.",
+          "description": "Stores information about orders. Linked to room stays or restaurant locations.",
           "params": [
             {
               "name": "orderId",
@@ -1240,216 +688,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores information about transactions. Requires admin privileges to create, read, update, or delete. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.",
-          "params": [
-            {
-              "name": "transactionId",
-              "description": "The unique identifier of the transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{uid}",
-        "definition": {
-          "entityName": "roles_admin",
-          "schema": {
-            "$ref": "#/backend/entities/roles_admin"
-          },
-          "description": "Grants admin access to a user if a document with their UID exists in this collection. Existence over content.",
-          "params": [
-            {
-              "name": "uid",
-              "description": "The Firebase UID of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roomTypes/{roomTypeId}",
-        "definition": {
-          "entityName": "RoomType",
-          "schema": {
-            "$ref": "#/backend/entities/RoomType"
-          },
-          "description": "Stores information about the types of rooms available.",
-          "params": [
-            {
-              "name": "roomTypeId",
-              "description": "The unique identifier for the room type."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Users can create and manage their own profile. Admins can manage all profiles.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase UID of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/reservations/{reservationId}",
-        "definition": {
-          "entityName": "Reservation",
-          "schema": {
-            "$ref": "#/backend/entities/Reservation"
-          },
-          "description": "Stores reservation information. Requires admin or reception privileges to manage.",
-          "params": [
-            {
-              "name": "reservationId",
-              "description": "The unique identifier of the reservation."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/stays/{stayId}",
-        "definition": {
-          "entityName": "Stay",
-          "schema": {
-            "$ref": "#/backend/entities/Stay"
-          },
-          "description": "Stores records of room stays, both active and past.",
-          "params": [
-            {
-              "name": "stayId",
-              "description": "The unique identifier of the stay."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}",
-        "definition": {
-          "entityName": "Client",
-          "schema": {
-            "$ref": "#/backend/entities/Client"
-          },
-          "description": "Stores registered client information for faster check-ins and CRM.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/taxes/{taxId}",
-        "definition": {
-          "entityName": "Tax",
-          "schema": {
-            "$ref": "#/backend/entities/Tax"
-          },
-          "description": "Stores tax rates applicable to products and services. Requires admin privileges.",
-          "params": [
-            {
-              "name": "taxId",
-              "description": "The unique identifier for the tax."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/invoices/{invoiceId}",
-        "definition": {
-          "entityName": "Invoice",
-          "schema": {
-            "$ref": "#/backend/entities/Invoice"
-          },
-          "description": "Stores all billing invoices generated for reservations and stays.",
-          "params": [
-            {
-              "name": "invoiceId",
-              "description": "The unique identifier of the invoice."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/sinpeAccounts/{accountId}",
-        "definition": {
-          "entityName": "SinpeAccount",
-          "schema": {
-            "$ref": "#/backend/entities/SinpeAccount"
-          },
-          "description": "Stores SINPE Movil account information.",
-          "params": [
-            {
-              "name": "accountId",
-              "description": "The unique identifier of the SINPE account."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/suppliers/{supplierId}",
-        "definition": {
-          "entityName": "Supplier",
-          "schema": {
-            "$ref": "#/backend/entities/Supplier"
-          },
-          "description": "Stores information about product suppliers.",
-          "params": [
-            {
-              "name": "supplierId",
-              "description": "The unique identifier for the supplier."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/purchaseInvoices/{purchaseInvoiceId}",
-        "definition": {
-          "entityName": "PurchaseInvoice",
-          "schema": {
-            "$ref": "#/backend/entities/PurchaseInvoice"
-          },
-          "description": "Stores records of purchases from suppliers, including invoice details and items purchased. Requires admin privileges.",
-          "params": [
-            {
-              "name": "purchaseInvoiceId",
-              "description": "The unique identifier of the purchase invoice."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/companyInfo/{profileId}",
-        "definition": {
-          "entityName": "CompanyProfile",
-          "schema": {
-            "$ref": "#/backend/entities/CompanyProfile"
-          },
-          "description": "Stores the single profile for the company information. A singleton collection.",
-          "params": [
-            {
-              "name": "profileId",
-              "description": "The unique identifier, typically a fixed value like 'main'."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to manage a motel's operations, including room check-in/out, service orders, inventory, and billing. The structure prioritizes authorization independence and supports secure list operations.\\n\\n**Authorization Independence and QAPs:**\\n\\n*   Path-based ownership is used for private user data (none in the current data model, but can be easily extended). This avoids the need for `get()` calls in security rules and enables atomic operations.\\n*   Since all the collections requires Admin privileges, no additional attributes are denormalized as no user-level authorization rules are needed, simplifying security rules and improving performance.\\n*   Structural segregation ensures all documents in each collection share the same security requirements (admin-only access).  This simplifies security rules.\\n\\n**Explanation of Collections:**\\n\\n*   `/rooms`: Stores room information. All operations require admin privileges.\\n*   `/services`: Stores service information. All operations require admin privileges.\\n*   `/orders`: Stores order information. All operations require admin privileges. Includes `roomId` to associate orders with rooms.\\n*   `/transactions`: Stores transaction information. All operations require admin privileges. Includes `roomId` to associate transactions with rooms, and `orderIds` to associate transactions with orders.\\n*   `/roles_admin/{uid}`: Used to grant admin access. The existence of a document in this collection grants admin privileges to the corresponding user.\\n\\nThis design enables robust security rules. For example, listing rooms is secure because no user-generated content is involved. All write operations are restricted to admins, which can be enforced by checking the existence of a document in `/roles_admin/{uid}`."
+    ]
   }
 }
