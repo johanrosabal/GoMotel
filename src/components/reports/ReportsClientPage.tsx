@@ -9,13 +9,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
-    Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon 
+    Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon,
+    Receipt
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
     ResponsiveContainer, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { Badge } from '../ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 
@@ -65,6 +70,11 @@ export default function ReportsClientPage() {
                     <CardContent>
                         <div className="text-2xl font-black">{formatCurrency(data.kpis.totalRevenue)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Total facturado en el periodo</p>
+                        <Button variant="link" size="sm" className="p-0 h-auto mt-3 text-primary font-bold" asChild>
+                            <Link href="/billing/invoices">
+                                Ver facturas <ArrowRight className="ml-1 h-3 w-3" />
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
                 <Card>
@@ -199,6 +209,68 @@ export default function ReportsClientPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Detailed Breakdown Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Receipt className="h-5 w-5 text-primary" />
+                        Desglose de Ingresos Recientes
+                    </CardTitle>
+                    <CardDescription>Lista detallada de las facturas pagadas que componen el saldo de los últimos 7 días.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="text-xs uppercase font-bold">Fecha / Hora</TableHead>
+                                    <TableHead className="text-xs uppercase font-bold">Factura N°</TableHead>
+                                    <TableHead className="text-xs uppercase font-bold">Cliente</TableHead>
+                                    <TableHead className="text-xs uppercase font-bold">Método</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-bold">Monto</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {data.detailedInvoices && data.detailedInvoices.length > 0 ? (
+                                    data.detailedInvoices.map((inv: any) => (
+                                        <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
+                                            <TableCell className="text-xs">
+                                                {format(new Date(inv.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs font-bold text-primary">
+                                                {inv.invoiceNumber}
+                                            </TableCell>
+                                            <TableCell className="text-xs font-medium">{inv.clientName}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tighter">
+                                                    {inv.paymentMethod}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right font-black text-xs">
+                                                {formatCurrency(inv.total)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                            No hay movimientos registrados en este periodo.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+                <CardFooter className="justify-center border-t py-4 bg-muted/10">
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/billing/invoices">
+                            Ver Historial de Facturación Completo
+                        </Link>
+                    </Button>
+                </CardFooter>
+            </Card>
         </div>
     );
 }

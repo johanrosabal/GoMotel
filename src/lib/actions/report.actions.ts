@@ -84,7 +84,18 @@ export async function getDashboardStats(days: number = 7) {
             totalRevenue: invoices.reduce((sum, i) => sum + i.total, 0),
             staysCount: stays.length,
             lowStockItems: services.filter(s => s.minStock != null && s.stock <= s.minStock).map(s => s.name)
-        }
+        },
+        detailedInvoices: invoices
+            .filter(i => i.status === 'Pagada')
+            .map(inv => ({
+                id: inv.id,
+                invoiceNumber: inv.invoiceNumber,
+                clientName: inv.clientName,
+                total: inv.total,
+                paymentMethod: inv.paymentMethod,
+                createdAt: inv.createdAt.toDate().toISOString()
+            }))
+            .reverse()
     };
 
   } catch (error) {
