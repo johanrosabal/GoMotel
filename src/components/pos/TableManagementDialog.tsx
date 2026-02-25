@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +12,7 @@ import type { RestaurantTable } from '@/types';
 import { Trash2, Plus, Utensils, Beer } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface Props {
     open: boolean;
@@ -23,22 +23,26 @@ interface Props {
 export default function TableManagementDialog({ open, onOpenChange, tables }: Props) {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const [newNumber, setNewNumber] = useState('');
     const [newType, setNewType] = useState<'Table' | 'Bar'>('Table');
 
+    // Calcular el siguiente número automáticamente basado en las existentes del mismo tipo
+    const nextNumber = useMemo(() => {
+        const typeTables = tables.filter(t => t.type === newType);
+        const numbers = typeTables
+            .map(t => parseInt(t.number, 10))
+            .filter(n => !isNaN(n));
+        
+        const max = numbers.length > 0 ? Math.max(...numbers) : 0;
+        return String(max + 1).padStart(2, '0');
+    }, [tables, newType]);
+
     const handleAdd = () => {
-        if (!newNumber) return;
-        
-        // Aplicar formato 00 antes de guardar
-        const paddedNumber = newNumber.padStart(2, '0');
-        
         startTransition(async () => {
-            const result = await createRestaurantTable({ number: paddedNumber, type: newType });
+            const result = await createRestaurantTable({ number: nextNumber, type: newType });
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Éxito', description: 'Ubicación agregada correctamente.' });
-                setNewNumber('');
+                toast({ title: 'Éxito', description: `Ubicación ${nextNumber} agregada correctamente.` });
             }
         });
     };
@@ -60,31 +64,16 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                 <DialogHeader>
                     <DialogTitle>Gestión de Mesas y Barra</DialogTitle>
                     <DialogDescription>
-                        Añada o elimine las ubicaciones físicas de su restaurante.
+                        Añada o elimine las ubicaciones físicas de su restaurante. La numeración es automática.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    <div className="grid grid-cols-3 gap-3 items-end bg-muted/30 p-4 rounded-xl border border-dashed">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-muted/20 p-5 rounded-2xl border border-dashed border-primary/20">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Número/ID</Label>
-                            <Input 
-                                placeholder="Ej: 01" 
-                                value={newNumber} 
-                                type="text"
-                                inputMode="numeric"
-                                onChange={(e) => {
-                                    // Solo permitir números y máximo 2 dígitos
-                                    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-                                    setNewNumber(val);
-                                }}
-                                className="h-10 font-bold"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Tipo</Label>
-                            <Select value={newType} onValueChange={(v: any) => setNewType(v)}>
-                                <SelectTrigger className="h-10 font-bold">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo</Label>
+                            <Select value={newType} onValueChange={(v: any) => setNewType(v)} disabled={isPending}>
+                                <SelectTrigger className="h-11 font-bold rounded-xl bg-background border-2">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -93,27 +82,66 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button onClick={handleAdd} disabled={isPending || !newNumber} className="h-10 font-black uppercase text-[10px]">
-                            <Plus className="mr-1 h-3.5 w-3.5" /> Agregar
+                        
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Próximo N°</Label>
+                            <div className="relative">
+                                <Input 
+                                    value={nextNumber} 
+                                    readOnly
+                                    className="h-11 font-black text-center text-xl bg-primary/5 border-2 border-primary/20 rounded-xl font-mono text-primary pointer-events-none"
+                                />
+                            </div>
+                        </div>
+
+                        <Button 
+                            onClick={handleAdd} 
+                            disabled={isPending} 
+                            className="h-11 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-primary/10"
+                        >
+                            <Plus className="mr-1 h-4 w-4" /> Agregar {newType === 'Table' ? 'Mesa' : 'Barra'}
                         </Button>
                     </div>
 
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Ubicaciones Actuales</h4>
-                        <ScrollArea className="h-64 rounded-xl border bg-background">
-                            <div className="p-3 space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ubicaciones Actuales</h4>
+                            <Badge variant="secondary" className="text-[9px] font-bold">{tables.length} Total</Badge>
+                        </div>
+                        <ScrollArea className="h-64 rounded-2xl border bg-background/50 backdrop-blur-sm">
+                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {tables.length === 0 ? (
-                                    <p className="text-center py-10 text-xs text-muted-foreground italic">No hay ubicaciones configuradas.</p>
+                                    <div className="col-span-full py-12 flex flex-col items-center justify-center text-muted-foreground/40">
+                                        {newType === 'Table' ? <Utensils className="h-10 w-10 mb-2" /> : <Beer className="h-10 w-10 mb-2" />}
+                                        <p className="text-xs font-bold uppercase tracking-widest italic">Sin ubicaciones</p>
+                                    </div>
                                 ) : (
-                                    tables.map(table => (
-                                        <div key={table.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/10 group">
+                                    [...tables].sort((a,b) => {
+                                        if(a.type !== b.type) return a.type === 'Table' ? -1 : 1;
+                                        return a.number.localeCompare(b.number, undefined, { numeric: true });
+                                    }).map(table => (
+                                        <div key={table.id} className={cn(
+                                            "flex items-center justify-between p-3 rounded-xl border transition-all group",
+                                            table.status === 'Occupied' ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent hover:border-primary/30"
+                                        )}>
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-full bg-background border">
+                                                <div className={cn(
+                                                    "p-2 rounded-lg border shadow-sm",
+                                                    table.status === 'Occupied' ? "bg-primary text-primary-foreground" : "bg-background"
+                                                )}>
                                                     {table.type === 'Table' ? <Utensils className="h-4 w-4" /> : <Beer className="h-4 w-4" />}
                                                 </div>
                                                 <div>
-                                                    <p className="font-black text-sm">{table.type === 'Table' ? 'Mesa' : 'Barra'} {table.number}</p>
-                                                    <Badge variant="outline" className="text-[8px] font-bold uppercase">{table.status === 'Available' ? 'Libre' : 'Ocupada'}</Badge>
+                                                    <p className="font-black text-sm tracking-tight">{table.type === 'Table' ? 'Mesa' : 'Barra'} {table.number}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            table.status === 'Occupied' ? "bg-blue-500 animate-pulse" : "bg-green-500"
+                                                        )} />
+                                                        <span className="text-[8px] font-black uppercase text-muted-foreground/70">
+                                                            {table.status === 'Available' ? 'Libre' : 'En uso'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <Button 
@@ -121,7 +149,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                                 size="icon" 
                                                 disabled={isPending || table.status === 'Occupied'}
                                                 onClick={() => handleDelete(table.id)}
-                                                className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -133,8 +161,8 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                     </div>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="font-bold">Cerrar</Button>
+                <DialogFooter className="bg-muted/10 p-4 -m-6 mt-2 rounded-b-lg">
+                    <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full font-bold h-11 rounded-xl">Cerrar</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
