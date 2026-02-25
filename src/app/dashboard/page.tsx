@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardHeader,
@@ -34,29 +35,36 @@ import {
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { formatCurrency, cn } from '@/lib/utils';
-import type { CompanyProfile } from '@/types';
+import type { CompanyProfile, UserRole } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { getServerUserProfile } from '@/lib/actions/user.actions';
 
 // Define a type for navigation sections
 type NavSection = {
   title: string;
   scope: string;
   description: string;
+  roles: UserRole[];
   links: {
     href: string;
     title: string;
     description: string;
     icon: React.ElementType;
     badge?: string;
+    roles?: UserRole[];
   }[];
 };
 
 export default async function DashboardPage() {
   const rooms = await getRooms();
   const services = await getServices();
+  const userProfile = await getServerUserProfile();
   
+  if (!userProfile) return null;
+  const userRole = userProfile.role;
+
   // Fetch company info
   const companySnap = await getDoc(doc(db, 'companyInfo', 'main'));
   const company = companySnap.exists() ? companySnap.data() as CompanyProfile : null;
@@ -81,24 +89,28 @@ export default async function DashboardPage() {
       value: formatCurrency(totalAssetValue),
       description: 'Capital total en bodega.',
       icon: Wallet,
+      visible: ['Administrador', 'Contador'].includes(userRole),
     },
     {
       title: 'Ventas por Hora (Potencial)',
       value: formatCurrency(expectedRevenue),
       description: 'Ingreso por hora de hab. ocupadas.',
       icon: ShoppingCart,
+      visible: ['Administrador', 'Recepcion', 'Contador'].includes(userRole),
     },
     {
       title: 'Habitaciones Disponibles',
       value: availableRooms,
       description: 'Unidades listas para la venta.',
       icon: BedDouble,
+      visible: ['Administrador', 'Recepcion', 'Conserje'].includes(userRole),
     },
     {
       title: 'Stock Bajo',
       value: lowStockItems,
       description: 'Artículos por debajo del punto de reorden.',
       icon: TriangleAlert,
+      visible: ['Administrador', 'Contador', 'Recepcion'].includes(userRole),
     },
   ];
 
@@ -107,6 +119,7 @@ export default async function DashboardPage() {
       title: 'Operaciones Principales',
       scope: 'Flujo de trabajo diario y atención al cliente.',
       description: 'Gestión de habitaciones, servicios y inventario.',
+      roles: ['Administrador', 'Recepcion', 'Conserje'],
       links: [
         {
           href: '/reservations',
@@ -114,6 +127,7 @@ export default async function DashboardPage() {
           description: 'Agenda futuras estancias para los huéspedes.',
           icon: CalendarPlus,
           badge: 'PASO 1',
+          roles: ['Administrador', 'Recepcion'],
         },
         {
           href: '/cleaning',
@@ -121,37 +135,43 @@ export default async function DashboardPage() {
           description: 'Gestione las habitaciones que requieren limpieza.',
           icon: Sparkles,
           badge: 'PASO 2',
+          roles: ['Administrador', 'Recepcion', 'Conserje'],
         },
         {
           href: '/clients',
           title: 'Gestión de Clientes',
           description: 'Cree y administre la ficha de sus clientes frecuentes.',
           icon: Users,
-        },
-        {
-          href: '/purchases',
-          title: 'Registrar Compras',
-          description: 'Añada productos al inventario registrando nuevas compras.',
-          icon: ShoppingCart,
+          roles: ['Administrador', 'Recepcion'],
         },
         {
           href: '/inventory',
           title: 'Gestión de Inventario',
           description: 'Controle los niveles de stock y el valor de sus activos.',
           icon: Package,
+          roles: ['Administrador', 'Recepcion', 'Contador'],
         },
       ],
     },
     {
-      title: 'Administración y Configuración',
-      scope: 'Seguridad, parámetros del sistema y datos maestros.',
-      description: 'Ajustes del sistema y gestión de usuarios.',
+      title: 'Finanzas y Contabilidad',
+      scope: 'Auditoría, facturación y gestión fiscal.',
+      description: 'Control de ingresos, pagos y proveedores.',
+      roles: ['Administrador', 'Contador', 'Recepcion'],
       links: [
         {
-          href: '/dashboard/rooms',
-          title: 'Panel de Habitaciones',
-          description: 'Vista y gestión de todas las habitaciones.',
-          icon: LayoutGrid,
+            href: '/billing/invoices',
+            title: 'Facturación',
+            description: 'Consulte el historial de todas las facturas generadas.',
+            icon: Receipt,
+            roles: ['Administrador', 'Contador', 'Recepcion'],
+        },
+        {
+          href: '/purchases',
+          title: 'Registrar Compras',
+          description: 'Añada productos al inventario registrando nuevas compras.',
+          icon: ShoppingCart,
+          roles: ['Administrador', 'Contador'],
         },
         {
           href: '/reports',
@@ -159,6 +179,42 @@ export default async function DashboardPage() {
           description: 'Análisis de ingresos, ocupación e informes con IA.',
           icon: BarChart3,
           badge: 'NUEVO',
+          roles: ['Administrador', 'Contador'],
+        },
+        {
+          href: '/settings/taxes',
+          title: 'Gestión de Impuestos',
+          description: 'Define y gestiona los impuestos aplicables.',
+          icon: Percent,
+          roles: ['Administrador', 'Contador'],
+        },
+        {
+            href: '/settings/sinpe-accounts',
+            title: 'Gestión de SINPE',
+            description: 'Administra las cuentas SINPE Móvil para pagos.',
+            icon: Smartphone,
+            roles: ['Administrador', 'Contador'],
+        },
+        {
+          href: '/suppliers',
+          title: 'Gestión de Proveedores',
+          description: 'Administre los proveedores de sus productos.',
+          icon: Truck,
+          roles: ['Administrador', 'Contador'],
+        },
+      ],
+    },
+    {
+      title: 'Administración y Parámetros',
+      scope: 'Configuración global y seguridad.',
+      description: 'Ajustes del sistema y gestión de usuarios.',
+      roles: ['Administrador'],
+      links: [
+        {
+          href: '/dashboard/rooms',
+          title: 'Panel de Habitaciones',
+          description: 'Vista y gestión de todas las habitaciones.',
+          icon: LayoutGrid,
         },
         {
           href: '/catalog',
@@ -171,30 +227,6 @@ export default async function DashboardPage() {
             title: 'Información Comercial',
             description: 'Gestiona los datos legales y fiscales de tu empresa.',
             icon: Building,
-        },
-        {
-          href: '/settings/taxes',
-          title: 'Gestión de Impuestos',
-          description: 'Define y gestiona los impuestos aplicables.',
-          icon: Percent,
-        },
-        {
-            href: '/settings/sinpe-accounts',
-            title: 'Gestión de SINPE',
-            description: 'Administra las cuentas SINPE Móvil para pagos.',
-            icon: Smartphone,
-        },
-        {
-            href: '/billing/invoices',
-            title: 'Facturación',
-            description: 'Consulte el historial de todas las facturas generadas.',
-            icon: Receipt,
-        },
-        {
-          href: '/suppliers',
-          title: 'Gestión de Proveedores',
-          description: 'Administre los proveedores de sus productos.',
-          icon: Truck,
         },
         {
           href: '/settings',
@@ -220,6 +252,7 @@ export default async function DashboardPage() {
       title: 'Ayuda y Recursos',
       scope: 'Documentación y asistencia técnica.',
       description: 'Manuales de operación y soporte técnico.',
+      roles: ['Administrador', 'Recepcion', 'Conserje', 'Contador'],
       links: [
         {
           href: '/manual/operations',
@@ -232,6 +265,7 @@ export default async function DashboardPage() {
           title: 'Documentación Técnica',
           description: 'Detalles de arquitectura, datos y flujos.',
           icon: FileCode,
+          roles: ['Administrador'],
         },
         {
           href: '/help-center',
@@ -257,7 +291,7 @@ export default async function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {kpiData.map((kpi, index) => (
+        {kpiData.filter(kpi => kpi.visible).map((kpi, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -276,7 +310,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Navigation Sections */}
-      {navSections.map((section) => (
+      {navSections.filter(section => section.roles.includes(userRole)).map((section) => (
           <div key={section.title}>
               <div className="space-y-1">
                   <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
@@ -291,7 +325,7 @@ export default async function DashboardPage() {
                   </p>
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
-              {section.links.map((link) => (
+              {section.links.filter(link => !link.roles || link.roles.includes(userRole)).map((link) => (
                   <Link key={link.title} href={link.href} className="group relative">
                       {link.badge === 'PASO 1' && (
                           <div className="absolute -top-2 -right-2 z-20">

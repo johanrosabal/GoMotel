@@ -1,9 +1,11 @@
+
 'use server';
 
-import { collection, getDocs, query, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, getDocs, query, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { db, auth as clientAuth } from '../firebase';
 import type { UserProfile, UserRole } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { getAuth } from 'firebase/auth';
 
 export async function getUsers(): Promise<UserProfile[]> {
   try {
@@ -26,6 +28,25 @@ export async function getUsers(): Promise<UserProfile[]> {
     console.error('Error fetching users:', error);
     return [];
   }
+}
+
+/**
+ * Helper specifically for Server Components to get the current user's profile.
+ */
+export async function getServerUserProfile(): Promise<UserProfile | null> {
+    try {
+        const user = clientAuth.currentUser;
+        if (!user) return null;
+
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+            return { id: userDoc.id, ...userDoc.data() } as UserProfile;
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching server user profile:", e);
+        return null;
+    }
 }
 
 export async function updateUserProfile(values: any) {
