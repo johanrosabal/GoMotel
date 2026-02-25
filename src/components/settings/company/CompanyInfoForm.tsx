@@ -143,8 +143,8 @@ export default function CompanyInfoForm() {
     <Tabs defaultValue="identity" className="w-full">
       <TabsList>
         <TabsTrigger value="identity">Identidad</TabsTrigger>
-        <TabsTrigger value="contact" disabled>Contacto</TabsTrigger>
-        <TabsTrigger value="social" disabled>Social y Bancos</TabsTrigger>
+        <TabsTrigger value="contact">Contacto</TabsTrigger>
+        <TabsTrigger value="social">Social y Bancos</TabsTrigger>
       </TabsList>
       <TabsContent value="identity" className="pt-6">
         <Form {...form}>
@@ -209,6 +209,12 @@ export default function CompanyInfoForm() {
             </div>
           </form>
         </Form>
+      </TabsContent>
+      <TabsContent value="contact" className="pt-6">
+        <p className="text-muted-foreground">Aquí podrá configurar teléfonos y correos de contacto adicionales.</p>
+      </TabsContent>
+      <TabsContent value="social" className="pt-6">
+        <p className="text-muted-foreground">Aquí podrá configurar redes sociales e información bancaria.</p>
       </TabsContent>
     </Tabs>
   );
