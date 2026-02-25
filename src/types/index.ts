@@ -1,4 +1,3 @@
-
 'use client';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -37,7 +36,7 @@ export interface Room {
 export interface RestaurantTable {
   id: string;
   number: string;
-  type: 'Table' | 'Bar';
+  type: string; // Dynamic: Table, Bar, Terraza, or custom
   status: 'Available' | 'Occupied';
   currentOrderId?: string | null;
 }
@@ -137,7 +136,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  locationType: 'Stay' | 'Table' | 'Bar' | 'Takeout';
+  locationType: string; // Dynamic
   locationId?: string;
   items: OrderItem[];
   total: number;

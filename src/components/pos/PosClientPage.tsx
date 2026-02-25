@@ -1,21 +1,20 @@
-
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
 import { openTableAccount, addToTableAccount, payRestaurantAccount } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X
+    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -59,8 +58,6 @@ type CartItem = {
   quantity: number;
 };
 
-type ViewMode = 'fast' | 'tables' | 'bar';
-
 export default function PosClientPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -68,7 +65,7 @@ export default function PosClientPage() {
     const [isPending, startTransition] = useTransition();
     
     // View Management
-    const [viewMode, setViewMode] = useState<ViewMode>('fast');
+    const [viewMode, setViewMode] = useState<string>('fast');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [manageTablesOpen, setManageTablesOpen] = useState(false);
 
@@ -124,12 +121,25 @@ export default function PosClientPage() {
     );
     const { data: activeSinpeAccounts } = useCollection<SinpeAccount>(sinpeAccountsQuery);
 
-    // Filter tables by viewMode
-    const filteredTables = useMemo(() => {
+    // Filter tables and extract dynamic types
+    const locationTypes = useMemo(() => {
         if (!allTables) return [];
-        const type = viewMode === 'tables' ? 'Table' : 'Bar';
-        // Numeric sort for table numbers
-        return allTables.filter(t => t.type === type).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+        const types = Array.from(new Set(allTables.map(t => t.type)));
+        // Order: Table, Bar, Terraza, then the rest
+        const order = ['Table', 'Bar', 'Terraza'];
+        return types.sort((a, b) => {
+            const idxA = order.indexOf(a);
+            const idxB = order.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+    }, [allTables]);
+
+    const filteredTables = useMemo(() => {
+        if (!allTables || viewMode === 'fast') return [];
+        return allTables.filter(t => t.type === viewMode).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     }, [allTables, viewMode]);
 
     // Active order for selected table
@@ -280,7 +290,7 @@ export default function PosClientPage() {
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${selectedTable.type === 'Table' ? 'Mesa' : 'Barra'} ${selectedTable.number}.` });
+                toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${selectedTable.type} ${selectedTable.number}.` });
                 handleClearCart();
                 setSelectedTable(null);
             }
@@ -299,72 +309,86 @@ export default function PosClientPage() {
 
     const combinedTotal = grandTotal + totalInOpenAccount;
 
+    const getLocationIcon = (type: string) => {
+        if (type === 'Table') return Utensils;
+        if (type === 'Bar') return Beer;
+        if (type === 'Terraza') return Sun;
+        return MapPin;
+    };
+
+    const getLocationLabel = (type: string) => {
+        if (type === 'Table') return 'Mesas Salón';
+        if (type === 'Bar') return 'Barra';
+        if (type === 'Terraza') return 'Terraza';
+        return type;
+    };
+
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
             {/* Top Mode Selector */}
             <div className="mx-2 sm:mx-4 lg:mx-6 mt-4 flex items-center justify-between bg-background border rounded-2xl p-1.5 shadow-sm">
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
                     <Button 
                         variant={viewMode === 'fast' ? "default" : "ghost"} 
-                        className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2"
+                        className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
                         onClick={() => { setViewMode('fast'); setSelectedTable(null); handleClearCart(); }}
                     >
                         <PackageCheck className="h-4 w-4" /> Para Llevar
                     </Button>
-                    <Button 
-                        variant={viewMode === 'tables' ? "default" : "ghost"} 
-                        className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2"
-                        onClick={() => { setViewMode('tables'); setSelectedTable(null); handleClearCart(); }}
-                    >
-                        <Utensils className="h-4 w-4" /> Mesas Salón
-                    </Button>
-                    <Button 
-                        variant={viewMode === 'bar' ? "default" : "ghost"} 
-                        className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2"
-                        onClick={() => { setViewMode('bar'); setSelectedTable(null); handleClearCart(); }}
-                    >
-                        <Beer className="h-4 w-4" /> Barra
-                    </Button>
+                    {locationTypes.map(type => {
+                        const Icon = getLocationIcon(type);
+                        return (
+                            <Button 
+                                key={type}
+                                variant={viewMode === type ? "default" : "ghost"} 
+                                className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
+                                onClick={() => { setViewMode(type); setSelectedTable(null); handleClearCart(); }}
+                            >
+                                <Icon className="h-4 w-4" /> {getLocationLabel(type)}
+                            </Button>
+                        );
+                    })}
                 </div>
-                {selectedTable && (
-                    <div className="flex items-center gap-3 px-4 animate-in fade-in slide-in-from-right-2">
-                        <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
-                            {selectedTable.type === 'Table' ? 'Mesa' : 'Barra'} {selectedTable.number}
-                        </Badge>
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedTable(null)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                            <X className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                    {selectedTable && (
+                        <div className="flex items-center gap-3 px-4 animate-in fade-in slide-in-from-right-2 border-l">
+                            <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
+                                {selectedTable.type} {selectedTable.number}
+                            </Badge>
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedTable(null)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+                    {userProfile?.role === 'Administrador' && (
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-11 w-11 rounded-xl shadow-sm border-2"
+                            onClick={() => setManageTablesOpen(true)}
+                        >
+                            <Settings2 className="h-5 w-5 text-primary" />
                         </Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6">
                 {/* Main Content Area */}
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden transition-all", step === 2 && "hidden lg:flex")}>
                     
-                    {/* Location Selection Overlay (If in Table/Bar mode and no table selected) */}
-                    {(viewMode === 'tables' || viewMode === 'bar') && !selectedTable ? (
+                    {/* Location Selection Overlay */}
+                    {viewMode !== 'fast' && !selectedTable ? (
                         <div className="flex-1 flex flex-col p-6 animate-in fade-in duration-300">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación</h2>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Configuradas</Badge>
-                                    {userProfile?.role === 'Administrador' && (
-                                        <Button 
-                                            variant="outline" 
-                                            size="icon" 
-                                            className="h-8 w-8 rounded-full"
-                                            onClick={() => setManageTablesOpen(true)}
-                                        >
-                                            <Settings2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
+                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
+                                <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Configuradas</Badge>
                             </div>
                             <ScrollArea className="flex-1">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
                                     {filteredTables.map(table => {
                                         const order = activeOrders?.find(o => o.locationId === table.id);
+                                        const Icon = getLocationIcon(table.type);
                                         return (
                                             <button
                                                 key={table.id}
@@ -380,7 +404,7 @@ export default function PosClientPage() {
                                                     "mb-2 p-3 rounded-full transition-transform group-hover:scale-110",
                                                     order ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                                                 )}>
-                                                    {table.type === 'Table' ? <Utensils className="h-6 w-6" /> : <Beer className="h-6 w-6" />}
+                                                    <Icon className="h-6 w-6" />
                                                 </div>
                                                 <span className="font-black text-2xl tracking-tighter">{table.number}</span>
                                                 
@@ -397,6 +421,17 @@ export default function PosClientPage() {
                                             </button>
                                         );
                                     })}
+                                    {filteredTables.length === 0 && (
+                                        <div className="col-span-full py-20 text-center flex flex-col items-center gap-4 border-2 border-dashed rounded-3xl text-muted-foreground">
+                                            <MapPin className="h-12 w-12 opacity-20" />
+                                            <p className="font-bold text-sm uppercase tracking-widest italic">No hay ubicaciones configuradas para esta zona.</p>
+                                            {userProfile?.role === 'Administrador' && (
+                                                <Button variant="outline" size="sm" onClick={() => setManageTablesOpen(true)} className="rounded-full font-bold">
+                                                    Configurar Ubicaciones
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </ScrollArea>
                         </div>
@@ -745,7 +780,7 @@ export default function PosClientPage() {
 
                             {step === 1 ? (
                                 <div className="grid grid-cols-2 gap-2">
-                                    {(viewMode === 'tables' || viewMode === 'bar') && selectedTable && (
+                                    {selectedTable && (
                                         <Button 
                                             variant="secondary"
                                             className="h-12 text-xs font-black uppercase tracking-widest rounded-xl border-primary/20"

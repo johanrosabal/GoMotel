@@ -1,10 +1,8 @@
-
 'use server';
 
 import {
   collection,
   doc,
-  writeBatch,
   Timestamp,
   getDocs,
   query,
@@ -16,16 +14,15 @@ import {
   limit,
   addDoc,
   deleteDoc,
-  updateDoc
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Order, OrderItem, Service, AppliedTax, Invoice, RestaurantTable } from '@/types';
+import type { Order, Service, AppliedTax, Invoice, RestaurantTable } from '@/types';
 
 /**
  * Creates a new restaurant table or bar spot.
  */
-export async function createRestaurantTable(data: { number: string, type: 'Table' | 'Bar' }) {
+export async function createRestaurantTable(data: { number: string, type: string }) {
     try {
         const tablesRef = collection(db, 'restaurantTables');
         
@@ -33,7 +30,7 @@ export async function createRestaurantTable(data: { number: string, type: 'Table
         const q = query(tablesRef, where('number', '==', data.number), where('type', '==', data.type));
         const snap = await getDocs(q);
         if (!snap.empty) {
-            return { error: `La ${data.type === 'Table' ? 'Mesa' : 'Barra'} ${data.number} ya existe.` };
+            return { error: `La ubicación ${data.type} ${data.number} ya existe.` };
         }
 
         await addDoc(tablesRef, {
@@ -58,7 +55,7 @@ export async function deleteRestaurantTable(id: string) {
         const tableSnap = await getDoc(tableRef);
         
         if (tableSnap.exists() && tableSnap.data().status === 'Occupied') {
-            return { error: "No se puede eliminar una mesa con una cuenta abierta." };
+            return { error: "No se puede eliminar una ubicación con una cuenta abierta." };
         }
 
         await deleteDoc(tableRef);
@@ -74,10 +71,10 @@ export async function openTableAccount(tableId: string, items: { service: Servic
         await runTransaction(db, async (transaction) => {
             const tableRef = doc(db, 'restaurantTables', tableId);
             const tableSnap = await transaction.get(tableRef);
-            if (!tableSnap.exists()) throw new Error("Mesa no encontrada.");
+            if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
             
             const tableData = tableSnap.data() as RestaurantTable;
-            if (tableData.status === 'Occupied') throw new Error("La mesa ya está ocupada.");
+            if (tableData.status === 'Occupied') throw new Error("La ubicación ya está ocupada.");
 
             // 1. Validate and Discount Stock
             for (const item of items) {
@@ -118,7 +115,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
         revalidatePath('/pos');
         return { success: true };
     } catch (e: any) {
-        return { error: e.message || "Error al abrir mesa." };
+        return { error: e.message || "Error al abrir cuenta." };
     }
 }
 
