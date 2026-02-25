@@ -179,16 +179,13 @@ export default function PosClientPage() {
         });
     }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
 
-    // Combinación de cálculos de facturación (Nuevos + Existentes)
     const { subtotal, totalTax, grandTotal, appliedTaxes, currentOrderSubtotal } = useMemo(() => {
-        // Items nuevos en el carrito
         const newItems = cart.map(i => ({
             price: i.service.price,
             quantity: i.quantity,
             taxIds: i.service.taxIds || []
         }));
 
-        // Items ya existentes en la orden abierta
         const existingItems = (currentOrder?.items || []).map(i => {
             const service = availableServices.find(s => s.id === i.serviceId);
             return {
@@ -458,7 +455,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6 p-2 pb-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -534,7 +531,23 @@ export default function PosClientPage() {
                             {selectedTable && (
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
                                     <div className="flex items-center justify-between px-1">
-                                        <span className="text-xs font-black uppercase tracking-widest text-primary/70">Cuentas en esta Mesa</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                            <span className="text-xs font-black uppercase tracking-widest text-primary/70">Cuentas en esta Mesa</span>
+                                            {selectedOrderId === null && (
+                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                    <Separator orientation="vertical" className="h-4 hidden sm:block bg-primary/20" />
+                                                    <div className="relative">
+                                                        <UserPlus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary/50" />
+                                                        <Input 
+                                                            placeholder="Identificador de cuenta (opcional)..." 
+                                                            value={newAccountLabel}
+                                                            onChange={e => setNewAccountLabel(e.target.value)}
+                                                            className="h-8 w-64 pl-8 text-[11px] font-bold rounded-lg border-primary/20 bg-background transition-all focus:border-primary focus:ring-2 focus:ring-primary/5"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                         <Badge variant="outline" className="h-6 font-bold border-primary/20 text-primary uppercase text-[10px]">
                                             {activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0} Abiertas
                                         </Badge>
@@ -742,61 +755,23 @@ export default function PosClientPage() {
                                         <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-6">
                                             <ShoppingCart className="h-12 w-12 opacity-10" />
                                             
-                                            {!currentOrder && selectedTable && (
-                                                <div className="px-4 space-y-4 w-full">
-                                                    <div className="space-y-1">
-                                                        <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary/40">Iniciando nueva cuenta</p>
-                                                        <div className="h-1 w-8 bg-primary/20 mx-auto rounded-full" />
-                                                    </div>
-                                                    
-                                                    <div className="space-y-2 text-left bg-muted/20 p-4 rounded-2xl border border-dashed">
-                                                        <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Nombre de Cuenta (Opcional)</Label>
-                                                        <Input 
-                                                            placeholder="Ej: Juan Perez, Mesa VIP..." 
-                                                            value={newAccountLabel}
-                                                            onChange={e => setNewAccountLabel(e.target.value)}
-                                                            className="h-11 text-sm font-bold rounded-xl border-2 transition-all focus:border-primary"
-                                                        />
-                                                        <p className="text-[8px] font-bold text-muted-foreground/60 italic ml-1">* Se generará un nombre automático si se deja vacío.</p>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-2 pt-2">
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            className="rounded-xl font-bold h-11 text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                                            onClick={() => { setSelectedTable(null); setNewAccountLabel(''); }}
-                                                        >
-                                                            Cancelar
-                                                        </Button>
-                                                        <Button 
-                                                            variant="outline"
-                                                            size="sm" 
-                                                            className="rounded-xl font-black h-11 text-[10px] uppercase tracking-widest border-2 border-primary/20 text-primary/40 cursor-not-allowed"
-                                                            disabled={true}
-                                                        >
-                                                            Guardar
-                                                        </Button>
-                                                    </div>
-
-                                                    <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 border-dashed animate-in fade-in zoom-in-95 duration-500">
-                                                        <p className="text-[10px] font-black text-primary uppercase text-center leading-relaxed">
-                                                            Escoja productos del catálogo<br/>para habilitar el registro de la cuenta
+                                            {selectedTable && (
+                                                <div className="px-6 space-y-4 w-full">
+                                                    <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 border-dashed animate-in fade-in zoom-in-95 duration-500">
+                                                        <p className="text-[11px] font-black text-primary uppercase text-center leading-relaxed">
+                                                            {selectedOrderId === null 
+                                                                ? "Seleccione productos del catálogo para registrar la nueva cuenta" 
+                                                                : "Añada productos a la cuenta de " + currentOrder?.label}
                                                         </p>
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {currentOrder && (
-                                                <div className="px-6 space-y-4">
-                                                    <p className="font-black text-[10px] uppercase tracking-[0.2em] opacity-30 italic text-center">Añade productos a la cuenta existente</p>
+                                                    
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm" 
-                                                        className="rounded-xl font-bold h-10 text-[10px] uppercase tracking-widest text-muted-foreground border border-dashed"
-                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); }}
+                                                        className="rounded-xl font-bold h-10 text-[10px] uppercase tracking-widest text-muted-foreground border border-dashed w-full hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); setNewAccountLabel(''); }}
                                                     >
-                                                        Volver al Mapa
+                                                        Volver al Mapa de Mesas
                                                     </Button>
                                                 </div>
                                             )}
