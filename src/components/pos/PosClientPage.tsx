@@ -362,6 +362,9 @@ export default function PosClientPage() {
         return type;
     };
 
+    // Lógica para determinar si mostrar el carrito vacío o el contenido
+    const isCartEmpty = cart.length === 0 && (!currentOrder || currentOrder.items.length === 0);
+
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
             {/* Top Mode Selector */}
@@ -641,21 +644,21 @@ export default function PosClientPage() {
                                 <div className="flex gap-2 pb-1">
                                     {activeOrders.filter(o => o.locationId === selectedTable.id).map(order => (
                                         <div key={order.id} className="relative group/account shrink-0">
-                                            <Button
-                                                variant={selectedOrderId === order.id ? "default" : "outline"}
-                                                size="sm"
+                                            <button
                                                 className={cn(
-                                                    "rounded-xl font-bold h-9 px-4 gap-2",
-                                                    selectedOrderId === order.id ? "pr-10" : ""
+                                                    "rounded-xl font-bold h-9 px-4 gap-2 flex items-center border transition-all",
+                                                    selectedOrderId === order.id 
+                                                        ? "bg-primary text-primary-foreground border-primary pr-10 shadow-md" 
+                                                        : "bg-background text-muted-foreground border-input hover:bg-muted"
                                                 )}
                                                 onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
                                             >
                                                 <User className="h-3.5 w-3.5" />
                                                 <span className="truncate max-w-[80px]">{order.label}</span>
-                                                <Badge variant="secondary" className="h-5 px-1.5 font-black text-[10px] bg-background/20 text-current border-0">
+                                                <Badge variant="secondary" className={cn("h-5 px-1.5 font-black text-[10px] border-0", selectedOrderId === order.id ? "bg-background/20 text-white" : "bg-muted text-muted-foreground")}>
                                                     {formatCurrency(order.total)}
                                                 </Badge>
-                                            </Button>
+                                            </button>
                                             {selectedOrderId === order.id && (
                                                 <button
                                                     onClick={(e) => {
@@ -698,7 +701,7 @@ export default function PosClientPage() {
                         <ScrollArea className="flex-1">
                             {step === 1 ? (
                                 <div className="p-3 space-y-2">
-                                    {cart.length === 0 ? (
+                                    {isCartEmpty ? (
                                         <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-6">
                                             <ShoppingCart className="h-12 w-12 opacity-10" />
                                             
@@ -762,32 +765,54 @@ export default function PosClientPage() {
                                             )}
                                         </div>
                                     ) : (
-                                        cart.map(item => (
-                                            <div key={item.service.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border bg-background shadow-sm">
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                        <>
+                                            {/* Productos ya pedidos (Existentes en la orden) */}
+                                            {currentOrder && currentOrder.items.map((item, idx) => (
+                                                <div key={`existing-${idx}`} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle className="h-3 w-3 text-primary" />
+                                                            <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 px-3">
+                                                        <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
+                                                    </div>
+                                                    <div className="text-right w-16">
+                                                        <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
-                                                    <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
-                                                        <Minus className="h-2.5 w-2.5" />
-                                                    </Button>
-                                                    <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                                                    <Button 
-                                                        size="icon" 
-                                                        variant="ghost" 
-                                                        className="h-5 w-5 rounded-full" 
-                                                        onClick={() => handleAddToCart(item.service)} 
-                                                        disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
-                                                    >
-                                                        <Plus className="h-2.5 w-2.5" />
-                                                    </Button>
+                                            ))}
+
+                                            {/* Productos por añadir (Carrito temporal) */}
+                                            {cart.map(item => (
+                                                <div key={item.service.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-background shadow-sm border-primary/20">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
+                                                        <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
+                                                            <Minus className="h-2.5 w-2.5" />
+                                                        </Button>
+                                                        <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
+                                                        <Button 
+                                                            size="icon" 
+                                                            variant="ghost" 
+                                                            className="h-5 w-5 rounded-full" 
+                                                            onClick={() => handleAddToCart(item.service)} 
+                                                            disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
+                                                        >
+                                                            <Plus className="h-2.5 w-2.5" />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="text-right w-16">
+                                                        <p className="text-[11px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right w-16">
-                                                    <p className="text-[11px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
-                                                </div>
-                                            </div>
-                                        ))
+                                            ))}
+                                        </>
                                     )}
                                 </div>
                             ) : (
@@ -907,10 +932,12 @@ export default function PosClientPage() {
                                         <span>Consumo Acumulado</span>
                                         <span>{formatCurrency(currentOrder.total)}</span>
                                     </div>
-                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
-                                        <span>Por añadir</span>
-                                        <span>{formatCurrency(grandTotal)}</span>
-                                    </div>
+                                    {cart.length > 0 && (
+                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
+                                            <span>Por añadir</span>
+                                            <span>{formatCurrency(grandTotal)}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -946,7 +973,7 @@ export default function PosClientPage() {
                                     )}
                                     <Button 
                                         className={cn("h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", (viewMode === 'fast' || !selectedTable) ? "col-span-2" : "")}
-                                        disabled={cart.length === 0 && !currentOrder}
+                                        disabled={cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)}
                                         onClick={() => setStep(2)}
                                     >
                                         PAGAR <ChevronRight className="ml-2 h-4 w-4" />
