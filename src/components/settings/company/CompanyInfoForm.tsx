@@ -26,6 +26,11 @@ const companyContactSchema = z.object({
   value: z.string().min(1, 'El valor es requerido.'),
 });
 
+const companyEmailContactSchema = z.object({
+  label: z.string().min(1, 'La etiqueta es requerida.'),
+  value: z.string().min(1, 'El valor es requerido.').email('Correo electrónico inválido.'),
+});
+
 const companySocialSchema = z.object({
   platform: z.enum(['Facebook', 'Instagram', 'Twitter', 'TikTok', 'LinkedIn']),
   url: z.string().url('URL inválida.'),
@@ -49,7 +54,7 @@ const companyInfoSchema = z.object({
   websiteUrl: z.string().url('URL inválida.').or(z.literal('')).optional(),
   logoUrl: z.string().optional(),
   phoneNumbers: z.array(companyContactSchema).optional(),
-  emails: z.array(companyContactSchema).optional(),
+  emails: z.array(companyEmailContactSchema).optional(),
   socialMedia: z.array(companySocialSchema).optional(),
   bankAccounts: z.array(companyBankAccountSchema).optional(),
 });
