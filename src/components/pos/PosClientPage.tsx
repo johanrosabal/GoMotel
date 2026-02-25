@@ -407,7 +407,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-12 p-2 pb-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -420,7 +420,7 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between min-h-[280px] rounded-[2.5rem] border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between min-h-[280px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     hasOrders 
                                                         ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
@@ -428,7 +428,7 @@ export default function PosClientPage() {
                                             >
                                                 {/* Header Tab */}
                                                 <div className={cn(
-                                                    "px-10 py-3 rounded-b-[1.5rem] border-x border-b border-t-0 transition-all duration-300 shadow-md",
+                                                    "px-10 py-3 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
@@ -459,7 +459,7 @@ export default function PosClientPage() {
                                                 
                                                 {/* Bottom Tab */}
                                                 <div className={cn(
-                                                    "w-full px-8 py-4 rounded-t-[1.5rem] border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
+                                                    "w-full px-8 py-4 rounded-t-xl border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
