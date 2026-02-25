@@ -6,20 +6,29 @@ import type { Reservation, ReservationStatus } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import ReservationsTable from "./ReservationsTable";
 import { Button } from "../ui/button";
-import { PlusCircle, UserPlus, List, LayoutGrid, CalendarDays } from "lucide-react";
+import { PlusCircle, UserPlus, List, LayoutGrid, CalendarDays, Search } from "lucide-react";
 import CreateReservationDialog from "./CreateReservationDialog";
 import AddClientDialog from "../clients/AddClientDialog";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "../ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import ReservationsGrid from "./ReservationsGrid";
 import ReservationsTimeline from "./ReservationsTimeline";
 import { playNotificationSound } from "@/lib/sound";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+const STATUS_FILTERS: { label: string; value: ReservationStatus | 'all'; color: string }[] = [
+    { label: 'Todas', value: 'all', color: 'bg-muted' },
+    { label: 'Confirmadas', value: 'Confirmed', color: 'bg-blue-500' },
+    { label: 'En Estancia', value: 'Checked-in', color: 'bg-green-600' },
+    { label: 'Completadas', value: 'Completed', color: 'bg-gray-500' },
+    { label: 'Canceladas', value: 'Cancelled', color: 'bg-red-500' },
+    { label: 'No-show', value: 'No-show', color: 'bg-yellow-600' },
+];
 
 export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
-    const [view, setView] = useState<'list' | 'grid' | 'timeline'>('list');
+    const [view, setView] = useState<'list' | 'grid' | 'timeline'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
     const [now, setNow] = useState(new Date());
@@ -34,7 +43,7 @@ export default function ReservationsClientPage() {
     const { data: reservations, isLoading } = useCollection<Reservation>(reservationsQuery);
 
     useEffect(() => {
-        const timer = setInterval(() => setNow(new Date()), 30000); // Rerender every 30s
+        const timer = setInterval(() => setNow(new Date()), 30000);
         return () => clearInterval(timer);
     }, []);
 
@@ -42,7 +51,7 @@ export default function ReservationsClientPage() {
         if (!reservations) return [];
         return reservations
             .filter(res => {
-                const searchContent = `${res.guestName} ${res.roomNumber}`.toLowerCase();
+                const searchContent = `${res.guestName} ${res.roomNumber} ${res.roomType}`.toLowerCase();
                 const searchMatch = searchContent.includes(searchTerm.toLowerCase());
                 const statusMatch = statusFilter === 'all' || res.status === statusFilter;
                 return searchMatch && statusMatch;
@@ -67,9 +76,9 @@ export default function ReservationsClientPage() {
                 notifiedOverdueReservations.current.add(reservation.id);
                 toast({
                     variant: 'destructive',
-                    title: `Reservación Vencida: Hab. ${reservation.roomNumber}`,
-                    description: `La estancia de ${reservation.guestName} ha terminado.`,
-                    duration: 15000,
+                    title: `Vencida: Hab. ${reservation.roomNumber}`,
+                    description: `${reservation.guestName} ya debería haber salido.`,
+                    duration: 10000,
                 });
             });
         }
@@ -84,85 +93,101 @@ export default function ReservationsClientPage() {
     }, [processedReservations, toast]);
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <Input
-                        placeholder="Buscar por huésped o habitación..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="max-w-xs"
-                    />
-                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filtrar por estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos los Estados</SelectItem>
-                            <SelectItem value="Confirmed">Confirmada</SelectItem>
-                            <SelectItem value="Checked-in">Checked-in</SelectItem>
-                            <SelectItem value="Completed">Completada</SelectItem>
-                            <SelectItem value="Cancelled">Cancelada</SelectItem>
-                            <SelectItem value="No-show">No-show</SelectItem>
-                        </SelectContent>
-                    </Select>
+        <div className="space-y-6">
+            {/* Action Bar */}
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="relative w-full md:max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por huésped, habitación o tipo..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 h-12 text-lg shadow-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <AddClientDialog>
+                            <Button variant="outline" className="flex-1 md:flex-none h-12">
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                <span className="hidden sm:inline">Nuevo Cliente</span>
+                            </Button>
+                        </AddClientDialog>
+                        <CreateReservationDialog>
+                            <Button className="flex-1 md:flex-none h-12 shadow-md">
+                                <PlusCircle className="mr-2 h-5 w-5" />
+                                Nueva Reservación
+                            </Button>
+                        </CreateReservationDialog>
+                    </div>
                 </div>
-                 <div className="flex items-center gap-2 self-end sm:self-center">
-                    <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-                        <Button
-                            variant={view === 'list' ? 'secondary' : 'ghost'}
-                            size="icon"
-                            onClick={() => setView('list')}
-                            className="h-8 w-8"
-                            aria-label="Vista de lista"
-                        >
-                            <List className="h-4 w-4" />
-                        </Button>
+
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-2 rounded-xl border border-border/50">
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                        {STATUS_FILTERS.map((f) => (
+                            <button
+                                key={f.value}
+                                onClick={() => setStatusFilter(f.value)}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-full text-xs font-bold transition-all border",
+                                    statusFilter === f.value 
+                                        ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                                )}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 bg-background p-1 rounded-lg border shadow-sm">
                         <Button
                             variant={view === 'grid' ? 'secondary' : 'ghost'}
-                            size="icon"
+                            size="sm"
                             onClick={() => setView('grid')}
-                            className="h-8 w-8"
-                             aria-label="Vista de cuadrícula"
+                            className="h-8 gap-2 font-bold"
                         >
                             <LayoutGrid className="h-4 w-4" />
+                            Tarjetas
                         </Button>
-                         <Button
+                        <Button
                             variant={view === 'timeline' ? 'secondary' : 'ghost'}
-                            size="icon"
+                            size="sm"
                             onClick={() => setView('timeline')}
-                            className="h-8 w-8"
-                            aria-label="Vista de línea de tiempo"
+                            className="h-8 gap-2 font-bold"
                         >
                             <CalendarDays className="h-4 w-4" />
+                            Agenda
+                        </Button>
+                        <Button
+                            variant={view === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setView('list')}
+                            className="h-8 gap-2 font-bold"
+                        >
+                            <List className="h-4 w-4" />
+                            Lista
                         </Button>
                     </div>
-                     <AddClientDialog>
-                        <Button variant="outline">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Añadir Cliente
-                        </Button>
-                    </AddClientDialog>
-                    <CreateReservationDialog>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Crear Reservación
-                        </Button>
-                    </CreateReservationDialog>
                 </div>
             </div>
+
             {isLoading ? (
-                <div className="space-y-2 rounded-md border p-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-48 w-full rounded-xl" />
+                    ))}
                 </div>
-            ) : view === 'list' ? (
-                <ReservationsTable reservations={processedReservations} />
-            ) : view === 'grid' ? (
-                <ReservationsGrid reservations={processedReservations} />
             ) : (
-                <ReservationsTimeline reservations={sortedForTimeline} />
+                <div className="pt-2">
+                    {view === 'list' ? (
+                        <ReservationsTable reservations={processedReservations} />
+                    ) : view === 'grid' ? (
+                        <ReservationsGrid reservations={processedReservations} />
+                    ) : (
+                        <ReservationsTimeline reservations={sortedForTimeline} />
+                    )}
+                </div>
             )}
         </div>
     );
