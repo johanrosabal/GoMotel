@@ -68,7 +68,7 @@ export async function getDashboardStats(days: number = 7) {
     const currentOccupied = stays.filter(s => !s.checkOut).length;
     const occupancyRate = (currentOccupied / totalRoomsCount) * 100;
 
-    const lowStockCount = services.filter(s => s.minStock != null && s.stock <= s.minStock).length;
+    const lowStockServices = services.filter(s => s.minStock != null && s.stock <= s.minStock);
 
     return {
         revenueData,
@@ -76,14 +76,20 @@ export async function getDashboardStats(days: number = 7) {
         kpis: {
             totalRevenue: invoices.filter(i => i.status === 'Pagada').reduce((sum, i) => sum + i.total, 0),
             occupancyRate,
-            lowStockCount,
+            lowStockCount: lowStockServices.length,
             totalInvoices: invoices.length
         },
+        lowStockDetails: lowStockServices.map(s => ({
+            id: s.id,
+            name: s.name,
+            stock: s.stock,
+            minStock: s.minStock
+        })),
         rawForAI: {
             invoicesCount: invoices.length,
             totalRevenue: invoices.reduce((sum, i) => sum + i.total, 0),
             staysCount: stays.length,
-            lowStockItems: services.filter(s => s.minStock != null && s.stock <= s.minStock).map(s => s.name)
+            lowStockItems: lowStockServices.map(s => s.name)
         },
         detailedInvoices: invoices
             .filter(i => i.status === 'Pagada')

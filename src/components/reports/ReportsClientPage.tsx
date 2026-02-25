@@ -10,7 +10,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
     Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon,
-    Receipt
+    Receipt, PackageSearch
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -21,6 +21,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 
@@ -29,6 +36,7 @@ export default function ReportsClientPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, startAnalysis] = useTransition();
     const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+    const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
 
     useEffect(() => {
         getDashboardStats(7).then(res => {
@@ -87,7 +95,13 @@ export default function ReportsClientPage() {
                         <p className="text-xs text-muted-foreground mt-1">Capacidad actual utilizada</p>
                     </CardContent>
                 </Card>
-                <Card className={cn(data.kpis.lowStockCount > 0 && "border-yellow-500/50 bg-yellow-500/5")}>
+                <Card 
+                    className={cn(
+                        "transition-all duration-200 cursor-pointer hover:shadow-md",
+                        data.kpis.lowStockCount > 0 ? "border-yellow-500/50 bg-yellow-500/5 hover:bg-yellow-500/10" : "hover:bg-muted/50"
+                    )}
+                    onClick={() => data.kpis.lowStockCount > 0 && setIsStockDialogOpen(true)}
+                >
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-sm font-bold uppercase tracking-wider">Stock Bajo</CardTitle>
                         <AlertTriangle className={cn("h-4 w-4", data.kpis.lowStockCount > 0 ? "text-yellow-600" : "text-muted-foreground")} />
@@ -95,6 +109,11 @@ export default function ReportsClientPage() {
                     <CardContent>
                         <div className="text-2xl font-black">{data.kpis.lowStockCount}</div>
                         <p className="text-xs text-muted-foreground mt-1">Productos por debajo del mínimo</p>
+                        {data.kpis.lowStockCount > 0 && (
+                            <p className="text-[10px] text-yellow-700 font-bold uppercase mt-3 flex items-center gap-1">
+                                Ver cuáles son <ArrowRight className="h-2.5 w-2.5" />
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
                 <Card>
@@ -271,6 +290,49 @@ export default function ReportsClientPage() {
                     </Button>
                 </CardFooter>
             </Card>
+
+            {/* Low Stock Dialog */}
+            <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <PackageSearch className="h-5 w-5 text-yellow-600" />
+                            Productos con Stock Bajo
+                        </DialogTitle>
+                        <DialogDescription>
+                            Artículos que han alcanzado o superado su punto de reorden.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="text-xs font-bold uppercase">Producto</TableHead>
+                                        <TableHead className="text-center text-xs font-bold uppercase">Stock</TableHead>
+                                        <TableHead className="text-center text-xs font-bold uppercase">Mínimo</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.lowStockDetails?.map((item: any) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="font-medium text-sm">{item.name}</TableCell>
+                                            <TableCell className="text-center font-bold text-destructive">{item.stock}</TableCell>
+                                            <TableCell className="text-center text-muted-foreground text-sm">{item.minStock}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsStockDialogOpen(false)}>Cerrar</Button>
+                        <Button asChild>
+                            <Link href="/inventory">Ir a Inventario</Link>
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
