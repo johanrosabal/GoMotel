@@ -211,7 +211,7 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                     </div>
                 ) : (
                     <Form {...form}>
-                        <form id="checkout-payment-form" className="space-y-4 py-2">
+                        <form id="checkout-payment-form" className="space-y-4 py-2" onSubmit={(e) => e.preventDefault()}>
                             <FormField
                                 control={form.control}
                                 name="paymentMethod"
@@ -321,18 +321,18 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
             <DialogFooter className="gap-2 pt-4 border-t">
                 {step === 1 ? (
                     <>
-                        <Button variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12">Cancelar</Button>
-                        <Button onClick={() => setStep(2)} className="flex-1 h-12 font-bold shadow-lg">
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12">Cancelar</Button>
+                        <Button type="button" onClick={() => setStep(2)} className="flex-1 h-12 font-bold shadow-lg">
                             Pasar a Cobro <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                     </>
                 ) : (
                     <>
-                        <Button variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="h-12">
+                        <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="h-12">
                             <ChevronLeft className="mr-2 h-4 w-4" /> Volver
                         </Button>
                         <Button 
-                            form="checkout-payment-form" 
+                            type="button"
                             onClick={form.handleSubmit(handleProcessCheckout)} 
                             disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)} 
                             variant="destructive" 

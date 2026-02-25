@@ -23,9 +23,9 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '../ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Input } from '../ui/input';
-import { Checkbox } from '../ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
@@ -299,11 +299,11 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
                                         <Minus className="h-4 w-4" />
                                     </Button>
                                     <span className="w-6 text-center">{getCartQuantity(service.id)}</span>
-                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={service.source !== 'Internal' && getCartQuantity(service.id) >= service.stock}>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={service.source !== 'Internal' && getCartQuantity(service.id) >= service.stock}>
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -348,7 +348,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
 
           {step === 2 && (
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} id="order-payment-form">
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Cart Summary */}
                         <div className="space-y-4">
@@ -546,7 +546,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancelar
                 </Button>
-                <Button onClick={() => setStep(2)} disabled={cart.length === 0}>
+                <Button type="button" onClick={() => setStep(2)} disabled={cart.length === 0}>
                     Siguiente
                 </Button>
                 </>
@@ -559,7 +559,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 <Button type="button" variant="secondary" onClick={() => handleSubmit({ payNow: false })} disabled={isPending}>
                     Dejar Pendiente
                 </Button>
-                <Button type="submit" form="order-service-form" onClick={form.handleSubmit(handleSubmit)} disabled={isPending || !payNow}>
+                <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isPending || !payNow}>
                     Pagar y Confirmar
                 </Button>
                 </>
