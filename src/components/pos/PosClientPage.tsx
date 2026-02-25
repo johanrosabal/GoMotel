@@ -15,7 +15,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle
+    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,6 +30,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Label } from '../ui/label';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import TableManagementDialog from './TableManagementDialog';
+import { formatDistance } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const posPaymentSchema = z.object({
   clientName: z.string().default('Cliente de Contado'),
@@ -60,11 +64,13 @@ type ViewMode = 'fast' | 'tables' | 'bar';
 export default function PosClientPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
+    const { userProfile } = useUserProfile();
     const [isPending, startTransition] = useTransition();
     
     // View Management
     const [viewMode, setViewMode] = useState<ViewMode>('fast');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
+    const [manageTablesOpen, setManageTablesOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -122,7 +128,8 @@ export default function PosClientPage() {
     const filteredTables = useMemo(() => {
         if (!allTables) return [];
         const type = viewMode === 'tables' ? 'Table' : 'Bar';
-        return allTables.filter(t => t.type === type);
+        // Numeric sort for table numbers
+        return allTables.filter(t => t.type === type).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     }, [allTables, viewMode]);
 
     // Active order for selected table
@@ -213,7 +220,7 @@ export default function PosClientPage() {
     const numericCashTendered = Number(cashTendered.replace(/\D/g, ''));
 
     const handleProcessSale = (values: z.infer<typeof posPaymentSchema>) => {
-        if (cart.length === 0) return;
+        if (cart.length === 0 && !currentOrder) return;
 
         startTransition(async () => {
             let result;
@@ -240,7 +247,7 @@ export default function PosClientPage() {
                     voucherNumber: values.voucherNumber,
                     subtotal,
                     taxes: appliedTaxes,
-                    total: grandTotal
+                    total: combinedTotal
                 });
             }
 
@@ -282,15 +289,7 @@ export default function PosClientPage() {
 
     const handleSelectTable = (table: RestaurantTable) => {
         setSelectedTable(table);
-        const order = activeOrders?.find(o => o.locationId === table.id);
-        if (order) {
-            // Pre-load items into cart for review? Or just keep cart for "New additions"
-            // For restaurant, cart will be "New items to add". 
-            // Let's keep cart for "Current session additions".
-            handleClearCart();
-        } else {
-            handleClearCart();
-        }
+        handleClearCart();
     };
 
     const totalInOpenAccount = useMemo(() => {
@@ -348,7 +347,19 @@ export default function PosClientPage() {
                         <div className="flex-1 flex flex-col p-6 animate-in fade-in duration-300">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación</h2>
-                                <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Disponibles</Badge>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Configuradas</Badge>
+                                    {userProfile?.role === 'Administrador' && (
+                                        <Button 
+                                            variant="outline" 
+                                            size="icon" 
+                                            className="h-8 w-8 rounded-full"
+                                            onClick={() => setManageTablesOpen(true)}
+                                        >
+                                            <Settings2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <ScrollArea className="flex-1">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -379,7 +390,7 @@ export default function PosClientPage() {
                                                             {formatCurrency(order.total)}
                                                         </Badge>
                                                         <div className="flex items-center gap-1 text-[8px] font-black text-primary/60 uppercase">
-                                                            <Clock className="h-2 w-2" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es })}
+                                                            <Clock className="h-2 w-2" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
                                                         </div>
                                                     </div>
                                                 )}
@@ -646,7 +657,7 @@ export default function PosClientPage() {
                                                         className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl"
                                                     />
                                                 </div>
-                                                {numericCashTendered >= grandTotal && (
+                                                {numericCashTendered >= combinedTotal && (
                                                     <div className="flex justify-between items-center p-2 bg-primary/10 rounded-lg">
                                                         <span className="font-black text-[9px] uppercase text-primary">Vuelto</span>
                                                         <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - combinedTotal)}</span>
@@ -717,7 +728,7 @@ export default function PosClientPage() {
                             <div className="space-y-1">
                                 <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase">
                                     <span>Subtotal</span>
-                                    <span>{formatCurrency(subtotal)}</span>
+                                    <span>{formatCurrency(subtotal + (currentOrder?.total || 0))}</span>
                                 </div>
                                 {appliedTaxes.map(tax => (
                                     <div key={tax.taxId} className="flex justify-between text-[9px] font-bold text-muted-foreground/60 uppercase">
@@ -776,6 +787,14 @@ export default function PosClientPage() {
                 onOpenChange={setSuccessModalOpen}
                 invoiceId={generatedInvoiceId}
             />
+
+            {allTables && (
+                <TableManagementDialog 
+                    open={manageTablesOpen} 
+                    onOpenChange={setManageTablesOpen} 
+                    tables={allTables} 
+                />
+            )}
         </div>
     );
 }

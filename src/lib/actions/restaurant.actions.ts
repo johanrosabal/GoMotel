@@ -14,10 +14,60 @@ import {
   increment,
   runTransaction,
   limit,
+  addDoc,
+  deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
 import type { Order, OrderItem, Service, AppliedTax, Invoice, RestaurantTable } from '@/types';
+
+/**
+ * Creates a new restaurant table or bar spot.
+ */
+export async function createRestaurantTable(data: { number: string, type: 'Table' | 'Bar' }) {
+    try {
+        const tablesRef = collection(db, 'restaurantTables');
+        
+        // Check for duplicate number of the same type
+        const q = query(tablesRef, where('number', '==', data.number), where('type', '==', data.type));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            return { error: `La ${data.type === 'Table' ? 'Mesa' : 'Barra'} ${data.number} ya existe.` };
+        }
+
+        await addDoc(tablesRef, {
+            ...data,
+            status: 'Available',
+            currentOrderId: null
+        });
+
+        revalidatePath('/pos');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || "Error al crear ubicación." };
+    }
+}
+
+/**
+ * Deletes a restaurant table.
+ */
+export async function deleteRestaurantTable(id: string) {
+    try {
+        const tableRef = doc(db, 'restaurantTables', id);
+        const tableSnap = await getDoc(tableRef);
+        
+        if (tableSnap.exists() && tableSnap.data().status === 'Occupied') {
+            return { error: "No se puede eliminar una mesa con una cuenta abierta." };
+        }
+
+        await deleteDoc(tableRef);
+        revalidatePath('/pos');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || "Error al eliminar ubicación." };
+    }
+}
 
 export async function openTableAccount(tableId: string, items: { service: Service; quantity: number }[]) {
     try {
