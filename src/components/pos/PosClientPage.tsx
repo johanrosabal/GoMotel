@@ -3,17 +3,17 @@
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Service, Tax, SinpeAccount, AppliedTax } from '@/types';
+import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
 import { getServices } from '@/lib/actions/service.actions';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
-    Search, ShoppingCart, Plus, Minus, X, CheckCircle, 
+    Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    Tag, ImageIcon, User
+    ImageIcon, User, Layers, Filter
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -59,6 +59,8 @@ export default function PosClientPage() {
     const [isPending, startTransition] = useTransition();
     
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [step, setStep] = useState(1); // 1: Select, 2: Payment
     const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -78,6 +80,15 @@ export default function PosClientPage() {
         getServices().then(setAvailableServices);
     }, []);
 
+    const categoriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, [firestore]);
+    const { data: categories } = useCollection<ProductCategory>(categoriesQuery);
+
+    const subCategoriesQuery = useMemoFirebase(() => {
+        if (!firestore || !selectedCategoryId) return null;
+        return query(collection(firestore, 'productSubCategories'), where('categoryId', '==', selectedCategoryId), orderBy('name'));
+    }, [firestore, selectedCategoryId]);
+    const { data: subCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
+
     const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes')) : null, [firestore]);
     const { data: allTaxes } = useCollection<Tax>(taxesQuery);
 
@@ -89,11 +100,17 @@ export default function PosClientPage() {
 
     // Calculations
     const filteredServices = useMemo(() => {
-        return availableServices.filter(s => 
-            s.isActive && 
-            (s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code?.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-    }, [availableServices, searchTerm]);
+        return availableServices.filter(s => {
+            const matchesSearch = s.isActive && (
+                s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                s.code?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
+            const matchesSubCategory = !selectedSubCategoryId || s.subCategoryId === selectedSubCategoryId;
+            
+            return matchesSearch && matchesCategory && matchesSubCategory;
+        });
+    }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
 
     const { subtotal, totalTax, grandTotal, appliedTaxes } = useMemo(() => {
         const sub = cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0);
@@ -199,8 +216,9 @@ export default function PosClientPage() {
         <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
             {/* Products Selection Area */}
             <div className={cn("flex-1 flex flex-col min-w-0 bg-muted/5 border-r", step === 2 && "hidden lg:flex")}>
-                <div className="p-3 border-b bg-background flex gap-3">
-                    <div className="relative flex-1">
+                {/* Search & Filters Bar */}
+                <div className="border-b bg-background flex flex-col gap-3 p-3">
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Búsqueda rápida de productos..." 
@@ -209,6 +227,70 @@ export default function PosClientPage() {
                             className="pl-9 h-10 border-muted-foreground/20"
                         />
                     </div>
+
+                    {/* Categories Scroll */}
+                    <div className="flex items-center gap-2">
+                        <div className="shrink-0 p-1.5 rounded-full bg-muted">
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <ScrollArea className="w-full whitespace-nowrap">
+                            <div className="flex gap-1.5 pb-2">
+                                <Button 
+                                    variant={selectedCategoryId === null ? "default" : "outline"} 
+                                    size="sm" 
+                                    className="h-8 text-[10px] font-black uppercase rounded-full px-4"
+                                    onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
+                                >
+                                    Todos
+                                </Button>
+                                {categories?.map(cat => (
+                                    <Button 
+                                        key={cat.id}
+                                        variant={selectedCategoryId === cat.id ? "default" : "outline"} 
+                                        size="sm" 
+                                        className="h-8 text-[10px] font-black uppercase rounded-full px-4"
+                                        onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
+                                    >
+                                        {cat.name}
+                                    </Button>
+                                ))}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                    </div>
+
+                    {/* Sub-categories Scroll (Conditional) */}
+                    {selectedCategoryId && subCategories && subCategories.length > 0 && (
+                        <div className="flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
+                            <div className="shrink-0 p-1.5 rounded-full bg-primary/10">
+                                <Filter className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <ScrollArea className="w-full whitespace-nowrap">
+                                <div className="flex gap-1.5 pb-2">
+                                    <Button 
+                                        variant={selectedSubCategoryId === null ? "secondary" : "ghost"} 
+                                        size="sm" 
+                                        className="h-7 text-[9px] font-bold uppercase rounded-full px-3"
+                                        onClick={() => setSelectedSubCategoryId(null)}
+                                    >
+                                        Ver Todo
+                                    </Button>
+                                    {subCategories.map(sub => (
+                                        <Button 
+                                            key={sub.id}
+                                            variant={selectedSubCategoryId === sub.id ? "secondary" : "ghost"} 
+                                            size="sm" 
+                                            className="h-7 text-[9px] font-bold uppercase rounded-full px-3"
+                                            onClick={() => setSelectedSubCategoryId(sub.id)}
+                                        >
+                                            {sub.name}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
+                        </div>
+                    )}
                 </div>
 
                 <ScrollArea className="flex-1 bg-background/50">
