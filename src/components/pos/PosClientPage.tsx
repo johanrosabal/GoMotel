@@ -398,9 +398,9 @@ export default function PosClientPage() {
                             <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
                                 {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
                             </Badge>
-                            <Button variant="ghost" size="icon" onClick={() => { setSelectedTable(null); setSelectedOrderId(null); }} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <button onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors">
                                 <X className="h-4 w-4" />
-                            </Button>
+                            </button>
                         </div>
                     )}
                     {userProfile?.role === 'Administrador' && (
@@ -427,7 +427,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-2 pb-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -682,9 +682,14 @@ export default function PosClientPage() {
                             <ShoppingCart className="h-4 w-4 text-primary" /> 
                             {currentOrder ? `Orden: ${currentOrder.label}` : 'Nuevo Pedido'}
                         </CardTitle>
-                        {step === 1 && cart.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10">
-                                Limpiar
+                        {step === 1 && (cart.length > 0 || selectedTable) && (
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }} 
+                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10"
+                            >
+                                {cart.length > 0 ? 'Limpiar' : 'Salir'}
                             </Button>
                         )}
                     </div>
@@ -694,23 +699,67 @@ export default function PosClientPage() {
                             {step === 1 ? (
                                 <div className="p-3 space-y-2">
                                     {cart.length === 0 ? (
-                                        <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4">
+                                        <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-6">
                                             <ShoppingCart className="h-12 w-12 opacity-10" />
+                                            
                                             {!currentOrder && selectedTable && (
                                                 <div className="px-4 space-y-4 w-full">
-                                                    <p className="font-bold text-[10px] uppercase tracking-widest opacity-30 italic">Iniciando nueva cuenta...</p>
-                                                    <div className="space-y-2 text-left">
+                                                    <div className="space-y-1">
+                                                        <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary/40">Iniciando nueva cuenta</p>
+                                                        <div className="h-1 w-8 bg-primary/20 mx-auto rounded-full" />
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2 text-left bg-muted/20 p-4 rounded-2xl border border-dashed">
                                                         <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Nombre de Cuenta (Opcional)</Label>
                                                         <Input 
-                                                            placeholder="Persona 1, Juan, etc." 
+                                                            placeholder="Ej: Juan Perez, Mesa VIP..." 
                                                             value={newAccountLabel}
                                                             onChange={e => setNewAccountLabel(e.target.value)}
-                                                            className="h-10 text-xs font-bold rounded-xl"
+                                                            className="h-11 text-sm font-bold rounded-xl border-2 transition-all focus:border-primary"
                                                         />
+                                                        <p className="text-[8px] font-bold text-muted-foreground/60 italic ml-1">* Se generará un nombre automático si se deja vacío.</p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="rounded-xl font-bold h-11 text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                                            onClick={() => { setSelectedTable(null); setNewAccountLabel(''); }}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline"
+                                                            size="sm" 
+                                                            className="rounded-xl font-black h-11 text-[10px] uppercase tracking-widest border-2 border-primary/20 text-primary/40 cursor-not-allowed"
+                                                            disabled={true}
+                                                        >
+                                                            Guardar
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 border-dashed animate-in fade-in zoom-in-95 duration-500">
+                                                        <p className="text-[10px] font-black text-primary uppercase text-center leading-relaxed">
+                                                            Escoja productos del catálogo<br/>para habilitar el registro de la cuenta
+                                                        </p>
                                                     </div>
                                                 </div>
                                             )}
-                                            {currentOrder && <p className="font-bold text-[10px] uppercase tracking-widest opacity-30 italic">Añade productos a la cuenta existente</p>}
+
+                                            {currentOrder && (
+                                                <div className="px-6 space-y-4">
+                                                    <p className="font-black text-[10px] uppercase tracking-[0.2em] opacity-30 italic text-center">Añade productos a la cuenta existente</p>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="rounded-xl font-bold h-10 text-[10px] uppercase tracking-widest text-muted-foreground border border-dashed"
+                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); }}
+                                                    >
+                                                        Volver al Mapa
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         cart.map(item => (
