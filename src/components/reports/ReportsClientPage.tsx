@@ -61,7 +61,7 @@ export default function ReportsClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 2, 
+            scale: 3, 
             backgroundColor: '#ffffff',
             useCORS: true,
             logging: false,
@@ -72,7 +72,7 @@ export default function ReportsClientPage() {
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.save(`INF-INV-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
+            pdf.save(`REPORTE-STOCK-${format(new Date(), 'yyyyMMdd')}.pdf`);
         });
     };
 
@@ -364,56 +364,57 @@ export default function ReportsClientPage() {
                                 width: '210mm', 
                                 minHeight: '297mm', 
                                 fontFamily: 'Arial, sans-serif',
-                                letterSpacing: 'normal' 
+                                letterSpacing: '0px',
+                                wordSpacing: 'normal'
                             }}
                         >
                             {/* Membrete Contable */}
                             <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
                                 <div className="space-y-1">
-                                    <h1 className="text-2xl font-bold text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
-                                    <p className="text-base font-semibold text-gray-600">Control de Activos e Inventarios</p>
-                                    <div className="mt-2 text-xs font-medium text-gray-400">
+                                    <h1 className="text-xl font-bold text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
+                                    <p className="text-sm font-semibold text-gray-600">Control de Activos e Inventarios</p>
+                                    <div className="mt-2 text-[10px] font-medium text-gray-400">
                                         <p>Go Motel Manager v1.5</p>
                                     </div>
                                 </div>
                                 <div className="text-right space-y-1">
-                                    <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                                        <p className="text-[9px] font-bold text-gray-400">NUMERO DE REPORTE</p>
-                                        <p className="text-sm font-mono font-bold text-gray-700">{format(new Date(), 'yyyyMMdd')}/INV-01</p>
+                                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                                        <p className="text-[8px] font-bold text-gray-400">NÚMERO DE REPORTE</p>
+                                        <p className="text-xs font-mono font-bold text-gray-700">{format(new Date(), 'yyyyMMdd')}/INV-01</p>
                                     </div>
                                     <div className="pr-1">
-                                        <p className="text-[9px] font-bold text-gray-400">EMITIDO EL</p>
-                                        <p className="text-xs font-bold text-gray-800">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</p>
-                                        <p className="text-[10px] text-gray-500">{format(new Date(), 'HH:mm:ss')} hrs</p>
+                                        <p className="text-[8px] font-bold text-gray-400">EMITIDO EL</p>
+                                        <p className="text-[10px] font-bold text-gray-800">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</p>
+                                        <p className="text-[9px] text-gray-500">{format(new Date(), 'HH:mm:ss')} hrs</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Cuerpo del Reporte */}
-                            <div className="mb-8 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
-                                <h2 className="text-sm font-bold text-yellow-800 mb-1">AVISO DE REABASTECIMIENTO</h2>
-                                <p className="text-[11px] text-yellow-700 leading-relaxed">
+                            <div className="mb-6 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
+                                <h2 className="text-xs font-bold text-yellow-800 mb-1">AVISO DE REABASTECIMIENTO</h2>
+                                <p className="text-[10px] text-yellow-700 leading-relaxed">
                                     Los siguientes artículos se encuentran por debajo del nivel mínimo de seguridad. Se recomienda la gestión de compra inmediata para evitar rupturas de stock en el servicio.
                                 </p>
                             </div>
 
-                            <table className="w-full border-collapse mb-12">
+                            <table className="w-full border-collapse mb-10">
                                 <thead>
                                     <tr className="bg-gray-800 text-white text-left">
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold">DESCRIPCION DEL PRODUCTO</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-center">STOCK REAL</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-center">STOCK MIN.</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-right">CANT. A PEDIR</th>
+                                        <th className="p-2 border border-gray-800 text-[9px] font-bold">DESCRIPCIÓN DEL PRODUCTO</th>
+                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK REAL</th>
+                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK MÍN.</th>
+                                        <th className="p-2 border border-gray-800 text-[9px] font-bold text-right">CANT. A PEDIR</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.lowStockDetails?.map((item: any, index: number) => (
-                                        <tr key={item.id} className={cn("text-xs", index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
-                                            <td className="p-3 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
-                                            <td className="p-3 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
-                                            <td className="p-3 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
-                                            <td className="p-3 border border-gray-200 text-right font-bold text-gray-900">
-                                                {item.minStock - item.stock} Unds.
+                                        <tr key={item.id} className={cn("text-[10px]", index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                                            <td className="p-2 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
+                                            <td className="p-2 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
+                                            <td className="p-2 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
+                                            <td className="p-2 border border-gray-200 text-right font-bold text-gray-900">
+                                                {item.minStock - item.stock} Unidades
                                             </td>
                                         </tr>
                                     ))}
@@ -421,47 +422,47 @@ export default function ReportsClientPage() {
                             </table>
 
                             {/* Resumen Final */}
-                            <div className="grid grid-cols-2 gap-8 mb-16">
-                                <div className="border p-4 rounded bg-gray-50">
-                                    <h3 className="text-[9px] font-bold text-gray-400 mb-3 border-b pb-1">RESUMEN GENERAL</h3>
+                            <div className="grid grid-cols-2 gap-6 mb-12">
+                                <div className="border p-3 rounded bg-gray-50">
+                                    <h3 className="text-[8px] font-bold text-gray-400 mb-2 border-b pb-1">RESUMEN GENERAL</h3>
                                     <div className="space-y-1">
-                                        <div className="flex justify-between text-[11px]">
+                                        <div className="flex justify-between text-[10px]">
                                             <span className="text-gray-600">Items con Alerta:</span>
                                             <span className="font-bold">{data.kpis.lowStockCount}</span>
                                         </div>
-                                        <div className="flex justify-between text-[11px]">
+                                        <div className="flex justify-between text-[10px]">
                                             <span className="text-gray-600">Estado Operativo:</span>
                                             <span className="font-bold text-orange-600">Atención Prioritaria</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-center p-4 border border-dashed border-gray-200 rounded">
-                                    <p className="text-[9px] text-gray-400 text-center font-medium italic">
+                                <div className="flex items-center justify-center p-3 border border-dashed border-gray-200 rounded">
+                                    <p className="text-[8px] text-gray-400 text-center font-medium italic">
                                         Documento generado para fines de control administrativo interno.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Área de Firmas */}
-                            <div className="grid grid-cols-2 gap-16 pt-8 border-t border-gray-100">
-                                <div className="text-center space-y-3">
-                                    <div className="h-16 border-b border-gray-300"></div>
+                            <div className="grid grid-cols-2 gap-12 pt-6 border-t border-gray-100">
+                                <div className="text-center space-y-2">
+                                    <div className="h-12 border-b border-gray-300"></div>
                                     <div>
-                                        <p className="text-xs font-bold text-gray-800">Firma Encargado Inventario</p>
-                                        <p className="text-[9px] text-gray-400">VALIDACION DE EXISTENCIAS</p>
+                                        <p className="text-[10px] font-bold text-gray-800">Firma Encargado Inventario</p>
+                                        <p className="text-[8px] text-gray-400">VALIDACIÓN DE EXISTENCIAS</p>
                                     </div>
                                 </div>
-                                <div className="text-center space-y-3">
-                                    <div className="h-16 border-b border-gray-300"></div>
+                                <div className="text-center space-y-2">
+                                    <div className="h-12 border-b border-gray-300"></div>
                                     <div>
-                                        <p className="text-xs font-bold text-gray-800">Autorización Contabilidad</p>
-                                        <p className="text-[9px] text-gray-400">APROBACION DE COMPRA</p>
+                                        <p className="text-[10px] font-bold text-gray-800">Autorización Contabilidad</p>
+                                        <p className="text-[8px] text-gray-400">APROBACIÓN DE COMPRA</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-16 pt-4 text-center">
-                                <p className="text-[8px] text-gray-300 font-medium tracking-widest uppercase">
+                            <div className="mt-12 pt-4 text-center">
+                                <p className="text-[7px] text-gray-300 font-medium uppercase">
                                     Sistema de Gestión Go Motel - Módulo de Reportes Contables
                                 </p>
                             </div>
