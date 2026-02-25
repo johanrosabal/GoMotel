@@ -407,13 +407,13 @@ export default function PosClientPage() {
                     
                     {/* Location Selection Overlay */}
                     {viewMode !== 'fast' && !selectedTable ? (
-                        <div className="flex-1 flex flex-col p-6 animate-in fade-in duration-300">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
-                                <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Configuradas</Badge>
+                        <div className="flex-1 flex flex-col p-6 lg:p-10 animate-in fade-in duration-300">
+                            <div className="flex items-center justify-between mb-10">
+                                <h2 className="text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
+                                <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-6 p-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-10 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const orders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const order = orders[0];
@@ -423,46 +423,46 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between aspect-square rounded-3xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     orders.length > 0 
-                                                        ? "bg-primary/[0.03] border-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] ring-4 ring-primary/5" 
-                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
+                                                        ? "bg-primary/[0.03] border-primary shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)] ring-8 ring-primary/5" 
+                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 active:scale-95"
                                                 )}
                                             >
                                                 {orders.length > 0 && (
-                                                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-12 h-12 bg-primary/10 rounded-full blur-2xl animate-pulse" />
+                                                    <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-primary/10 rounded-full blur-3xl animate-pulse" />
                                                 )}
 
                                                 <div className={cn(
-                                                    "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
+                                                    "px-6 py-3 rounded-b-2xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
                                                     orders.length > 0 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/10" 
                                                         : "bg-secondary text-foreground/40 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
-                                                    <Icon className="h-5 w-5" />
+                                                    <Icon className="h-6 w-6" />
                                                 </div>
                                                 
-                                                <div className="flex-1 flex flex-col items-center justify-center">
+                                                <div className="flex-1 flex flex-col items-center justify-center py-4">
                                                     <span className={cn(
-                                                        "font-black text-4xl tracking-tighter transition-colors",
+                                                        "font-black text-6xl tracking-tighter transition-colors",
                                                         orders.length > 0 ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                 </div>
                                                 
-                                                <div className="pb-4 w-full px-2">
+                                                <div className="pb-6 w-full px-4">
                                                     {orders.length > 0 ? (
-                                                        <div className="flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
-                                                            <Badge variant="default" className="font-black text-[11px] tracking-tight bg-primary px-2.5 h-6 shadow-md shadow-primary/20">
+                                                        <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-4">
+                                                            <Badge variant="default" className="font-black text-xs tracking-tight bg-primary px-4 h-8 shadow-lg shadow-primary/20 rounded-full">
                                                                 {orders.length === 1 ? formatCurrency(order.total) : `${orders.length} Cuentas`}
                                                             </Badge>
                                                             {orders.length === 1 && (
-                                                                <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
-                                                                    <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
+                                                                <div className="flex items-center gap-1 text-[10px] font-black text-primary/70 uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/10">
+                                                                    <Clock className="h-3 w-3" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div className="opacity-60 group-hover:opacity-100 transition-opacity text-center">
+                                                        <div className="opacity-40 group-hover:opacity-100 transition-opacity text-center bg-muted/30 py-2 rounded-xl border border-dashed">
                                                             <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Abrir Cuenta</span>
                                                         </div>
                                                     )}
