@@ -73,6 +73,7 @@ export async function getDashboardStats(days: number = 7) {
     return {
         revenueData,
         paymentData,
+        allServices: services,
         kpis: {
             totalRevenue: invoices.filter(i => i.status === 'Pagada').reduce((sum, i) => sum + i.total, 0),
             occupancyRate,

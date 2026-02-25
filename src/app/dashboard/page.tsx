@@ -11,7 +11,6 @@ import {
   ShoppingCart,
   BedDouble,
   TriangleAlert,
-  PieChart,
   LayoutGrid,
   Package,
   Cog,
@@ -35,8 +34,7 @@ import {
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { formatCurrency, cn } from '@/lib/utils';
-import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
-import type { Service, CompanyProfile } from '@/types';
+import type { CompanyProfile } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -246,7 +244,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:py-8 space-y-8">
       {/* Header */}
       <div className="space-y-1.5">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -275,21 +273,6 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="md:col-span-2 lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              Distribución de Stock
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-              <StockDistributionChart services={services} />
-          </CardContent>
-        </Card>
       </div>
 
       {/* Navigation Sections */}
