@@ -58,6 +58,13 @@ type CartItem = {
   quantity: number;
 };
 
+// Mapa de traducción para tipos internos
+const TYPE_LABELS: Record<string, string> = {
+    'Table': 'Mesa',
+    'Bar': 'Barra',
+    'Terraza': 'Terraza'
+};
+
 export default function PosClientPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -290,7 +297,8 @@ export default function PosClientPage() {
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${selectedTable.type} ${selectedTable.number}.` });
+                const label = TYPE_LABELS[selectedTable.type] || selectedTable.type;
+                toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${label} ${selectedTable.number}.` });
                 handleClearCart();
                 setSelectedTable(null);
             }
@@ -353,7 +361,7 @@ export default function PosClientPage() {
                     {selectedTable && (
                         <div className="flex items-center gap-3 px-4 animate-in fade-in slide-in-from-right-2 border-l">
                             <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
-                                {selectedTable.type} {selectedTable.number}
+                                {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
                             </Badge>
                             <Button variant="ghost" size="icon" onClick={() => setSelectedTable(null)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                                 <X className="h-4 w-4" />

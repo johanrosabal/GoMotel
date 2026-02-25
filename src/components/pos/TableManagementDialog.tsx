@@ -26,6 +26,12 @@ const DEFAULT_TYPES = [
     { value: 'Terraza', label: 'Terraza', icon: Sun },
 ];
 
+const TYPE_LABELS: Record<string, string> = {
+    'Table': 'Mesa',
+    'Bar': 'Barra',
+    'Terraza': 'Terraza'
+};
+
 export default function TableManagementDialog({ open, onOpenChange, tables }: Props) {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -56,7 +62,8 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Éxito', description: `Ubicación ${nextNumber} agregada correctamente.` });
+                const label = TYPE_LABELS[finalType] || finalType;
+                toast({ title: 'Éxito', description: `${label} ${nextNumber} agregada correctamente.` });
                 if (isAddingCustomType) {
                     setIsAddingCustomType(false);
                     setNewType(customType);
@@ -181,6 +188,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                         return a.number.localeCompare(b.number, undefined, { numeric: true });
                                     }).map(table => {
                                         const Icon = getTypeIcon(table.type);
+                                        const label = TYPE_LABELS[table.type] || table.type;
                                         return (
                                             <div key={table.id} className={cn(
                                                 "flex items-center justify-between p-3 rounded-xl border transition-all group",
@@ -194,7 +202,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                                         <Icon className="h-4 w-4" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-black text-sm tracking-tight">{table.type} {table.number}</p>
+                                                        <p className="font-black text-sm tracking-tight">{label} {table.number}</p>
                                                         <div className="flex items-center gap-1.5">
                                                             <span className={cn(
                                                                 "w-1.5 h-1.5 rounded-full",
