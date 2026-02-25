@@ -5,7 +5,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus
+    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
+    Pencil
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,6 +34,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import TableManagementDialog from './TableManagementDialog';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const posPaymentSchema = z.object({
   clientName: z.string().default('Cliente de Contado'),
@@ -81,6 +83,11 @@ export default function PosClientPage() {
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
     const [manageTablesOpen, setManageTablesOpen] = useState(false);
+
+    // Renaming state
+    const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+    const [renamingOrderId, setRenamingOrderId] = useState<string | null>(null);
+    const [newLabelName, setNewLabelName] = useState('');
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -328,6 +335,19 @@ export default function PosClientPage() {
         }
     };
 
+    const handleRenameAccount = () => {
+        if (!renamingOrderId || !newLabelName.trim()) return;
+        startTransition(async () => {
+            const result = await updateOrderLabel(renamingOrderId, newLabelName.trim());
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Cuenta renombrada' });
+                setRenameDialogOpen(false);
+            }
+        });
+    };
+
     const getLocationIcon = (type: string) => {
         if (type === 'Table') return Utensils;
         if (type === 'Bar') return Beer;
@@ -459,7 +479,7 @@ export default function PosClientPage() {
                                                 
                                                 {/* Bottom Tab */}
                                                 <div className={cn(
-                                                    "w-full px-8 py-4 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
+                                                    "w-full px-8 py-4 border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
@@ -620,19 +640,36 @@ export default function PosClientPage() {
                             <ScrollArea className="w-full whitespace-nowrap">
                                 <div className="flex gap-2 pb-1">
                                     {activeOrders.filter(o => o.locationId === selectedTable.id).map(order => (
-                                        <Button
-                                            key={order.id}
-                                            variant={selectedOrderId === order.id ? "default" : "outline"}
-                                            size="sm"
-                                            className="rounded-xl font-bold h-9 px-4 gap-2"
-                                            onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
-                                        >
-                                            <User className="h-3.5 w-3.5" />
-                                            {order.label}
-                                            <Badge variant="secondary" className="h-5 px-1.5 font-black text-[10px] bg-background/20 text-current border-0">
-                                                {formatCurrency(order.total)}
-                                            </Badge>
-                                        </Button>
+                                        <div key={order.id} className="relative group/account shrink-0">
+                                            <Button
+                                                variant={selectedOrderId === order.id ? "default" : "outline"}
+                                                size="sm"
+                                                className={cn(
+                                                    "rounded-xl font-bold h-9 px-4 gap-2",
+                                                    selectedOrderId === order.id ? "pr-10" : ""
+                                                )}
+                                                onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
+                                            >
+                                                <User className="h-3.5 w-3.5" />
+                                                <span className="truncate max-w-[80px]">{order.label}</span>
+                                                <Badge variant="secondary" className="h-5 px-1.5 font-black text-[10px] bg-background/20 text-current border-0">
+                                                    {formatCurrency(order.total)}
+                                                </Badge>
+                                            </Button>
+                                            {selectedOrderId === order.id && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setRenamingOrderId(order.id);
+                                                        setNewLabelName(order.label || '');
+                                                        setRenameDialogOpen(true);
+                                                    }}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full hover:bg-background/20 text-primary-foreground transition-colors"
+                                                >
+                                                    <Pencil className="h-3 w-3" />
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                                 <ScrollBar orientation="horizontal" />
@@ -890,6 +927,34 @@ export default function PosClientPage() {
                 onOpenChange={setSuccessModalOpen}
                 invoiceId={generatedInvoiceId}
             />
+
+            <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Renombrar Cuenta</DialogTitle>
+                        <DialogDescription>
+                            Asigne un nombre identificativo a esta cuenta.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="rename-label" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 mb-2 block">Nombre de la Cuenta</Label>
+                        <Input 
+                            id="rename-label"
+                            placeholder="Ej: Persona 1, Mesa Ventana, etc." 
+                            value={newLabelName} 
+                            onChange={(e) => setNewLabelName(e.target.value)}
+                            className="h-12 font-bold text-base rounded-xl border-2"
+                            autoFocus
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending}>Cancelar</Button>
+                        <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()}>
+                            {isPending ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {allTables && (
                 <TableManagementDialog 

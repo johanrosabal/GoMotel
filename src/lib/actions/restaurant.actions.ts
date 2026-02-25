@@ -14,6 +14,7 @@ import {
   limit,
   addDoc,
   deleteDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -251,5 +252,17 @@ export async function payRestaurantAccount(
         return { success: true, invoiceId: invoiceIdForReturn };
     } catch (e: any) {
         return { error: e.message || "Error al procesar pago." };
+    }
+}
+
+export async function updateOrderLabel(orderId: string, newLabel: string) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, { label: newLabel });
+        revalidatePath('/pos');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Rename order error:", e);
+        return { error: e.message || "Error al renombrar cuenta." };
     }
 }
