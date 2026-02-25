@@ -56,10 +56,15 @@ export default function ReservationsClientPage() {
                 const statusMatch = statusFilter === 'all' || res.status === statusFilter;
                 return searchMatch && statusMatch;
             })
-            .map(res => ({
-                ...res,
-                isOverdue: res.status === 'Checked-in' && now > res.checkOutDate.toDate(),
-            }));
+            .map(res => {
+                const isStayOverdue = res.status === 'Checked-in' && now > res.checkOutDate.toDate();
+                const isArrivalOverdue = res.status === 'Confirmed' && now > res.checkInDate.toDate();
+                return {
+                    ...res,
+                    isOverdue: isStayOverdue || isArrivalOverdue,
+                    isArrivalOverdue,
+                };
+            });
     }, [reservations, searchTerm, statusFilter, now]);
     
     const sortedForTimeline = useMemo(() => {
@@ -74,10 +79,19 @@ export default function ReservationsClientPage() {
             playNotificationSound();
             newlyOverdue.forEach(reservation => {
                 notifiedOverdueReservations.current.add(reservation.id);
+                
+                const title = reservation.isArrivalOverdue 
+                    ? `¡Cliente no llegó!: Hab. ${reservation.roomNumber}`
+                    : `¡Check-out vencido!: Hab. ${reservation.roomNumber}`;
+                
+                const description = reservation.isArrivalOverdue
+                    ? `${reservation.guestName} debió ingresar a las ${format(reservation.checkInDate.toDate(), 'h:mm a')}.`
+                    : `${reservation.guestName} ya debería haber desocupado la habitación.`;
+
                 toast({
                     variant: 'destructive',
-                    title: `Vencida: Hab. ${reservation.roomNumber}`,
-                    description: `${reservation.guestName} ya debería haber salido.`,
+                    title: title,
+                    description: description,
                     duration: 10000,
                 });
             });
