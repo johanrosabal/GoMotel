@@ -505,6 +505,71 @@ export default function PosClientPage() {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col min-h-0">
+                            {/* Account Selector (Sub-Accounts) */}
+                            {selectedTable && (
+                                <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-xs font-black uppercase tracking-widest text-primary/70">Cuentas en esta Mesa</span>
+                                        <Badge variant="outline" className="h-6 font-bold border-primary/20 text-primary uppercase text-[10px]">
+                                            {activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0} Abiertas
+                                        </Badge>
+                                    </div>
+                                    <ScrollArea className="w-full whitespace-nowrap">
+                                        <div className="flex gap-3 pb-2">
+                                            <button
+                                                className={cn(
+                                                    "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 gap-3 flex items-center border-2 transition-all shrink-0",
+                                                    selectedOrderId === null 
+                                                        ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                                                        : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                                                )}
+                                                onClick={() => { setSelectedOrderId(null); handleClearCart(); }}
+                                            >
+                                                <UserPlus className="h-4 w-4" /> Nueva Cuenta
+                                            </button>
+                                            
+                                            {activeOrders?.filter(o => o.locationId === selectedTable.id).map(order => (
+                                                <div key={order.id} className="relative group/account shrink-0">
+                                                    <button
+                                                        className={cn(
+                                                            "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 pr-14 gap-3 flex items-center border-2 transition-all",
+                                                            selectedOrderId === order.id 
+                                                                ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                                                                : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                                                        )}
+                                                        onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
+                                                    >
+                                                        <div className="flex flex-col items-start leading-none gap-1">
+                                                            <span className="truncate max-w-[120px]">{order.label}</span>
+                                                            <span className={cn("text-[10px] font-bold", selectedOrderId === order.id ? "text-white/70" : "text-primary")}>
+                                                                {formatCurrency(order.total)}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setRenamingOrderId(order.id);
+                                                            setNewLabelName(order.label || '');
+                                                            setRenameDialogOpen(true);
+                                                        }}
+                                                        className={cn(
+                                                            "absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-xl transition-all",
+                                                            selectedOrderId === order.id 
+                                                                ? "bg-white/20 text-white hover:bg-white/30" 
+                                                                : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary opacity-0 group-hover/account:opacity-100"
+                                                        )}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <ScrollBar orientation="horizontal" />
+                                    </ScrollArea>
+                                </div>
+                            )}
+
                             <div className="p-4 border-b space-y-4 bg-muted/5 shrink-0">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -627,59 +692,6 @@ export default function PosClientPage() {
                 {/* Cart & Checkout Area */}
                 <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
                     
-                    {selectedTable && activeOrders && activeOrders.filter(o => o.locationId === selectedTable.id).length > 0 && (
-                        <div className="bg-primary/5 border-b p-3 space-y-3">
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">Cuentas en Mesa</span>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="h-7 text-[9px] font-black uppercase rounded-full border-primary/20"
-                                    onClick={() => setSelectedOrderId(null)}
-                                >
-                                    <UserPlus className="h-3 w-3 mr-1" /> Nueva Cuenta
-                                </Button>
-                            </div>
-                            <ScrollArea className="w-full whitespace-nowrap">
-                                <div className="flex gap-2 pb-1">
-                                    {activeOrders.filter(o => o.locationId === selectedTable.id).map(order => (
-                                        <div key={order.id} className="relative group/account shrink-0">
-                                            <button
-                                                className={cn(
-                                                    "rounded-xl font-bold h-9 px-4 gap-2 flex items-center border transition-all",
-                                                    selectedOrderId === order.id 
-                                                        ? "bg-primary text-primary-foreground border-primary pr-10 shadow-md" 
-                                                        : "bg-background text-muted-foreground border-input hover:bg-muted"
-                                                )}
-                                                onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
-                                            >
-                                                <User className="h-3.5 w-3.5" />
-                                                <span className="truncate max-w-[80px]">{order.label}</span>
-                                                <Badge variant="secondary" className={cn("h-5 px-1.5 font-black text-[10px] border-0", selectedOrderId === order.id ? "bg-background/20 text-white" : "bg-muted text-muted-foreground")}>
-                                                    {formatCurrency(order.total)}
-                                                </Badge>
-                                            </button>
-                                            {selectedOrderId === order.id && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setRenamingOrderId(order.id);
-                                                        setNewLabelName(order.label || '');
-                                                        setRenameDialogOpen(true);
-                                                    }}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full hover:bg-background/20 text-primary-foreground transition-colors"
-                                                >
-                                                    <Pencil className="h-3 w-3" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <ScrollBar orientation="horizontal" />
-                            </ScrollArea>
-                        </div>
-                    )}
-
                     <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2 font-black uppercase tracking-tighter">
                             <ShoppingCart className="h-4 w-4 text-primary" /> 
