@@ -58,7 +58,6 @@ type CartItem = {
   quantity: number;
 };
 
-// Mapa de traducción para tipos internos
 const TYPE_LABELS: Record<string, string> = {
     'Table': 'Mesa',
     'Bar': 'Barra',
@@ -70,7 +69,13 @@ export default function PosClientPage() {
     const { toast } = useToast();
     const { userProfile } = useUserProfile();
     const [isPending, startTransition] = useTransition();
+    const [now, setNow] = useState(new Date());
     
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
     // View Management
     const [viewMode, setViewMode] = useState<string>('fast');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
@@ -130,7 +135,6 @@ export default function PosClientPage() {
     );
     const { data: activeSinpeAccounts } = useCollection<SinpeAccount>(sinpeAccountsQuery);
 
-    // Filter tables and extract dynamic types
     const locationTypes = useMemo(() => {
         if (!allTables) return [];
         const types = Array.from(new Set(allTables.map(t => t.type)));
@@ -150,18 +154,11 @@ export default function PosClientPage() {
         return allTables.filter(t => t.type === viewMode).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     }, [allTables, viewMode]);
 
-    // Active orders for selected table
-    const tableOrders = useMemo(() => {
-        if (!selectedTable || !activeOrders) return [];
-        return activeOrders.filter(o => o.locationId === selectedTable.id);
-    }, [selectedTable, activeOrders]);
-
     const currentOrder = useMemo(() => {
         if (!selectedOrderId || !activeOrders) return null;
         return activeOrders.find(o => o.id === selectedOrderId);
     }, [selectedOrderId, activeOrders]);
 
-    // Calculations
     const filteredServices = useMemo(() => {
         return availableServices.filter(s => {
             const matchesSearch = s.isActive && (
@@ -202,6 +199,11 @@ export default function PosClientPage() {
         return { subtotal: sub, totalTax: tax, grandTotal: sub + tax, appliedTaxes: taxes };
     }, [cart, allTaxes]);
 
+    const combinedTotal = useMemo(() => {
+        const orderTotal = currentOrder?.total || 0;
+        return grandTotal + orderTotal;
+    }, [grandTotal, currentOrder]);
+
     const targetSinpeAccount = useMemo(() => {
         if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts) return null;
         for (const account of activeSinpeAccounts) {
@@ -209,9 +211,8 @@ export default function PosClientPage() {
             if ((account.balance + combinedTotal) <= limit) return account;
         }
         return null;
-    }, [paymentMethod, activeSinpeAccounts, grandTotal]);
+    }, [paymentMethod, activeSinpeAccounts, combinedTotal]);
 
-    // Handlers
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
@@ -265,7 +266,6 @@ export default function PosClientPage() {
                     total: grandTotal,
                 });
             } else if (selectedTable && currentOrder) {
-                // Closing a restaurant account
                 result = await payRestaurantAccount(currentOrder.id, selectedTable.id, {
                     clientName: values.clientName,
                     paymentMethod: values.paymentMethod,
@@ -300,7 +300,7 @@ export default function PosClientPage() {
             if (currentOrder) {
                 result = await addToTableAccount(currentOrder.id, cart);
             } else {
-                const label = newAccountLabel.trim() || `Cuenta ${tableOrders.length + 1}`;
+                const label = newAccountLabel.trim() || `Cuenta ${activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0 + 1}`;
                 result = await openTableAccount(selectedTable.id, cart, label);
             }
 
@@ -320,8 +320,6 @@ export default function PosClientPage() {
     const handleSelectTable = (table: RestaurantTable) => {
         setSelectedTable(table);
         handleClearCart();
-        
-        // Auto-select if there's only one order, otherwise wait for sub-account selection
         const orders = activeOrders?.filter(o => o.locationId === table.id) || [];
         if (orders.length === 1) {
             setSelectedOrderId(orders[0].id);
@@ -329,13 +327,6 @@ export default function PosClientPage() {
             setSelectedOrderId(null);
         }
     };
-
-    const totalInOpenAccount = useMemo(() => {
-        if (!currentOrder) return 0;
-        return currentOrder.total;
-    }, [currentOrder]);
-
-    const combinedTotal = grandTotal + totalInOpenAccount;
 
     const getLocationIcon = (type: string) => {
         if (type === 'Table') return Utensils;
@@ -356,24 +347,28 @@ export default function PosClientPage() {
             {/* Top Mode Selector */}
             <div className="mx-2 sm:mx-4 lg:mx-6 mt-4 flex items-center justify-between bg-background border rounded-2xl p-1.5 shadow-sm">
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
-                    <Button 
-                        variant={viewMode === 'fast' ? "default" : "ghost"} 
-                        className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
+                    <button 
+                        className={cn(
+                            "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all",
+                            viewMode === 'fast' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
+                        )}
                         onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
                     >
                         <PackageCheck className="h-4 w-4" /> Para Llevar
-                    </Button>
+                    </button>
                     {locationTypes.map(type => {
                         const Icon = getLocationIcon(type);
                         return (
-                            <Button 
+                            <button 
                                 key={type}
-                                variant={viewMode === type ? "default" : "ghost"} 
-                                className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
+                                className={cn(
+                                    "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all shrink-0",
+                                    viewMode === type ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground"
+                                )}
                                 onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
-                            </Button>
+                            </button>
                         );
                     })}
                 </div>
@@ -403,67 +398,68 @@ export default function PosClientPage() {
 
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6">
                 {/* Main Content Area */}
-                <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden transition-all", step === 2 && "hidden lg:flex")}>
+                <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
                     
-                    {/* Location Selection Overlay */}
                     {viewMode !== 'fast' && !selectedTable ? (
                         <div className="flex-1 flex flex-col p-6 lg:p-10 animate-in fade-in duration-300">
-                            <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-10 p-2 pb-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-12 p-2 pb-10">
                                     {filteredTables.map(table => {
-                                        const orders = activeOrders?.filter(o => o.locationId === table.id) || [];
-                                        const order = orders[0];
+                                        const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
+                                        const hasOrders = tableOrders.length > 0;
+                                        const oldestOrder = hasOrders ? [...tableOrders].sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
+                                        const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
                                         const Icon = getLocationIcon(table.type);
+                                        
                                         return (
                                             <button
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between aspect-square rounded-3xl border-2 transition-all duration-300 p-0 overflow-hidden",
-                                                    orders.length > 0 
-                                                        ? "bg-primary/[0.03] border-primary shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)] ring-8 ring-primary/5" 
-                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 active:scale-95"
+                                                    "group relative flex flex-col items-center justify-between min-h-[240px] rounded-[2.5rem] border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    hasOrders 
+                                                        ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
+                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
                                                 )}
                                             >
-                                                {orders.length > 0 && (
-                                                    <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-                                                )}
-
                                                 <div className={cn(
-                                                    "px-6 py-3 rounded-b-2xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
-                                                    orders.length > 0 
-                                                        ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/10" 
-                                                        : "bg-secondary text-foreground/40 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
+                                                    "px-8 py-3 rounded-b-[1.5rem] border-x border-b border-t-0 transition-all duration-300 shadow-md",
+                                                    hasOrders 
+                                                        ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
+                                                        : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
-                                                    <Icon className="h-6 w-6" />
+                                                    <Icon className="h-7 w-7" />
                                                 </div>
                                                 
                                                 <div className="flex-1 flex flex-col items-center justify-center py-4">
                                                     <span className={cn(
-                                                        "font-black text-6xl tracking-tighter transition-colors",
-                                                        orders.length > 0 ? "text-primary" : "text-foreground"
+                                                        "font-black text-7xl tracking-tighter transition-colors",
+                                                        hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                 </div>
                                                 
-                                                <div className="pb-6 w-full px-4">
-                                                    {orders.length > 0 ? (
-                                                        <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-4">
-                                                            <Badge variant="default" className="font-black text-xs tracking-tight bg-primary px-4 h-8 shadow-lg shadow-primary/20 rounded-full">
-                                                                {orders.length === 1 ? formatCurrency(order.total) : `${orders.length} Cuentas`}
-                                                            </Badge>
-                                                            {orders.length === 1 && (
-                                                                <div className="flex items-center gap-1 text-[10px] font-black text-primary/70 uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/10">
-                                                                    <Clock className="h-3 w-3" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
-                                                                </div>
+                                                <div className="pb-8 w-full px-6">
+                                                    {hasOrders ? (
+                                                        <div className="flex flex-col items-center gap-2.5 animate-in fade-in slide-in-from-bottom-4">
+                                                            <div className="bg-primary text-primary-foreground font-black text-sm px-5 h-9 flex items-center justify-center rounded-full shadow-lg shadow-primary/20 ring-4 ring-background/10">
+                                                                {formatCurrency(totalAmount)}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[11px] font-black text-primary/80 uppercase bg-primary/10 px-4 py-1.5 rounded-full border border-primary/10 backdrop-blur-sm">
+                                                                <Clock className="h-3.5 w-3.5" /> {formatDistance(oldestOrder!.createdAt.toDate(), now, { locale: es, addSuffix: false })}
+                                                            </div>
+                                                            {tableOrders.length > 1 && (
+                                                                <Badge variant="outline" className="mt-1 text-[10px] font-black tracking-widest border-primary/20 bg-background/50 text-primary">
+                                                                    {tableOrders.length} CUENTAS
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div className="opacity-40 group-hover:opacity-100 transition-opacity text-center bg-muted/30 py-2 rounded-xl border border-dashed">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Abrir Cuenta</span>
+                                                        <div className="opacity-40 group-hover:opacity-100 transition-opacity text-center bg-muted/30 py-3 rounded-2xl border-2 border-dashed">
+                                                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/80">Abrir Cuenta</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -475,7 +471,6 @@ export default function PosClientPage() {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col min-h-0">
-                            {/* Search and Filters Header */}
                             <div className="p-4 border-b space-y-4 bg-muted/5 shrink-0">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -487,7 +482,6 @@ export default function PosClientPage() {
                                     />
                                 </div>
 
-                                {/* Categories Filter */}
                                 <ScrollArea className="w-full whitespace-nowrap">
                                     <div className="flex gap-2 pb-2">
                                         <Button 
@@ -513,7 +507,6 @@ export default function PosClientPage() {
                                     <ScrollBar orientation="horizontal" />
                                 </ScrollArea>
 
-                                {/* Sub-categories Filter */}
                                 {selectedCategoryId && subCategories && subCategories.length > 0 && (
                                     <ScrollArea className="w-full whitespace-nowrap border-t pt-2">
                                         <div className="flex gap-2 pb-2">
@@ -542,7 +535,6 @@ export default function PosClientPage() {
                                 )}
                             </div>
 
-                            {/* Products Grid */}
                             <ScrollArea className="flex-1">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 p-4 lg:p-6">
                                     {filteredServices.map(service => (
@@ -597,8 +589,7 @@ export default function PosClientPage() {
                 {/* Cart & Checkout Area */}
                 <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
                     
-                    {/* Multi-Account Selector Header */}
-                    {selectedTable && tableOrders.length > 0 && (
+                    {selectedTable && activeOrders && activeOrders.filter(o => o.locationId === selectedTable.id).length > 0 && (
                         <div className="bg-primary/5 border-b p-3 space-y-3">
                             <div className="flex items-center justify-between px-1">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">Cuentas en Mesa</span>
@@ -613,7 +604,7 @@ export default function PosClientPage() {
                             </div>
                             <ScrollArea className="w-full whitespace-nowrap">
                                 <div className="flex gap-2 pb-1">
-                                    {tableOrders.map(order => (
+                                    {activeOrders.filter(o => o.locationId === selectedTable.id).map(order => (
                                         <Button
                                             key={order.id}
                                             variant={selectedOrderId === order.id ? "default" : "outline"}
