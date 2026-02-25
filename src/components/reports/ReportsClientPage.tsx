@@ -10,8 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
-    Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon,
-    Receipt, PackageSearch, FileText
+    Download, ArrowRight, DollarSign, PieChart as PieIcon,
+    Receipt, PackageSearch, FileText, CheckCircle2
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -61,17 +61,16 @@ export default function ReportsClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 2, 
+            scale: 3, // Mayor escala para nitidez suprema
             backgroundColor: '#ffffff',
             useCORS: true,
             logging: false,
-            // Eliminamos cualquier tracking o espaciado que cause problemas de pegado
             onclone: (clonedDoc) => {
                 const elements = clonedDoc.getElementsByTagName('*');
                 for (let i = 0; i < elements.length; i++) {
                     const el = elements[i] as HTMLElement;
                     el.style.letterSpacing = 'normal';
-                    el.style.textTransform = 'none'; // Evitamos el uppercase en la captura
+                    el.style.textTransform = 'none';
                 }
             }
         }).then((canvas) => {
@@ -81,7 +80,7 @@ export default function ReportsClientPage() {
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.save(`reporte-inventario-critico-${format(new Date(), 'yyyyMMdd')}.pdf`);
+            pdf.save(`INF-INV-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
         });
     };
 
@@ -326,89 +325,173 @@ export default function ReportsClientPage() {
 
             {/* Low Stock Dialog */}
             <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 pb-4">
                         <DialogTitle className="flex items-center gap-2">
                             <PackageSearch className="h-5 w-5 text-yellow-600" />
                             Gestión de Stock Crítico
                         </DialogTitle>
                         <DialogDescription>
-                            Revise los artículos que requieren reposición inmediata.
+                            Revise los artículos que requieren reposición inmediata para la operación.
                         </DialogDescription>
                     </DialogHeader>
 
-                    {/* Printable Area */}
-                    <div className="overflow-hidden border rounded-xl mt-4">
-                        <div ref={stockReportRef} className="bg-white p-10 text-gray-900 min-w-[600px] font-sans" style={{ fontFamily: 'Arial, sans-serif' }}>
-                            <div className="flex justify-between items-start border-b-4 border-emerald-600 pb-6 mb-8">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-gray-900">Reporte de Inventario</h1>
-                                    <p className="text-sm font-bold text-emerald-700 mt-1">Aviso de Reabastecimiento Crítico</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-bold text-gray-400">Generado el</p>
-                                    <p className="text-sm font-mono font-bold text-gray-700">{format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}</p>
-                                </div>
-                            </div>
-                            
-                            <div className="rounded-lg border-2 border-gray-100 overflow-hidden shadow-sm">
-                                <Table>
-                                    <TableHeader className="bg-gray-50 border-b-2 border-gray-100">
-                                        <TableRow>
-                                            <TableHead className="text-[11px] font-bold py-4 text-gray-600 pl-6">Producto / Artículo</TableHead>
-                                            <TableHead className="text-center text-[11px] font-bold py-4 text-gray-600">Stock Actual</TableHead>
-                                            <TableHead className="text-center text-[11px] font-bold py-4 text-gray-600">Mínimo</TableHead>
-                                            <TableHead className="text-right text-[11px] font-bold py-4 text-gray-600 pr-6">Acción Requerida</TableHead>
+                    {/* Pre-visualización interna para el modal (opcional, pero para PDF usamos el hidden ref) */}
+                    <div className="flex-1 overflow-y-auto px-6 pb-6">
+                        <div className="rounded-lg border">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead>Producto</TableHead>
+                                        <TableHead className="text-center">Stock Actual</TableHead>
+                                        <TableHead className="text-center">Mínimo</TableHead>
+                                        <TableHead className="text-right">Déficit</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.lowStockDetails?.map((item: any) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="font-bold">{item.name}</TableCell>
+                                            <TableCell className="text-center text-red-600 font-bold">{item.stock}</TableCell>
+                                            <TableCell className="text-center">{item.minStock}</TableCell>
+                                            <TableCell className="text-right text-red-700 font-black">
+                                                Faltan {item.minStock - item.stock}
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {data.lowStockDetails?.map((item: any) => (
-                                            <TableRow key={item.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                                                <TableCell className="font-bold text-base py-5 pl-6 text-gray-800">
-                                                    {item.name}
-                                                </TableCell>
-                                                <TableCell className="text-center font-black text-red-600 text-lg py-5">
-                                                    {item.stock}
-                                                </TableCell>
-                                                <TableCell className="text-center text-gray-500 font-bold py-5">
-                                                    {item.minStock}
-                                                </TableCell>
-                                                <TableCell className="text-right py-5 pr-6">
-                                                    <div className="inline-block bg-red-50 text-red-700 border border-red-200 font-bold px-4 py-1.5 rounded-full text-xs">
-                                                        Faltan <span>{item.minStock - item.stock}</span> unidades
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            
-                            <div className="mt-12 pt-6 border-t-2 border-gray-100 flex justify-between items-end">
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+
+                    {/* PDF HIDDEN TEMPLATE - Accounting Style */}
+                    <div className="absolute -left-[9999px] top-0">
+                        <div 
+                            ref={stockReportRef} 
+                            className="bg-white p-16 text-gray-900 font-sans" 
+                            style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Arial, sans-serif' }}
+                        >
+                            {/* Membrete Contable */}
+                            <div className="flex justify-between items-start border-b-4 border-gray-800 pb-8 mb-10">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-gray-400">Estado del Documento</p>
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-emerald-600" />
-                                        <p className="text-sm font-bold text-gray-700">Orden de Compra Pendiente</p>
+                                    <h1 className="text-4xl font-black text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
+                                    <p className="text-lg font-bold text-gray-600 tracking-wide">Departamento de Contabilidad e Inventarios</p>
+                                    <div className="mt-4 text-sm font-semibold text-gray-500">
+                                        <p>Go Motel Manager v1.5</p>
+                                        <p>Control de Activos Circulantes</p>
                                     </div>
                                 </div>
-                                <div className="text-right opacity-40">
-                                    <p className="text-[9px] font-bold">Go Motel Manager - Auditoría Interna</p>
+                                <div className="text-right space-y-2">
+                                    <div className="bg-gray-100 p-4 rounded border border-gray-300">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">Referencia de Reporte</p>
+                                        <p className="text-lg font-mono font-bold">{format(new Date(), 'yyyy-MM-dd')}/INV-LOW</p>
+                                    </div>
+                                    <div className="pr-2">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">Generado el</p>
+                                        <p className="text-sm font-bold">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</p>
+                                        <p className="text-xs text-gray-500">{format(new Date(), 'HH:mm:ss')} hrs</p>
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Cuerpo del Reporte */}
+                            <div className="mb-10 p-6 bg-yellow-50 border-l-8 border-yellow-500 rounded-r-lg">
+                                <h2 className="text-xl font-black text-yellow-800 mb-2">ALERTA DE REABASTECIMIENTO</h2>
+                                <p className="text-sm text-yellow-700 font-medium leading-relaxed">
+                                    Se ha detectado que los siguientes artículos han cruzado el umbral de reserva mínimo establecido por la gerencia. Se requiere la emisión inmediata de órdenes de compra para garantizar la continuidad operativa del establecimiento.
+                                </p>
+                            </div>
+
+                            <table className="w-full border-collapse mb-16">
+                                <thead>
+                                    <tr className="bg-gray-800 text-white text-left">
+                                        <th className="p-4 border border-gray-800 text-xs font-black uppercase">Descripción del Producto</th>
+                                        <th className="p-4 border border-gray-800 text-xs font-black uppercase text-center">Stock Físico</th>
+                                        <th className="p-4 border border-gray-800 text-xs font-black uppercase text-center">Stock Mínimo</th>
+                                        <th className="p-4 border border-gray-800 text-xs font-black uppercase text-right">Compra Sugerida</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.lowStockDetails?.map((item: any, index: number) => (
+                                        <tr key={item.id} className={cn(index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                                            <td className="p-4 border border-gray-300 font-bold text-gray-800">{item.name}</td>
+                                            <td className="p-4 border border-gray-300 text-center font-black text-red-600">{item.stock}</td>
+                                            <td className="p-4 border border-gray-300 text-center text-gray-600">{item.minStock}</td>
+                                            <td className="p-4 border border-gray-300 text-right font-black text-gray-900">
+                                                {item.minStock - item.stock} Unidades
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {/* Resumen Final */}
+                            <div className="grid grid-cols-2 gap-10 mb-20">
+                                <div className="border p-6 rounded-lg bg-gray-50">
+                                    <h3 className="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-2">Resumen de Inventario</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Total ítems críticos:</span>
+                                            <span className="font-bold">{data.kpis.lowStockCount}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Estado de Operación:</span>
+                                            <span className="font-black text-orange-600">Atención Requerida</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-lg">
+                                    <p className="text-[10px] text-gray-400 text-center font-bold">
+                                        ESTE DOCUMENTO ES UN REGISTRO OFICIAL<br/>PARA FINES DE AUDITORÍA INTERNA
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Área de Firmas - Serious Accounting Style */}
+                            <div className="grid grid-cols-2 gap-20 pt-10 border-t-2 border-gray-100">
+                                <div className="text-center space-y-4">
+                                    <div className="h-20 border-b border-gray-400"></div>
+                                    <div>
+                                        <p className="text-sm font-black text-gray-800">Firma Responsable Bodega</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Validación de Existencias Físicas</p>
+                                    </div>
+                                </div>
+                                <div className="text-center space-y-4">
+                                    <div className="h-20 border-b border-gray-400"></div>
+                                    <div>
+                                        <p className="text-sm font-black text-gray-800">Autorización Contabilidad</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Procesamiento de Compra</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-20 pt-6 text-center">
+                                <p className="text-[9px] text-gray-300 font-bold tracking-[0.2em] uppercase">
+                                    Documento generado por el módulo de inteligencia administrativa de Go Motel
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t mt-4">
-                        <Button variant="outline" onClick={handleExportStockPdf} className="gap-2 font-bold h-11 px-6 border-2">
-                            <Download className="h-4 w-4" />
-                            Descargar PDF Profesional
-                        </Button>
-                        <Button variant="secondary" onClick={() => setIsStockDialogOpen(false)} className="h-11 px-6 font-bold">Cerrar</Button>
-                        <Button asChild className="h-11 px-6 font-bold">
-                            <Link href="/inventory">Ir a Inventario</Link>
-                        </Button>
-                    </div>
+                    <DialogFooter className="p-6 border-t bg-muted/20">
+                        <div className="flex flex-col sm:flex-row w-full gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={handleExportStockPdf} 
+                                className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors"
+                            >
+                                <Download className="h-5 w-5" />
+                                Exportar Reporte Contable
+                            </Button>
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => setIsStockDialogOpen(false)} 
+                                className="sm:w-32 h-12 font-bold"
+                            >
+                                Cerrar
+                            </Button>
+                        </div>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
