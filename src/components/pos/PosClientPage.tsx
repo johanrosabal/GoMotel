@@ -240,13 +240,13 @@ export default function PosClientPage() {
                                     <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
                                         <div className="flex flex-col gap-0.5">
                                             <span 
-                                                className="text-white font-black text-[10px] uppercase leading-tight drop-shadow-lg line-clamp-2"
+                                                className="text-white font-black text-[13px] uppercase leading-tight drop-shadow-lg line-clamp-2"
                                                 style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                                             >
                                                 {service.name}
                                             </span>
                                             <span 
-                                                className="text-white/80 font-mono text-[8px] drop-shadow-sm"
+                                                className="text-white/80 font-mono text-[9px] drop-shadow-sm"
                                                 style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}
                                             >
                                                 {service.code}
@@ -255,7 +255,7 @@ export default function PosClientPage() {
                                     </div>
 
                                     <div className="absolute bottom-1.5 right-1.5">
-                                        <Badge variant="default" className="bg-primary/90 backdrop-blur-sm font-black text-[10px] px-1.5 h-5 shadow-lg border-0">
+                                        <Badge variant="default" className="bg-primary/90 backdrop-blur-sm font-black text-[12px] px-2 h-6 shadow-lg border-0">
                                             {formatCurrency(service.price)}
                                         </Badge>
                                     </div>
@@ -308,8 +308,8 @@ export default function PosClientPage() {
                                     cart.map(item => (
                                         <div key={item.service.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border bg-background shadow-sm animate-in slide-in-from-right-2">
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-black text-[10px] truncate uppercase tracking-tight">{item.service.name}</p>
-                                                <p className="text-[9px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                                <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
+                                                <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
                                             </div>
                                             <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
                                                 <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
@@ -327,7 +327,7 @@ export default function PosClientPage() {
                                                 </Button>
                                             </div>
                                             <div className="text-right w-16">
-                                                <p className="text-[10px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
+                                                <p className="text-[11px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
                                             </div>
                                         </div>
                                     ))
