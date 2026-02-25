@@ -267,6 +267,21 @@ export interface PurchaseInvoice {
   createdByUid?: string;
 }
 
+export interface CompanyContact {
+  label: string;
+  value: string;
+}
+export interface CompanySocial {
+  platform: 'Facebook' | 'Instagram' | 'Twitter' | 'TikTok' | 'LinkedIn';
+  url: string;
+}
+export interface CompanyBankAccount {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  iban?: string;
+}
+
 export interface CompanyProfile {
   id: string;
   tradeName: string;
@@ -276,4 +291,8 @@ export interface CompanyProfile {
   googleMapsUrl?: string;
   websiteUrl?: string;
   logoUrl?: string;
+  phoneNumbers?: CompanyContact[];
+  emails?: CompanyContact[];
+  socialMedia?: CompanySocial[];
+  bankAccounts?: CompanyBankAccount[];
 }

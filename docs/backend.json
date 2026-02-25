@@ -1126,6 +1126,56 @@
         "logoUrl": {
           "type": "string",
           "description": "Data URI for the company's logo."
+        },
+        "phoneNumbers": {
+            "type": "array",
+            "description": "List of company contact phone numbers.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "label": { "type": "string", "description": "Label for the phone number (e.g., 'Reservations', 'Main')." },
+                    "value": { "type": "string", "description": "The phone number." }
+                },
+                "required": ["label", "value"]
+            }
+        },
+        "emails": {
+            "type": "array",
+            "description": "List of company contact email addresses.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "label": { "type": "string", "description": "Label for the email (e.g., 'Info', 'Support')." },
+                    "value": { "type": "string", "format": "email", "description": "The email address." }
+                },
+                "required": ["label", "value"]
+            }
+        },
+        "socialMedia": {
+            "type": "array",
+            "description": "List of company social media profiles.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "platform": { "type": "string", "enum": ["Facebook", "Instagram", "Twitter", "TikTok", "LinkedIn"] },
+                    "url": { "type": "string", "format": "uri" }
+                },
+                "required": ["platform", "url"]
+            }
+        },
+        "bankAccounts": {
+            "type": "array",
+            "description": "List of company bank accounts for reference.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "bankName": { "type": "string" },
+                    "accountHolder": { "type": "string" },
+                    "accountNumber": { "type": "string" },
+                    "iban": { "type": "string" }
+                },
+                "required": ["bankName", "accountHolder", "accountNumber"]
+            }
         }
       },
       "required": [
