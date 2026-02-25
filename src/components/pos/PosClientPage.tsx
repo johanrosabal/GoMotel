@@ -179,46 +179,75 @@ export default function PosClientPage() {
         });
     }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
 
-    const { subtotal, totalTax, grandTotal, appliedTaxes } = useMemo(() => {
-        const sub = cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0);
-        let tax = 0;
-        const taxes: AppliedTax[] = [];
+    // Combinación de cálculos de facturación (Nuevos + Existentes)
+    const { subtotal, totalTax, grandTotal, appliedTaxes, currentOrderSubtotal } = useMemo(() => {
+        // Items nuevos en el carrito
+        const newItems = cart.map(i => ({
+            price: i.service.price,
+            quantity: i.quantity,
+            taxIds: i.service.taxIds || []
+        }));
+
+        // Items ya existentes en la orden abierta
+        const existingItems = (currentOrder?.items || []).map(i => {
+            const service = availableServices.find(s => s.id === i.serviceId);
+            return {
+                price: i.price,
+                quantity: i.quantity,
+                taxIds: service?.taxIds || []
+            };
+        });
+
+        const allItems = [...newItems, ...existingItems];
+        
+        const sub = allItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const orderSub = existingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        
+        let taxTotal = 0;
+        const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
         if (allTaxes) {
-            const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
-            cart.forEach(item => {
-                const itemTotal = item.service.price * item.quantity;
-                item.service.taxIds?.forEach(taxId => {
+            allItems.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                item.taxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
                     if (taxInfo) {
                         const taxAmount = itemTotal * (taxInfo.percentage / 100);
-                        tax += taxAmount;
+                        taxTotal += taxAmount;
+                        
                         const existingTax = taxMap.get(taxId);
                         if (existingTax) {
-                            (existingTax as any).amount += taxAmount;
+                            existingTax.amount += taxAmount;
+                        } else {
+                            taxMap.set(taxId, {
+                                taxId,
+                                name: taxInfo.name,
+                                percentage: taxInfo.percentage,
+                                amount: taxAmount
+                            });
                         }
-                        else taxMap.set(taxId, { name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount } as any);
                     }
                 });
             });
-            taxMap.forEach((value, key) => taxes.push({ taxId: key, ...value } as any));
         }
-        return { subtotal: sub, totalTax: tax, grandTotal: sub + tax, appliedTaxes: taxes };
-    }, [cart, allTaxes]);
 
-    const combinedTotal = useMemo(() => {
-        const orderTotal = currentOrder?.total || 0;
-        return grandTotal + orderTotal;
-    }, [grandTotal, currentOrder]);
+        return {
+            subtotal: sub,
+            currentOrderSubtotal: orderSub,
+            totalTax: taxTotal,
+            grandTotal: sub + taxTotal,
+            appliedTaxes: Array.from(taxMap.values())
+        };
+    }, [cart, currentOrder, allTaxes, availableServices]);
 
     const targetSinpeAccount = useMemo(() => {
         if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts) return null;
         for (const account of activeSinpeAccounts) {
             const limit = account.limitAmount || Infinity;
-            if ((account.balance + combinedTotal) <= limit) return account;
+            if ((account.balance + grandTotal) <= limit) return account;
         }
         return null;
-    }, [paymentMethod, activeSinpeAccounts, combinedTotal]);
+    }, [paymentMethod, activeSinpeAccounts, grandTotal]);
 
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
@@ -279,7 +308,7 @@ export default function PosClientPage() {
                     voucherNumber: values.voucherNumber,
                     subtotal,
                     taxes: appliedTaxes,
-                    total: combinedTotal
+                    total: grandTotal
                 });
             }
 
@@ -348,7 +377,7 @@ export default function PosClientPage() {
         });
     };
 
-    const getLocationIcon = (type: string) => {
+    const getTypeIcon = (type: string) => {
         if (type === 'Table') return Utensils;
         if (type === 'Bar') return Beer;
         if (type === 'Terraza') return Sun;
@@ -362,7 +391,6 @@ export default function PosClientPage() {
         return type;
     };
 
-    // Lógica para determinar si mostrar el carrito vacío o el contenido
     const isCartEmpty = cart.length === 0 && (!currentOrder || currentOrder.items.length === 0);
 
     return (
@@ -380,7 +408,7 @@ export default function PosClientPage() {
                         <PackageCheck className="h-4 w-4" /> Para Llevar
                     </button>
                     {locationTypes.map(type => {
-                        const Icon = getLocationIcon(type);
+                        const Icon = getTypeIcon(type);
                         return (
                             <button 
                                 key={type}
@@ -449,7 +477,6 @@ export default function PosClientPage() {
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
                                                 )}
                                             >
-                                                {/* Header Tab */}
                                                 <div className={cn(
                                                     "px-10 py-3 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
                                                     hasOrders 
@@ -459,7 +486,6 @@ export default function PosClientPage() {
                                                     <Icon className="h-7 w-7" />
                                                 </div>
                                                 
-                                                {/* Middle: Number and Time */}
                                                 <div className="flex-1 flex flex-col items-center justify-center py-4 relative w-full">
                                                     <span className={cn(
                                                         "font-black text-7xl tracking-tighter transition-colors",
@@ -480,7 +506,6 @@ export default function PosClientPage() {
                                                     )}
                                                 </div>
                                                 
-                                                {/* Bottom Tab */}
                                                 <div className={cn(
                                                     "w-full px-8 py-4 border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
@@ -505,7 +530,7 @@ export default function PosClientPage() {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col min-h-0">
-                            {/* Account Selector (Sub-Accounts) */}
+                            {/* Sub-Accounts Barra Superior */}
                             {selectedTable && (
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
                                     <div className="flex items-center justify-between px-1">
@@ -883,10 +908,10 @@ export default function PosClientPage() {
                                                         className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl"
                                                     />
                                                 </div>
-                                                {numericCashTendered >= combinedTotal && (
+                                                {numericCashTendered >= grandTotal && (
                                                     <div className="flex justify-between items-center p-2 bg-primary/10 rounded-lg">
                                                         <span className="font-black text-[9px] uppercase text-primary">Vuelto</span>
-                                                        <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - combinedTotal)}</span>
+                                                        <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - grandTotal)}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -925,7 +950,7 @@ export default function PosClientPage() {
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Voucher</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="Código de voucher" {...field} className="h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" />
+                                                            <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" />
                                                         </FormControl>
                                                         <FormMessage className="text-[10px]" />
                                                     </FormItem>
@@ -941,13 +966,13 @@ export default function PosClientPage() {
                             {currentOrder && (
                                 <div className="p-2 rounded-lg bg-muted/50 border border-dashed mb-2 space-y-1">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        <span>Consumo Acumulado</span>
-                                        <span>{formatCurrency(currentOrder.total)}</span>
+                                        <span>Consumo Acumulado (Neto)</span>
+                                        <span>{formatCurrency(currentOrderSubtotal)}</span>
                                     </div>
                                     {cart.length > 0 && (
                                         <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
-                                            <span>Por añadir</span>
-                                            <span>{formatCurrency(grandTotal)}</span>
+                                            <span>Nuevos items (Neto)</span>
+                                            <span>{formatCurrency(subtotal - currentOrderSubtotal)}</span>
                                         </div>
                                     )}
                                 </div>
@@ -956,7 +981,7 @@ export default function PosClientPage() {
                             <div className="space-y-1">
                                 <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase">
                                     <span>Subtotal</span>
-                                    <span>{formatCurrency(subtotal + (currentOrder?.total || 0))}</span>
+                                    <span>{formatCurrency(subtotal)}</span>
                                 </div>
                                 {appliedTaxes.map(tax => (
                                     <div key={tax.taxId} className="flex justify-between text-[9px] font-bold text-muted-foreground/60 uppercase">
@@ -967,7 +992,7 @@ export default function PosClientPage() {
                                 <Separator className="my-1.5" />
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Total General</span>
-                                    <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(combinedTotal)}</span>
+                                    <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </div>
 
