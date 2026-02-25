@@ -464,14 +464,14 @@ export default function PosClientPage() {
                                         const hasOrders = tableOrders.length > 0;
                                         const oldestOrder = hasOrders ? [...tableOrders].sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
                                         const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
-                                        const Icon = getLocationIcon(table.type);
+                                        const Icon = getTypeIcon(table.type);
                                         
                                         return (
                                             <button
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between min-h-[280px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between min-h-[320px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     hasOrders 
                                                         ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
@@ -507,7 +507,7 @@ export default function PosClientPage() {
                                                 </div>
                                                 
                                                 <div className={cn(
-                                                    "w-full px-8 py-4 border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
+                                                    "w-full px-8 py-4 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
