@@ -212,14 +212,14 @@ export default function CompanyInfoForm() {
               <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="space-y-2 flex flex-col items-center lg:items-start">
                     <Label>Logo</Label>
-                    <Avatar className="h-52 w-52 rounded-lg border-2 border-dashed">
+                    <Avatar className="h-96 w-96 rounded-lg border-2 border-dashed">
                         <AvatarImage src={logoPreview || undefined} className="object-contain" />
                         <AvatarFallback className="rounded-lg bg-transparent">
-                            <Building className="h-16 w-16 text-muted-foreground" />
+                            <Building className="h-32 w-32 text-muted-foreground" />
                         </AvatarFallback>
                     </Avatar>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-52 mt-2"> Cambiar Imagen </Button>
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-96 mt-2"> Cambiar Imagen </Button>
                 </div>
                 <div className="lg:col-span-2 grid gap-4">
                     <div className="grid md:grid-cols-2 gap-4">
