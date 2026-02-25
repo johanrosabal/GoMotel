@@ -457,7 +457,7 @@ export default function PosClientPage() {
                                                     )}
                                                 </div>
                                                 
-                                                {/* Bottom Tab - THE REQUESTED ELEMENT */}
+                                                {/* Bottom Tab */}
                                                 <div className={cn(
                                                     "w-full px-8 py-4 rounded-t-[1.5rem] border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
@@ -495,24 +495,26 @@ export default function PosClientPage() {
 
                                 <ScrollArea className="w-full whitespace-nowrap">
                                     <div className="flex gap-2 pb-2">
-                                        <Button 
-                                            variant={selectedCategoryId === null ? "default" : "outline"} 
-                                            size="sm" 
-                                            className="rounded-full font-bold px-4 h-8"
+                                        <button 
+                                            className={cn(
+                                                "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
+                                                selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                            )}
                                             onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
                                         >
                                             Todos
-                                        </Button>
+                                        </button>
                                         {categories?.map(cat => (
-                                            <Button 
+                                            <button 
                                                 key={cat.id}
-                                                variant={selectedCategoryId === cat.id ? "default" : "outline"} 
-                                                size="sm" 
-                                                className="rounded-full font-bold px-4 h-8"
+                                                className={cn(
+                                                    "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
+                                                    selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                                )}
                                                 onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
                                             >
                                                 {cat.name}
-                                            </Button>
+                                            </button>
                                         ))}
                                     </div>
                                     <ScrollBar orientation="horizontal" />
@@ -521,24 +523,26 @@ export default function PosClientPage() {
                                 {selectedCategoryId && subCategories && subCategories.length > 0 && (
                                     <ScrollArea className="w-full whitespace-nowrap border-t pt-2">
                                         <div className="flex gap-2 pb-2">
-                                            <Button 
-                                                variant={selectedSubCategoryId === null ? "secondary" : "ghost"} 
-                                                size="sm" 
-                                                className="rounded-full font-bold px-3 h-7 text-[10px] uppercase tracking-wider"
+                                            <button 
+                                                className={cn(
+                                                    "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
+                                                    selectedSubCategoryId === null ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
+                                                )}
                                                 onClick={() => setSelectedSubCategoryId(null)}
                                             >
                                                 Ver Todo
-                                            </Button>
+                                            </button>
                                             {subCategories.map(sub => (
-                                                <Button 
+                                                <button 
                                                     key={sub.id}
-                                                    variant={selectedSubCategoryId === sub.id ? "secondary" : "ghost"} 
-                                                    size="sm" 
-                                                    className="rounded-full font-bold px-3 h-7 text-[10px] uppercase tracking-wider"
+                                                    className={cn(
+                                                        "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
+                                                        selectedSubCategoryId === sub.id ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
+                                                    )}
                                                     onClick={() => setSelectedSubCategoryId(sub.id)}
                                                 >
                                                     {sub.name}
-                                                </Button>
+                                                </button>
                                             ))}
                                         </div>
                                         <ScrollBar orientation="horizontal" />
