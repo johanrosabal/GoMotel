@@ -3,10 +3,10 @@
 import { useState, useEffect, useTransition } from 'react';
 import { getDashboardStats } from '@/lib/actions/report.actions';
 import { analyzePerformance } from '@/ai/flows/performance-analysis';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
     Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon 
@@ -201,8 +201,4 @@ export default function ReportsClientPage() {
             </div>
         </div>
     );
-}
-
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(' ');
 }
