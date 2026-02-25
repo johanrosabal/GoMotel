@@ -22,7 +22,7 @@ const statusMap: Record<Reservation['status'], string> = {
     Confirmed: 'Confirmada',
     'Checked-in': 'Checked-in',
     Cancelled: 'Cancelada',
-    'No-show': 'No-show',
+    'No-show': 'No se presentó',
     Completed: 'Completada',
 };
 

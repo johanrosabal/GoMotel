@@ -23,7 +23,7 @@ const STATUS_FILTERS: { label: string; value: ReservationStatus | 'all'; color: 
     { label: 'En Estancia', value: 'Checked-in', color: 'bg-green-600' },
     { label: 'Completadas', value: 'Completed', color: 'bg-gray-500' },
     { label: 'Canceladas', value: 'Cancelled', color: 'bg-red-500' },
-    { label: 'No-show', value: 'No-show', color: 'bg-yellow-600' },
+    { label: 'No se presentó', value: 'No-show', color: 'bg-yellow-600' },
 ];
 
 export default function ReservationsClientPage() {
