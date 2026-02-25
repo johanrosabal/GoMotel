@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import UsersTable from '@/components/users/UsersTable';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import Link from 'next/link';
+import UserFormDialog from '@/components/users/UserFormDialog';
 
 export default async function UsersPage() {
   const users = await getUsers();
@@ -11,7 +11,7 @@ export default async function UsersPage() {
   const serializedUsers = users.map(user => ({
       ...user,
       createdAt: user.createdAt.toDate().toISOString(),
-      birthDate: user.birthDate.toDate().toISOString(),
+      birthDate: user.birthDate?.toDate().toISOString() || '',
   }));
 
   return (
@@ -23,13 +23,12 @@ export default async function UsersPage() {
             Gestión integral de cuentas de usuario, asignación de roles y control de seguridad organizacional.
           </p>
         </div>
-        <Button asChild>
-          {/* This link is a placeholder for a future "Add User" form or dialog */}
-          <Link href="/register">
-            <PlusCircle className="mr-2" />
-            Añadir Nuevo Usuario
-          </Link>
-        </Button>
+        <UserFormDialog>
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Añadir Nuevo Usuario
+            </Button>
+        </UserFormDialog>
       </div>
       <Card>
         <CardHeader>

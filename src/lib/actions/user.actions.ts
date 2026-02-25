@@ -1,8 +1,9 @@
 'use server';
 
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { UserProfile } from '@/types';
+import type { UserProfile, UserRole } from '@/types';
+import { revalidatePath } from 'next/cache';
 
 export async function getUsers(): Promise<UserProfile[]> {
   try {
@@ -24,5 +25,38 @@ export async function getUsers(): Promise<UserProfile[]> {
   } catch (error) {
     console.error('Error fetching users:', error);
     return [];
+  }
+}
+
+export async function updateUserProfile(values: any) {
+  try {
+    const { id, birthDate, ...data } = values;
+    if (!id) return { error: 'ID de usuario no proporcionado.' };
+
+    const userRef = doc(db, 'users', id);
+    await updateDoc(userRef, {
+      ...data,
+      birthDate: birthDate ? Timestamp.fromDate(new Date(birthDate)) : null,
+    });
+
+    revalidatePath('/users');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating user profile:', error);
+    return { error: error.message || 'Ocurrió un error al actualizar el perfil.' };
+  }
+}
+
+export async function toggleUserStatus(userId: string, currentStatus: string) {
+  try {
+    const newStatus = currentStatus === 'Active' ? 'Paused' : 'Active';
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { status: newStatus });
+    
+    revalidatePath('/users');
+    return { success: true, newStatus };
+  } catch (error: any) {
+    console.error('Error toggling user status:', error);
+    return { error: 'No se pudo cambiar el estado del usuario.' };
   }
 }
