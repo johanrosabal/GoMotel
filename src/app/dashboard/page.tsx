@@ -11,7 +11,6 @@ import {
   ShoppingCart,
   BedDouble,
   TriangleAlert,
-  TrendingUp,
   PieChart,
   LayoutGrid,
   Package,
@@ -36,7 +35,6 @@ import {
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { formatCurrency, cn } from '@/lib/utils';
-import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 import type { Service, CompanyProfile } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -280,19 +278,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Tendencia de Facturación
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-              <BillingTrendChart />
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="md:col-span-2 lg:col-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5" />
