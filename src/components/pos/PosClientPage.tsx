@@ -266,14 +266,13 @@ export default function PosClientPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="p-1.5 flex items-center justify-between bg-muted/20">
+                                <div className="p-0.5 bg-muted/20 border-t">
                                     <Badge variant="outline" className={cn(
-                                        "text-[8px] px-1 h-3.5 font-bold border-muted-foreground/10 uppercase",
+                                        "w-full justify-center text-[9px] h-5 font-black border-0 rounded-none uppercase",
                                         service.source === 'Internal' ? "bg-indigo-50 text-indigo-700" : "bg-white/50 text-muted-foreground"
                                     )}>
-                                        {service.source === 'Internal' ? 'Cocina' : `Stk: ${service.stock}`}
+                                        {service.source === 'Internal' ? 'Producto de Cocina' : `Stock: ${service.stock}`}
                                     </Badge>
-                                    <Plus className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                             </div>
                         ))}
