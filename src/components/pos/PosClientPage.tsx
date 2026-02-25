@@ -213,18 +213,18 @@ export default function PosClientPage() {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6 bg-muted/30">
             {/* Products Selection Area */}
-            <div className={cn("flex-1 flex flex-col min-w-0 bg-muted/5 border-r", step === 2 && "hidden lg:flex")}>
+            <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden transition-all", step === 2 && "hidden lg:flex")}>
                 {/* Search & Filters Bar */}
-                <div className="border-b bg-background flex flex-col gap-3 p-3">
+                <div className="border-b bg-background flex flex-col gap-3 p-4">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Búsqueda rápida de productos..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-10 border-muted-foreground/20"
+                            className="pl-9 h-11 border-muted-foreground/20 rounded-xl"
                         />
                     </div>
 
@@ -293,13 +293,13 @@ export default function PosClientPage() {
                     )}
                 </div>
 
-                <ScrollArea className="flex-1 bg-background/50">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 p-1 gap-1">
+                <ScrollArea className="flex-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 p-3 gap-2">
                         {filteredServices.map(service => (
                             <div 
                                 key={service.id} 
                                 className={cn(
-                                    "cursor-pointer hover:ring-2 hover:ring-primary transition-all group overflow-hidden flex flex-col bg-card border",
+                                    "cursor-pointer hover:ring-2 hover:ring-primary transition-all group overflow-hidden flex flex-col bg-card border rounded-xl shadow-sm",
                                     (service.source !== 'Internal' && (service.stock || 0) <= 0) && "opacity-50 cursor-not-allowed"
                                 )}
                                 onClick={() => (service.source === 'Internal' || (service.stock || 0) > 0) && handleAddToCart(service)}
@@ -365,7 +365,7 @@ export default function PosClientPage() {
             </div>
 
             {/* Cart & Checkout Area */}
-            <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card shadow-2xl z-10", step === 1 && "hidden lg:flex")}>
+            <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
                 <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
                     <CardTitle className="text-sm flex items-center gap-2 font-black uppercase tracking-tighter">
                         <ShoppingCart className="h-4 w-4 text-primary" /> 
@@ -428,7 +428,7 @@ export default function PosClientPage() {
                                                 <FormControl>
                                                     <div className="relative">
                                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                                                        <Input {...field} className="pl-9 h-10 font-bold text-xs" />
+                                                        <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" />
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage className="text-[10px]" />
@@ -444,7 +444,7 @@ export default function PosClientPage() {
                                                 <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Método de Pago</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest">
+                                                        <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -460,16 +460,16 @@ export default function PosClientPage() {
                                     />
 
                                     {paymentMethod === 'Efectivo' && (
-                                        <div className="p-3 rounded-xl bg-primary/5 border-2 border-primary/10 space-y-3">
+                                        <div className="p-3 rounded-2xl bg-primary/5 border-2 border-primary/10 space-y-3">
                                             <div className="space-y-1">
-                                                <Label className="text-[9px] font-black uppercase tracking-widest text-primary/70">Monto Recibido</Label>
+                                                <Label className="text-[9px] font-black uppercase tracking-widest text-primary/70 ml-1">Monto Recibido</Label>
                                                 <Input
                                                     type="text"
                                                     inputMode="numeric"
                                                     placeholder="₡0.00"
                                                     value={cashTendered}
                                                     onChange={handleCashTenderedChange}
-                                                    className="h-12 text-right text-xl font-black bg-background border-primary/20"
+                                                    className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl"
                                                 />
                                             </div>
                                             {numericCashTendered >= grandTotal && (
@@ -484,14 +484,14 @@ export default function PosClientPage() {
                                     {paymentMethod === 'Sinpe Movil' && (
                                         <div className="space-y-3">
                                             {targetSinpeAccount ? (
-                                                <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-800 space-y-3 text-center">
+                                                <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-800 space-y-3 text-center">
                                                     <p className="text-[9px] text-indigo-600 dark:text-indigo-400 uppercase font-black tracking-widest">Enviar SINPE a:</p>
                                                     <p className="text-3xl font-black font-mono tracking-tighter text-indigo-900 dark:text-indigo-100">{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
                                                     <FormField
                                                         control={form.control}
                                                         name="paymentConfirmed"
                                                         render={({ field }) => (
-                                                            <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-lg border bg-background p-3 text-left">
+                                                            <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left">
                                                                 <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                                                 <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>
                                                             </FormItem>
@@ -499,7 +499,7 @@ export default function PosClientPage() {
                                                     />
                                                 </div>
                                             ) : (
-                                                <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-[9px] text-center font-black border uppercase">
+                                                <div className="p-3 bg-destructive/10 text-destructive rounded-xl text-[9px] text-center font-black border uppercase">
                                                     Límite SINPE excedido
                                                 </div>
                                             )}
@@ -514,7 +514,7 @@ export default function PosClientPage() {
                                                 <FormItem>
                                                     <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Voucher</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Código de voucher" {...field} className="h-10 font-bold font-mono text-center text-sm border-2" />
+                                                        <Input placeholder="Código de voucher" {...field} className="h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" />
                                                     </FormControl>
                                                     <FormMessage className="text-[10px]" />
                                                 </FormItem>
@@ -547,7 +547,7 @@ export default function PosClientPage() {
 
                         {step === 1 ? (
                             <Button 
-                                className="w-full h-12 text-xs font-black uppercase tracking-widest rounded-xl"
+                                className="w-full h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg"
                                 disabled={cart.length === 0}
                                 onClick={() => setStep(2)}
                             >
@@ -559,7 +559,7 @@ export default function PosClientPage() {
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
                                 <Button 
-                                    className="flex-1 h-12 text-xs font-black uppercase tracking-widest rounded-xl"
+                                    className="flex-1 h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg"
                                     onClick={form.handleSubmit(handleProcessSale)}
                                     disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)}
                                 >
