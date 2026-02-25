@@ -28,6 +28,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
+import { Label } from '../ui/label';
 
 const posPaymentSchema = z.object({
   clientName: z.string().default('Cliente de Contado'),
@@ -206,7 +207,7 @@ export default function PosClientPage() {
                         placeholder="Buscar por nombre o código de producto..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 h-12 text-lg shadow-sm"
+                        className="pl-10 h-12 text-lg shadow-sm bg-background"
                     />
                 </div>
 
@@ -216,36 +217,49 @@ export default function PosClientPage() {
                             <Card 
                                 key={service.id} 
                                 className={cn(
-                                    "cursor-pointer hover:border-primary/50 transition-all group overflow-hidden flex flex-col",
+                                    "cursor-pointer hover:border-primary/50 transition-all group overflow-hidden flex flex-col bg-card shadow-sm",
                                     (service.source !== 'Internal' && (service.stock || 0) <= 0) && "opacity-50 cursor-not-allowed"
                                 )}
                                 onClick={() => (service.source === 'Internal' || (service.stock || 0) > 0) && handleAddToCart(service)}
                             >
-                                <div className="aspect-video relative bg-muted flex items-center justify-center">
+                                <div className="aspect-square relative bg-muted flex items-center justify-center overflow-hidden">
                                     {service.imageUrl ? (
-                                        <img src={service.imageUrl} alt={service.name} className="object-cover w-full h-full" />
+                                        <img 
+                                            src={service.imageUrl} 
+                                            alt={service.name} 
+                                            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" 
+                                        />
                                     ) : (
-                                        <ImageIcon className="h-8 w-8 text-muted-foreground/20" />
+                                        <div className="flex flex-col items-center gap-2">
+                                            <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
+                                            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Sin imagen</span>
+                                        </div>
                                     )}
-                                    <div className="absolute top-2 right-2">
-                                        <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm font-bold">
+                                    <div className="absolute bottom-2 right-2">
+                                        <Badge variant="default" className="bg-primary/90 backdrop-blur-md font-black px-2 shadow-lg">
                                             {formatCurrency(service.price)}
                                         </Badge>
                                     </div>
                                     {(service.source !== 'Internal' && (service.stock || 0) <= 0) && (
-                                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                                            <Badge variant="destructive" className="font-black uppercase tracking-tighter">Agotado</Badge>
+                                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-[2px]">
+                                            <Badge variant="destructive" className="font-black uppercase tracking-tighter scale-110">Agotado</Badge>
                                         </div>
                                     )}
                                 </div>
-                                <CardHeader className="p-3 pb-0">
-                                    <CardTitle className="text-sm font-bold truncate leading-none">{service.name}</CardTitle>
-                                    <CardDescription className="text-[10px] uppercase font-semibold">
-                                        {service.source === 'Internal' ? 'Producción' : `Stock: ${service.stock}`}
-                                    </CardDescription>
+                                <CardHeader className="p-3 pb-0 space-y-1">
+                                    <CardTitle className="text-xs font-bold truncate leading-none text-foreground">{service.name}</CardTitle>
+                                    <div className="flex items-center justify-between">
+                                        <Badge variant="outline" className={cn(
+                                            "text-[9px] px-1.5 h-4 font-bold border-muted-foreground/20",
+                                            service.source === 'Internal' ? "bg-indigo-50 text-indigo-700" : "bg-muted/50"
+                                        )}>
+                                            {service.source === 'Internal' ? 'Cocina' : `Stock: ${service.stock}`}
+                                        </Badge>
+                                        <span className="text-[9px] font-mono text-muted-foreground">{service.code}</span>
+                                    </div>
                                 </CardHeader>
-                                <CardFooter className="p-3 pt-2 mt-auto">
-                                    <Button size="sm" variant="outline" className="w-full h-8 gap-1 font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                <CardFooter className="p-3 pt-3 mt-auto">
+                                    <Button size="sm" variant="secondary" className="w-full h-8 gap-1.5 font-bold uppercase text-[10px] tracking-wider group-hover:bg-primary group-hover:text-primary-foreground transition-all">
                                         <Plus className="h-3 w-3" /> Añadir
                                     </Button>
                                 </CardFooter>
@@ -257,16 +271,16 @@ export default function PosClientPage() {
 
             {/* Cart & Checkout Area */}
             <div className={cn("lg:col-span-4 flex flex-col h-full", step === 1 && "hidden lg:flex")}>
-                <Card className="flex flex-col h-full shadow-lg border-primary/10">
+                <Card className="flex flex-col h-full shadow-xl border-primary/10 bg-card/50 backdrop-blur-sm">
                     <CardHeader className="p-4 bg-muted/30 border-b">
                         <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <ShoppingCart className="h-5 w-5" /> 
+                            <CardTitle className="text-base flex items-center gap-2 font-black uppercase tracking-tighter">
+                                <ShoppingCart className="h-5 w-5 text-primary" /> 
                                 Carrito ({cart.reduce((s, i) => s + i.quantity, 0)})
                             </CardTitle>
                             {step === 1 && cart.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-destructive h-8 px-2 font-bold uppercase text-[10px]">
-                                    Vaciar
+                                <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-destructive h-8 px-2 font-bold uppercase text-[10px] hover:bg-destructive/10">
+                                    Limpiar
                                 </Button>
                             )}
                         </div>
@@ -277,25 +291,38 @@ export default function PosClientPage() {
                             {step === 1 ? (
                                 <div className="py-4 space-y-3">
                                     {cart.length === 0 ? (
-                                        <div className="text-center py-12 text-muted-foreground">
-                                            <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                                            <p className="font-medium">El carrito está vacío</p>
-                                            <p className="text-xs">Seleccione productos de la izquierda</p>
+                                        <div className="text-center py-20 text-muted-foreground animate-in fade-in duration-500">
+                                            <div className="relative inline-block">
+                                                <ShoppingCart className="h-16 w-16 mx-auto mb-4 opacity-10" />
+                                                <div className="absolute top-0 right-0 h-4 w-4 bg-primary/20 rounded-full animate-ping" />
+                                            </div>
+                                            <p className="font-bold text-sm uppercase tracking-widest opacity-40">Carrito Vacío</p>
+                                            <p className="text-[10px] mt-1">Seleccione productos para comenzar</p>
                                         </div>
                                     ) : (
                                         cart.map(item => (
-                                            <div key={item.service.id} className="flex items-center justify-between gap-3 p-2 rounded-lg border bg-background/50">
+                                            <div key={item.service.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border bg-background/80 shadow-sm transition-all animate-in slide-in-from-right-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-sm truncate">{item.service.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatCurrency(item.service.price)} c/u</p>
+                                                    <p className="font-black text-xs truncate uppercase tracking-tight">{item.service.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)} c/u</p>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-muted/50 rounded-md p-1">
-                                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleRemoveFromCart(item.service.id)}><Minus className="h-3 w-3" /></Button>
-                                                    <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
-                                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAddToCart(item.service)} disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}><Plus className="h-3 w-3" /></Button>
+                                                <div className="flex items-center gap-1.5 bg-muted/50 rounded-full p-1 border">
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full hover:bg-background shadow-sm" onClick={() => handleRemoveFromCart(item.service.id)}>
+                                                        <Minus className="h-3 w-3" />
+                                                    </Button>
+                                                    <span className="text-xs font-black w-5 text-center">{item.quantity}</span>
+                                                    <Button 
+                                                        size="icon" 
+                                                        variant="ghost" 
+                                                        className="h-6 w-6 rounded-full hover:bg-background shadow-sm" 
+                                                        onClick={() => handleAddToCart(item.service)} 
+                                                        disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                    </Button>
                                                 </div>
                                                 <div className="text-right w-20">
-                                                    <p className="text-sm font-black">{formatCurrency(item.service.price * item.quantity)}</p>
+                                                    <p className="text-xs font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
                                                 </div>
                                             </div>
                                         ))
@@ -310,11 +337,11 @@ export default function PosClientPage() {
                                                 name="clientName"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-xs font-black uppercase text-muted-foreground tracking-widest">Facturar a nombre de</FormLabel>
+                                                        <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Facturar a</FormLabel>
                                                         <FormControl>
                                                             <div className="relative">
                                                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                                <Input {...field} className="pl-10 h-11" placeholder="Nombre del cliente" />
+                                                                <Input {...field} className="pl-10 h-11 font-bold" placeholder="Nombre del cliente" />
                                                             </div>
                                                         </FormControl>
                                                         <FormMessage />
@@ -327,17 +354,17 @@ export default function PosClientPage() {
                                                 name="paymentMethod"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-xs font-black uppercase text-muted-foreground tracking-widest">Método de Pago</FormLabel>
+                                                        <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Método de Pago</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger className="h-11 font-bold">
+                                                                <SelectTrigger className="h-11 font-black uppercase text-xs tracking-widest border-2">
                                                                     <SelectValue placeholder="Seleccione" />
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
                                                                 <SelectItem value="Efectivo"><div className="flex items-center gap-2"><Wallet className="h-4 w-4" /> Efectivo</div></SelectItem>
                                                                 <SelectItem value="Sinpe Movil"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> SINPE Móvil</div></SelectItem>
-                                                                <SelectItem value="Tarjeta"><div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Tarjeta (Voucher)</div></SelectItem>
+                                                                <SelectItem value="Tarjeta"><div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Tarjeta</div></SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />
@@ -346,54 +373,54 @@ export default function PosClientPage() {
                                             />
 
                                             {paymentMethod === 'Efectivo' && (
-                                                <div className="p-4 rounded-xl bg-muted/30 border space-y-4">
+                                                <div className="p-4 rounded-xl bg-primary/5 border-2 border-primary/10 space-y-4 animate-in zoom-in-95">
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs font-bold uppercase">Monto Recibido</Label>
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Monto Recibido</Label>
                                                         <Input
                                                             type="text"
                                                             inputMode="numeric"
                                                             placeholder="₡0.00"
                                                             value={cashTendered}
                                                             onChange={handleCashTenderedChange}
-                                                            className="h-12 text-right text-xl font-black"
+                                                            className="h-14 text-right text-2xl font-black bg-background border-primary/20 focus-visible:ring-primary"
                                                         />
                                                     </div>
                                                     {numericCashTendered >= grandTotal && (
-                                                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                                                            <span className="font-bold text-xs uppercase">Vuelto</span>
-                                                            <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - grandTotal)}</span>
+                                                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                                            <span className="font-black text-[10px] uppercase tracking-widest text-primary">Vuelto</span>
+                                                            <span className="text-2xl font-black text-primary">{formatCurrency(numericCashTendered - grandTotal)}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
 
                                             {paymentMethod === 'Sinpe Movil' && (
-                                                <div className="space-y-4">
+                                                <div className="space-y-4 animate-in zoom-in-95">
                                                     {targetSinpeAccount ? (
-                                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4 text-center">
-                                                            <p className="text-xs text-muted-foreground uppercase font-bold">Solicitar transferencia a:</p>
+                                                        <div className="p-5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-800 space-y-4 text-center shadow-inner">
+                                                            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 uppercase font-black tracking-widest">Solicitar SINPE a:</p>
                                                             <div className="space-y-1">
-                                                                <p className="text-3xl font-black font-mono tracking-tighter">{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                                <p className="text-[10px] font-black uppercase opacity-60">{targetSinpeAccount.accountHolder}</p>
+                                                                <p className="text-4xl font-black font-mono tracking-tighter text-indigo-900 dark:text-indigo-100">{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                                <p className="text-[10px] font-bold uppercase opacity-60 truncate">{targetSinpeAccount.accountHolder}</p>
                                                             </div>
                                                             <FormField
                                                                 control={form.control}
                                                                 name="paymentConfirmed"
                                                                 render={({ field }) => (
-                                                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 text-left shadow-sm">
+                                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 bg-background p-4 text-left shadow-sm">
                                                                         <FormControl>
-                                                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} className="h-5 w-5 border-2" />
                                                                         </FormControl>
                                                                         <div className="space-y-1 leading-none">
-                                                                            <FormLabel className="font-bold text-xs">He recibido el pago</FormLabel>
+                                                                            <FormLabel className="font-black text-xs uppercase tracking-tight">He recibido el pago</FormLabel>
                                                                         </div>
                                                                     </FormItem>
                                                                 )}
                                                             />
                                                         </div>
                                                     ) : (
-                                                        <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-xs text-center font-bold border border-destructive/20 uppercase">
-                                                            No hay cuentas SINPE con saldo disponible
+                                                        <div className="p-4 bg-destructive/10 text-destructive rounded-xl text-[10px] text-center font-black border-2 border-destructive/20 uppercase tracking-widest">
+                                                            Límite SINPE excedido en cuentas
                                                         </div>
                                                     )}
                                                 </div>
@@ -404,10 +431,10 @@ export default function PosClientPage() {
                                                     control={form.control}
                                                     name="voucherNumber"
                                                     render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-xs font-bold uppercase">Número de Voucher</FormLabel>
+                                                        <FormItem className="animate-in zoom-in-95">
+                                                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Número de Voucher</FormLabel>
                                                             <FormControl>
-                                                                <Input placeholder="Código de transacción" {...field} className="h-11 font-mono text-center" />
+                                                                <Input placeholder="Código de transacción" {...field} className="h-12 font-black font-mono text-center text-lg border-2" />
                                                             </FormControl>
                                                             <FormMessage />
                                                         </FormItem>
@@ -420,44 +447,44 @@ export default function PosClientPage() {
                             )}
                         </ScrollArea>
 
-                        <div className="p-4 border-t bg-muted/10 space-y-4 mt-auto">
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                        <div className="p-5 border-t bg-background space-y-4 mt-auto">
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                     <span>Subtotal</span>
                                     <span>{formatCurrency(subtotal)}</span>
                                 </div>
                                 {appliedTaxes.map(tax => (
-                                    <div key={tax.taxId} className="flex justify-between text-xs text-muted-foreground">
+                                    <div key={tax.taxId} className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">
                                         <span>{tax.name} ({tax.percentage}%)</span>
                                         <span>{formatCurrency(tax.amount)}</span>
                                     </div>
                                 ))}
                                 <Separator className="my-2" />
                                 <div className="flex justify-between items-center">
-                                    <span className="text-base font-black uppercase tracking-tighter">Total</span>
-                                    <span className="text-2xl font-black text-primary">{formatCurrency(grandTotal)}</span>
+                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Total Neto</span>
+                                    <span className="text-3xl font-black text-primary tracking-tighter">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </div>
 
                             {step === 1 ? (
                                 <Button 
-                                    className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                                    className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 rounded-2xl"
                                     disabled={cart.length === 0}
                                     onClick={() => setStep(2)}
                                 >
-                                    Pagar Ahora <ChevronRight className="ml-2 h-5 w-5" />
+                                    Confirmar Pedido <ChevronRight className="ml-2 h-5 w-5" />
                                 </Button>
                             ) : (
                                 <div className="flex gap-2">
-                                    <Button variant="outline" className="h-14 font-bold" onClick={() => setStep(1)} disabled={isPending}>
+                                    <Button variant="outline" className="h-14 font-bold rounded-2xl border-2" onClick={() => setStep(1)} disabled={isPending}>
                                         <ChevronLeft className="h-5 w-5" />
                                     </Button>
                                     <Button 
-                                        className="flex-1 h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                                        className="flex-1 h-14 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 rounded-2xl"
                                         onClick={form.handleSubmit(handleProcessSale)}
                                         disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)}
                                     >
-                                        {isPending ? "Procesando..." : <>Vender Ahora <CheckCircle className="ml-2 h-5 w-5" /></>}
+                                        {isPending ? "Procesando..." : <>Procesar Venta <CheckCircle className="ml-2 h-5 w-5" /></>}
                                     </Button>
                                 </div>
                             )}
