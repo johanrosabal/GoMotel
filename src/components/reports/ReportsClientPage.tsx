@@ -10,7 +10,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { 
     TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
     Calendar, Download, ArrowRight, DollarSign, PieChart as PieIcon,
-    Receipt, PackageSearch
+    Receipt, PackageSearch, FileText
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -59,14 +59,20 @@ export default function ReportsClientPage() {
         const input = stockReportRef.current;
         if (!input) return;
 
-        html2canvas(input, { scale: 2, backgroundColor: '#ffffff' }).then((canvas) => {
+        // Captura el elemento con alta resolución para el PDF
+        html2canvas(input, { 
+            scale: 2, 
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            logging: false
+        }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`reporte-stock-bajo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            pdf.save(`reporte-inventario-critico-${format(new Date(), 'yyyyMMdd')}.pdf`);
         });
     };
 
@@ -115,8 +121,8 @@ export default function ReportsClientPage() {
                 </Card>
                 <Card 
                     className={cn(
-                        "transition-all duration-200 cursor-pointer hover:shadow-md",
-                        data.kpis.lowStockCount > 0 ? "border-yellow-500/50 bg-yellow-500/5 hover:bg-yellow-500/10" : "hover:bg-muted/50"
+                        "transition-all duration-200 cursor-pointer hover:shadow-md border-2",
+                        data.kpis.lowStockCount > 0 ? "border-yellow-500 bg-yellow-500/5 hover:bg-yellow-500/10" : "border-transparent hover:bg-muted/50"
                     )}
                     onClick={() => data.kpis.lowStockCount > 0 && setIsStockDialogOpen(true)}
                 >
@@ -128,8 +134,8 @@ export default function ReportsClientPage() {
                         <div className="text-2xl font-black">{data.kpis.lowStockCount}</div>
                         <p className="text-xs text-muted-foreground mt-1">Productos por debajo del mínimo</p>
                         {data.kpis.lowStockCount > 0 && (
-                            <p className="text-[10px] text-yellow-700 font-bold uppercase mt-3 flex items-center gap-1">
-                                Ver cuáles son <ArrowRight className="h-2.5 w-2.5" />
+                            <p className="text-[10px] text-yellow-700 font-black uppercase mt-3 flex items-center gap-1">
+                                Revisar inventario <ArrowRight className="h-2.5 w-2.5" />
                             </p>
                         )}
                     </CardContent>
@@ -311,47 +317,80 @@ export default function ReportsClientPage() {
 
             {/* Low Stock Dialog */}
             <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <div ref={stockReportRef} className="bg-background p-2">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <PackageSearch className="h-5 w-5 text-yellow-600" />
-                                Productos con Stock Bajo
-                            </DialogTitle>
-                            <DialogDescription>
-                                Artículos que han alcanzado o superado su punto de reorden. Generado el {format(new Date(), "dd/MM/yyyy", { locale: es })}.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <div className="rounded-md border">
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <PackageSearch className="h-5 w-5 text-yellow-600" />
+                            Gestión de Stock Crítico
+                        </DialogTitle>
+                        <DialogDescription>
+                            Revise los artículos que requieren reposición inmediata para asegurar la continuidad del servicio.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Printable Area */}
+                    <div className="overflow-hidden border rounded-xl mt-4">
+                        <div ref={stockReportRef} className="bg-white p-10 text-gray-900 min-w-[600px]">
+                            <div className="flex justify-between items-start border-b-4 border-primary pb-6 mb-8">
+                                <div>
+                                    <h1 className="text-3xl font-black uppercase tracking-tighter text-gray-900">Reporte de Inventario</h1>
+                                    <p className="text-sm font-bold text-primary tracking-widest mt-1">AVISO DE REABASTECIMIENTO CRÍTICO</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Generado el</p>
+                                    <p className="text-sm font-mono font-bold">{format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="rounded-lg border-2 border-gray-100 overflow-hidden shadow-sm">
                                 <Table>
-                                    <TableHeader className="bg-muted/50">
+                                    <TableHeader className="bg-gray-50 border-b-2 border-gray-100">
                                         <TableRow>
-                                            <TableHead className="text-xs font-bold uppercase">Producto</TableHead>
-                                            <TableHead className="text-center text-xs font-bold uppercase">Stock</TableHead>
-                                            <TableHead className="text-center text-xs font-bold uppercase">Mínimo</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 text-gray-600 pl-6">Producto / Artículo</TableHead>
+                                            <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 text-gray-600">Stock Actual</TableHead>
+                                            <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 text-gray-600">Mínimo</TableHead>
+                                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-gray-600 pr-6">Déficit</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {data.lowStockDetails?.map((item: any) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="font-medium text-sm">{item.name}</TableCell>
-                                                <TableCell className="text-center font-bold text-destructive">{item.stock}</TableCell>
-                                                <TableCell className="text-center text-muted-foreground text-sm">{item.minStock}</TableCell>
+                                            <TableRow key={item.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                                                <TableCell className="font-bold text-base py-5 pl-6">{item.name}</TableCell>
+                                                <TableCell className="text-center font-black text-red-600 text-lg py-5">{item.stock}</TableCell>
+                                                <TableCell className="text-center text-gray-500 font-bold py-5">{item.minStock}</TableCell>
+                                                <TableCell className="text-right py-5 pr-6">
+                                                    <Badge className="bg-red-100 text-red-700 border-red-200 font-black px-3 py-1">
+                                                        -{item.minStock - item.stock} UNIDADES
+                                                    </Badge>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </div>
+                            
+                            <div className="mt-12 pt-6 border-t-2 border-gray-100 flex justify-between items-end">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado del Documento</p>
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                        <p className="text-sm font-bold text-gray-700 uppercase">Orden de Compra Pendiente</p>
+                                    </div>
+                                </div>
+                                <div className="text-right opacity-40">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest">Go Motel Manager - Auditoría Interna</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 border-t">
-                        <Button variant="outline" onClick={handleExportStockPdf} className="gap-2">
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t mt-4">
+                        <Button variant="outline" onClick={handleExportStockPdf} className="gap-2 font-bold h-11 px-6 border-2">
                             <Download className="h-4 w-4" />
-                            Exportar PDF
+                            Descargar PDF Profesional
                         </Button>
-                        <Button variant="secondary" onClick={() => setIsStockDialogOpen(false)}>Cerrar</Button>
-                        <Button asChild>
+                        <Button variant="secondary" onClick={() => setIsStockDialogOpen(false)} className="h-11 px-6 font-bold">Cerrar</Button>
+                        <Button asChild className="h-11 px-6 font-bold">
                             <Link href="/inventory">Ir a Inventario</Link>
                         </Button>
                     </div>
