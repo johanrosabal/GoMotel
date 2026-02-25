@@ -217,7 +217,7 @@ export default async function DashboardPage() {
           icon: FileCode,
         },
         {
-          href: '#',
+          href: '/help-center',
           title: 'Centro de Ayuda',
           description: 'Preguntas frecuentes y contacto técnico.',
           icon: HelpCircle,
