@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useRef } from 'react';
+import { useState, useEffect, useTransition, useRef, useMemo } from 'react';
 import { getDashboardStats } from '@/lib/actions/report.actions';
 import { analyzePerformance } from '@/ai/flows/performance-analysis';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -40,6 +40,7 @@ export default function ReportsClientPage() {
     const [isAnalyzing, startAnalysis] = useTransition();
     const [aiAnalysis, setAiAnalysis] = useState<any>(null);
     const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const stockReportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -56,39 +57,44 @@ export default function ReportsClientPage() {
         });
     };
 
-    const handleExportStockPdf = () => {
+    // Lógica de Paginación para Stock Bajo: 35 filas por página
+    const stockPages = useMemo(() => {
+        if (!data?.lowStockDetails) return [];
+        const limit = 35;
+        const result = [];
+        for (let i = 0; i < data.lowStockDetails.length; i += limit) {
+            result.push(data.lowStockDetails.slice(i, i + limit));
+        }
+        return result;
+    }, [data?.lowStockDetails]);
+
+    const handleExportStockPdf = async () => {
         const input = stockReportRef.current;
         if (!input) return;
 
-        html2canvas(input, { 
-            scale: 2, 
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            logging: false,
-        }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            let heightLeft = imgHeight;
-            let position = 0;
+        setIsExporting(true);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pages = input.querySelectorAll('.stock-pdf-page');
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                heightLeft -= pdfHeight;
+        try {
+            for (let i = 0; i < pages.length; i++) {
+                const canvas = await html2canvas(pages[i] as HTMLElement, { 
+                    scale: 2.5, 
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
             }
-
             pdf.save(`REPORTE-STOCK-${format(new Date(), 'yyyyMMdd')}.pdf`);
-        });
+        } catch (error) {
+            console.error("Error al exportar stock:", error);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     if (isLoading) {
@@ -364,114 +370,97 @@ export default function ReportsClientPage() {
                         </div>
                     </div>
 
-                    <div className="absolute -left-[9999px] top-0">
-                        <div 
-                            ref={stockReportRef} 
-                            className="bg-white p-12 text-gray-900 flex flex-col" 
-                            style={{ 
-                                width: '210mm', 
-                                minHeight: '297mm', 
-                                fontFamily: 'Arial, sans-serif',
-                                letterSpacing: '0px',
-                                wordSpacing: 'normal'
-                            }}
-                        >
-                            <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
-                                <div className="space-y-1">
-                                    <h1 className="text-xl font-bold text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
-                                    <p className="text-sm font-semibold text-gray-600">Control de Activos e Inventarios</p>
-                                    <div className="mt-2 text-[10px] font-medium text-gray-400">
-                                        <p>Go Motel Manager v1.5</p>
-                                    </div>
-                                </div>
-                                <div className="text-right space-y-1">
-                                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                                        <p className="text-[8px] font-bold text-gray-400">NÚMERO DE REPORTE</p>
-                                        <p className="text-xs font-mono font-bold text-gray-700">{format(new Date(), 'yyyyMMdd')}/INV-01</p>
-                                    </div>
-                                    <div className="pr-1">
-                                        <p className="text-[8px] font-bold text-gray-400">EMITIDO EL</p>
-                                        <p className="text-[10px] font-bold text-gray-800">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</p>
-                                        <p className="text-[9px] text-gray-500">{format(new Date(), 'HH:mm:ss')} hrs</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mb-6 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
-                                <h2 className="text-xs font-bold text-yellow-800 mb-1">AVISO DE REABASTECIMIENTO</h2>
-                                <p className="text-[10px] text-yellow-700 leading-relaxed">
-                                    Los siguientes artículos se encuentran por debajo del nivel mínimo de seguridad. Se recomienda la gestión de compra inmediata para evitar rupturas de stock en el servicio.
-                                </p>
-                            </div>
-
-                            <div className="flex-grow">
-                                <table className="w-full border-collapse mb-10">
-                                    <thead>
-                                        <tr className="bg-gray-800 text-white text-left">
-                                            <th className="p-2 border border-gray-800 text-[9px] font-bold">DESCRIPCIÓN DEL PRODUCTO</th>
-                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK REAL</th>
-                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK MÍN.</th>
-                                            <th className="p-2 border border-gray-800 text-[9px] font-bold text-right">CANT. A PEDIR</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {data.lowStockDetails?.map((item: any, index: number) => (
-                                            <tr key={item.id} className={cn("text-[10px]", index % 2 === 0 ? "bg-white" : "bg-gray-50")}>
-                                                <td className="p-2 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
-                                                <td className="p-2 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
-                                                <td className="p-2 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
-                                                <td className="p-2 border border-gray-200 text-right font-bold text-gray-900">
-                                                    {item.minStock - item.stock} Unidades
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6 mb-12">
-                                <div className="border p-3 rounded bg-gray-50">
-                                    <h3 className="text-[8px] font-bold text-gray-400 mb-2 border-b pb-1">RESUMEN GENERAL</h3>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-600">Items con Alerta:</span>
-                                            <span className="font-bold">{data.kpis.lowStockCount}</span>
+                    <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                        <div ref={stockReportRef} style={{ letterSpacing: '0px', wordSpacing: 'normal' }}>
+                            {stockPages.map((pageItems, pageIndex) => (
+                                <div 
+                                    key={pageIndex}
+                                    className="stock-pdf-page bg-white p-12 text-gray-900 flex flex-col mb-10" 
+                                    style={{ 
+                                        width: '210mm', 
+                                        height: '297mm', 
+                                        fontFamily: 'Arial, sans-serif'
+                                    }}
+                                >
+                                    <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4 mb-6">
+                                        <div className="space-y-1">
+                                            <h1 className="text-xl font-bold text-gray-900 leading-tight">REPORTE DE AUDITORÍA</h1>
+                                            <p className="text-sm font-semibold text-gray-600">Control de Activos e Inventarios</p>
                                         </div>
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-600">Estado Operativo:</span>
-                                            <span className="font-bold text-orange-600">Atención Prioritaria</span>
+                                        <div className="text-right space-y-1">
+                                            <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                                                <p className="text-[8px] font-bold text-gray-400">NÚMERO DE REPORTE</p>
+                                                <p className="text-xs font-mono font-bold text-gray-700">{format(new Date(), 'yyyyMMdd')}/INV-01</p>
+                                            </div>
+                                            <div className="pr-1">
+                                                <p className="text-[8px] font-bold text-gray-400">FECHA EMISIÓN</p>
+                                                <p className="text-[9px] font-bold text-gray-800">{format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center justify-center p-3 border border-dashed border-gray-200 rounded">
-                                    <p className="text-[8px] text-gray-400 text-center font-medium italic">
-                                        Documento generado para fines de control administrativo interno.
-                                    </p>
-                                </div>
-                            </div>
 
-                            <div className="mt-auto grid grid-cols-2 gap-12 pt-6 border-t border-gray-100">
-                                <div className="text-center space-y-2">
-                                    <div className="h-12 border-b border-gray-300"></div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-800">Firma Encargado Inventario</p>
-                                        <p className="text-[8px] text-gray-400">VALIDACIÓN DE EXISTENCIAS</p>
+                                    {pageIndex === 0 && (
+                                        <div className="mb-6 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
+                                            <h2 className="text-xs font-bold text-yellow-800 mb-1">AVISO DE REABASTECIMIENTO</h2>
+                                            <p className="text-[10px] text-yellow-700 leading-relaxed">
+                                                Los siguientes artículos se encuentran por debajo del nivel mínimo de seguridad. Se recomienda la gestión de compra inmediata.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex-grow">
+                                        <h2 className="text-[10px] font-bold text-gray-800 uppercase mb-3 border-l-4 border-gray-800 pl-2">
+                                            Listado de Stock Crítico {stockPages.length > 1 && `(Hoja ${pageIndex + 1})`}
+                                        </h2>
+                                        <table className="w-full border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-800 text-white text-left">
+                                                    <th className="p-2 border border-gray-800 text-[9px] font-bold">DESCRIPCIÓN DEL PRODUCTO</th>
+                                                    <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK ACTUAL</th>
+                                                    <th className="p-2 border border-gray-800 text-[9px] font-bold text-center">STOCK MÍN.</th>
+                                                    <th className="p-2 border border-gray-800 text-[9px] font-bold text-right">PEDIDO SUGERIDO</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pageItems.map((item: any, idx: number) => (
+                                                    <tr key={item.id} className={cn("text-[10px]", idx % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                                                        <td className="p-2 border border-gray-200 font-semibold text-gray-800">{item.name}</td>
+                                                        <td className="p-2 border border-gray-200 text-center font-bold text-red-600">{item.stock}</td>
+                                                        <td className="p-2 border border-gray-200 text-center text-gray-500">{item.minStock}</td>
+                                                        <td className="p-2 border border-gray-200 text-right font-bold text-gray-900">
+                                                            {item.minStock - item.stock} Unidades
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {pageIndex === stockPages.length - 1 && (
+                                        <div className="mt-10 grid grid-cols-2 gap-12 pt-6 border-t border-gray-100">
+                                            <div className="text-center space-y-2">
+                                                <div className="h-12 border-b border-gray-300 w-48 mx-auto"></div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-800">Firma Encargado Inventario</p>
+                                                    <p className="text-[8px] text-gray-400">VALIDACIÓN DE EXISTENCIAS</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-center space-y-2">
+                                                <div className="h-12 border-b border-gray-300 w-48 mx-auto"></div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-800">Autorización Contabilidad</p>
+                                                    <p className="text-[8px] text-gray-400">APROBACIÓN DE COMPRA</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-auto pt-4 border-t flex justify-between items-center text-[8px] text-gray-400 font-bold uppercase">
+                                        <span>Documento de auditoría interna</span>
+                                        <span>Página {pageIndex + 1} de {stockPages.length}</span>
                                     </div>
                                 </div>
-                                <div className="text-center space-y-2">
-                                    <div className="h-12 border-b border-gray-300"></div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-800">Autorización Contabilidad</p>
-                                        <p className="text-[8px] text-gray-400">APROBACIÓN DE COMPRA</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-12 pt-4 text-center">
-                                <p className="text-[7px] text-gray-300 font-medium uppercase">
-                                    Sistema de Gestión Go Motel - Módulo de Reportes Contables
-                                </p>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
@@ -480,10 +469,11 @@ export default function ReportsClientPage() {
                             <Button 
                                 variant="outline" 
                                 onClick={handleExportStockPdf} 
+                                disabled={isExporting}
                                 className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors"
                             >
                                 <Download className="h-5 w-5" />
-                                Exportar Reporte Contable
+                                {isExporting ? "Generando Reporte..." : "Exportar Reporte Contable"}
                             </Button>
                             <Button 
                                 variant="secondary" 

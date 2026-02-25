@@ -46,6 +46,7 @@ export default function InvoicesClientPage() {
     const { firestore } = useFirebase();
     const [searchTerm, setSearchTerm] = useState('');
     const [period, setPeriod] = useState<Period>('all');
+    const [isExporting, setIsExporting] = useState(false);
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
         from: undefined,
         to: undefined
@@ -108,41 +109,37 @@ export default function InvoicesClientPage() {
         });
     }, [invoices, searchTerm, dateRange]);
 
-    const handleExportPDF = () => {
+    const handleExportPDF = async () => {
         const input = reportRef.current;
         if (!input) return;
 
-        html2canvas(input, { 
-            scale: 2, 
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            logging: false
-        }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            let heightLeft = imgHeight;
-            let position = 0;
+        setIsExporting(true);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pages = input.querySelectorAll('.invoice-pdf-page');
 
-            // Primera página
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-            heightLeft -= pdfHeight;
-
-            // Páginas subsiguientes si el reporte es largo
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                heightLeft -= pdfHeight;
+        try {
+            for (let i = 0; i < pages.length; i++) {
+                const canvas = await html2canvas(pages[i] as HTMLElement, { 
+                    scale: 2.5, 
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                
+                if (i > 0) pdf.addPage();
+                
+                // Las dimensiones exactas de A4 en mm son 210x297
+                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
             }
 
             pdf.save(`REPORTE-VENTAS-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
-        });
+        } catch (error) {
+            console.error("Error al generar PDF:", error);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     return (
@@ -236,11 +233,11 @@ export default function InvoicesClientPage() {
                     )}
                     <Button 
                         onClick={handleExportPDF} 
-                        disabled={filteredInvoices.length === 0}
+                        disabled={filteredInvoices.length === 0 || isExporting}
                         className="flex-1 lg:flex-none h-10 gap-2 font-bold"
                     >
                         <Download className="h-4 w-4" />
-                        Exportar Reporte
+                        {isExporting ? "Generando..." : "Exportar Reporte"}
                     </Button>
                 </div>
             </div>
@@ -262,7 +259,7 @@ export default function InvoicesClientPage() {
                 </div>
             )}
 
-            <div className="absolute -left-[9999px] top-0">
+            <div className="absolute -left-[9999px] top-0 pointer-events-none">
                 <InvoiceReportTemplate 
                     invoices={filteredInvoices} 
                     dateRange={dateRange}
