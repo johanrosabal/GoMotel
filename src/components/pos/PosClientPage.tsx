@@ -175,7 +175,7 @@ export default function PosClientPage() {
         const taxes: AppliedTax[] = [];
 
         if (allTaxes) {
-            const taxMap = new Map<string, { name: string; percentage: number; window: number }>();
+            const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
             cart.forEach(item => {
                 const itemTotal = item.service.price * item.quantity;
                 item.service.taxIds?.forEach(taxId => {
@@ -419,7 +419,7 @@ export default function PosClientPage() {
                                                     "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
                                                     order 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/10" 
-                                                        : "bg-muted/30 text-muted-foreground border-border group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20"
+                                                        : "bg-secondary text-foreground/40 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
                                                     <Icon className="h-5 w-5" />
                                                 </div>
@@ -461,152 +461,6 @@ export default function PosClientPage() {
                                             )}
                                         </div>
                                     )}
-                                </div>
-                            </ScrollArea>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Search & Filters Bar */}
-                            <div className="border-b bg-background flex flex-col gap-3 p-4">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input 
-                                        placeholder="Búsqueda rápida de productos..." 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-9 h-11 border-muted-foreground/20 rounded-xl"
-                                    />
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <div className="shrink-0 p-1.5 rounded-full bg-muted">
-                                        <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                                    </div>
-                                    <ScrollArea className="w-full whitespace-nowrap">
-                                        <div className="flex gap-1.5 pb-2">
-                                            <Button 
-                                                variant={selectedCategoryId === null ? "default" : "outline"} 
-                                                size="sm" 
-                                                className="h-8 text-[10px] font-black uppercase rounded-full px-4"
-                                                onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
-                                            >
-                                                Todos
-                                            </Button>
-                                            {categories?.map(cat => (
-                                                <Button 
-                                                    key={cat.id}
-                                                    variant={selectedCategoryId === cat.id ? "default" : "outline"} 
-                                                    size="sm" 
-                                                    className="h-8 text-[10px] font-black uppercase rounded-full px-4"
-                                                    onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
-                                                >
-                                                    {cat.name}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                        <ScrollBar orientation="horizontal" />
-                                    </ScrollArea>
-                                </div>
-
-                                {selectedCategoryId && subCategories && subCategories.length > 0 && (
-                                    <div className="flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
-                                        <div className="shrink-0 p-1.5 rounded-full bg-primary/10">
-                                            <Filter className="h-3.5 w-3.5 text-primary" />
-                                        </div>
-                                        <ScrollArea className="w-full whitespace-nowrap">
-                                            <div className="flex gap-1.5 pb-2">
-                                                <Button 
-                                                    variant={selectedSubCategoryId === null ? "secondary" : "ghost"} 
-                                                    size="sm" 
-                                                    className="h-7 text-[9px] font-bold uppercase rounded-full px-3"
-                                                    onClick={() => setSelectedSubCategoryId(null)}
-                                                >
-                                                    Ver Todo
-                                                </Button>
-                                                {subCategories.map(sub => (
-                                                    <Button 
-                                                        key={sub.id}
-                                                        variant={selectedSubCategoryId === sub.id ? "secondary" : "ghost"} 
-                                                        size="sm" 
-                                                        className="h-7 text-[9px] font-bold uppercase rounded-full px-3"
-                                                        onClick={() => setSelectedSubCategoryId(sub.id)}
-                                                    >
-                                                        {sub.name}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                            <ScrollBar orientation="horizontal" />
-                                        </ScrollArea>
-                                    </div>
-                                )}
-                            </div>
-
-                            <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 p-3 gap-2">
-                                    {filteredServices.map(service => (
-                                        <div 
-                                            key={service.id} 
-                                            className={cn(
-                                                "cursor-pointer hover:ring-2 hover:ring-primary transition-all group overflow-hidden flex flex-col bg-card border rounded-xl shadow-sm",
-                                                (service.source !== 'Internal' && (service.stock || 0) <= 0) && "opacity-50 cursor-not-allowed"
-                                            )}
-                                            onClick={() => (service.source === 'Internal' || (service.stock || 0) > 0) && handleAddToCart(service)}
-                                        >
-                                            <div className="aspect-square relative bg-muted flex items-center justify-center overflow-hidden">
-                                                {service.imageUrl ? (
-                                                    <img 
-                                                        src={service.imageUrl} 
-                                                        alt={service.name} 
-                                                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" 
-                                                    />
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
-                                                        <span className="text-[8px] font-bold text-muted-foreground/40 uppercase tracking-widest text-center px-2">Sin imagen</span>
-                                                    </div>
-                                                )}
-                                                
-                                                <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span 
-                                                            className="text-white font-black text-sm uppercase leading-tight drop-shadow-lg line-clamp-2"
-                                                            style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
-                                                        >
-                                                            {service.name}
-                                                        </span>
-                                                        <span 
-                                                            className="text-white/80 font-mono text-[9px] drop-shadow-sm"
-                                                            style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}
-                                                        >
-                                                            {service.code}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="absolute bottom-1.5 right-1.5">
-                                                    <Badge variant="default" className="bg-primary/90 backdrop-blur-sm font-black text-sm px-2 h-6 shadow-lg border-0">
-                                                        {formatCurrency(service.price)}
-                                                    </Badge>
-                                                </div>
-                                                
-                                                {(service.source !== 'Internal' && (service.stock || 0) <= 0) && (
-                                                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-[1px]">
-                                                        <Badge variant="destructive" className="font-black uppercase tracking-tighter text-[9px]">Agotado</Badge>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="p-0.5 bg-muted/20 border-t">
-                                                <Badge variant="outline" className={cn(
-                                                    "w-full justify-center text-[9px] h-5 font-black border-0 rounded-none uppercase",
-                                                    service.source === 'Internal' 
-                                                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" 
-                                                        : "bg-white/50 text-muted-foreground dark:bg-muted/30 dark:text-muted-foreground"
-                                                )}>
-                                                    {service.source === 'Internal' ? 'Producto de Cocina' : `Stock: ${service.stock}`}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             </ScrollArea>
                         </>
