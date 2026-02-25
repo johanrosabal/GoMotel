@@ -20,9 +20,9 @@ import { format } from "date-fns";
 
 const STATUS_FILTERS: { label: string; value: ReservationStatus | 'all'; color: string }[] = [
     { label: 'Todas', value: 'all', color: 'bg-muted' },
-    { label: 'Confirmadas', value: 'Confirmed', color: 'bg-blue-500' },
-    { label: 'En Estancia', value: 'Checked-in', color: 'bg-green-600' },
-    { label: 'Completadas', value: 'Completed', color: 'bg-gray-500' },
+    { label: 'Por Ingresar', value: 'Confirmed', color: 'bg-blue-500' },
+    { label: 'En Habitación', value: 'Checked-in', color: 'bg-green-600' },
+    { label: 'Finalizadas', value: 'Completed', color: 'bg-gray-500' },
     { label: 'Canceladas', value: 'Cancelled', color: 'bg-red-500' },
     { label: 'No se presentó', value: 'No-show', color: 'bg-yellow-600' },
 ];

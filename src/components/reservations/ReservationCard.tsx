@@ -2,18 +2,19 @@
 import type { Reservation } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX } from 'lucide-react';
+import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle } from 'lucide-react';
 import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
 import { Progress } from '@/components/ui/progress';
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
-import { checkInFromReservation, markAsNoShow } from '@/lib/actions/reservation.actions';
+import { checkInFromReservation, markAsNoShow, cancelReservation } from '@/lib/actions/reservation.actions';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const statusColorStyles: Record<Reservation['status'], string> = {
   Confirmed: 'border-blue-500',
@@ -48,6 +49,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
   const [progress, setProgress] = useState(0);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
 
   useEffect(() => {
     if (reservation.status !== 'Checked-in') {
@@ -106,10 +108,23 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
     });
   };
 
+  const handleCancelConfirm = () => {
+    setIsCancelAlertOpen(false);
+    startTransition(async () => {
+        const result = await cancelReservation(reservation.id);
+        if (result?.error) {
+            toast({ title: 'Error', description: 'No se pudo cancelar la reservación.', variant: 'destructive' });
+        } else {
+            toast({ title: 'Reservación Cancelada', description: 'La reservación ha sido liberada exitosamente.' });
+        }
+    });
+  };
+
   const isFinalState = ['Completed', 'Cancelled', 'No-show'].includes(reservation.status);
   const isArrivalOverdue = reservation.isArrivalOverdue;
 
   return (
+    <>
     <Card key={reservation.id} className={cn(
         "flex flex-col relative border-l-[6px] hover:shadow-xl transition-all duration-300 h-full group", 
         isOverdue ? 'border-destructive' : statusColorStyles[reservation.status],
@@ -193,21 +208,31 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 )}
 
                 {isArrivalOverdue && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                                onClick={handleQuickCheckIn} 
+                                disabled={isPending}
+                                className="h-11 font-black text-xs uppercase tracking-tight shadow-md"
+                            >
+                                Ingresar
+                            </Button>
+                            <Button 
+                                variant="destructive"
+                                onClick={handleMarkAsNoShow} 
+                                disabled={isPending}
+                                className="h-11 font-black text-xs uppercase tracking-tight"
+                            >
+                                <UserX className="mr-1 h-3.5 w-3.5" /> No llegó
+                            </Button>
+                        </div>
                         <Button 
-                            onClick={handleQuickCheckIn} 
+                            variant="outline"
+                            onClick={(e) => { e.preventDefault(); setIsCancelAlertOpen(true); }}
                             disabled={isPending}
-                            className="h-11 font-black text-xs uppercase tracking-tight shadow-md"
+                            className="w-full h-9 font-black text-[10px] uppercase tracking-widest text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                         >
-                            Ingresar
-                        </Button>
-                        <Button 
-                            variant="destructive"
-                            onClick={handleMarkAsNoShow} 
-                            disabled={isPending}
-                            className="h-11 font-black text-xs uppercase tracking-tight"
-                        >
-                            <UserX className="mr-1 h-3.5 w-3.5" /> No llegó
+                            <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar Reservación
                         </Button>
                     </div>
                 )}
@@ -251,5 +276,28 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
              )}
         </div>
     </Card>
+
+    <AlertDialog open={isCancelAlertOpen} onOpenChange={setIsCancelAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Confirmar cancelación?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    La reservación de {reservation.guestName} para la habitación {reservation.roomNumber} será cancelada y la habitación quedará libre.
+                    {reservation.paymentAmount && reservation.paymentAmount > 0 ? (
+                        <p className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 rounded text-xs font-bold">
+                            AVISO: Existe un pago previo de {formatCurrency(reservation.paymentAmount)}.
+                        </p>
+                    ) : null}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCancelConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Cancelar Reservación
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
