@@ -290,7 +290,7 @@ export default async function DashboardPage() {
               <PieChart className="h-5 w-5" />
               Distribución de Stock
             </CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent>
               <StockDistributionChart services={services} />
           </CardContent>
