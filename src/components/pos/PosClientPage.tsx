@@ -175,7 +175,7 @@ export default function PosClientPage() {
         const taxes: AppliedTax[] = [];
 
         if (allTaxes) {
-            const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
+            const taxMap = new Map<string, { name: string; percentage: number; window: number }>();
             cart.forEach(item => {
                 const itemTotal = item.service.price * item.quantity;
                 item.service.taxIds?.forEach(taxId => {
@@ -184,12 +184,14 @@ export default function PosClientPage() {
                         const taxAmount = itemTotal * (taxInfo.percentage / 100);
                         tax += taxAmount;
                         const existingTax = taxMap.get(taxId);
-                        if (existingTax) existingTax.amount += taxAmount;
-                        else taxMap.set(taxId, { name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                        if (existingTax) {
+                            (existingTax as any).amount += taxAmount;
+                        }
+                        else taxMap.set(taxId, { name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount } as any);
                     }
                 });
             });
-            taxMap.forEach((value, key) => taxes.push({ taxId: key, ...value }));
+            taxMap.forEach((value, key) => taxes.push({ taxId: key, ...value } as any));
         }
         return { subtotal: sub, totalTax: tax, grandTotal: sub + tax, appliedTaxes: taxes };
     }, [cart, allTaxes]);
@@ -402,7 +404,7 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-center aspect-square rounded-[2rem] border-2 transition-all duration-300 p-4 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 transition-all duration-300 p-4 overflow-hidden",
                                                     order 
                                                         ? "bg-primary/[0.03] border-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
@@ -414,10 +416,10 @@ export default function PosClientPage() {
                                                 )}
 
                                                 <div className={cn(
-                                                    "mb-2 p-3.5 rounded-2xl transition-all duration-300 shadow-sm",
-                                                    order ? "bg-primary text-primary-foreground scale-110 shadow-primary/20" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                                    "mb-2 p-3 rounded-xl transition-all duration-300 shadow-sm border",
+                                                    order ? "bg-primary text-primary-foreground scale-110 shadow-primary/20" : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                                                 )}>
-                                                    <Icon className="h-7 w-7" />
+                                                    <Icon className="h-6 w-6" />
                                                 </div>
                                                 
                                                 <span className={cn(
@@ -435,8 +437,8 @@ export default function PosClientPage() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Abrir Cuenta</span>
+                                                    <div className="mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Abrir Cuenta</span>
                                                     </div>
                                                 )}
                                             </button>
