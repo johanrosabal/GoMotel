@@ -37,8 +37,10 @@ import { getServices } from '@/lib/actions/service.actions';
 import { formatCurrency, cn } from '@/lib/utils';
 import BillingTrendChart from '@/components/dashboard/charts/BillingTrendChart';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
-import type { Service } from '@/types';
+import type { Service, CompanyProfile } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Define a type for navigation sections
 type NavSection = {
@@ -57,6 +59,10 @@ type NavSection = {
 export default async function DashboardPage() {
   const rooms = await getRooms();
   const services = await getServices();
+  
+  // Fetch company info
+  const companySnap = await getDoc(doc(db, 'companyInfo', 'main'));
+  const company = companySnap.exists() ? companySnap.data() as CompanyProfile : null;
 
   const totalAssetValue = services.reduce(
     (acc, service) => acc + service.price * service.stock,
@@ -238,7 +244,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="space-y-1.5">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Bienvenido, Encargado
+          Bienvenido a {company?.tradeName || 'Go Motel'}
         </h1>
         <p className="text-muted-foreground max-w-3xl">
           Resumen ejecutivo de métricas clave, estado de habitaciones y accesos directos a los procesos críticos del motel.
@@ -284,7 +290,7 @@ export default async function DashboardPage() {
               <PieChart className="h-5 w-5" />
               Distribución de Stock
             </CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent>
               <StockDistributionChart services={services} />
           </CardContent>

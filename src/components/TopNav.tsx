@@ -2,18 +2,23 @@
 
 import Link from 'next/link';
 import UserMenu from './UserMenu';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import SearchCommand from './SearchCommand';
 import { usePathname } from 'next/navigation';
 import Notifications from './Notifications';
+import { doc } from 'firebase/firestore';
+import type { CompanyProfile } from '@/types';
 
 export default function TopNav() {
-  const { user } = useFirebase();
+  const { user, firestore } = useFirebase();
   const pathname = usePathname();
   
+  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+  const { data: company } = useDoc<CompanyProfile>(companyRef);
+
   const showBackButton = user && pathname !== '/dashboard' && pathname !== '/';
 
   return (
@@ -32,8 +37,13 @@ export default function TopNav() {
             </div>
 
             <div className="hidden sm:flex flex-none items-center justify-center mx-4">
-              <Link href={user ? '/dashboard' : '/'} className="flex items-center">
-                  <span className="font-bold text-lg tracking-tight">Go Motel</span>
+              <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 group">
+                  {company?.logoUrl ? (
+                      <img src={company.logoUrl} alt="Logo" className="h-8 w-8 object-contain transition-transform group-hover:scale-110" />
+                  ) : null}
+                  <span className="font-black text-lg tracking-tighter uppercase transition-colors group-hover:text-primary">
+                      {company?.tradeName || 'Go Motel'}
+                  </span>
               </Link>
             </div>
             
