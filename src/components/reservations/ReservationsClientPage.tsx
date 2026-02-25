@@ -16,6 +16,7 @@ import ReservationsTimeline from "./ReservationsTimeline";
 import { playNotificationSound } from "@/lib/sound";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const STATUS_FILTERS: { label: string; value: ReservationStatus | 'all'; color: string }[] = [
     { label: 'Todas', value: 'all', color: 'bg-muted' },
