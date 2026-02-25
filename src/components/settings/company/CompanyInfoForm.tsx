@@ -123,13 +123,15 @@ export default function CompanyInfoForm() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // AVISO: Redimensionamiento agresivo para forzar cumplimiento de límite de 1MB del servidor
     const reader = new FileReader();
     reader.onload = (e) => {
-        const img = new Image();
+        const img = new globalThis.Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1024;
-            const MAX_HEIGHT = 1024;
+            // Tamaño máximo reducido para garantizar que el peso sea mínimo (aprox 50KB)
+            const MAX_WIDTH = 400; 
+            const MAX_HEIGHT = 400;
             let width = img.width;
             let height = img.height;
 
@@ -150,7 +152,8 @@ export default function CompanyInfoForm() {
             if (!ctx) return;
             ctx.drawImage(img, 0, 0, width, height);
 
-            const dataUrl = canvas.toDataURL(file.type, 0.9);
+            // Forzamos formato JPEG con calidad media para comprimir drásticamente
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
 
             setLogoPreview(dataUrl);
             form.setValue('logoUrl', dataUrl, { shouldValidate: true });
@@ -161,7 +164,7 @@ export default function CompanyInfoForm() {
 };
 
   const handleLegalIdChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
-    const rawValue = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    const rawValue = e.target.value.replace(/\D/g, ''); 
     const maxLength = 10;
     const value = rawValue.slice(0, maxLength);
 
@@ -240,14 +243,14 @@ export default function CompanyInfoForm() {
               <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="space-y-2 flex flex-col items-center lg:items-start">
                     <Label>Logo</Label>
-                    <Avatar className="h-96 w-96 rounded-lg border-2 border-dashed">
+                    <Avatar className="h-[400px] w-[400px] rounded-lg border-2 border-dashed">
                         <AvatarImage src={logoPreview || undefined} className="object-contain" />
                         <AvatarFallback className="rounded-lg bg-transparent">
                             <Building className="h-32 w-32 text-muted-foreground" />
                         </AvatarFallback>
                     </Avatar>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-96 mt-2"> Cambiar Imagen </Button>
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2"> Cambiar Imagen </Button>
                 </div>
                 <div className="lg:col-span-2 grid gap-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -270,7 +273,7 @@ export default function CompanyInfoForm() {
                   <div className="space-y-4">
                       {phoneFields.length > 0 ? phoneFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Principal" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)}/></FormControl><FormMessage /></FormItem>)} />
                               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
@@ -289,8 +292,8 @@ export default function CompanyInfoForm() {
                   <div className="space-y-4">
                       {emailFields.length > 0 ? emailFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Soporte" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="soporte@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                       )) : (
