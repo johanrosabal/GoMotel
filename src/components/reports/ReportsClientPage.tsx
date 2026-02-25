@@ -61,7 +61,7 @@ export default function ReportsClientPage() {
         if (!input) return;
 
         html2canvas(input, { 
-            scale: 2, // 2x is plenty for a compact report
+            scale: 2, 
             backgroundColor: '#ffffff',
             useCORS: true,
             logging: false,
@@ -360,7 +360,12 @@ export default function ReportsClientPage() {
                         <div 
                             ref={stockReportRef} 
                             className="bg-white p-12 text-gray-900" 
-                            style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Arial, sans-serif' }}
+                            style={{ 
+                                width: '210mm', 
+                                minHeight: '297mm', 
+                                fontFamily: 'Arial, sans-serif',
+                                letterSpacing: 'normal' 
+                            }}
                         >
                             {/* Membrete Contable */}
                             <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
@@ -373,11 +378,11 @@ export default function ReportsClientPage() {
                                 </div>
                                 <div className="text-right space-y-1">
                                     <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase">Número de Reporte</p>
+                                        <p className="text-[9px] font-bold text-gray-400">NUMERO DE REPORTE</p>
                                         <p className="text-sm font-mono font-bold text-gray-700">{format(new Date(), 'yyyyMMdd')}/INV-01</p>
                                     </div>
                                     <div className="pr-1">
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase">Emitido el</p>
+                                        <p className="text-[9px] font-bold text-gray-400">EMITIDO EL</p>
                                         <p className="text-xs font-bold text-gray-800">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}</p>
                                         <p className="text-[10px] text-gray-500">{format(new Date(), 'HH:mm:ss')} hrs</p>
                                     </div>
@@ -395,10 +400,10 @@ export default function ReportsClientPage() {
                             <table className="w-full border-collapse mb-12">
                                 <thead>
                                     <tr className="bg-gray-800 text-white text-left">
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold uppercase">Descripción del Producto</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold uppercase text-center">Stock Real</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold uppercase text-center">Stock Mín.</th>
-                                        <th className="p-3 border border-gray-800 text-[10px] font-bold uppercase text-right">Cant. a Pedir</th>
+                                        <th className="p-3 border border-gray-800 text-[10px] font-bold">DESCRIPCION DEL PRODUCTO</th>
+                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-center">STOCK REAL</th>
+                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-center">STOCK MIN.</th>
+                                        <th className="p-3 border border-gray-800 text-[10px] font-bold text-right">CANT. A PEDIR</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -418,10 +423,10 @@ export default function ReportsClientPage() {
                             {/* Resumen Final */}
                             <div className="grid grid-cols-2 gap-8 mb-16">
                                 <div className="border p-4 rounded bg-gray-50">
-                                    <h3 className="text-[9px] font-bold text-gray-400 uppercase mb-3 border-b pb-1">Resumen General</h3>
+                                    <h3 className="text-[9px] font-bold text-gray-400 mb-3 border-b pb-1">RESUMEN GENERAL</h3>
                                     <div className="space-y-1">
                                         <div className="flex justify-between text-[11px]">
-                                            <span className="text-gray-600">Ítems con Alerta:</span>
+                                            <span className="text-gray-600">Items con Alerta:</span>
                                             <span className="font-bold">{data.kpis.lowStockCount}</span>
                                         </div>
                                         <div className="flex justify-between text-[11px]">
@@ -443,14 +448,14 @@ export default function ReportsClientPage() {
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <div>
                                         <p className="text-xs font-bold text-gray-800">Firma Encargado Inventario</p>
-                                        <p className="text-[9px] text-gray-400 uppercase">Validación de Existencias</p>
+                                        <p className="text-[9px] text-gray-400">VALIDACION DE EXISTENCIAS</p>
                                     </div>
                                 </div>
                                 <div className="text-center space-y-3">
                                     <div className="h-16 border-b border-gray-300"></div>
                                     <div>
                                         <p className="text-xs font-bold text-gray-800">Autorización Contabilidad</p>
-                                        <p className="text-[9px] text-gray-400 uppercase">Aprobación de Compra</p>
+                                        <p className="text-[9px] text-gray-400">APROBACION DE COMPRA</p>
                                     </div>
                                 </div>
                             </div>
