@@ -138,6 +138,7 @@ export interface Order {
   id: string;
   locationType: string; // Dynamic
   locationId?: string;
+  label?: string; // For split accounts (e.g. "Persona 1", "Cuenta A")
   items: OrderItem[];
   total: number;
   createdAt: Timestamp;

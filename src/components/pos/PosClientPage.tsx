@@ -14,7 +14,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin
+    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -74,6 +74,7 @@ export default function PosClientPage() {
     // View Management
     const [viewMode, setViewMode] = useState<string>('fast');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
+    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
     const [manageTablesOpen, setManageTablesOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +85,7 @@ export default function PosClientPage() {
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(null);
     const [cashTendered, setCashTendered] = useState('');
+    const [newAccountLabel, setNewAccountLabel] = useState('');
 
     const form = useForm<z.infer<typeof posPaymentSchema>>({
         resolver: zodResolver(posPaymentSchema),
@@ -132,7 +134,6 @@ export default function PosClientPage() {
     const locationTypes = useMemo(() => {
         if (!allTables) return [];
         const types = Array.from(new Set(allTables.map(t => t.type)));
-        // Order: Table, Bar, Terraza, then the rest
         const order = ['Table', 'Bar', 'Terraza'];
         return types.sort((a, b) => {
             const idxA = order.indexOf(a);
@@ -149,11 +150,16 @@ export default function PosClientPage() {
         return allTables.filter(t => t.type === viewMode).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     }, [allTables, viewMode]);
 
-    // Active order for selected table
-    const currentOrder = useMemo(() => {
-        if (!selectedTable || !activeOrders) return null;
-        return activeOrders.find(o => o.locationId === selectedTable.id);
+    // Active orders for selected table
+    const tableOrders = useMemo(() => {
+        if (!selectedTable || !activeOrders) return [];
+        return activeOrders.filter(o => o.locationId === selectedTable.id);
     }, [selectedTable, activeOrders]);
+
+    const currentOrder = useMemo(() => {
+        if (!selectedOrderId || !activeOrders) return null;
+        return activeOrders.find(o => o.id === selectedOrderId);
+    }, [selectedOrderId, activeOrders]);
 
     // Calculations
     const filteredServices = useMemo(() => {
@@ -200,7 +206,7 @@ export default function PosClientPage() {
         if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts) return null;
         for (const account of activeSinpeAccounts) {
             const limit = account.limitAmount || Infinity;
-            if ((account.balance + grandTotal) <= limit) return account;
+            if ((account.balance + combinedTotal) <= limit) return account;
         }
         return null;
     }, [paymentMethod, activeSinpeAccounts, grandTotal]);
@@ -280,6 +286,7 @@ export default function PosClientPage() {
                 form.reset();
                 setCashTendered('');
                 setSelectedTable(null);
+                setSelectedOrderId(null);
                 getServices().then(setAvailableServices);
             }
         });
@@ -293,7 +300,8 @@ export default function PosClientPage() {
             if (currentOrder) {
                 result = await addToTableAccount(currentOrder.id, cart);
             } else {
-                result = await openTableAccount(selectedTable.id, cart);
+                const label = newAccountLabel.trim() || `Cuenta ${tableOrders.length + 1}`;
+                result = await openTableAccount(selectedTable.id, cart, label);
             }
 
             if (result.error) {
@@ -303,6 +311,8 @@ export default function PosClientPage() {
                 toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${label} ${selectedTable.number}.` });
                 handleClearCart();
                 setSelectedTable(null);
+                setSelectedOrderId(null);
+                setNewAccountLabel('');
             }
         });
     }
@@ -310,6 +320,14 @@ export default function PosClientPage() {
     const handleSelectTable = (table: RestaurantTable) => {
         setSelectedTable(table);
         handleClearCart();
+        
+        // Auto-select if there's only one order, otherwise wait for sub-account selection
+        const orders = activeOrders?.filter(o => o.locationId === table.id) || [];
+        if (orders.length === 1) {
+            setSelectedOrderId(orders[0].id);
+        } else {
+            setSelectedOrderId(null);
+        }
     };
 
     const totalInOpenAccount = useMemo(() => {
@@ -341,7 +359,7 @@ export default function PosClientPage() {
                     <Button 
                         variant={viewMode === 'fast' ? "default" : "ghost"} 
                         className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
-                        onClick={() => { setViewMode('fast'); setSelectedTable(null); handleClearCart(); }}
+                        onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
                     >
                         <PackageCheck className="h-4 w-4" /> Para Llevar
                     </Button>
@@ -352,7 +370,7 @@ export default function PosClientPage() {
                                 key={type}
                                 variant={viewMode === type ? "default" : "ghost"} 
                                 className="rounded-xl h-11 font-black text-xs uppercase tracking-widest gap-2 shrink-0"
-                                onClick={() => { setViewMode(type); setSelectedTable(null); handleClearCart(); }}
+                                onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
                             </Button>
@@ -365,7 +383,7 @@ export default function PosClientPage() {
                             <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
                                 {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
                             </Badge>
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedTable(null)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="icon" onClick={() => { setSelectedTable(null); setSelectedOrderId(null); }} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
@@ -397,7 +415,8 @@ export default function PosClientPage() {
                             <ScrollArea className="flex-1">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-6 p-2">
                                     {filteredTables.map(table => {
-                                        const order = activeOrders?.find(o => o.locationId === table.id);
+                                        const orders = activeOrders?.filter(o => o.locationId === table.id) || [];
+                                        const order = orders[0];
                                         const Icon = getLocationIcon(table.type);
                                         return (
                                             <button
@@ -405,19 +424,18 @@ export default function PosClientPage() {
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
                                                     "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
-                                                    order 
+                                                    orders.length > 0 
                                                         ? "bg-primary/[0.03] border-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                                                 )}
                                             >
-                                                {/* Background decoration for active tables */}
-                                                {order && (
+                                                {orders.length > 0 && (
                                                     <div className="absolute top-0 right-0 -mr-4 -mt-4 w-12 h-12 bg-primary/10 rounded-full blur-2xl animate-pulse" />
                                                 )}
 
                                                 <div className={cn(
                                                     "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-sm",
-                                                    order 
+                                                    orders.length > 0 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/10" 
                                                         : "bg-secondary text-foreground/40 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
@@ -427,19 +445,21 @@ export default function PosClientPage() {
                                                 <div className="flex-1 flex flex-col items-center justify-center">
                                                     <span className={cn(
                                                         "font-black text-4xl tracking-tighter transition-colors",
-                                                        order ? "text-primary" : "text-foreground"
+                                                        orders.length > 0 ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                 </div>
                                                 
                                                 <div className="pb-4 w-full px-2">
-                                                    {order ? (
+                                                    {orders.length > 0 ? (
                                                         <div className="flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
                                                             <Badge variant="default" className="font-black text-[11px] tracking-tight bg-primary px-2.5 h-6 shadow-md shadow-primary/20">
-                                                                {formatCurrency(order.total)}
+                                                                {orders.length === 1 ? formatCurrency(order.total) : `${orders.length} Cuentas`}
                                                             </Badge>
-                                                            <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
-                                                                <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
-                                                            </div>
+                                                            {orders.length === 1 && (
+                                                                <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                                                                    <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <div className="opacity-60 group-hover:opacity-100 transition-opacity text-center">
@@ -450,17 +470,6 @@ export default function PosClientPage() {
                                             </button>
                                         );
                                     })}
-                                    {filteredTables.length === 0 && (
-                                        <div className="col-span-full py-20 text-center flex flex-col items-center gap-4 border-2 border-dashed rounded-3xl text-muted-foreground">
-                                            <MapPin className="h-12 w-12 opacity-20" />
-                                            <p className="font-bold text-sm uppercase tracking-widest italic">No hay ubicaciones configuradas para esta zona.</p>
-                                            {userProfile?.role === 'Administrador' && (
-                                                <Button variant="outline" size="sm" onClick={() => setManageTablesOpen(true)} className="rounded-full font-bold">
-                                                    Configurar Ubicaciones
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </ScrollArea>
                         </div>
@@ -565,7 +574,6 @@ export default function PosClientPage() {
                                                 </p>
                                             </div>
                                             
-                                            {/* Wide Footer for Stock/Cocina */}
                                             <div className={cn(
                                                 "w-full py-1.5 px-2 text-center border-t transition-colors",
                                                 service.source === 'Internal' 
@@ -580,12 +588,6 @@ export default function PosClientPage() {
                                             </div>
                                         </button>
                                     ))}
-                                    {filteredServices.length === 0 && (
-                                        <div className="col-span-full py-20 text-center text-muted-foreground">
-                                            <PackageCheck className="h-12 w-12 mx-auto mb-4 opacity-10" />
-                                            <p className="font-bold text-xs uppercase tracking-widest italic opacity-30">No se encontraron productos</p>
-                                        </div>
-                                    )}
                                 </div>
                             </ScrollArea>
                         </div>
@@ -594,10 +596,48 @@ export default function PosClientPage() {
 
                 {/* Cart & Checkout Area */}
                 <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
+                    
+                    {/* Multi-Account Selector Header */}
+                    {selectedTable && tableOrders.length > 0 && (
+                        <div className="bg-primary/5 border-b p-3 space-y-3">
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">Cuentas en Mesa</span>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-7 text-[9px] font-black uppercase rounded-full border-primary/20"
+                                    onClick={() => setSelectedOrderId(null)}
+                                >
+                                    <UserPlus className="h-3 w-3 mr-1" /> Nueva Cuenta
+                                </Button>
+                            </div>
+                            <ScrollArea className="w-full whitespace-nowrap">
+                                <div className="flex gap-2 pb-1">
+                                    {tableOrders.map(order => (
+                                        <Button
+                                            key={order.id}
+                                            variant={selectedOrderId === order.id ? "default" : "outline"}
+                                            size="sm"
+                                            className="rounded-xl font-bold h-9 px-4 gap-2"
+                                            onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
+                                        >
+                                            <User className="h-3.5 w-3.5" />
+                                            {order.label}
+                                            <Badge variant="secondary" className="h-5 px-1.5 font-black text-[10px] bg-background/20 text-current border-0">
+                                                {formatCurrency(order.total)}
+                                            </Badge>
+                                        </Button>
+                                    ))}
+                                </div>
+                                <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
+                        </div>
+                    )}
+
                     <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2 font-black uppercase tracking-tighter">
                             <ShoppingCart className="h-4 w-4 text-primary" /> 
-                            Carrito ({cart.reduce((s, i) => s + i.quantity, 0)})
+                            {currentOrder ? `Orden: ${currentOrder.label}` : 'Nuevo Pedido'}
                         </CardTitle>
                         {step === 1 && cart.length > 0 && (
                             <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10">
@@ -611,9 +651,23 @@ export default function PosClientPage() {
                             {step === 1 ? (
                                 <div className="p-3 space-y-2">
                                     {cart.length === 0 ? (
-                                        <div className="text-center py-32 text-muted-foreground">
-                                            <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-10" />
-                                            <p className="font-bold text-[10px] uppercase tracking-widest opacity-30">Carrito Vacío</p>
+                                        <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4">
+                                            <ShoppingCart className="h-12 w-12 opacity-10" />
+                                            {!currentOrder && selectedTable && (
+                                                <div className="px-4 space-y-4 w-full">
+                                                    <p className="font-bold text-[10px] uppercase tracking-widest opacity-30 italic">Iniciando nueva cuenta...</p>
+                                                    <div className="space-y-2 text-left">
+                                                        <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Nombre de Cuenta (Opcional)</Label>
+                                                        <Input 
+                                                            placeholder="Persona 1, Juan, etc." 
+                                                            value={newAccountLabel}
+                                                            onChange={e => setNewAccountLabel(e.target.value)}
+                                                            className="h-10 text-xs font-bold rounded-xl"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {currentOrder && <p className="font-bold text-[10px] uppercase tracking-widest opacity-30 italic">Añade productos a la cuenta existente</p>}
                                         </div>
                                     ) : (
                                         cart.map(item => (

@@ -66,7 +66,7 @@ export async function deleteRestaurantTable(id: string) {
     }
 }
 
-export async function openTableAccount(tableId: string, items: { service: Service; quantity: number }[]) {
+export async function openTableAccount(tableId: string, items: { service: Service; quantity: number }[], label?: string) {
     try {
         await runTransaction(db, async (transaction) => {
             const tableRef = doc(db, 'restaurantTables', tableId);
@@ -74,7 +74,6 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
             
             const tableData = tableSnap.data() as RestaurantTable;
-            if (tableData.status === 'Occupied') throw new Error("La ubicación ya está ocupada.");
 
             // 1. Validate and Discount Stock
             for (const item of items) {
@@ -96,6 +95,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             const newOrder: Omit<Order, 'id'> = {
                 locationType: tableData.type,
                 locationId: tableId,
+                label: label || 'Cuenta Principal',
                 items: items.map(i => ({
                     serviceId: i.service.id,
                     name: i.service.name,
@@ -109,6 +109,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             };
 
             transaction.set(orderRef, newOrder);
+            // Update table to occupied and set the most recent order as current (for legacy compatibility)
             transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
         });
 
@@ -191,7 +192,7 @@ export async function payRestaurantAccount(
             if (!lastInvoiceSnap.empty) {
                 const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
                 if (lastData.invoiceNumber) {
-                    const lastPart = parseInt(lastData.invoiceNumber.split('-')[1], 10);
+                    const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
                     if (!isNaN(lastPart)) nextNum = lastPart + 1;
                 }
             }
@@ -225,7 +226,24 @@ export async function payRestaurantAccount(
 
             transaction.set(invoiceRef, invoiceData);
             transaction.update(orderRef, { status: 'Entregado', paymentStatus: 'Pagado', invoiceId: invoiceIdForReturn });
-            transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+            
+            // Check if there are other pending orders for this table
+            const ordersRef = collection(db, 'orders');
+            const otherOrdersQuery = query(
+                ordersRef, 
+                where('locationId', '==', tableId), 
+                where('status', '==', 'Pendiente')
+            );
+            const otherOrdersSnap = await getDocs(otherOrdersQuery);
+            
+            // Only set table to available if NO other orders are pending (counting the one we just paid)
+            const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
+            if (remainingOrders.length === 0) {
+                transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+            } else {
+                // Set the next pending order as current
+                transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+            }
         });
 
         revalidatePath('/pos');
