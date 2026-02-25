@@ -64,7 +64,14 @@ export default function ReportsClientPage() {
             scale: 2, 
             backgroundColor: '#ffffff',
             useCORS: true,
-            logging: false
+            logging: false,
+            // Forzamos el renderizado de texto para evitar que se peguen las palabras
+            onclone: (clonedDoc) => {
+                const elements = clonedDoc.getElementsByTagName('*');
+                for (let i = 0; i < elements.length; i++) {
+                    (elements[i] as HTMLElement).style.letterSpacing = 'normal';
+                }
+            }
         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -330,14 +337,14 @@ export default function ReportsClientPage() {
 
                     {/* Printable Area */}
                     <div className="overflow-hidden border rounded-xl mt-4">
-                        <div ref={stockReportRef} className="bg-white p-10 text-gray-900 min-w-[600px]">
+                        <div ref={stockReportRef} className="bg-white p-10 text-gray-900 min-w-[600px] font-sans">
                             <div className="flex justify-between items-start border-b-4 border-primary pb-6 mb-8">
                                 <div>
-                                    <h1 className="text-3xl font-black uppercase tracking-tighter text-gray-900">Reporte de Inventario</h1>
-                                    <p className="text-sm font-bold text-primary tracking-widest mt-1">AVISO DE REABASTECIMIENTO CRÍTICO</p>
+                                    <h1 className="text-3xl font-bold uppercase text-gray-900">Reporte de Inventario</h1>
+                                    <p className="text-sm font-bold text-primary mt-1">AVISO DE REABASTECIMIENTO CRÍTICO</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Generado el</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Generado el</p>
                                     <p className="text-sm font-mono font-bold">{format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}</p>
                                 </div>
                             </div>
@@ -346,10 +353,10 @@ export default function ReportsClientPage() {
                                 <Table>
                                     <TableHeader className="bg-gray-50 border-b-2 border-gray-100">
                                         <TableRow>
-                                            <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 text-gray-600 pl-6">Producto / Artículo</TableHead>
-                                            <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 text-gray-600">Stock Actual</TableHead>
-                                            <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 text-gray-600">Mínimo</TableHead>
-                                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-gray-600 pr-6">Déficit</TableHead>
+                                            <TableHead className="text-[10px] font-bold uppercase py-4 text-gray-600 pl-6">Producto / Artículo</TableHead>
+                                            <TableHead className="text-center text-[10px] font-bold uppercase py-4 text-gray-600">Stock Actual</TableHead>
+                                            <TableHead className="text-center text-[10px] font-bold uppercase py-4 text-gray-600">Mínimo</TableHead>
+                                            <TableHead className="text-right text-[10px] font-bold uppercase py-4 text-gray-600 pr-6">Acción</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -359,8 +366,8 @@ export default function ReportsClientPage() {
                                                 <TableCell className="text-center font-black text-red-600 text-lg py-5">{item.stock}</TableCell>
                                                 <TableCell className="text-center text-gray-500 font-bold py-5">{item.minStock}</TableCell>
                                                 <TableCell className="text-right py-5 pr-6">
-                                                    <Badge className="bg-red-100 text-red-700 border-red-200 font-black px-3 py-1">
-                                                        -{item.minStock - item.stock} UNIDADES
+                                                    <Badge className="bg-red-100 text-red-700 border-red-200 font-bold px-3 py-1 uppercase whitespace-nowrap">
+                                                        Faltan {item.minStock - item.stock} unidades
                                                     </Badge>
                                                 </TableCell>
                                             </TableRow>
@@ -371,14 +378,14 @@ export default function ReportsClientPage() {
                             
                             <div className="mt-12 pt-6 border-t-2 border-gray-100 flex justify-between items-end">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado del Documento</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Estado del Documento</p>
                                     <div className="flex items-center gap-2">
                                         <FileText className="h-4 w-4 text-primary" />
                                         <p className="text-sm font-bold text-gray-700 uppercase">Orden de Compra Pendiente</p>
                                     </div>
                                 </div>
                                 <div className="text-right opacity-40">
-                                    <p className="text-[9px] font-bold uppercase tracking-widest">Go Motel Manager - Auditoría Interna</p>
+                                    <p className="text-[9px] font-bold uppercase">Go Motel Manager - Auditoría Interna</p>
                                 </div>
                             </div>
                         </div>
