@@ -12,6 +12,7 @@ import {
   Moon,
   Sparkles,
   Percent,
+  BarChart3,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -47,6 +48,10 @@ export function CommandMenu({ open, setOpen }: Props) {
           <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
             <Home className="mr-2 h-4 w-4" />
             <span>Panel de Control</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push('/reports'))}>
+            <BarChart3 className="mr-2 h-4 w-4" />
+            <span>Reportes y Estadísticas</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/rooms'))}>
             <LayoutGrid className="mr-2 h-4 w-4" />

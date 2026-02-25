@@ -31,6 +31,7 @@ import {
   Truck,
   FileCode,
   Building,
+  BarChart3,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -155,6 +156,13 @@ export default async function DashboardPage() {
           title: 'Panel de Habitaciones',
           description: 'Vista y gestión de todas las habitaciones.',
           icon: LayoutGrid,
+        },
+        {
+          href: '/reports',
+          title: 'Reportes y Estadísticas',
+          description: 'Análisis de ingresos, ocupación e informes con IA.',
+          icon: BarChart3,
+          badge: 'NUEVO',
         },
         {
           href: '/catalog',
@@ -329,13 +337,17 @@ export default async function DashboardPage() {
                           ? "border-accent border-2 ring-4 ring-accent/10 bg-accent/[0.03]"
                           : link.badge === 'PASO 2'
                           ? "border-primary border-2 ring-4 ring-primary/10 bg-primary/[0.03]"
+                          : link.badge === 'NUEVO'
+                          ? "border-primary/40 border-2 ring-4 ring-primary/5 bg-primary/[0.01]"
                           : "bg-card border-primary/5"
                       )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
-                              {link.badge?.startsWith('PASO') && (
+                              {link.badge && (
                                   <div className="absolute top-4 right-4">
                                       <Badge variant="default" className={cn("font-black text-[10px] px-2 h-5",
-                                        link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
+                                        link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 
+                                        link.badge === 'NUEVO' ? 'bg-green-600 text-white' :
+                                        'bg-primary text-primary-foreground'
                                       )}>{link.badge}</Badge>
                                   </div>
                               )}
