@@ -22,7 +22,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
-import { Badge } from '../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { CheckCircle, Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 
 interface CheckoutDialogProps {
   children: ReactNode;
