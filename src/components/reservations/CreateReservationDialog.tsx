@@ -11,12 +11,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy as fbOrderBy } from 'firebase/firestore';
-import type { Room, Client, RoomType, PricePlan, SinpeAccount } from '@/types';
+import type { Room, Client, RoomType, SinpeAccount } from '@/types';
 import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addMinutes, addHours, addDays, addWeeks, addMonths, format, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, Star, Clock, CheckCircle } from 'lucide-react';
+import { Check, Star, Clock, CheckCircle, User, BedDouble, CalendarDays, Wallet, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
@@ -25,6 +25,42 @@ import { Checkbox } from '../ui/checkbox';
 import { FormDescription } from '../ui/form';
 import { Separator } from '../ui/separator';
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
+
+const Stepper = ({ currentStep }: { currentStep: number }) => {
+    const steps = [
+        { label: 'Huésped', icon: User },
+        { label: 'Estancia', icon: Clock },
+        { label: 'Pago', icon: Wallet }
+    ];
+
+    return (
+        <div className="flex items-center justify-between w-full mb-8 px-4 relative">
+            <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-10" />
+            {steps.map((step, index) => {
+                const isCompleted = currentStep > index + 1;
+                const isActive = currentStep === index + 1;
+                const Icon = step.icon;
+
+                return (
+                    <div key={index} className="flex flex-col items-center gap-2 bg-background px-2">
+                        <div className={cn(
+                            "w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-300",
+                            isCompleted ? "bg-primary border-primary text-primary-foreground" :
+                            isActive ? "border-primary text-primary ring-4 ring-primary/10" :
+                            "bg-muted border-muted text-muted-foreground"
+                        )}>
+                            {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
+                        </div>
+                        <span className={cn(
+                            "text-[10px] font-black uppercase tracking-widest",
+                            isActive ? "text-primary" : "text-muted-foreground"
+                        )}>{step.label}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
 
 interface CreateReservationDialogProps {
   children: React.ReactNode;
@@ -67,6 +103,7 @@ const reservationSchema = z.object({
 
 export default function CreateReservationDialog({ children, initialRoomId, isWalkIn = false }: CreateReservationDialogProps) {
   const [open, setOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -186,6 +223,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       paymentConfirmed: false,
       voucherNumber: '',
     });
+    setCurrentStep(1);
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
     setCashTendered('');
@@ -236,6 +274,29 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     return Number(cashTendered.replace(/\D/g, ''));
   }, [cashTendered]);
 
+  const validateStep = async () => {
+      if (currentStep === 1) {
+          const result = await form.trigger(['guestName', 'roomId']);
+          return result;
+      }
+      if (currentStep === 2) {
+          const result = await form.trigger(['pricePlanName', 'checkInDate']);
+          return result;
+      }
+      return true;
+  }
+
+  const handleNext = async () => {
+      const isValid = await validateStep();
+      if (isValid) {
+          setCurrentStep(prev => prev + 1);
+      }
+  }
+
+  const handleBack = () => {
+      setCurrentStep(prev => prev - 1);
+  }
+
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
     if (!calculatedCheckOut) {
         toast({ title: "Error", description: "Fecha de salida no válida.", variant: "destructive" });
@@ -281,34 +342,38 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isWalkIn ? 'Registrar Huésped (Walk-in)' : 'Crear Nueva Reservación'}</DialogTitle>
-          <DialogDescription>{isWalkIn ? 'Complete los detalles del huésped para registrarlo en esta habitación.' : 'Complete los detalles para agendar una nueva reservación.'}</DialogDescription>
+          <DialogTitle>{isWalkIn ? 'Registro Rápido' : 'Nueva Reservación'}</DialogTitle>
+          <DialogDescription>Complete el flujo para confirmar la estancia.</DialogDescription>
         </DialogHeader>
+
+        <Stepper currentStep={currentStep} />
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="max-h-[65vh] p-1 pr-5">
-                <div className="grid md:grid-cols-2 gap-8">
-                    {/* Left Column: Reservation Details */}
-                    <div className="space-y-4">
+            <div className="min-h-[320px] flex flex-col justify-center">
+                {/* Paso 1: Huésped y Habitación */}
+                {currentStep === 1 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
                             control={form.control}
                             name="guestName"
                             render={({ field }) => (
                             <FormItem className="relative">
-                                <FormLabel>Huésped</FormLabel>
+                                <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Cliente / Huésped</FormLabel>
                                 <FormControl>
                                 <Input
-                                    placeholder="Buscar o escribir cliente..."
+                                    placeholder="Buscar o escribir nombre..."
                                     {...field}
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                                     autoComplete="off"
+                                    className="h-12 text-lg font-medium"
                                 />
                                 </FormControl>
                                 {showSuggestions && (
-                                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-xl overflow-hidden">
                                     <ScrollArea className="max-h-56">
                                     <div className="p-1">
                                         {filteredClients.length > 0 ? (
@@ -317,34 +382,22 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                             type="button"
                                             key={client.id}
                                             onClick={() => {
-                                                form.setValue(
-                                                'guestName',
-                                                `${client.firstName} ${client.lastName}`
-                                                );
+                                                form.setValue('guestName', `${client.firstName} ${client.lastName}`);
                                                 form.setValue('guestId', client.id);
                                                 setShowSuggestions(false);
                                             }}
-                                            className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                            className="flex w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors"
                                             >
-                                            <div className="flex items-center gap-2">
-                                                <Check
-                                                className={cn(
-                                                    'h-4 w-4',
-                                                    form.getValues('guestId') === client.id
-                                                    ? 'opacity-100'
-                                                    : 'opacity-0'
-                                                )}
-                                                />
-                                                {client.firstName} {client.lastName}
+                                            <div className="flex items-center gap-3">
+                                                {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                                                <span className="font-semibold">{client.firstName} {client.lastName}</span>
                                             </div>
-                                            {client.isVip && (
-                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
-                                            )}
+                                            <span className="text-[10px] text-muted-foreground font-mono">{client.idCard}</span>
                                             </button>
                                         ))
                                         ) : (
-                                        <div className="p-4 text-center text-sm text-muted-foreground">
-                                            No se encontraron clientes.
+                                        <div className="p-4 text-center text-xs text-muted-foreground font-medium">
+                                            No se encontraron clientes. Se registrará como nuevo.
                                         </div>
                                         )}
                                     </div>
@@ -356,47 +409,25 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             )}
                         />
                         
-                        <div className='grid grid-cols-2 gap-4'>
-                            <FormField
-                                control={form.control}
-                                name="roomId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Habitación</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
-                                        <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione"} />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                        {rooms?.map(room => (
-                                            <SelectItem key={room.id} value={room.id}>
-                                            {room.number} - {room.roomTypeName}
-                                            </SelectItem>
-                                        ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
+                        <FormField
                             control={form.control}
-                            name="pricePlanName"
+                            name="roomId"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Plan de Estancia</FormLabel>
-                                <Select onValueChange={(value) => { field.onChange(value); form.trigger('checkInDate'); }} value={field.value} disabled={isLoading || availablePlans.length === 0 || !selectedRoomId}>
+                                <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Habitación Asignada</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
                                     <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={!selectedRoomId ? "Elija habitación" : "Seleccione"} />
+                                    <SelectTrigger className="h-12 text-lg">
+                                        <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione habitación"} />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                    {availablePlans.map(plan => (
-                                        <SelectItem key={plan.name} value={plan.name}>
-                                        {plan.name}
+                                    {rooms?.map(room => (
+                                        <SelectItem key={room.id} value={room.id}>
+                                            <div className='flex items-center gap-2'>
+                                                <span className='font-black'>Hab. {room.number}</span>
+                                                <span className='text-xs opacity-60'>— {room.roomTypeName}</span>
+                                            </div>
                                         </SelectItem>
                                     ))}
                                     </SelectContent>
@@ -404,91 +435,130 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <FormMessage />
                                 </FormItem>
                             )}
-                            />
-                        </div>
+                        />
+                    </div>
+                )}
 
-                        <div className="rounded-lg border p-3.5 space-y-3">
+                {/* Paso 2: Estancia y Tiempos */}
+                {currentStep === 2 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
                             control={form.control}
-                            name="checkInNow"
+                            name="pricePlanName"
                             render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between">
-                                <div className="space-y-0.5">
-                                <FormLabel>Hacer Check-in Ahora</FormLabel>
-                                <p className="text-[13px] text-muted-foreground">
-                                    Para huéspedes que ingresan inmediatamente.
-                                </p>
-                                </div>
-                                <FormControl>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    disabled={isWalkIn}
-                                />
-                                </FormControl>
-                            </FormItem>
+                                <FormItem>
+                                <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Plan de Estancia</FormLabel>
+                                <Select onValueChange={(value) => { field.onChange(value); form.trigger('checkInDate'); }} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                                    <FormControl>
+                                    <SelectTrigger className="h-12 text-lg">
+                                        <SelectValue placeholder="Seleccione un plan de tiempo" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {availablePlans.map(plan => (
+                                        <SelectItem key={plan.name} value={plan.name}>
+                                            <div className="flex justify-between w-full gap-8">
+                                                <span className="font-bold">{plan.name}</span>
+                                                <span className="text-primary font-black">{formatCurrency(plan.price)}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
                             )}
                         />
-                        
-                        {!checkInNow && (
-                            <>
-                            <Separator />
-                            <Controller
+
+                        <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-inner">
+                            <FormField
                                 control={form.control}
-                                name="checkInDate"
-                                render={({ field, fieldState }) => (
-                                    <FormItem>
-                                        <FormLabel>Fecha y Hora de Check-in</FormLabel>
-                                        <DateTimePicker date={field.value} setDate={field.onChange} />
-                                        <FormMessage>{fieldState.error?.message}</FormMessage>
-                                    </FormItem>
+                                name="checkInNow"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="font-bold text-sm">Hacer Check-in Ahora</FormLabel>
+                                        <p className="text-xs text-muted-foreground">
+                                            El tiempo empieza a correr de inmediato.
+                                        </p>
+                                    </div>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} />
+                                    </FormControl>
+                                </FormItem>
                                 )}
                             />
-                            </>
-                        )}
+                            
+                            {!checkInNow && (
+                                <div className="pt-2">
+                                    <Controller
+                                        control={form.control}
+                                        name="checkInDate"
+                                        render={({ field, fieldState }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fecha y Hora de Ingreso</FormLabel>
+                                                <DateTimePicker date={field.value} setDate={field.onChange} />
+                                                <FormMessage>{fieldState.error?.message}</FormMessage>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
                         </div>
+
+                        {calculatedCheckOut && (
+                            <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-primary/10 p-2 rounded-lg"><Clock className="h-5 w-5 text-primary" /></div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Salida Estimada</p>
+                                        <p className="font-bold text-sm">{format(calculatedCheckOut, "eeee dd 'de' MMMM, h:mm a", { locale: es })}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {/* Right Column: Payment Details */}
-                    <div className="space-y-4">
+                )}
+
+                {/* Paso 3: Pago y Confirmación */}
+                {currentStep === 3 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
                             control={form.control}
                             name="isOpenAccount"
                             render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/10">
                                 <div className="space-y-0.5">
-                                <FormLabel>Cuenta Abierta</FormLabel>
-                                <p className="text-[13px] text-muted-foreground">
-                                    Si se activa, la factura se liquida al final.
+                                <FormLabel className="font-bold text-sm">Manejar como Cuenta Abierta</FormLabel>
+                                <p className="text-xs text-muted-foreground">
+                                    Se acumula el saldo y se liquida al salir.
                                 </p>
                                 </div>
                                 <FormControl>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                                 </FormControl>
                             </FormItem>
                             )}
                         />
 
                         {!isOpenAccount && (
-                            <div className="space-y-4 rounded-lg border p-4">
+                            <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm">
                                 <FormField
                                     control={form.control}
                                     name="paymentMethod"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Método de Pago por Adelantado</FormLabel>
+                                            <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Seleccione un método" />
+                                                    <SelectTrigger className="h-11">
+                                                        <SelectValue placeholder="Seleccione método" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Efectivo">Efectivo</SelectItem>
                                                     <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
-                                                    <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                                                    <SelectItem value="Tarjeta">Tarjeta (Voucher)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -498,43 +568,28 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 {paymentMethod === 'Sinpe Movil' && (
                                     <div className='space-y-4 pt-4 border-t'>
                                         {isLoadingSinpe ? (
-                                            <p className="text-sm text-muted-foreground text-center">Buscando cuenta SINPE disponible...</p>
+                                            <p className="text-xs text-center animate-pulse">Buscando cuenta...</p>
                                         ) : targetSinpeAccount ? (
                                             <div className="space-y-3">
-                                                <div className='p-4 bg-muted rounded-lg text-center'>
-                                                    <p className='text-sm text-muted-foreground'>Transferir el monto de</p>
-                                                    <p className='text-2xl font-bold tracking-tight text-primary'>{formatCurrency(selectedPlan?.price || 0)}</p>
-                                                    <p className='text-sm text-muted-foreground mt-3'>a la cuenta SINPE Móvil:</p>
-                                                    <p className='py-2 text-3xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                    <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
+                                                <div className='p-4 bg-muted/50 rounded-xl text-center border-2 border-dashed border-primary/20'>
+                                                    <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Transferir {formatCurrency(selectedPlan?.price || 0)} a:</p>
+                                                    <p className='text-2xl font-black font-mono tracking-tighter text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                    <p className='text-[10px] font-black uppercase text-muted-foreground mt-1'>{targetSinpeAccount.accountHolder}</p>
                                                 </div>
                                                 <FormField
                                                     control={form.control}
                                                     name="paymentConfirmed"
                                                     render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value}
-                                                                    onCheckedChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                            <div className="space-y-1 leading-none">
-                                                                <FormLabel>
-                                                                    Confirmar Pago Recibido
-                                                                </FormLabel>
-                                                                <FormDescription>
-                                                                    Marque esta casilla para confirmar que ha recibido el pago.
-                                                                </FormDescription>
-                                                                <FormMessage className="pt-1" />
-                                                            </div>
+                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3 bg-background shadow-sm">
+                                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                            <div className="space-y-1 leading-none"><FormLabel className="text-xs font-bold">Pago verificado y recibido</FormLabel></div>
                                                         </FormItem>
                                                     )}
                                                 />
                                             </div>
                                         ) : (
-                                            <div className='p-3 bg-destructive/10 text-destructive rounded-md text-sm font-semibold text-center'>
-                                                No hay cuentas SINPE disponibles o todas han alcanzado su límite.
+                                            <div className='p-3 bg-destructive/5 text-destructive rounded-lg text-[10px] font-black text-center border border-destructive/20'>
+                                                SIN CUENTAS DISPONIBLES CON SALDO SUFICIENTE
                                             </div>
                                         )}
                                     </div>
@@ -545,10 +600,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         name="voucherNumber"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Número de Voucher</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Ingrese el número de voucher" {...field} />
-                                                </FormControl>
+                                                <FormLabel className="text-xs font-bold">Número de Voucher</FormLabel>
+                                                <FormControl><Input placeholder="Ej: 982341" {...field} className="h-11 font-mono" /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -556,61 +609,71 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 )}
                                 {paymentMethod === 'Efectivo' && (
                                     <div className="space-y-4 pt-4 border-t">
-                                        <FormItem>
-                                            <FormLabel>Paga con</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    placeholder="Monto recibido"
-                                                    value={cashTendered}
-                                                    onChange={handleCashTenderedChange}
-                                                    className="text-right"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                        {cashTendered && selectedPlan && numericCashTendered >= selectedPlan.price && (
-                                            <div className="flex justify-between items-center text-sm font-semibold">
-                                                <FormLabel>Vuelto</FormLabel>
-                                                <span className="text-lg text-primary">
-                                                    {formatCurrency(numericCashTendered - selectedPlan.price)}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div className='grid grid-cols-2 gap-4'>
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold">Pago con</FormLabel>
+                                                <FormControl>
+                                                    <Input type="text" inputMode="numeric" placeholder="₡0.00" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11 font-bold" />
+                                                </FormControl>
+                                            </FormItem>
+                                            {numericCashTendered >= (selectedPlan?.price || 0) && (
+                                                <div className="flex flex-col justify-end text-right">
+                                                    <span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span>
+                                                    <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
-                        {!isOpenAccount && selectedPlan && paymentMethod && paymentMethod !== 'Sinpe Movil' && (
-                            <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">
-                                <div className="flex items-center gap-2 font-semibold">
-                                    <CheckCircle className="h-4 w-4" />
-                                    <span>Confirmación de Pago por Adelantado</span>
+                        
+                        <div className="p-4 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Resumen de la Operación</h4>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Habitación:</span>
+                                    <span className="font-bold">{selectedRoom?.number} ({selectedRoom?.roomTypeName})</span>
                                 </div>
-                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-200 dark:border-green-800/50">
-                                    <span className="font-medium">Monto a Cobrar:</span>
-                                    <span className="font-bold text-base">{formatCurrency(selectedPlan.price)}</span>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Huésped:</span>
+                                    <span className="font-bold truncate max-w-[150px]">{guestNameValue}</span>
+                                </div>
+                                <Separator className="my-2" />
+                                <div className="flex justify-between items-center text-lg font-black">
+                                    <span>Total</span>
+                                    <span className="text-primary">{formatCurrency(selectedPlan?.price || 0)}</span>
                                 </div>
                             </div>
-                        )}
-
-                        {calculatedCheckOut && form.getValues('pricePlanName') && (
-                            <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                                <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                    <Clock className="h-4 w-4" />
-                                    <span>Salida Estimada</span>
-                                </div>
-                                <p className="font-semibold text-center pt-1">{format(calculatedCheckOut, "dd MMM yyyy, h:mm a", { locale: es })}</p>
-                            </div>
-                        )}
+                        </div>
                     </div>
-                </div>
-            </ScrollArea>
-            <DialogFooter className='pt-4 border-t mt-4'>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending || isLoading}>
-                {isPending ? (checkInNow ? 'Procesando...' : 'Creando...') : (checkInNow ? 'Hacer Check-in Ahora' : 'Crear Reservación')}
-              </Button>
+                )}
+            </div>
+
+            <DialogFooter className='pt-6 border-t mt-6 flex-row sm:justify-between items-center gap-4'>
+              <div className='flex items-center gap-2'>
+                  {currentStep > 1 && (
+                      <Button type="button" variant="ghost" onClick={handleBack} disabled={isPending} className="font-bold">
+                          <ChevronLeft className="mr-2 h-4 w-4" /> Atrás
+                      </Button>
+                  )}
+              </div>
+              <div className='flex items-center gap-2 flex-1 sm:flex-none'>
+                  {currentStep < 3 ? (
+                      <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg">
+                          Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                  ) : (
+                      <Button type="submit" disabled={isPending || isLoading} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl">
+                          {isPending ? 'Procesando...' : (
+                              <>
+                                <CheckCircle className="mr-2 h-5 w-5" /> 
+                                {checkInNow ? 'Finalizar e Ingresar' : 'Confirmar Reserva'}
+                              </>
+                          )}
+                      </Button>
+                  )}
+              </div>
             </DialogFooter>
           </form>
         </Form>
