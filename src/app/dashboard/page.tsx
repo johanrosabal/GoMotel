@@ -1,3 +1,4 @@
+'use client';
 
 import {
   Card,
@@ -32,14 +33,13 @@ import {
   Building,
   BarChart3,
 } from 'lucide-react';
-import { getRooms } from '@/lib/actions/room.actions';
-import { getServices } from '@/lib/actions/service.actions';
 import { formatCurrency, cn } from '@/lib/utils';
-import type { CompanyProfile, UserRole } from '@/types';
+import type { CompanyProfile, UserRole, Room, Service } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { getServerUserProfile } from '@/lib/actions/user.actions';
+import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, query } from 'firebase/firestore';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Define a type for navigation sections
 type NavSection = {
@@ -57,37 +57,56 @@ type NavSection = {
   }[];
 };
 
-export default async function DashboardPage() {
-  const rooms = await getRooms();
-  const services = await getServices();
-  const userProfile = await getServerUserProfile();
-  
+export default function DashboardPage() {
+  const { firestore } = useFirebase();
+  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
+
+  const roomsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'rooms')) : null, [firestore]);
+  const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
+
+  const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'services')) : null, [firestore]);
+  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+
+  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+  const { data: company } = useDoc<CompanyProfile>(companyRef);
+
+  if (isProfileLoading || isLoadingRooms || isLoadingServices) {
+    return (
+      <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:py-8 space-y-8">
+        <Skeleton className="h-10 w-1/3" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   if (!userProfile) return null;
   const userRole = userProfile.role;
 
-  // Fetch company info
-  const companySnap = await getDoc(doc(db, 'companyInfo', 'main'));
-  const company = companySnap.exists() ? companySnap.data() as CompanyProfile : null;
-
-  const totalAssetValue = services.reduce(
-    (acc, service) => acc + service.price * service.stock,
+  const totalAssetValue = (services || []).reduce(
+    (acc, service) => acc + (service.price * (service.stock || 0)),
     0
   );
-  const occupiedRooms = rooms.filter((room) => room.status === 'Occupied');
+  const occupiedRooms = (rooms || []).filter((room) => room.status === 'Occupied');
   const expectedRevenue = occupiedRooms.reduce(
     (acc, room) => acc + room.ratePerHour,
     0
   );
-  const availableRooms = rooms.filter(
+  const availableRooms = (rooms || []).filter(
     (room) => room.status === 'Available'
   ).length;
-  const lowStockItems = services.filter((service) => service.minStock != null && service.stock < service.minStock).length;
+  const lowStockItems = (services || []).filter((service) => service.minStock != null && service.stock < service.minStock).length;
 
   const kpiData = [
     {
-      title: 'Valor Activo (Costo)',
+      title: 'Valor Activo (Venta)',
       value: formatCurrency(totalAssetValue),
-      description: 'Capital total en bodega.',
+      description: 'Capital total proyectado en inventario.',
       icon: Wallet,
       visible: ['Administrador', 'Contador'].includes(userRole),
     },
