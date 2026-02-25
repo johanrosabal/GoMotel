@@ -235,6 +235,25 @@ export default function PosClientPage() {
                                             <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">Sin imagen</span>
                                         </div>
                                     )}
+                                    
+                                    {/* Name and Code labels overlay with text shadowing */}
+                                    <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span 
+                                                className="text-white font-black text-xs uppercase leading-tight drop-shadow-md line-clamp-2"
+                                                style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.9)' }}
+                                            >
+                                                {service.name}
+                                            </span>
+                                            <span 
+                                                className="text-white/80 font-mono text-[8px] drop-shadow-sm"
+                                                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.9)' }}
+                                            >
+                                                {service.code}
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <div className="absolute bottom-2 right-2">
                                         <Badge variant="default" className="bg-primary/90 backdrop-blur-md font-black px-2 shadow-lg">
                                             {formatCurrency(service.price)}
@@ -246,8 +265,7 @@ export default function PosClientPage() {
                                         </div>
                                     )}
                                 </div>
-                                <CardHeader className="p-3 pb-0 space-y-1">
-                                    <CardTitle className="text-xs font-bold truncate leading-none text-foreground">{service.name}</CardTitle>
+                                <CardHeader className="p-3 pb-0">
                                     <div className="flex items-center justify-between">
                                         <Badge variant="outline" className={cn(
                                             "text-[9px] px-1.5 h-4 font-bold border-muted-foreground/20",
@@ -255,7 +273,6 @@ export default function PosClientPage() {
                                         )}>
                                             {service.source === 'Internal' ? 'Cocina' : `Stock: ${service.stock}`}
                                         </Badge>
-                                        <span className="text-[9px] font-mono text-muted-foreground">{service.code}</span>
                                     </div>
                                 </CardHeader>
                                 <CardFooter className="p-3 pt-3 mt-auto">
