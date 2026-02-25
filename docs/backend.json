@@ -1091,6 +1091,47 @@
         "costPrice",
         "total"
       ]
+    },
+    "CompanyProfile": {
+      "title": "Company Profile",
+      "type": "object",
+      "description": "Stores the company's official business information.",
+      "properties": {
+        "tradeName": {
+          "type": "string",
+          "description": "The commercial name of the company."
+        },
+        "legalId": {
+          "type": "string",
+          "description": "The legal identification number (e.g., Cédula Jurídica)."
+        },
+        "country": {
+          "type": "string",
+          "description": "Country of operation."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the company."
+        },
+        "googleMapsUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the company's location on Google Maps."
+        },
+        "websiteUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The company's official website URL."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Data URI for the company's logo."
+        }
+      },
+      "required": [
+        "tradeName",
+        "legalId"
+      ]
     }
   },
   "auth": {
@@ -1336,6 +1377,22 @@
             {
               "name": "purchaseInvoiceId",
               "description": "The unique identifier of the purchase invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/companyInfo/{profileId}",
+        "definition": {
+          "entityName": "CompanyProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CompanyProfile"
+          },
+          "description": "Stores the single profile for the company information. A singleton collection.",
+          "params": [
+            {
+              "name": "profileId",
+              "description": "The unique identifier, typically a fixed value like 'main'."
             }
           ]
         }

@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble, Bell, Percent, BookCopy } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -11,6 +11,17 @@ export default function SettingsPage() {
             <CardDescription>Administre las configuraciones de su motel.</CardDescription>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><Building /> Información Comercial</CardTitle>
+                    <CardDescription>Gestione los datos legales y fiscales de su empresa.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/company">
+                        <Button>Administrar</Button>
+                    </Link>
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><BedDouble /> Tipos de Habitación</CardTitle>

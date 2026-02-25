@@ -266,3 +266,14 @@ export interface PurchaseInvoice {
   createdByName?: string;
   createdByUid?: string;
 }
+
+export interface CompanyProfile {
+  id: string;
+  tradeName: string;
+  legalId: string;
+  country?: string;
+  address?: string;
+  googleMapsUrl?: string;
+  websiteUrl?: string;
+  logoUrl?: string;
+}

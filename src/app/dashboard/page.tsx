@@ -30,6 +30,7 @@ import {
   Receipt,
   Truck,
   FileCode,
+  Building,
 } from 'lucide-react';
 import { getRooms } from '@/lib/actions/room.actions';
 import { getServices } from '@/lib/actions/service.actions';
@@ -154,6 +155,12 @@ export default async function DashboardPage() {
           title: 'Catálogo de Productos',
           description: 'Gestiona categorías, sub-categorías y productos.',
           icon: BookCopy,
+        },
+        {
+            href: '/settings/company',
+            title: 'Información Comercial',
+            description: 'Gestiona los datos legales y fiscales de tu empresa.',
+            icon: Building,
         },
         {
           href: '/settings/taxes',
