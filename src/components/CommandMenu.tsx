@@ -17,6 +17,7 @@ import {
   CalendarPlus,
   Receipt,
   ShoppingCart,
+  ShoppingBasket,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -59,6 +60,13 @@ export function CommandMenu({ open, setOpen }: Props) {
             <span>Panel de Control</span>
           </CommandItem>
           
+          {(role === 'Administrador' || role === 'Recepcion') && (
+            <CommandItem onSelect={() => runCommand(() => router.push('/pos'))}>
+                <ShoppingBasket className="mr-2 h-4 w-4" />
+                <span>Punto de Venta (POS)</span>
+            </CommandItem>
+          )}
+
           {(role === 'Administrador' || role === 'Contador') && (
             <CommandItem onSelect={() => runCommand(() => router.push('/reports'))}>
                 <BarChart3 className="mr-2 h-4 w-4" />

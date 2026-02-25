@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -32,6 +33,7 @@ import {
   FileCode,
   Building,
   BarChart3,
+  ShoppingBasket,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -141,6 +143,14 @@ export default function DashboardPage() {
       roles: ['Administrador', 'Recepcion', 'Conserje'],
       links: [
         {
+          href: '/pos',
+          title: 'Venta Directa (POS)',
+          description: 'Venda productos sin vincular a una habitación.',
+          icon: ShoppingBasket,
+          badge: 'NUEVO',
+          roles: ['Administrador', 'Recepcion'],
+        },
+        {
           href: '/reservations',
           title: 'Crear Reservaciones',
           description: 'Agenda futuras estancias para los huéspedes.',
@@ -197,7 +207,7 @@ export default function DashboardPage() {
           title: 'Reportes y Estadísticas',
           description: 'Análisis de ingresos, ocupación e informes con IA.',
           icon: BarChart3,
-          badge: 'NUEVO',
+          badge: 'ACTUALIZADO',
           roles: ['Administrador', 'Contador'],
         },
         {

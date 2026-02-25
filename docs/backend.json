@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Client": {
@@ -745,7 +746,7 @@
         },
         "reservationId": {
           "type": "string",
-          "description": "Reference to the associated Reservation."
+          "description": "Reference to the associated Reservation. Optional for direct sales."
         },
         "stayId": {
           "type": "string",
@@ -807,7 +808,6 @@
       },
       "required": [
         "invoiceNumber",
-        "reservationId",
         "clientName",
         "createdAt",
         "status",

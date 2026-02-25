@@ -1,0 +1,127 @@
+
+'use server';
+
+import {
+  collection,
+  doc,
+  writeBatch,
+  Timestamp,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  getDoc,
+  increment,
+  runTransaction,
+  limit,
+} from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
+import { db } from '../firebase';
+import type { Invoice, InvoiceItem, AppliedTax, Service } from '@/types';
+
+interface DirectSaleInput {
+    items: {
+        serviceId: string;
+        name: string;
+        quantity: number;
+        price: number;
+    }[];
+    clientName: string;
+    paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+    voucherNumber?: string;
+    subtotal: number;
+    taxes: AppliedTax[];
+    total: number;
+}
+
+export async function createDirectSale(values: DirectSaleInput) {
+    if (values.items.length === 0) return { error: 'El carrito está vacío.' };
+
+    let invoiceIdForReturn: string | undefined;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            // 1. Validar Stock
+            for (const item of values.items) {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceSnap = await transaction.get(serviceRef);
+                if (!serviceSnap.exists()) throw new Error(`Producto "${item.name}" no encontrado.`);
+                
+                const serviceData = serviceSnap.data() as Service;
+                if (serviceData.source !== 'Internal' && serviceData.stock < item.quantity) {
+                    throw new Error(`Existencias insuficientes para ${serviceData.name}. Stock: ${serviceData.stock}`);
+                }
+                
+                if (serviceData.source !== 'Internal') {
+                    transaction.update(serviceRef, { stock: increment(-item.quantity) });
+                }
+            }
+
+            // 2. Generar Número de Factura
+            const invoicesRef = collection(db, 'invoices');
+            const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+            const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+            
+            let nextNum = 1;
+            if (!lastInvoiceSnap.empty) {
+                const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+                if (lastData.invoiceNumber) {
+                    const lastPart = parseInt(lastData.invoiceNumber.split('-')[1], 10);
+                    if (!isNaN(lastPart)) nextNum = lastPart + 1;
+                }
+            }
+            const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
+
+            // 3. Crear Factura
+            const invoiceRef = doc(collection(db, 'invoices'));
+            invoiceIdForReturn = invoiceRef.id;
+
+            const invoiceData: Omit<Invoice, 'id'> = {
+                invoiceNumber,
+                clientName: values.clientName || 'Cliente de Contado',
+                createdAt: Timestamp.now(),
+                status: 'Pagada',
+                items: values.items.map(i => ({
+                    description: `${i.quantity}x ${i.name}`,
+                    quantity: i.quantity,
+                    unitPrice: i.price,
+                    total: i.price * i.quantity
+                })),
+                subtotal: values.subtotal,
+                taxes: values.taxes,
+                total: values.total,
+                paymentMethod: values.paymentMethod,
+                voucherNumber: values.voucherNumber,
+            };
+
+            transaction.set(invoiceRef, invoiceData);
+
+            // 4. Actualizar SINPE si aplica
+            if (values.paymentMethod === 'Sinpe Movil') {
+                const sinpeRef = collection(db, 'sinpeAccounts');
+                const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
+                const sinpeSnap = await getDocs(sinpeQ);
+                
+                let targetRef = null;
+                for (const d of sinpeSnap.docs) {
+                    const acc = d.data();
+                    if ((acc.balance + values.total) <= (acc.limitAmount || Infinity)) {
+                        targetRef = d.ref;
+                        break;
+                    }
+                }
+                if (targetRef) transaction.update(targetRef, { balance: increment(values.total) });
+            }
+        });
+
+        revalidatePath('/inventory');
+        revalidatePath('/billing/invoices');
+        revalidatePath('/pos');
+        
+        return { success: true, invoiceId: invoiceIdForReturn };
+
+    } catch (e: any) {
+        console.error("Direct sale error:", e);
+        return { error: e.message || 'Error al procesar la venta directa.' };
+    }
+}
