@@ -393,7 +393,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-6 font-bold uppercase">{filteredTables.length} Configuradas</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-6 p-2">
                                     {filteredTables.map(table => {
                                         const order = activeOrders?.find(o => o.locationId === table.id);
                                         const Icon = getLocationIcon(table.type);
@@ -402,28 +402,41 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-center aspect-square rounded-3xl border-2 transition-all p-4",
+                                                    "group relative flex flex-col items-center justify-center aspect-square rounded-[2rem] border-2 transition-all duration-300 p-4 overflow-hidden",
                                                     order 
-                                                        ? "bg-primary/5 border-primary shadow-lg ring-4 ring-primary/10" 
-                                                        : "bg-background border-muted-foreground/10 hover:border-primary/50 hover:bg-muted/30"
+                                                        ? "bg-primary/[0.03] border-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] ring-4 ring-primary/5" 
+                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                                                 )}
                                             >
-                                                <div className={cn(
-                                                    "mb-2 p-3 rounded-full transition-transform group-hover:scale-110",
-                                                    order ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                                                )}>
-                                                    <Icon className="h-6 w-6" />
-                                                </div>
-                                                <span className="font-black text-2xl tracking-tighter">{table.number}</span>
-                                                
+                                                {/* Background decoration for active tables */}
                                                 {order && (
-                                                    <div className="mt-2 space-y-1">
-                                                        <Badge variant="default" className="font-black text-[10px] tracking-tighter bg-primary px-2 h-5">
+                                                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-12 h-12 bg-primary/10 rounded-full blur-2xl animate-pulse" />
+                                                )}
+
+                                                <div className={cn(
+                                                    "mb-2 p-3.5 rounded-2xl transition-all duration-300 shadow-sm",
+                                                    order ? "bg-primary text-primary-foreground scale-110 shadow-primary/20" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                                )}>
+                                                    <Icon className="h-7 w-7" />
+                                                </div>
+                                                
+                                                <span className={cn(
+                                                    "font-black text-3xl tracking-tight transition-colors",
+                                                    order ? "text-primary" : "text-foreground"
+                                                )}>{table.number}</span>
+                                                
+                                                {order ? (
+                                                    <div className="mt-3 flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
+                                                        <Badge variant="default" className="font-black text-[11px] tracking-tight bg-primary px-2.5 h-6 shadow-md shadow-primary/20">
                                                             {formatCurrency(order.total)}
                                                         </Badge>
-                                                        <div className="flex items-center gap-1 text-[8px] font-black text-primary/60 uppercase">
-                                                            <Clock className="h-2 w-2" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
+                                                        <div className="flex items-center gap-1 text-[9px] font-black text-primary/70 uppercase bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                                                            <Clock className="h-2.5 w-2.5" /> {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: false })}
                                                         </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Abrir Cuenta</span>
                                                     </div>
                                                 )}
                                             </button>
