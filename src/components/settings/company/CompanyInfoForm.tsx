@@ -143,6 +143,23 @@ export default function CompanyInfoForm() {
 
     fieldOnChange(maskedValue);
   };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
+    let numbers = e.target.value.replace(/\D/g, '');
+    
+    if (numbers.startsWith('506')) {
+      numbers = numbers.substring(3);
+    }
+    const value = numbers.slice(0, 8);
+    let maskedValue = '';
+    if (value.length > 0) {
+      maskedValue = `(506) ${value.slice(0, 4)}`;
+      if (value.length > 4) {
+        maskedValue += `-${value.slice(4)}`;
+      }
+    }
+    fieldOnChange(maskedValue);
+  };
 
   const onSubmit = (values: z.infer<typeof companyInfoSchema>) => {
     startTransition(async () => {
@@ -221,7 +238,7 @@ export default function CompanyInfoForm() {
                       {phoneFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
                               <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Principal" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)}/></FormControl><FormMessage /></FormItem>)} />
                               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                       ))}
