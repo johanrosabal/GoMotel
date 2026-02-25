@@ -459,7 +459,7 @@ export default function PosClientPage() {
                                                 
                                                 {/* Bottom Tab */}
                                                 <div className={cn(
-                                                    "w-full px-8 py-4 rounded-t-xl border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
+                                                    "w-full px-8 py-4 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
