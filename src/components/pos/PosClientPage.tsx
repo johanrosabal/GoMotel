@@ -463,7 +463,132 @@ export default function PosClientPage() {
                                     )}
                                 </div>
                             </ScrollArea>
-                        </>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex flex-col min-h-0">
+                            {/* Search and Filters Header */}
+                            <div className="p-4 border-b space-y-4 bg-muted/5 shrink-0">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="Buscar producto por nombre o código..." 
+                                        className="pl-9 h-11 bg-background rounded-xl border-2 transition-all focus:border-primary"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Categories Filter */}
+                                <ScrollArea className="w-full whitespace-nowrap">
+                                    <div className="flex gap-2 pb-2">
+                                        <Button 
+                                            variant={selectedCategoryId === null ? "default" : "outline"} 
+                                            size="sm" 
+                                            className="rounded-full font-bold px-4 h-8"
+                                            onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
+                                        >
+                                            Todos
+                                        </Button>
+                                        {categories?.map(cat => (
+                                            <Button 
+                                                key={cat.id}
+                                                variant={selectedCategoryId === cat.id ? "default" : "outline"} 
+                                                size="sm" 
+                                                className="rounded-full font-bold px-4 h-8"
+                                                onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
+                                            >
+                                                {cat.name}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                    <ScrollBar orientation="horizontal" />
+                                </ScrollArea>
+
+                                {/* Sub-categories Filter */}
+                                {selectedCategoryId && subCategories && subCategories.length > 0 && (
+                                    <ScrollArea className="w-full whitespace-nowrap border-t pt-2">
+                                        <div className="flex gap-2 pb-2">
+                                            <Button 
+                                                variant={selectedSubCategoryId === null ? "secondary" : "ghost"} 
+                                                size="sm" 
+                                                className="rounded-full font-bold px-3 h-7 text-[10px] uppercase tracking-wider"
+                                                onClick={() => setSelectedSubCategoryId(null)}
+                                            >
+                                                Ver Todo
+                                            </Button>
+                                            {subCategories.map(sub => (
+                                                <Button 
+                                                    key={sub.id}
+                                                    variant={selectedSubCategoryId === sub.id ? "secondary" : "ghost"} 
+                                                    size="sm" 
+                                                    className="rounded-full font-bold px-3 h-7 text-[10px] uppercase tracking-wider"
+                                                    onClick={() => setSelectedSubCategoryId(sub.id)}
+                                                >
+                                                    {sub.name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        <ScrollBar orientation="horizontal" />
+                                    </ScrollArea>
+                                )}
+                            </div>
+
+                            {/* Products Grid */}
+                            <ScrollArea className="flex-1">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 p-4 lg:p-6">
+                                    {filteredServices.map(service => (
+                                        <button
+                                            key={service.id}
+                                            onClick={() => handleAddToCart(service)}
+                                            disabled={service.source !== 'Internal' && (service.stock || 0) <= 0}
+                                            className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all duration-300 text-left relative active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                                        >
+                                            <div className="aspect-square relative overflow-hidden bg-muted">
+                                                <Avatar className="h-full w-full rounded-none">
+                                                    <AvatarImage src={service.imageUrl || undefined} alt={service.name} className="object-cover transition-transform group-hover:scale-110 duration-500" />
+                                                    <AvatarFallback className="rounded-none bg-transparent">
+                                                        <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="absolute top-2 right-2">
+                                                    <Badge className="font-black bg-background/90 text-primary border-primary/20 shadow-sm backdrop-blur-sm">
+                                                        {formatCurrency(service.price)}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 flex-1 flex flex-col">
+                                                <h3 className="font-black text-xs uppercase tracking-tight line-clamp-2 leading-tight flex-1">
+                                                    {service.name}
+                                                </h3>
+                                                <p className="text-[10px] font-bold text-muted-foreground mt-1 mb-2 font-mono">
+                                                    {service.code}
+                                                </p>
+                                            </div>
+                                            
+                                            {/* Wide Footer for Stock/Cocina */}
+                                            <div className={cn(
+                                                "w-full py-1.5 px-2 text-center border-t transition-colors",
+                                                service.source === 'Internal' 
+                                                    ? "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" 
+                                                    : (service.stock || 0) <= (service.minStock || 0)
+                                                        ? "bg-amber-50 text-yellow-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50"
+                                                        : "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50"
+                                            )}>
+                                                <span className="text-[9px] font-black uppercase tracking-widest">
+                                                    {service.source === 'Internal' ? 'Producto de Cocina' : `Stock: ${service.stock}`}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {filteredServices.length === 0 && (
+                                        <div className="col-span-full py-20 text-center text-muted-foreground">
+                                            <PackageCheck className="h-12 w-12 mx-auto mb-4 opacity-10" />
+                                            <p className="font-bold text-xs uppercase tracking-widest italic opacity-30">No se encontraron productos</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </div>
                     )}
                 </div>
 
