@@ -494,7 +494,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-2 pb-10">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -507,34 +507,34 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between min-h-[320px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between min-h-[220px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     hasOrders 
                                                         ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
                                                         : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
                                                 )}
                                             >
                                                 <div className={cn(
-                                                    "px-10 py-3 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
+                                                    "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
-                                                    <Icon className="h-7 w-7" />
+                                                    <Icon className="h-5 w-5" />
                                                 </div>
                                                 
-                                                <div className="flex-1 flex flex-col items-center justify-center py-4 relative w-full">
+                                                <div className="flex-1 flex flex-col items-center justify-center py-2 relative w-full">
                                                     <span className={cn(
-                                                        "font-black text-7xl tracking-tighter transition-colors",
+                                                        "font-black text-5xl tracking-tighter transition-colors",
                                                         hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                     
                                                     {hasOrders && (
-                                                        <div className="flex flex-col items-center gap-1.5 mt-2 animate-in fade-in zoom-in-95 duration-500">
-                                                            <div className="flex items-center gap-1.5 text-[11px] font-black text-primary/80 uppercase bg-primary/10 px-4 py-1.5 rounded-full border border-primary/10 backdrop-blur-sm">
-                                                                <Clock className="h-3.5 w-3.5" /> {formatDistance(oldestOrder!.createdAt.toDate(), now, { locale: es, addSuffix: false })}
+                                                        <div className="flex flex-col items-center gap-1 mt-1 animate-in fade-in zoom-in-95 duration-500">
+                                                            <div className="flex items-center gap-1 text-[9px] font-black text-primary/80 uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/10 backdrop-blur-sm">
+                                                                <Clock className="h-3 w-3" /> {formatDistance(oldestOrder!.createdAt.toDate(), now, { locale: es, addSuffix: false })}
                                                             </div>
                                                             {tableOrders.length > 1 && (
-                                                                <Badge variant="outline" className="text-[10px] font-black tracking-widest border-primary/20 bg-background/50 text-primary">
+                                                                <Badge variant="outline" className="text-[8px] font-black tracking-widest border-primary/20 bg-background/50 text-primary h-4 px-1.5">
                                                                     {tableOrders.length} CUENTAS
                                                                 </Badge>
                                                             )}
@@ -543,17 +543,17 @@ export default function PosClientPage() {
                                                 </div>
                                                 
                                                 <div className={cn(
-                                                    "w-full px-8 py-4 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[64px]",
+                                                    "w-full px-4 py-3 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[48px]",
                                                     hasOrders 
                                                         ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
                                                         : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
                                                     {hasOrders ? (
-                                                        <span className="font-black text-xl tracking-tighter shadow-sm">
+                                                        <span className="font-black text-base tracking-tighter shadow-sm">
                                                             {formatCurrency(totalAmount)}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[11px] font-black uppercase tracking-[0.2em] group-hover:animate-pulse">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] group-hover:animate-pulse">
                                                             Abrir Cuenta
                                                         </span>
                                                     )}
