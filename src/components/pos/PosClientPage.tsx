@@ -731,23 +731,24 @@ export default function PosClientPage() {
                                                         <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <div className="absolute top-2 right-2">
+                                                
+                                                {/* Price Badge */}
+                                                <div className="absolute top-2 right-2 z-10">
                                                     <Badge className="font-black bg-background/90 text-primary border-primary/20 shadow-sm backdrop-blur-sm">
                                                         {formatCurrency(service.price)}
                                                     </Badge>
                                                 </div>
-                                            </div>
-                                            <div className="p-3 flex-1 flex flex-col">
-                                                <h3 className="font-black text-xs uppercase tracking-tight line-clamp-2 leading-tight flex-1">
-                                                    {service.name}
-                                                </h3>
-                                                <p className="text-[10px] font-bold text-muted-foreground mt-1 mb-2 font-mono">
-                                                    {service.code}
-                                                </p>
+
+                                                {/* Name Overlay - Fiel a lo pedido */}
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
+                                                    <h3 className="font-black text-[10px] sm:text-[11px] uppercase tracking-tight line-clamp-2 leading-tight text-white drop-shadow-md">
+                                                        {service.name}
+                                                    </h3>
+                                                </div>
                                             </div>
                                             
                                             <div className={cn(
-                                                "w-full py-1.5 px-2 text-center border-t transition-colors",
+                                                "w-full py-1.5 px-2 text-center border-t transition-colors mt-auto",
                                                 service.source === 'Internal' 
                                                     ? "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" 
                                                     : (service.stock || 0) <= (service.minStock || 0)
