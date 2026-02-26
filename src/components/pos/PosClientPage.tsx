@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
@@ -16,7 +15,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle
+    Pencil, Trash2, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -61,6 +60,7 @@ const posPaymentSchema = z.object({
 type CartItem = {
   service: Service;
   quantity: number;
+  notes?: string;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -100,6 +100,11 @@ export default function PosClientPage() {
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [renamingOrderId, setRenamingOrderId] = useState<string | null>(null);
     const [newLabelName, setNewLabelName] = useState('');
+
+    // Kitchen Notes state
+    const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+    const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+    const [currentNoteValue, setCurrentNoteValue] = useState('');
 
     // Deletion state
     const [removeItemDialogOpen, setRemoveItemDialogOpen] = useState(false);
@@ -222,7 +227,6 @@ export default function PosClientPage() {
         const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
         if (allTaxes) {
-            // Buscamos si existe un impuesto de servicio (10%) configurado en el sistema
             const serviceTax = allTaxes.find(t => 
                 t.name.toLowerCase().includes('servicio') || 
                 t.name.toLowerCase().includes('service')
@@ -230,12 +234,8 @@ export default function PosClientPage() {
 
             allItems.forEach(item => {
                 const itemTotal = item.price * item.quantity;
-                
-                // Combinamos los impuestos del producto con el impuesto de servicio si aplica
                 const effectiveTaxIds = new Set(item.taxIds || []);
                 
-                // Si estamos en una mesa/barra (no fast mode), añadimos el impuesto de servicio automáticamente
-                // si existe en el sistema y no está ya asignado al producto.
                 if (viewMode !== 'fast' && serviceTax) {
                     effectiveTaxIds.add(serviceTax.id);
                 }
@@ -243,7 +243,6 @@ export default function PosClientPage() {
                 effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
                     if (taxInfo) {
-                        // El impuesto de servicio SOLO se aplica si no estamos en modo rápido (Para Llevar)
                         if (taxInfo.id === serviceTax?.id && viewMode === 'fast') return;
 
                         const taxAmount = itemTotal * (taxInfo.percentage / 100);
@@ -306,6 +305,19 @@ export default function PosClientPage() {
         });
     };
 
+    const handleOpenNoteDialog = (index: number) => {
+        setEditingNoteIndex(index);
+        setCurrentNoteValue(cart[index].notes || '');
+        setNoteDialogOpen(true);
+    };
+
+    const handleSaveNote = () => {
+        if (editingNoteIndex === null) return;
+        setCart(prev => prev.map((item, i) => i === editingNoteIndex ? { ...item, notes: currentNoteValue } : item));
+        setNoteDialogOpen(false);
+        setEditingNoteIndex(null);
+    };
+
     const handleClearCart = () => setCart([]);
 
     const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -327,6 +339,7 @@ export default function PosClientPage() {
                         name: i.service.name,
                         quantity: i.quantity,
                         price: i.service.price,
+                        notes: i.notes
                     })),
                     clientName: values.clientName,
                     paymentMethod: values.paymentMethod,
@@ -585,7 +598,7 @@ export default function PosClientPage() {
                             </ScrollArea>
                         </div>
                     ) : (
-                        <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex-1 flex flex-col min-0">
                             {/* Sub-Accounts Barra Superior */}
                             {selectedTable && (
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
@@ -838,58 +851,82 @@ export default function PosClientPage() {
                                         <>
                                             {/* Productos ya pedidos (Existentes en la orden) */}
                                             {currentOrder && currentOrder.items.map((item, idx) => (
-                                                <div key={`existing-${idx}`} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle className="h-3 w-3 text-primary" />
-                                                            <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
+                                                <div key={`existing-${idx}`} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <CheckCircle className="h-3 w-3 text-primary" />
+                                                                <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
+                                                            </div>
+                                                            <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)}</p>
                                                         </div>
-                                                        <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)}</p>
+                                                        <div className="flex items-center gap-2 px-3">
+                                                            <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
+                                                        </div>
+                                                        <div className="text-right w-16">
+                                                            <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
+                                                        </div>
+                                                        {/* Borrar Item Existente */}
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
+                                                            onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
+                                                            disabled={isPending}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
                                                     </div>
-                                                    <div className="flex items-center gap-2 px-3">
-                                                        <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                                                    </div>
-                                                    <div className="text-right w-16">
-                                                        <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
-                                                    </div>
-                                                    {/* Borrar Item Existente */}
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
-                                                        onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
-                                                        disabled={isPending}
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
+                                                    {item.notes && (
+                                                        <p className="text-[9px] text-primary italic font-medium ml-5 border-l-2 pl-2 border-primary/20">"{item.notes}"</p>
+                                                    )}
                                                 </div>
                                             ))}
 
                                             {/* Productos por añadir (Carrito temporal) */}
-                                            {cart.map(item => (
-                                                <div key={item.service.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-background shadow-sm border-primary/20">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
-                                                        <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                            {cart.map((item, idx) => (
+                                                <div key={item.service.id} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-background shadow-sm border-primary/20">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                                                {item.service.source === 'Internal' && (
+                                                                    <button 
+                                                                        onClick={() => handleOpenNoteDialog(idx)}
+                                                                        className={cn(
+                                                                            "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md border transition-all flex items-center gap-1",
+                                                                            item.notes ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground border-transparent hover:border-muted-foreground/30"
+                                                                        )}
+                                                                    >
+                                                                        <MessageSquare className="h-2.5 w-2.5" />
+                                                                        {item.notes ? "Ver Nota" : "+ Instrucciones"}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
+                                                                <Minus className="h-2.5 w-2.5" />
+                                                            </Button>
+                                                            <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
+                                                            <Button 
+                                                                size="icon" 
+                                                                variant="ghost" 
+                                                                className="h-5 w-5 rounded-full" 
+                                                                onClick={() => handleAddToCart(item.service)} 
+                                                                disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
+                                                            >
+                                                                <Plus className="h-2.5 w-2.5" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="text-right w-16">
+                                                            <p className="text-[11px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
-                                                        <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
-                                                            <Minus className="h-2.5 w-2.5" />
-                                                        </Button>
-                                                        <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                                                        <Button 
-                                                            size="icon" 
-                                                            variant="ghost" 
-                                                            className="h-5 w-5 rounded-full" 
-                                                            onClick={() => handleAddToCart(item.service)} 
-                                                            disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
-                                                        >
-                                                            <Plus className="h-2.5 w-2.5" />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="text-right w-16">
-                                                        <p className="text-[11px] font-black text-primary">{formatCurrency(item.service.price * item.quantity)}</p>
-                                                    </div>
+                                                    {item.notes && (
+                                                        <p className="text-[9px] text-primary italic font-medium ml-1 border-l-2 pl-2 border-primary/20 line-clamp-2">"{item.notes}"</p>
+                                                    )}
                                                 </div>
                                             ))}
                                         </>
@@ -1109,6 +1146,39 @@ export default function PosClientPage() {
                         <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()}>
                             {isPending ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Note Dialog */}
+            <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Instrucciones de Cocina</DialogTitle>
+                        <DialogDescription>
+                            Añada indicaciones especiales para la preparación de este producto.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg"><Utensils className="h-4 w-4 text-primary" /></div>
+                            <span className="font-black text-xs uppercase tracking-tight">{editingNoteIndex !== null ? cart[editingNoteIndex].service.name : ''}</span>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="kitchen-note" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Instrucciones Especiales</Label>
+                            <Textarea 
+                                id="kitchen-note"
+                                placeholder="Ej: Con poca sal, sin cebolla, término medio..."
+                                value={currentNoteValue}
+                                onChange={e => setCurrentNoteValue(e.target.value)}
+                                className="min-h-[120px] rounded-xl border-2 resize-none text-sm font-bold"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
+                        <Button className="flex-1 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote}>Guardar Nota</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -22,6 +22,7 @@ import type { Order, OrderItem, Service, AppliedTax, Invoice } from '@/types';
 type CartItem = {
   service: Service;
   quantity: number;
+  notes?: string;
 };
 
 export async function createOrder(
@@ -43,7 +44,7 @@ export async function createOrder(
 
   try {
     await runTransaction(db, async (transaction) => {
-      const serviceDetails: { service: Service; ref: DocumentReference; quantity: number }[] = [];
+      const serviceDetails: { service: Service; ref: DocumentReference; quantity: number; notes?: string }[] = [];
 
       for (const item of cart) {
         const serviceRef = doc(db, 'services', item.service.id);
@@ -59,7 +60,7 @@ export async function createOrder(
           throw new Error(`No hay suficientes existencias para ${serviceData.name}. Stock actual: ${serviceData.stock}.`);
         }
         
-        serviceDetails.push({ service: serviceData, ref: serviceRef, quantity: item.quantity });
+        serviceDetails.push({ service: serviceData, ref: serviceRef, quantity: item.quantity, notes: item.notes });
       }
 
       const orderRef = doc(collection(db, 'orders'));
@@ -79,6 +80,7 @@ export async function createOrder(
           name: detail.service.name,
           quantity: detail.quantity,
           price: detail.service.price,
+          notes: detail.notes
         });
       }
 
@@ -124,7 +126,7 @@ export async function createOrder(
             createdAt: Timestamp.now(),
             status: 'Pagada',
             items: cart.map(item => ({
-                description: `${item.quantity}x ${item.service.name}`,
+                description: `${item.quantity}x ${item.service.name}${item.notes ? ` (${item.notes})` : ''}`,
                 quantity: item.quantity,
                 unitPrice: item.service.price,
                 total: item.service.price * item.quantity,

@@ -1,4 +1,3 @@
-
 'use server';
 
 import {
@@ -25,6 +24,7 @@ interface DirectSaleInput {
         name: string;
         quantity: number;
         price: number;
+        notes?: string;
     }[];
     clientName: string;
     paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
@@ -82,7 +82,7 @@ export async function createDirectSale(values: DirectSaleInput) {
                 createdAt: Timestamp.now(),
                 status: 'Pagada',
                 items: values.items.map(i => ({
-                    description: `${i.quantity}x ${i.name}`,
+                    description: `${i.quantity}x ${i.name}${i.notes ? ` (${i.notes})` : ''}`,
                     quantity: i.quantity,
                     unitPrice: i.price,
                     total: i.price * i.quantity

@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Service, Tax, SinpeAccount, AppliedTax } from '@/types';
 import { createOrder } from '@/lib/actions/order.actions';
 import { ScrollArea } from '../ui/scroll-area';
-import { Plus, Minus, ShoppingCart, ImageIcon, Check, CheckCircle } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, ImageIcon, Check, CheckCircle, MessageSquare, Utensils } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -31,6 +31,8 @@ import { collection, query, where, orderBy } from 'firebase/firestore';
 import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 import { Separator } from '../ui/separator';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 
 const Stepper = ({ step }: { step: number }) => {
     const steps = ['Seleccionar Productos', 'Revisar y Pagar', 'Confirmación'];
@@ -74,6 +76,7 @@ interface OrderServiceDialogProps {
 type CartItem = {
   service: Service;
   quantity: number;
+  notes?: string;
 };
 
 const orderPaymentSchema = z.object({
@@ -112,6 +115,11 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [cashTendered, setCashTendered] = useState('');
+
+  // Kitchen Notes state
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+  const [currentNoteValue, setCurrentNoteValue] = useState('');
   
   const form = useForm<z.infer<typeof orderPaymentSchema>>({
     resolver: zodResolver(orderPaymentSchema),
@@ -219,6 +227,19 @@ export default function OrderServiceDialog({ children, stayId, availableServices
     });
   };
 
+  const handleOpenNoteDialog = (index: number) => {
+    setEditingNoteIndex(index);
+    setCurrentNoteValue(cart[index].notes || '');
+    setNoteDialogOpen(true);
+  };
+
+  const handleSaveNote = () => {
+    if (editingNoteIndex === null) return;
+    setCart(prev => prev.map((item, i) => i === editingNoteIndex ? { ...item, notes: currentNoteValue } : item));
+    setNoteDialogOpen(false);
+    setEditingNoteIndex(null);
+  };
+
   const getCartQuantity = (serviceId: string) => {
     return cart.find((item) => item.service.id === serviceId)?.quantity || 0;
   };
@@ -323,14 +344,33 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                         ) : (
                             <>
                             <ScrollArea className="flex-1 -mr-4 pr-4">
-                                <div className="space-y-2">
-                                    {cart.map(item => (
-                                        <div key={item.service.id} className="flex justify-between items-center text-sm">
-                                            <div>
-                                                <p className="font-medium">{item.service.name}</p>
-                                                <p className="text-muted-foreground">{item.quantity} x {formatCurrency(item.service.price)}</p>
+                                <div className="space-y-3">
+                                    {cart.map((item, idx) => (
+                                        <div key={item.service.id} className="flex flex-col gap-1 pb-2 border-b last:border-0">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <div>
+                                                    <p className="font-medium">{item.service.name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-muted-foreground text-xs">{item.quantity} x {formatCurrency(item.service.price)}</p>
+                                                        {item.service.source === 'Internal' && (
+                                                            <button 
+                                                                onClick={() => handleOpenNoteDialog(idx)}
+                                                                className={cn(
+                                                                    "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border transition-all flex items-center gap-1",
+                                                                    item.notes ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground border-transparent hover:border-muted-foreground/30"
+                                                                )}
+                                                            >
+                                                                <MessageSquare className="h-2.5 w-2.5" />
+                                                                {item.notes ? "Nota" : "+ Nota"}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <p className="font-semibold">{formatCurrency(item.service.price * item.quantity)}</p>
                                             </div>
-                                            <p className="font-semibold">{formatCurrency(item.service.price * item.quantity)}</p>
+                                            {item.notes && (
+                                                <p className="text-[10px] text-primary italic font-medium ml-1 border-l-2 pl-2 border-primary/20">"{item.notes}"</p>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -354,13 +394,16 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                         <div className="space-y-4">
                              <h3 className="font-semibold">Resumen del Pedido</h3>
                              <Card>
-                                 <CardContent className="pt-6 space-y-2">
+                                 <CardContent className="pt-6 space-y-3">
                                      {cart.map(item => (
-                                        <div key={item.service.id} className="flex justify-between items-center text-sm">
-                                            <div>
+                                        <div key={item.service.id} className="space-y-1">
+                                            <div className="flex justify-between items-center text-sm">
                                                 <p className="font-medium">{item.quantity}x {item.service.name}</p>
+                                                <p>{formatCurrency(item.service.price * item.quantity)}</p>
                                             </div>
-                                            <p>{formatCurrency(item.service.price * item.quantity)}</p>
+                                            {item.notes && (
+                                                <p className="text-[10px] text-primary italic font-medium ml-4">"{item.notes}"</p>
+                                            )}
                                         </div>
                                      ))}
                                      <div className="border-t pt-2 mt-2 !space-y-1">
@@ -577,6 +620,40 @@ export default function OrderServiceDialog({ children, stayId, availableServices
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Note Dialog for OrderServiceDialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                  <DialogTitle>Instrucciones de Cocina</DialogTitle>
+                  <DialogDescription>
+                      Añada indicaciones especiales para la preparación.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                  <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
+                      <div className="bg-primary/10 p-2 rounded-lg"><Utensils className="h-4 w-4 text-primary" /></div>
+                      <span className="font-bold text-sm uppercase">{editingNoteIndex !== null ? cart[editingNoteIndex].service.name : ''}</span>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="kitchen-note-room" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Instrucciones Especiales</Label>
+                      <Textarea 
+                          id="kitchen-note-room"
+                          placeholder="Ej: Sin sal, bien cocido, etc."
+                          value={currentNoteValue}
+                          onChange={e => setCurrentNoteValue(e.target.value)}
+                          className="min-h-[100px] text-sm font-bold"
+                          autoFocus
+                      />
+                  </div>
+              </div>
+              <DialogFooter className="gap-2">
+                  <Button variant="outline" className="flex-1 font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
+                  <Button className="flex-1 font-bold" onClick={handleSaveNote}>Guardar Nota</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
       <InvoiceSuccessDialog
           open={successModalOpen}
           onOpenChange={setSuccessModalOpen}

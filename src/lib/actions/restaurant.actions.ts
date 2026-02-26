@@ -67,7 +67,7 @@ export async function deleteRestaurantTable(id: string) {
     }
 }
 
-export async function openTableAccount(tableId: string, items: { service: Service; quantity: number }[], label?: string) {
+export async function openTableAccount(tableId: string, items: { service: Service; quantity: number; notes?: string }[], label?: string) {
     try {
         await runTransaction(db, async (transaction) => {
             const tableRef = doc(db, 'restaurantTables', tableId);
@@ -101,7 +101,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     serviceId: i.service.id,
                     name: i.service.name,
                     quantity: i.quantity,
-                    price: i.service.price
+                    price: i.service.price,
+                    notes: i.notes
                 })),
                 total,
                 createdAt: Timestamp.now(),
@@ -121,7 +122,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
     }
 }
 
-export async function addToTableAccount(orderId: string, items: { service: Service; quantity: number }[]) {
+export async function addToTableAccount(orderId: string, items: { service: Service; quantity: number; notes?: string }[]) {
     try {
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
@@ -134,7 +135,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             // Update items
             const updatedItems = [...orderData.items];
             for (const item of items) {
-                const existing = updatedItems.find(ui => ui.serviceId === item.service.id);
+                const existing = updatedItems.find(ui => ui.serviceId === item.service.id && ui.notes === item.notes);
                 if (existing) {
                     existing.quantity += item.quantity;
                 } else {
@@ -142,7 +143,8 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                         serviceId: item.service.id,
                         name: item.service.name,
                         quantity: item.quantity,
-                        price: item.service.price
+                        price: item.service.price,
+                        notes: item.notes
                     });
                 }
 
@@ -212,7 +214,7 @@ export async function payRestaurantAccount(
                 createdAt: Timestamp.now(),
                 status: 'Pagada',
                 items: orderData.items.map(i => ({
-                    description: `${i.quantity}x ${i.name}`,
+                    description: `${i.quantity}x ${i.name}${i.notes ? ` (${i.notes})` : ''}`,
                     quantity: i.quantity,
                     unitPrice: i.price,
                     total: i.price * i.quantity
