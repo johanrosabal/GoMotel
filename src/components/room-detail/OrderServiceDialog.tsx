@@ -356,8 +356,10 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                             <button 
                                                                 onClick={() => handleOpenNoteDialog(idx)}
                                                                 className={cn(
-                                                                    "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border transition-all flex items-center gap-1",
-                                                                    item.notes ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground border-transparent hover:border-muted-foreground/30"
+                                                                    "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border transition-all flex items-center gap-1 shadow-sm",
+                                                                    item.notes 
+                                                                        ? "bg-primary text-primary-foreground border-primary" 
+                                                                        : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                                                                 )}
                                                             >
                                                                 <MessageSquare className="h-2.5 w-2.5" />
