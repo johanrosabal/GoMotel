@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
@@ -221,11 +222,30 @@ export default function PosClientPage() {
         const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
         if (allTaxes) {
+            // Buscamos si existe un impuesto de servicio (10%) configurado en el sistema
+            const serviceTax = allTaxes.find(t => 
+                t.name.toLowerCase().includes('servicio') || 
+                t.name.toLowerCase().includes('service')
+            );
+
             allItems.forEach(item => {
                 const itemTotal = item.price * item.quantity;
-                item.taxIds.forEach(taxId => {
+                
+                // Combinamos los impuestos del producto con el impuesto de servicio si aplica
+                const effectiveTaxIds = new Set(item.taxIds || []);
+                
+                // Si estamos en una mesa/barra (no fast mode), añadimos el impuesto de servicio automáticamente
+                // si existe en el sistema y no está ya asignado al producto.
+                if (viewMode !== 'fast' && serviceTax) {
+                    effectiveTaxIds.add(serviceTax.id);
+                }
+
+                effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
                     if (taxInfo) {
+                        // El impuesto de servicio SOLO se aplica si no estamos en modo rápido (Para Llevar)
+                        if (taxInfo.id === serviceTax?.id && viewMode === 'fast') return;
+
                         const taxAmount = itemTotal * (taxInfo.percentage / 100);
                         taxTotal += taxAmount;
                         
@@ -252,7 +272,7 @@ export default function PosClientPage() {
             grandTotal: sub + taxTotal,
             appliedTaxes: Array.from(taxMap.values())
         };
-    }, [cart, currentOrder, allTaxes, availableServices]);
+    }, [cart, currentOrder, allTaxes, availableServices, viewMode]);
 
     const targetSinpeAccount = useMemo(() => {
         if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts) return null;
@@ -739,7 +759,7 @@ export default function PosClientPage() {
                                                     </Badge>
                                                 </div>
 
-                                                {/* Name Overlay - Fiel a lo pedido */}
+                                                {/* Name Overlay */}
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
                                                     <h3 className="font-black text-[10px] sm:text-[11px] uppercase tracking-tight line-clamp-2 leading-tight text-white drop-shadow-md">
                                                         {service.name}

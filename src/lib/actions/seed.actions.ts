@@ -4,7 +4,7 @@
 import { collection, writeBatch, doc, Timestamp, getDocs, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
-import type { Room, Service, RoomStatus, RoomType, RestaurantTable } from '@/types';
+import type { Room, Service, RoomStatus, RoomType, RestaurantTable, Tax } from '@/types';
 import { addHours } from 'date-fns';
 
 const roomsToSeed: Omit<Room, 'id' | 'currentStayId' | 'status' | 'ratePerHour' | 'description' | 'roomTypeId' | 'roomTypeName' | 'capacity'>[] = [
@@ -62,15 +62,20 @@ const roomTypesToSeed: Omit<RoomType, 'id'>[] = [
     },
 ];
 
-const servicesToSeed: Omit<Service, 'id'>[] = [
-  { name: 'Botella de Agua', price: 2, stock: 100, category: 'Beverage', source: 'Purchased' },
-  { name: 'Coca-Cola', price: 3, stock: 80, category: 'Beverage', source: 'Purchased' },
-  { name: 'Jugo de Naranja', price: 4, stock: 50, category: 'Beverage', source: 'Purchased' },
-  { name: 'Club Sándwich', price: 12, stock: 0, category: 'Food', source: 'Internal' },
-  { name: 'Ensalada César', price: 10, stock: 0, category: 'Food', source: 'Internal' },
-  { name: 'Hamburguesa con Queso', price: 15, stock: 0, category: 'Food', source: 'Internal' },
-  { name: 'Toalla Extra', price: 1, stock: 200, category: 'Amenity', source: 'Purchased' },
-  { name: 'Kit Dental', price: 2.5, stock: 150, category: 'Amenity', source: 'Purchased' },
+const taxesToSeed: Omit<Tax, 'id'>[] = [
+    { name: 'IVA', percentage: 13, description: 'Impuesto al Valor Agregado' },
+    { name: 'Impuesto de Servicio', percentage: 10, description: 'Impuesto de servicio para consumo en salón' },
+];
+
+const servicesToSeed: Omit<Service, 'id' | 'taxIds'>[] = [
+  { name: 'Botella de Agua', price: 600, stock: 100, category: 'Beverage', source: 'Purchased' },
+  { name: 'Coca Cola 250 ML', price: 600, stock: 80, category: 'Beverage', source: 'Purchased' },
+  { name: 'Jugo de Naranja', price: 1200, stock: 50, category: 'Beverage', source: 'Purchased' },
+  { name: 'Club Sándwich', price: 3500, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Ensalada César', price: 2800, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Hamburguesa con Queso', price: 4500, stock: 0, category: 'Food', source: 'Internal' },
+  { name: 'Toalla Extra', price: 500, stock: 200, category: 'Amenity', source: 'Purchased' },
+  { name: 'Kit Dental', price: 800, stock: 150, category: 'Amenity', source: 'Purchased' },
 ];
 
 const tablesToSeed: Omit<RestaurantTable, 'id'>[] = [
@@ -90,7 +95,17 @@ export async function seedDatabase() {
   try {
     const batch = writeBatch(db);
 
-    // Seed Room Types
+    // 1. Seed Taxes
+    const taxesCollection = collection(db, 'taxes');
+    const seededTaxRefs = taxesToSeed.map(tax => {
+        const docRef = doc(taxesCollection);
+        batch.set(docRef, tax);
+        return { ...tax, id: docRef.id };
+    });
+
+    const ivaTax = seededTaxRefs.find(t => t.name === 'IVA');
+
+    // 2. Seed Room Types
     const roomTypesCollection = collection(db, 'roomTypes');
     const seededRoomTypeRefs = roomTypesToSeed.map(roomType => {
         const docRef = doc(roomTypesCollection);
@@ -98,7 +113,7 @@ export async function seedDatabase() {
         return { ...roomType, id: docRef.id };
     });
 
-    // Seed Rooms
+    // 3. Seed Rooms
     const roomsCollection = collection(db, 'rooms');
     const seededRoomRefs: (Room & { id: string })[] = [];
     roomsToSeed.forEach(room => {
@@ -147,14 +162,17 @@ export async function seedDatabase() {
       }
     });
 
-    // Seed Services
+    // 4. Seed Services (Assigned IVA by default)
     const servicesCollection = collection(db, 'services');
     servicesToSeed.forEach(service => {
       const docRef = doc(servicesCollection);
-      batch.set(docRef, service);
+      batch.set(docRef, {
+          ...service,
+          taxIds: ivaTax ? [ivaTax.id] : []
+      });
     });
 
-    // Seed Restaurant Tables
+    // 5. Seed Restaurant Tables
     const tablesCollection = collection(db, 'restaurantTables');
     tablesToSeed.forEach(table => {
         const docRef = doc(tablesCollection);
