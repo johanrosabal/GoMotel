@@ -5,7 +5,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil
+    Pencil, Trash2
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -370,6 +370,17 @@ export default function PosClientPage() {
             } else {
                 toast({ title: 'Cuenta renombrada' });
                 setRenameDialogOpen(false);
+            }
+        });
+    };
+
+    const handleRemoveExistingItem = (orderId: string, serviceId: string) => {
+        startTransition(async () => {
+            const result = await removeItemFromAccount(orderId, serviceId);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Producto eliminado', description: 'Se ha actualizado la cuenta y devuelto el stock.' });
             }
         });
     };
@@ -736,14 +747,12 @@ export default function PosClientPage() {
                             {currentOrder ? `Orden: ${currentOrder.label}` : 'Nuevo Pedido'}
                         </CardTitle>
                         {step === 1 && (cart.length > 0 || selectedTable) && (
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
+                            <button 
                                 onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }} 
-                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10"
+                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg"
                             >
                                 {cart.length > 0 ? 'Limpiar' : 'Salir'}
-                            </Button>
+                            </button>
                         )}
                     </div>
 
@@ -780,7 +789,7 @@ export default function PosClientPage() {
                                         <>
                                             {/* Productos ya pedidos (Existentes en la orden) */}
                                             {currentOrder && currentOrder.items.map((item, idx) => (
-                                                <div key={`existing-${idx}`} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed">
+                                                <div key={`existing-${idx}`} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
                                                             <CheckCircle className="h-3 w-3 text-primary" />
@@ -794,6 +803,16 @@ export default function PosClientPage() {
                                                     <div className="text-right w-16">
                                                         <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
                                                     </div>
+                                                    {/* Borrar Item Existente */}
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
+                                                        onClick={() => handleRemoveExistingItem(currentOrder.id, item.serviceId)}
+                                                        disabled={isPending}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
                                                 </div>
                                             ))}
 

@@ -266,3 +266,76 @@ export async function updateOrderLabel(orderId: string, newLabel: string) {
         return { error: e.message || "Error al renombrar cuenta." };
     }
 }
+
+/**
+ * Removes a specific item from an open order and restores stock.
+ */
+export async function removeItemFromAccount(orderId: string, serviceId: string) {
+    try {
+        await runTransaction(db, async (transaction) => {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+            
+            const orderData = orderSnap.data() as Order;
+            const itemIndex = orderData.items.findIndex(i => i.serviceId === serviceId);
+            
+            if (itemIndex === -1) throw new Error("Producto no encontrado en la cuenta.");
+            
+            const item = orderData.items[itemIndex];
+            const itemTotal = item.price * item.quantity;
+
+            // 1. Restore Stock
+            const serviceRef = doc(db, 'services', serviceId);
+            const serviceSnap = await transaction.get(serviceRef);
+            if (serviceSnap.exists()) {
+                const serviceData = serviceSnap.data() as Service;
+                if (serviceData.source !== 'Internal') {
+                    transaction.update(serviceRef, { stock: increment(item.quantity) });
+                }
+            }
+
+            // 2. Update Order Items
+            const updatedItems = [...orderData.items];
+            updatedItems.splice(itemIndex, 1);
+
+            if (updatedItems.length === 0) {
+                // If no items left, cancel the order
+                transaction.update(orderRef, {
+                    items: [],
+                    total: 0,
+                    status: 'Cancelado'
+                });
+                
+                // If this order is linked to a table, we check if we should free the table
+                if (orderData.locationId) {
+                    const tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                    // Check for other orders at the same location that are still pending
+                    const ordersRef = collection(db, 'orders');
+                    const otherOrdersQuery = query(
+                        ordersRef, 
+                        where('locationId', '==', orderData.locationId), 
+                        where('status', '==', 'Pendiente')
+                    );
+                    const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                    const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
+                    
+                    if (remainingOrders.length === 0) {
+                        transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                    }
+                }
+            } else {
+                transaction.update(orderRef, {
+                    items: updatedItems,
+                    total: increment(-itemTotal)
+                });
+            }
+        });
+
+        revalidatePath('/pos');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Remove item error:", e);
+        return { error: e.message || "Error al eliminar producto." };
+    }
+}
