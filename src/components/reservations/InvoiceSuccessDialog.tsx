@@ -37,6 +37,23 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
 
     const { data: invoice, isLoading } = useDoc<Invoice>(invoiceDocRef);
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 11) value = value.slice(0, 11);
+
+        let formattedValue = '';
+        if (value.length > 0) {
+            formattedValue = '(' + value.slice(0, 3);
+            if (value.length > 3) {
+                formattedValue += ') ' + value.slice(3, 7);
+            }
+            if (value.length > 7) {
+                formattedValue += '-' + value.slice(7);
+            }
+        }
+        setPhoneNumber(formattedValue);
+    };
+
     const handleDownloadPdf = () => {
         const input = invoiceRefForPDF.current;
         if (!input || !invoice) return;
@@ -101,9 +118,9 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                             <div className="flex gap-2">
                                 <Input 
                                     id="whatsapp-phone"
-                                    placeholder="50688888888" 
+                                    placeholder="(506) 8888-8888" 
                                     value={phoneNumber} 
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    onChange={handlePhoneChange}
                                     className="h-10 font-bold"
                                     autoFocus
                                 />
@@ -111,7 +128,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     Enviar
                                 </Button>
                             </div>
-                            <p className="text-[10px] text-muted-foreground italic">Ingrese el número con código de país (ej: 506 para CR).</p>
+                            <p className="text-[10px] text-muted-foreground italic">Ingrese el número completo con el código de área.</p>
                         </div>
                     )}
 
