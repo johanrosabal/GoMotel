@@ -270,7 +270,7 @@ export async function updateOrderLabel(orderId: string, newLabel: string) {
 /**
  * Removes a specific item from an open order and restores stock.
  */
-export async function removeItemFromAccount(orderId: string, serviceId: string) {
+export async function removeItemFromAccount(orderId: string, serviceId: string, reason: string, notes?: string) {
     try {
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
@@ -298,6 +298,9 @@ export async function removeItemFromAccount(orderId: string, serviceId: string) 
             // 2. Update Order Items
             const updatedItems = [...orderData.items];
             updatedItems.splice(itemIndex, 1);
+
+            // TODO: Log deletion reason/notes in an audit collection
+            console.log(`Item removed from order ${orderId}: ${item.name}. Reason: ${reason}. Notes: ${notes || 'N/A'}`);
 
             if (updatedItems.length === 0) {
                 // If no items left, cancel the order

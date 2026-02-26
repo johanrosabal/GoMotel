@@ -15,7 +15,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2
+    Pencil, Trash2, AlertCircle
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +35,8 @@ import TableManagementDialog from './TableManagementDialog';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const posPaymentSchema = z.object({
   clientName: z.string().default('Cliente de Contado'),
@@ -66,6 +68,15 @@ const TYPE_LABELS: Record<string, string> = {
     'Terraza': 'Terraza'
 };
 
+const DELETION_REASONS = [
+    "Error de digitación",
+    "Cliente cambió de parecer",
+    "Producto defectuoso / devuelto",
+    "Mesa cancelada / retirada",
+    "Producto no disponible",
+    "Otro (especificar en notas)"
+];
+
 export default function PosClientPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -88,6 +99,12 @@ export default function PosClientPage() {
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [renamingOrderId, setRenamingOrderId] = useState<string | null>(null);
     const [newLabelName, setNewLabelName] = useState('');
+
+    // Deletion state
+    const [removeItemDialogOpen, setRemoveItemDialogOpen] = useState(false);
+    const [itemToRemove, setItemToRemove] = useState<{ orderId: string, serviceId: string, name: string } | null>(null);
+    const [deletionReason, setDeletionReason] = useState('');
+    const [deletionNotes, setDeletionNotes] = useState('');
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -374,13 +391,24 @@ export default function PosClientPage() {
         });
     };
 
-    const handleRemoveExistingItem = (orderId: string, serviceId: string) => {
+    const handleOpenRemoveItemDialog = (orderId: string, serviceId: string, name: string) => {
+        setItemToRemove({ orderId, serviceId, name });
+        setDeletionReason('');
+        setDeletionNotes('');
+        setRemoveItemDialogOpen(true);
+    };
+
+    const handleRemoveExistingItem = () => {
+        if (!itemToRemove || !deletionReason) return;
+        
         startTransition(async () => {
-            const result = await removeItemFromAccount(orderId, serviceId);
+            const result = await removeItemFromAccount(itemToRemove.orderId, itemToRemove.serviceId, deletionReason, deletionNotes);
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Producto eliminado', description: 'Se ha actualizado la cuenta y devuelto el stock.' });
+                setRemoveItemDialogOpen(false);
+                setItemToRemove(null);
             }
         });
     };
@@ -808,7 +836,7 @@ export default function PosClientPage() {
                                                         variant="ghost" 
                                                         size="icon" 
                                                         className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
-                                                        onClick={() => handleRemoveExistingItem(currentOrder.id, item.serviceId)}
+                                                        onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
                                                         disabled={isPending}
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
@@ -1058,6 +1086,63 @@ export default function PosClientPage() {
                         <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending}>Cancelar</Button>
                         <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()}>
                             {isPending ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Remove Item Dialog */}
+            <Dialog open={removeItemDialogOpen} onOpenChange={setRemoveItemDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertCircle className="h-5 w-5" /> Eliminar Producto de la Cuenta
+                        </DialogTitle>
+                        <DialogDescription>
+                            Confirmación de seguridad para remover <strong>{itemToRemove?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 py-4">
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Razón de la eliminación *</Label>
+                            <RadioGroup value={deletionReason} onValueChange={setDeletionReason} className="grid gap-2">
+                                {DELETION_REASONS.map((reason) => (
+                                    <Label
+                                        key={reason}
+                                        className={cn(
+                                            "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:bg-muted/50",
+                                            deletionReason === reason ? "border-primary bg-primary/5" : "border-transparent bg-muted/20"
+                                        )}
+                                    >
+                                        <RadioGroupItem value={reason} />
+                                        <span className="text-sm font-bold">{reason}</span>
+                                    </Label>
+                                ))}
+                            </RadioGroup>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="deletion-notes" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas Especiales (Opcional)</Label>
+                            <Textarea 
+                                id="deletion-notes"
+                                placeholder="Describa el motivo detallado si es necesario..."
+                                value={deletionNotes}
+                                onChange={(e) => setDeletionNotes(e.target.value)}
+                                className="min-h-[100px] rounded-xl border-2 resize-none"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="bg-muted/10 p-4 -m-6 mt-2 rounded-b-lg flex gap-2">
+                        <Button variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setRemoveItemDialogOpen(false)}>Cancelar</Button>
+                        <Button 
+                            variant="destructive" 
+                            className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg"
+                            disabled={!deletionReason || isPending}
+                            onClick={handleRemoveExistingItem}
+                        >
+                            {isPending ? 'PROCESANDO...' : 'CONFIRMAR ELIMINACIÓN'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
