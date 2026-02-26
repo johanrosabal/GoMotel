@@ -966,6 +966,7 @@ export default function PosClientPage() {
                                                     <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-800 space-y-3 text-center">
                                                         <p className="text-[9px] text-indigo-600 dark:text-indigo-400 uppercase font-black tracking-widest">Enviar SINPE a:</p>
                                                         <p className="text-3xl font-black font-mono tracking-tighter text-indigo-900 dark:text-indigo-100">{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                        <p className="text-[10px] font-black uppercase text-indigo-700/70 dark:text-indigo-300/70">{targetSinpeAccount.accountHolder}</p>
                                                         <FormField
                                                             control={form.control}
                                                             name="paymentConfirmed"
