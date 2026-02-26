@@ -193,7 +193,7 @@ export async function payRestaurantAccount(
             if (!lastInvoiceSnap.empty) {
                 const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
                 if (lastData.invoiceNumber) {
-                    const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                    const lastPart = parseInt(lastData.invoiceNumber.split('-')[1], 10);
                     if (!isNaN(lastPart)) nextNum = lastPart + 1;
                 }
             }
