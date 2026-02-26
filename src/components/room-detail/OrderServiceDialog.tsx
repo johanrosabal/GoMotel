@@ -635,7 +635,9 @@ export default function OrderServiceDialog({ children, stayId, availableServices
               <div className="py-4 space-y-4">
                   <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
                       <div className="bg-primary/10 p-2 rounded-lg"><Utensils className="h-4 w-4 text-primary" /></div>
-                      <span className="font-bold text-sm uppercase">{editingNoteIndex !== null ? cart[editingNoteIndex].service.name : ''}</span>
+                      <span className="font-bold text-sm uppercase">
+                        {editingNoteIndex !== null && cart[editingNoteIndex] ? cart[editingNoteIndex].service.name : ''}
+                      </span>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="kitchen-note-room" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Instrucciones Especiales</Label>

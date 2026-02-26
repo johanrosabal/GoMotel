@@ -1012,8 +1012,7 @@ export default function PosClientPage() {
                                                             render={({ field }) => (
                                                                 <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left">
                                                                     <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                                                    <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>
-                                                                </FormItem>
+                                                                    <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>                                                                </FormItem>
                                                             )}
                                                         />
                                                     </div>
@@ -1164,7 +1163,9 @@ export default function PosClientPage() {
                     <div className="py-4 space-y-4">
                         <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
                             <div className="bg-primary/10 p-2 rounded-lg"><Utensils className="h-4 w-4 text-primary" /></div>
-                            <span className="font-black text-xs uppercase tracking-tight">{editingNoteIndex !== null ? cart[editingNoteIndex].service.name : ''}</span>
+                            <span className="font-black text-xs uppercase tracking-tight">
+                                {editingNoteIndex !== null && cart[editingNoteIndex] ? cart[editingNoteIndex].service.name : ''}
+                            </span>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="kitchen-note" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Instrucciones Especiales</Label>
