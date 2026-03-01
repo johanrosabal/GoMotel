@@ -1,14 +1,9 @@
-import PublicMenuDisplay from '@/components/public/PublicMenuDisplay';
-
-export const metadata = {
-  title: 'Menú Digital - Go Motel',
-  description: 'Catálogo de servicios y productos disponibles.',
-};
+import PublicMenuClient from '@/components/public/PublicMenuClient';
 
 export default function PublicMenuPage() {
   return (
-    <div className="fixed inset-0 z-50 bg-[#0a0a0a] overflow-hidden">
-      <PublicMenuDisplay />
+    <div className="min-h-screen bg-background">
+      <PublicMenuClient />
     </div>
   );
 }
