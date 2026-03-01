@@ -1,35 +1,30 @@
 'use client';
 
-import React, { useState, useTransition, useMemo, useEffect } from 'react';
-import { useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
-import type { Service, RestaurantTable, Order, ProductCategory, ProductSubCategory } from '@/types';
+import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { RestaurantTable, Order, Service, ProductCategory, ProductSubCategory } from '@/types';
 import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
-import { getServices } from '@/lib/actions/service.actions';
+import { formatCurrency, cn } from '@/lib/utils';
+import { 
+    Utensils, Beer, Sun, MapPin, ShoppingCart, Package, 
+    History, User, CheckCircle, ChevronLeft, Plus, Minus,
+    LogOut, MessageSquare, Search, ImageIcon, Clock, X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-    Search, ShoppingCart, Plus, Minus, 
-    ChevronRight, ChevronLeft,
-    ImageIcon, Utensils, Beer, Sun, MapPin, 
-    Clock, CheckCircle, X, ShoppingBasket, ReceiptText, LogOut, MessageSquare, AlertCircle
-} from 'lucide-react';
-import { formatCurrency, cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Dialog, 
     DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
     DialogHeader, 
-    DialogTitle,
-    DialogTrigger
+    DialogTitle, 
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     Select, 
     SelectContent, 
@@ -37,23 +32,21 @@ import {
     SelectTrigger, 
     SelectValue 
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+const SESSION_KEY = 'go_motel_order_session';
 
 type CartItem = {
-  service: Service;
-  quantity: number;
-  notes?: string;
-};
-
-const SESSION_ORDER_KEY = 'go_motel_active_order_id';
-const SESSION_TABLE_KEY = 'go_motel_active_table_id';
-
-const TYPE_LABELS: Record<string, string> = {
-    'Table': 'Mesa',
-    'Bar': 'Barra',
-    'Terraza': 'Terraza'
+    service: Service;
+    quantity: number;
+    notes?: string;
 };
 
 export default function PublicOrderClient() {
@@ -61,102 +54,90 @@ export default function PublicOrderClient() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [now, setNow] = useState(new Date());
-    
-    // UI State
-    const [activeTab, setActiveTab] = useState<'menu' | 'account'>('menu');
-    const [typeFilter, setTypeFilter] = useState<string>('all');
+
+    // Session State
+    const [sessionId, setSessionId] = useState<{ tableId: string; orderId: string } | null>(null);
+    const [activeTab, setActiveTab] = useState('menu');
+    const [typeFilter, setTypeFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-    const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
-    const [cart, setCart] = useState<CartItem[]>([]);
     
-    // Session State
-    const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-    const [myOrderId, setMyOrderId] = useState<string | null>(null);
-    const [isCheckingSession, setIsCheckingSession] = useState(true);
-
-    // Dialogs
+    // Cart State
+    const [cart, setCart] = useState<CartItem[]>([]);
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
 
     useEffect(() => {
-        const storedOrderId = localStorage.getItem(SESSION_ORDER_KEY);
-        const storedTableId = localStorage.getItem(SESSION_TABLE_KEY);
-        if (storedOrderId) setMyOrderId(storedOrderId);
-        if (storedTableId) setSelectedTableId(storedTableId);
-        setIsCheckingSession(false);
-
         const timer = setInterval(() => setNow(new Date()), 60000);
+        const savedSession = localStorage.getItem(SESSION_KEY);
+        if (savedSession) {
+            setSessionId(JSON.parse(savedSession));
+        }
         return () => clearInterval(timer);
     }, []);
 
-    // Firestore Data
-    const [availableServices, setAvailableServices] = useState<Service[]>([]);
-    useEffect(() => {
-        getServices().then(setAvailableServices);
-    }, []);
-
-    const categoriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, [firestore]);
-    const { data: categories } = useCollection<ProductCategory>(categoriesQuery);
-
-    const subCategoriesQuery = useMemoFirebase(() => {
-        if (!firestore || !selectedCategoryId) return null;
-        return query(collection(firestore, 'productSubCategories'), where('categoryId', '==', selectedCategoryId), orderBy('name'));
-    }, [firestore, selectedCategoryId]);
-    const { data: subCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
-
+    // Firestore Queries
     const tablesQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, 
         [firestore]
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
-    const tableRef = useMemoFirebase(() => 
-        (firestore && selectedTableId) ? doc(firestore, 'restaurantTables', selectedTableId) : null,
-        [firestore, selectedTableId]
+    const categoriesQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, 
+        [firestore]
     );
-    const { data: selectedTable } = useDoc<RestaurantTable>(tableRef);
+    const { data: categories } = useCollection<ProductCategory>(categoriesQuery);
 
-    // IMPORTANT: Only fetch the order that belongs to this specific session
-    const orderRef = useMemoFirebase(() => 
-        (firestore && myOrderId) ? doc(firestore, 'orders', myOrderId) : null,
-        [firestore, myOrderId]
+    const servicesQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, 
+        [firestore]
     );
-    const { data: activeOrder } = useDoc<Order>(orderRef);
+    const { data: services } = useCollection<Service>(servicesQuery);
 
-    // Auto-management of session: if order is closed, clear session
-    useEffect(() => {
-        if (activeOrder && activeOrder.paymentStatus === 'Pagado') {
-            handleLogout();
-        }
-    }, [activeOrder]);
+    const myOrdersQuery = useMemoFirebase(() => {
+        if (!firestore || !sessionId?.orderId) return null;
+        return query(collection(firestore, 'orders'), where('__name__', '==', sessionId.orderId));
+    }, [firestore, sessionId?.orderId]);
+    const { data: myOrderDoc } = useCollection<Order>(myOrdersQuery);
 
-    const locationTypes = useMemo(() => {
-        if (!allTables) return [];
-        return Array.from(new Set(allTables.map(t => t.type))).sort();
-    }, [allTables]);
-
+    // Filter Logic
     const filteredTables = useMemo(() => {
         if (!allTables) return [];
         return allTables.filter(t => {
             const matchesType = typeFilter === 'all' || t.type === typeFilter;
-            // A table is available if it is Available OR it's MY occupied table
-            const isAvailableOrMine = t.status === 'Available' || (t.id === selectedTableId && myOrderId === t.currentOrderId);
-            return matchesType && isAvailableOrMine;
-        }).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
-    }, [allTables, typeFilter, selectedTableId, myOrderId]);
+            const isAvailable = t.status === 'Available';
+            // Only show if available OR if it's my current session table
+            return matchesType && (isAvailable || t.id === sessionId?.tableId);
+        });
+    }, [allTables, typeFilter, sessionId]);
 
     const filteredServices = useMemo(() => {
-        return availableServices.filter(s => {
-            const matchesSearch = s.isActive && s.name.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!services) return [];
+        return services.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
-            const matchesSubCategory = !selectedSubCategoryId || s.subCategoryId === selectedSubCategoryId;
-            return matchesSearch && matchesCategory && matchesSubCategory;
+            return matchesSearch && matchesCategory;
         });
-    }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
+    }, [services, searchTerm, selectedCategoryId]);
 
-    const cartTotal = useMemo(() => cart.reduce((sum, i) => sum + i.service.price * i.quantity, 0), [cart]);
+    const currentOrder = myOrderDoc?.[0] || null;
+
+    // Actions
+    const handleSelectTable = (table: RestaurantTable) => {
+        if (table.status === 'Occupied' && table.id !== sessionId?.tableId) {
+            toast({ title: "Ubicación ocupada", description: "Esta mesa ya tiene una cuenta activa.", variant: "destructive" });
+            return;
+        }
+        // If it's my table, just set it. If it's available, it will be set on first order.
+        if (table.id === sessionId?.tableId) {
+            // Already my session, just UI update
+        } else {
+            // Initial selection of available table
+            setSessionId({ tableId: table.id, orderId: '' });
+        }
+    };
 
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
@@ -178,331 +159,372 @@ export default function PublicOrderClient() {
         });
     };
 
-    const handleOpenNoteDialog = (index: number) => {
-        setEditingNoteIndex(index);
-        setCurrentNoteValue(cart[index].notes || '');
-        setNoteDialogOpen(true);
-    };
-
-    const handleSaveNote = () => {
-        if (editingNoteIndex === null) return;
-        setCart(prev => prev.map((item, i) => i === editingNoteIndex ? { ...item, notes: currentNoteValue } : item));
-        setNoteDialogOpen(false);
-    };
-
-    const handleSelectTable = (table: RestaurantTable) => {
-        // If table is occupied and I don't have the key, I can't enter
-        if (table.status === 'Occupied' && myOrderId !== table.currentOrderId) {
-            toast({ title: "Mesa Ocupada", description: "Esta mesa ya está siendo atendida.", variant: "destructive" });
-            return;
-        }
-        
-        setSelectedTableId(table.id);
-        localStorage.setItem(SESSION_TABLE_KEY, table.id);
-        
-        if (table.currentOrderId) {
-            setMyOrderId(table.currentOrderId);
-            localStorage.setItem(SESSION_ORDER_KEY, table.currentOrderId);
-        }
-    };
-
-    const handleLogout = () => {
-        setSelectedTableId(null);
-        setMyOrderId(null);
-        setCart([]);
-        localStorage.removeItem(SESSION_ORDER_KEY);
-        localStorage.removeItem(SESSION_TABLE_KEY);
-        setActiveTab('menu');
-    };
-
-    const handleConfirmOrder = () => {
-        if (!selectedTableId || cart.length === 0) return;
+    const handleSendOrder = () => {
+        if (!sessionId?.tableId || cart.length === 0) return;
 
         startTransition(async () => {
             let result;
-            if (myOrderId) {
-                result = await addToTableAccount(myOrderId, cart);
+            if (sessionId.orderId && currentOrder && currentOrder.paymentStatus !== 'Pagado') {
+                // Add to existing order
+                result = await addToTableAccount(sessionId.orderId, cart.map(i => ({
+                    service: i.service,
+                    quantity: i.quantity,
+                    notes: i.notes || null
+                })));
             } else {
-                result = await openTableAccount(selectedTableId, cart, `Cliente Móvil`);
-                if (result.orderId) {
-                    setMyOrderId(result.orderId);
-                    localStorage.setItem(SESSION_ORDER_KEY, result.orderId);
-                }
+                // Create new order
+                result = await openTableAccount(sessionId.tableId, cart.map(i => ({
+                    service: i.service,
+                    quantity: i.quantity,
+                    notes: i.notes || null
+                })), `Pedido Móvil - ${new Date().toLocaleTimeString()}`);
             }
 
             if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                toast({ title: "Error", description: result.error, variant: "destructive" });
             } else {
-                toast({ title: '¡Pedido Enviado!', description: 'Su orden está siendo procesada.' });
+                const newSession = { tableId: sessionId.tableId, orderId: result.orderId || sessionId.orderId };
+                setSessionId(newSession);
+                localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
                 setCart([]);
                 setActiveTab('account');
+                toast({ title: "¡Pedido enviado!", description: "Estamos preparando su orden." });
             }
         });
     };
 
-    if (isCheckingSession) return null;
+    const handleExitSession = () => {
+        localStorage.removeItem(SESSION_KEY);
+        setSessionId(null);
+        setCart([]);
+        setActiveTab('menu');
+    };
 
-    if (!selectedTableId) {
+    const cartTotal = cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0);
+
+    const getTypeIcon = (type: string) => {
+        if (type === 'Table') return Utensils;
+        if (type === 'Bar') return Beer;
+        if (type === 'Terraza') return Sun;
+        return MapPin;
+    };
+
+    // --- RENDER SELECTION ---
+    if (!sessionId) {
         return (
-            <div className="flex-1 flex flex-col p-6 bg-background">
-                <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
-                    <div className="bg-primary/10 p-4 rounded-full">
-                        <MapPin className="h-10 w-10 text-primary" />
-                    </div>
-                    <h1 className="text-3xl font-black uppercase tracking-tighter">Bienvenido</h1>
-                    <p className="text-muted-foreground max-w-xs">Seleccione su ubicación actual para empezar a ordenar.</p>
-                </div>
-
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Filtrar Zona</Label>
-                        <Select value={typeFilter} onValueChange={setTypeFilter}>
-                            <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-base bg-card">
-                                <SelectValue placeholder="Todas las zonas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas las zonas</SelectItem>
-                                {locationTypes.map(t => (
-                                    <SelectItem key={t} value={t}>{TYPE_LABELS[t] || t}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+            <div className="min-h-screen bg-muted/30 p-6">
+                <div className="max-w-md mx-auto space-y-8 pt-10">
+                    <div className="text-center space-y-2">
+                        <h1 className="text-4xl font-black tracking-tighter uppercase text-primary">Bienvenido</h1>
+                        <p className="text-muted-foreground font-medium">Seleccione su ubicación para comenzar a ordenar.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-20">
-                        {filteredTables.map(table => {
-                            const isMine = table.id === selectedTableId;
-                            return (
-                                <button
-                                    key={table.id}
-                                    onClick={() => handleSelectTable(table)}
-                                    className={cn(
-                                        "aspect-square rounded-3xl border-2 flex flex-col items-center justify-center transition-all active:scale-95",
-                                        isMine ? "bg-primary border-primary text-primary-foreground shadow-xl shadow-primary/20" : "bg-card hover:border-primary/40 shadow-sm"
-                                    )}
-                                >
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">{TYPE_LABELS[table.type] || table.type}</span>
-                                    <span className="text-5xl font-black tracking-tighter">{table.number}</span>
-                                </button>
-                            );
-                        })}
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Filtrar Zona</Label>
+                            <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-base bg-card">
+                                    <SelectValue placeholder="Todas las zonas" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas las zonas</SelectItem>
+                                    <SelectItem value="Table">Mesas Salón</SelectItem>
+                                    <SelectItem value="Bar">Barra</SelectItem>
+                                    <SelectItem value="Terraza">Terraza</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {filteredTables.map(table => {
+                                const Icon = getTypeIcon(table.type);
+                                return (
+                                    <button
+                                        key={table.id}
+                                        onClick={() => handleSelectTable(table)}
+                                        className="group relative bg-card border-2 rounded-3xl p-6 flex flex-col items-center gap-4 transition-all hover:border-primary hover:shadow-xl active:scale-95"
+                                    >
+                                        <div className="p-3 rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                            <Icon className="h-6 w-6" />
+                                        </div>
+                                        <span className="text-4xl font-black tracking-tighter">{table.number}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {table.type === 'Table' ? 'Mesa' : table.type}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
         );
     }
 
+    const myTable = allTables?.find(t => t.id === sessionId.tableId);
+
     return (
-        <div className="flex-1 flex flex-col bg-muted/20 overflow-hidden relative">
-            {/* Header */}
-            <header className="bg-background border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+        <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto border-x shadow-2xl relative">
+            {/* Sticky Header */}
+            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="bg-primary text-primary-foreground h-10 w-10 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-primary/20">
-                        {selectedTable?.number}
+                    <div className="bg-primary h-10 w-10 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                        <Utensils className="h-5 w-5" />
                     </div>
-                    <div className="flex flex-col leading-none">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{TYPE_LABELS[selectedTable?.type || ''] || selectedTable?.type}</span>
-                        <span className="text-sm font-bold">Cuenta Activa</span>
+                    <div>
+                        <h2 className="font-black text-sm uppercase tracking-tighter">
+                            {myTable ? `${myTable.type === 'Table' ? 'Mesa' : myTable.type} ${myTable.number}` : 'Cargando...'}
+                        </h2>
+                        <button onClick={handleExitSession} className="text-[9px] font-black text-destructive uppercase tracking-widest flex items-center gap-1">
+                            <LogOut className="h-3 w-3" /> Cambiar ubicación
+                        </button>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl text-muted-foreground hover:text-destructive">
-                    <LogOut className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    <div className="text-right mr-2">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Total Cuenta</p>
+                        <p className="text-sm font-black text-primary">{formatCurrency(currentOrder?.total || 0)}</p>
+                    </div>
+                </div>
             </header>
 
-            <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col min-h-0">
-                <div className="bg-background px-6 pt-2 shrink-0">
-                    <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/50 rounded-2xl p-1.5">
-                        <TabsTrigger value="menu" className="rounded-xl font-black text-xs uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md">
-                            <Utensils className="h-3.5 w-3.5 mr-2" /> Menú
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                <div className="px-6 py-2 bg-muted/20">
+                    <TabsList className="grid w-full grid-cols-2 h-12 rounded-2xl bg-background border-2 p-1">
+                        <TabsTrigger value="menu" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                            <Utensils className="mr-2 h-3.5 w-3.5" /> Menú
                         </TabsTrigger>
-                        <TabsTrigger value="account" className="rounded-xl font-black text-xs uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md relative">
-                            <ReceiptText className="h-3.5 w-3.5 mr-2" /> Mi Cuenta
-                            {activeOrder && activeOrder.items.length > 0 && (
-                                <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-white text-[8px] flex items-center justify-center rounded-full border-2 border-background">
-                                    {activeOrder.items.length}
+                        <TabsTrigger value="account" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white relative">
+                            <History className="mr-2 h-3.5 w-3.5" /> Mi Cuenta
+                            {currentOrder && currentOrder.status === 'Pendiente' && (
+                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                                 </span>
                             )}
                         </TabsTrigger>
                     </TabsList>
                 </div>
 
-                <TabsContent value="menu" className="flex-1 flex flex-col min-h-0 m-0">
-                    <div className="p-4 space-y-4 shrink-0">
+                <TabsContent value="menu" className="flex-1 flex flex-col min-h-0 m-0 animate-in fade-in duration-300">
+                    <div className="p-6 space-y-4 shrink-0">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
-                                placeholder="¿Qué se le antoja?" 
-                                className="pl-10 h-12 bg-background border-none rounded-2xl shadow-sm focus-visible:ring-primary"
+                                placeholder="Buscar algo delicioso..." 
+                                className="pl-10 h-12 rounded-2xl border-2 bg-muted/30 border-transparent focus:border-primary transition-all"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <button
-                                className={cn("px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", !selectedCategoryId ? "bg-primary text-primary-foreground shadow-md" : "bg-background border")}
-                                onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
-                            >Todos</button>
+                            <button 
+                                onClick={() => setSelectedCategoryId(null)}
+                                className={cn(
+                                    "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                                    !selectedCategoryId ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                )}
+                            >
+                                Todos
+                            </button>
                             {categories?.map(cat => (
                                 <button
                                     key={cat.id}
-                                    className={cn("px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-background border")}
-                                    onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
-                                >{cat.name}</button>
+                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                    className={cn(
+                                        "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                                        selectedCategoryId === cat.id ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                    )}
+                                >
+                                    {cat.name}
+                                </button>
                             ))}
                         </div>
                     </div>
 
-                    <ScrollArea className="flex-1 px-4 pb-32">
-                        <div className="grid grid-cols-2 gap-4 pb-10">
+                    <ScrollArea className="flex-1">
+                        <div className="px-6 pb-32 grid grid-cols-2 gap-4">
                             {filteredServices.map(service => (
-                                <div key={service.id} className="bg-background rounded-3xl border border-border/50 overflow-hidden shadow-sm flex flex-col">
+                                <button
+                                    key={service.id}
+                                    onClick={() => handleAddToCart(service)}
+                                    className="group flex flex-col bg-card border rounded-3xl overflow-hidden hover:shadow-xl transition-all active:scale-95 text-left"
+                                >
                                     <div className="aspect-square relative overflow-hidden bg-muted">
                                         <Avatar className="h-full w-full rounded-none">
-                                            <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
-                                            <AvatarFallback className="bg-transparent"><ImageIcon className="h-8 w-8 opacity-10" /></AvatarFallback>
+                                            <AvatarImage src={service.imageUrl || undefined} className="object-cover transition-transform group-hover:scale-110" />
+                                            <AvatarFallback className="rounded-none bg-transparent">
+                                                <ImageIcon className="h-8 w-8 text-muted-foreground/20" />
+                                            </AvatarFallback>
                                         </Avatar>
                                         <div className="absolute top-2 right-2">
-                                            <Badge className="bg-background/90 text-primary backdrop-blur-sm border-primary/10 font-black">{formatCurrency(service.price)}</Badge>
+                                            <Badge className="font-black bg-background/90 text-primary border-primary/20 backdrop-blur-sm">
+                                                {formatCurrency(service.price)}
+                                            </Badge>
                                         </div>
                                     </div>
-                                    <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="font-bold text-[11px] uppercase tracking-tight line-clamp-2 leading-tight">{service.name}</h3>
-                                            <p className="text-[9px] text-muted-foreground font-medium uppercase mt-1">
-                                                {service.source === 'Internal' ? 'Cocina' : 'Comprado'}
-                                            </p>
+                                    <div className="p-3 space-y-1">
+                                        <h3 className="font-bold text-[11px] uppercase tracking-tight line-clamp-2 leading-tight">
+                                            {service.name}
+                                        </h3>
+                                        <div className={cn(
+                                            "inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest",
+                                            service.source === 'Internal' ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"
+                                        )}>
+                                            {service.source === 'Internal' ? 'Cocina' : 'Comprado'}
                                         </div>
-                                        <Button 
-                                            size="sm" 
-                                            className="w-full h-9 rounded-xl font-black text-[10px] uppercase tracking-widest"
-                                            onClick={() => handleAddToCart(service)}
-                                        >
-                                            Pedir
-                                        </Button>
                                     </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="account" className="flex-1 flex flex-col m-0 overflow-hidden">
-                    <ScrollArea className="flex-1 px-6 pt-6 pb-20">
-                        {(!activeOrder || activeOrder.items.length === 0) ? (
-                            <div className="text-center py-20 space-y-4">
-                                <ReceiptText className="h-16 w-16 mx-auto opacity-10" />
-                                <p className="text-muted-foreground font-medium">Aún no hay consumos registrados.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 text-center space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Total Acumulado</p>
-                                    <p className="text-4xl font-black tracking-tighter text-primary">{formatCurrency(activeOrder.total)}</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Historial de Pedidos</h3>
-                                    <div className="bg-background rounded-3xl border p-5 shadow-sm space-y-4">
-                                        <div className="flex justify-between items-center pb-2 border-b">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                                                <span className="text-[10px] font-black uppercase text-amber-600">Estado: {activeOrder.status}</span>
-                                            </div>
-                                            <span className="text-[10px] font-bold text-muted-foreground">{formatDistance(activeOrder.createdAt.toDate(), now, { locale: es, addSuffix: true })}</span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {activeOrder.items.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between items-start group">
-                                                    <div className="space-y-0.5">
-                                                        <p className="text-xs font-bold uppercase tracking-tight">{item.quantity}x {item.name}</p>
-                                                        {item.notes && <p className="text-[10px] text-primary italic font-medium ml-4">"{item.notes}"</p>}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                <TabsContent value="account" className="flex-1 flex flex-col min-h-0 m-0 animate-in slide-in-from-right-4 duration-300">
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-6 pb-24">
+                            {/* Account Summary Card */}
+                            <div className="bg-primary text-white rounded-[2.5rem] p-8 shadow-2xl shadow-primary/20 relative overflow-hidden">
+                                <div className="absolute -top-10 -right-10 h-40 w-40 bg-white/10 rounded-full blur-3xl" />
+                                <div className="relative z-10 space-y-1">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-70">Total Acumulado</p>
+                                    <h3 className="text-5xl font-black tracking-tighter">{formatCurrency(currentOrder?.total || 0)}</h3>
+                                    <div className="flex items-center gap-2 pt-4">
+                                        <Badge variant="outline" className="border-white/30 text-white font-black text-[9px] uppercase tracking-widest bg-white/10">
+                                            {currentOrder?.items.reduce((sum, i) => sum + i.quantity, 0) || 0} Artículos
+                                        </Badge>
+                                        <Badge variant="outline" className="border-white/30 text-white font-black text-[9px] uppercase tracking-widest bg-white/10">
+                                            Sesión Activa
+                                        </Badge>
                                     </div>
                                 </div>
-                                
-                                <div className="p-4 bg-muted/30 rounded-2xl border-2 border-dashed text-center space-y-2">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">¿Desea la cuenta final?</p>
-                                    <p className="text-xs text-muted-foreground px-4">Por favor, solicite el cierre de cuenta a través del servicio de mensajería o espere a su salonero.</p>
-                                </div>
                             </div>
-                        )}
+
+                            {/* Order History */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-1">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Historial de Consumo</h4>
+                                    {currentOrder && (
+                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
+                                            <Clock className="h-3 w-3" /> Estado: {currentOrder.status}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!currentOrder || currentOrder.items.length === 0 ? (
+                                    <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground/40 space-y-4">
+                                        <Package className="h-12 w-12" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">Aún no has realizado pedidos</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {currentOrder.items.map((item, idx) => (
+                                            <div key={idx} className="bg-card border-2 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-10 w-10 rounded-2xl bg-muted flex items-center justify-center text-lg font-black text-primary">
+                                                        {item.quantity}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm uppercase tracking-tight leading-none mb-1">{item.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-black text-sm">{formatCurrency(item.price * item.quantity)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 bg-muted/30 rounded-3xl border-2 border-dashed flex flex-col items-center text-center space-y-2">
+                                <CheckCircle className="h-6 w-6 text-muted-foreground/40" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">¿Necesitas pagar?</p>
+                                <p className="text-xs font-medium text-muted-foreground">Por favor, solicita la cuenta al personal de servicio cuando estés listo para salir.</p>
+                            </div>
+                        </div>
                     </ScrollArea>
                 </TabsContent>
             </Tabs>
 
             {/* Floating Cart Button */}
             {cart.length > 0 && (
-                <div className="absolute bottom-6 inset-x-6 z-50 animate-in slide-in-from-bottom-8 duration-500">
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[calc(100%-3rem)] sm:max-w-xs z-50">
                     <Dialog>
                         <DialogTrigger asChild>
-                            <button className="w-full h-16 bg-primary text-white rounded-3xl flex items-center justify-between px-6 shadow-2xl shadow-primary/20 ring-4 ring-background">
+                            <button className="w-full h-16 bg-primary text-white rounded-3xl flex items-center justify-between px-6 shadow-2xl shadow-primary/20 animate-in slide-in-from-bottom-4">
                                 <div className="flex items-center gap-4">
                                     <div className="bg-white/20 h-10 w-10 rounded-2xl flex items-center justify-center relative">
                                         <ShoppingCart className="h-5 w-5" />
-                                        <span className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-white text-primary text-[10px] font-black flex items-center justify-center rounded-full shadow-md">
-                                            {cart.reduce((s, i) => s + i.quantity, 0)}
+                                        <span className="absolute -top-1 -right-1 bg-white text-primary text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-primary">
+                                            {cart.reduce((sum, i) => sum + i.quantity, 0)}
                                         </span>
                                     </div>
-                                    <div className="flex flex-col items-start leading-none">
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Confirmar Pedido</span>
-                                        <span className="text-lg font-black tracking-tighter">{formatCurrency(cartTotal)}</span>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none">Ver Carrito</p>
+                                        <p className="text-lg font-black leading-none">{formatCurrency(cartTotal)}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-6 w-6" />
+                                <ChevronLeft className="h-6 w-6 rotate-180 opacity-50" />
                             </button>
                         </DialogTrigger>
-                        <DialogContent className="rounded-t-3xl sm:rounded-3xl border-none">
+                        <DialogContent className="sm:max-w-md rounded-t-[2.5rem] bottom-0 top-auto translate-y-0">
                             <DialogHeader>
-                                <DialogTitle className="text-xl font-black uppercase tracking-tight">Revisar Pedido</DialogTitle>
-                                <DialogDescription className="text-xs">Confirme los artículos antes de enviar a cocina.</DialogDescription>
+                                <DialogTitle className="text-2xl font-black tracking-tighter uppercase">Confirmar Pedido</DialogTitle>
+                                <DialogDescription>Revise su orden antes de enviarla a preparación.</DialogDescription>
                             </DialogHeader>
+                            
                             <ScrollArea className="max-h-[50vh] pr-4">
                                 <div className="space-y-4 py-4">
                                     {cart.map((item, idx) => (
-                                        <div key={item.service.id} className="flex flex-col gap-2 p-4 rounded-2xl bg-muted/30 border border-border/50">
-                                            <div className="flex justify-between items-center">
-                                                <div className="space-y-0.5">
-                                                    <p className="text-sm font-black uppercase tracking-tight">{item.service.name}</p>
-                                                    <p className="text-xs text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
-                                                </div>
-                                                <div className="flex items-center gap-3 bg-background p-1 rounded-xl shadow-sm border">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleRemoveFromCart(item.service.id)}><Minus className="h-3 w-3"/></Button>
-                                                    <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleAddToCart(item.service)}><Plus className="h-3 w-3"/></Button>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={() => handleOpenNoteDialog(idx)}
-                                                className={cn(
-                                                    "text-[10px] font-black uppercase flex items-center gap-2 py-2 px-3 rounded-lg border transition-colors",
-                                                    item.notes ? "bg-primary/10 text-primary border-primary/20" : "bg-background text-muted-foreground border-dashed"
+                                        <div key={item.service.id} className="flex items-center justify-between bg-muted/20 p-4 rounded-3xl border">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-black text-sm uppercase truncate">{item.service.name}</p>
+                                                <p className="text-xs text-muted-foreground font-bold">{formatCurrency(item.service.price)} c/u</p>
+                                                {item.service.source === 'Internal' && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            setEditingNoteIndex(idx);
+                                                            setCurrentNoteValue(item.notes || '');
+                                                            setNoteDialogOpen(true);
+                                                        }}
+                                                        className="mt-2 text-[9px] font-black uppercase flex items-center gap-1 text-primary"
+                                                    >
+                                                        <MessageSquare className="h-3 w-3" />
+                                                        {item.notes ? "Editar nota" : "+ Instrucciones"}
+                                                    </button>
                                                 )}
-                                            >
-                                                <MessageSquare className="h-3 w-3" />
-                                                {item.notes ? `Nota: ${item.notes}` : "+ Instrucciones de cocina"}
-                                            </button>
+                                            </div>
+                                            <div className="flex items-center gap-3 bg-background p-1.5 rounded-2xl border-2 shadow-sm">
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={() => handleRemoveFromCart(item.service.id)}>
+                                                    <Minus className="h-4 w-4" />
+                                                </Button>
+                                                <span className="font-black text-lg w-6 text-center">{item.quantity}</span>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={() => handleAddToCart(item.service)}>
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </ScrollArea>
-                            <div className="space-y-4 pt-4">
-                                <div className="flex justify-between items-center px-2">
-                                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Total Pedido</span>
-                                    <span className="text-2xl font-black tracking-tighter text-primary">{formatCurrency(cartTotal)}</span>
-                                </div>
+
+                            <Separator />
+                            <div className="py-4 flex justify-between items-center">
+                                <span className="font-black uppercase tracking-widest text-muted-foreground text-[10px]">Total del Pedido</span>
+                                <span className="text-3xl font-black text-primary tracking-tighter">{formatCurrency(cartTotal)}</span>
+                            </div>
+
+                            <DialogFooter className="flex-col sm:flex-col gap-3">
                                 <Button 
-                                    className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20" 
-                                    onClick={handleConfirmOrder}
+                                    className="w-full h-14 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20"
+                                    onClick={handleSendOrder}
                                     disabled={isPending}
                                 >
-                                    {isPending ? "Procesando..." : "Enviar a Cocina"}
+                                    {isPending ? 'Enviando...' : 'Confirmar y Pedir'}
                                 </Button>
-                            </div>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 </div>
@@ -513,19 +535,21 @@ export default function PublicOrderClient() {
                 <DialogContent className="sm:max-w-md rounded-3xl">
                     <DialogHeader>
                         <DialogTitle>Instrucciones</DialogTitle>
-                        <DialogDescription>Añada cualquier detalle para la preparación.</DialogDescription>
+                        <DialogDescription>Añada detalles especiales para su pedido.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <Textarea 
-                            placeholder="Ej: Sin hielo, término medio, etc." 
+                            placeholder="Ej: Sin cebolla, término medio, etc..."
                             value={currentNoteValue}
                             onChange={e => setCurrentNoteValue(e.target.value)}
-                            className="min-h-[120px] rounded-2xl border-2 text-sm font-bold"
+                            className="min-h-[120px] rounded-2xl border-2 text-base"
                             autoFocus
                         />
                     </div>
                     <DialogFooter>
-                        <Button className="w-full h-12 rounded-2xl font-black text-xs uppercase tracking-widest" onClick={handleSaveNote}>Guardar Nota</Button>
+                        <Button className="w-full h-12 rounded-xl font-bold" onClick={handleSaveNote}>
+                            Guardar Instrucciones
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
