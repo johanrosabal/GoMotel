@@ -1,151 +1,220 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { Service, ProductCategory } from '@/types';
+import { useState, useEffect, useMemo } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Service, ProductCategory, CompanyProfile } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { ImageIcon, Clock, Zap } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Clock, Tag, Zap, Utensils, Beer, Sparkles } from 'lucide-react';
+import { useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
+const CATEGORY_ICONS: Record<string, any> = {
+  'Food': Utensils,
+  'Beverage': Beer,
+  'Amenity': Sparkles
+};
 
 export default function PublicMenuClient() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const { firestore } = useFirebase();
   const [now, setNow] = useState(new Date());
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
 
+  // Data Fetching
+  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+  const { data: company } = useDoc<CompanyProfile>(companyRef);
+
+  const servicesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'services'), where('isActive', '==', true), orderBy('category')) : null, 
+    [firestore]
+  );
+  const { data: services } = useCollection<Service>(servicesQuery);
+
+  // Group services by accounting category
+  const groupedServices = useMemo(() => {
+    if (!services) return {};
+    return services.reduce((acc, s) => {
+      if (!acc[s.category]) acc[s.category] = [];
+      acc[s.category].push(s);
+      return acc;
+    }, {} as Record<string, Service[]>);
+  }, [services]);
+
+  const categories = useMemo(() => Object.keys(groupedServices), [groupedServices]);
+
+  // Clock Update
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-Cycle Categories (Menu Board Logic)
   useEffect(() => {
-    const qS = query(collection(db, 'services'), orderBy('name'));
-    const unsubS = onSnapshot(qS, (snap) => {
-      setServices(snap.docs.map(d => ({ id: d.id, ...d.data() } as Service)));
-    });
+    if (categories.length <= 1) return;
 
-    const qC = query(collection(db, 'productCategories'), orderBy('name'));
-    const unsubC = onSnapshot(qC, (snap) => {
-      setCategories(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductCategory)));
-    });
+    const cycleTimer = setInterval(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentCategoryIndex((prev) => (prev + 1) % categories.length);
+        setIsVisible(true);
+      }, 800); // Wait for fade out animation
+    }, 10000); // Rotate every 10 seconds
 
-    return () => {
-      unsubS();
-      unsubC();
-    };
-  }, []);
+    return () => clearInterval(cycleTimer);
+  }, [categories]);
 
-  const activeServices = services.filter(s => s.isActive);
-  const groupedServices = categories.map(cat => ({
-    ...cat,
-    items: activeServices.filter(s => s.categoryId === cat.id)
-  })).filter(group => group.items.length > 0);
+  if (!services || categories.length === 0) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-zinc-950 text-white">
+        <div className="flex flex-col items-center gap-4">
+          <Zap className="h-12 w-12 text-primary animate-pulse" />
+          <p className="text-xl font-black uppercase tracking-widest animate-pulse">Cargando Menú Board...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCategory = categories[currentCategoryIndex];
+  const currentItems = groupedServices[currentCategory];
+  const Icon = CATEGORY_ICONS[currentCategory] || Tag;
+
+  const categoryLabels: Record<string, string> = {
+    'Food': 'Nuestra Cocina',
+    'Beverage': 'Bebidas y Licores',
+    'Amenity': 'Complementos'
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-10 lg:p-16 space-y-16 overflow-x-hidden">
-      {/* Header Diseñado para TV */}
-      <div className="flex justify-between items-center border-b-4 border-primary pb-10">
-        <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-3 bg-primary rounded-full animate-pulse" />
-            <h1 className="text-7xl lg:text-8xl font-black tracking-tighter uppercase text-white">
-              Menú <span className="text-primary italic">Digital</span>
+    <div className="h-screen w-full bg-zinc-950 overflow-hidden flex flex-col relative text-white select-none">
+      {/* Background Decorative Element */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(20,20,30,1)_0%,rgba(0,0,0,1)_100%)] z-0" />
+      
+      {/* Header Board */}
+      <header className="relative z-10 px-12 py-8 flex justify-between items-center border-b border-white/5 bg-black/20 backdrop-blur-xl">
+        <div className="flex items-center gap-6">
+          {company?.logoUrl ? (
+            <img src={company.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
+          ) : (
+            <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center">
+              <Zap className="h-10 w-10 text-white" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">
+              {company?.tradeName || 'Go Motel'}
             </h1>
+            <p className="text-primary font-black text-xs uppercase tracking-[0.4em] mt-1 flex items-center gap-2">
+              <Icon className="h-3 w-3" /> {categoryLabels[currentCategory] || currentCategory}
+            </p>
           </div>
-          <p className="text-2xl text-zinc-500 font-bold uppercase tracking-[0.4em] ml-16">Go Motel Experience</p>
         </div>
-        
-        {/* Reloj Digital Premium */}
-        <div className="text-right bg-white/5 px-12 py-8 rounded-[3rem] border-2 border-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <p className="text-7xl font-black font-mono tracking-tighter text-primary">
-            {now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true })}
+
+        <div className="text-right">
+          <p className="text-6xl font-black font-mono tracking-tighter text-white tabular-nums leading-none">
+            {now.getHours().toString().padStart(2, '0')}:
+            {now.getMinutes().toString().padStart(2, '0')}
           </p>
-          <p className="text-sm font-black text-zinc-400 uppercase tracking-[0.3em] mt-3 flex items-center justify-end gap-3">
-            <Clock className="h-5 w-5 text-primary" />
+          <p className="text-xs font-black text-primary uppercase tracking-widest mt-2 bg-primary/10 px-3 py-1 rounded-full border border-primary/20 inline-block">
             {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Secciones de Menú */}
-      <div className="space-y-32 pb-20">
-        {groupedServices.map((category, catIdx) => (
-          <div key={category.id} className="space-y-12 animate-in fade-in slide-in-from-bottom-12 duration-1000" style={{ animationDelay: `${catIdx * 300}ms` }}>
-            <div className="flex items-center gap-8">
-              <h2 className="text-5xl font-black uppercase tracking-[0.2em] text-white/90 bg-white/5 px-8 py-3 rounded-2xl border border-white/10">{category.name}</h2>
-              <div className="h-1 flex-1 bg-gradient-to-r from-primary to-transparent opacity-30" />
-            </div>
+      {/* Main Board Area */}
+      <main className="flex-1 relative z-10 p-12 overflow-hidden">
+        <div className={cn(
+          "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 h-full transition-all duration-700 ease-in-out",
+          isVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
+        )}>
+          {currentItems.map((item, idx) => (
+            <div 
+              key={item.id} 
+              className={cn(
+                "relative group bg-zinc-900 rounded-[2rem] overflow-hidden border-2 border-white/5 shadow-2xl transition-all duration-500",
+                "animate-in fade-in zoom-in-95"
+              )}
+              style={{ animationDelay: `${idx * 100}ms` }}
+            >
+              {/* Product Image */}
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/800`} 
+                  alt={item.name} 
+                  className="w-full h-full object-cover transition-transform duration-[10s] ease-linear group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-              {category.items.map((item, itemIdx) => (
-                <div 
-                  key={item.id} 
-                  className="group relative aspect-[3/4] rounded-[3rem] overflow-hidden border-4 border-white/5 bg-zinc-900 shadow-2xl transition-all duration-700 hover:scale-[1.03] hover:border-primary/50"
-                >
-                  {/* Imagen de Fondo */}
-                  {item.imageUrl ? (
-                    <img 
-                      src={item.imageUrl} 
-                      alt={item.name} 
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                      <ImageIcon className="h-24 w-24 text-zinc-700" />
-                    </div>
+              {/* Top Reference Badge */}
+              <div className="absolute top-6 left-6 z-20">
+                <div className="px-3 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-[10px] font-black font-mono tracking-widest text-primary uppercase">
+                  REF: {item.code || 'N/A'}
+                </div>
+              </div>
+
+              {/* Bottom Info Area */}
+              <div className="absolute inset-x-0 bottom-0 p-8 z-20 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-black uppercase tracking-tighter leading-none drop-shadow-lg">
+                    {item.name}
+                  </h3>
+                  {item.description && (
+                    <p className="text-sm text-zinc-300 font-medium line-clamp-1 opacity-80 italic">
+                      {item.description}
+                    </p>
                   )}
+                </div>
 
-                  {/* Capas de degradado para legibilidad publicitaria */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
-
-                  {/* Badge de Referencia (Arriba) */}
-                  <div className="absolute top-8 left-8">
-                    <div className="bg-black/60 backdrop-blur-xl border border-white/20 px-4 py-1.5 rounded-full shadow-xl">
-                      <p className="text-[10px] font-black tracking-[0.2em] text-primary uppercase">REF: {item.code || 'P000'}</p>
-                    </div>
+                <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Precio Especial</span>
+                    <span className="text-4xl font-black tracking-tighter text-white drop-shadow-md">
+                      {formatCurrency(item.price)}
+                    </span>
                   </div>
-
-                  {/* Contenido del Producto (Abajo) */}
-                  <div className="absolute inset-x-0 bottom-0 p-10 space-y-6">
-                    <div className="space-y-2">
-                      <h3 className="text-4xl font-black uppercase tracking-tight leading-[0.9] text-white group-hover:text-primary transition-colors duration-300">
-                        {item.name}
-                      </h3>
-                      {item.description && (
-                        <p className="text-zinc-400 text-sm font-bold line-clamp-2 uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-6 border-t-2 border-white/10">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Precio Final</span>
-                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-lg">
-                          {formatCurrency(item.price)}
-                        </span>
-                      </div>
-                      <div className="h-16 w-16 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.4)] animate-bounce duration-1000">
-                        <Zap className="h-8 w-8 fill-current" />
-                      </div>
-                    </div>
+                  
+                  {/* Status Circle */}
+                  <div className="h-12 w-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-primary/10 backdrop-blur-md">
+                    <Zap className="h-6 w-6 text-primary fill-primary" />
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </main>
+
+      {/* Progress Bar (McDonald's Style) */}
+      <div className="absolute bottom-0 left-0 h-1.5 bg-primary/20 w-full z-20">
+        <div 
+          className="h-full bg-primary transition-all duration-[10000ms] ease-linear"
+          style={{ width: isVisible ? '100%' : '0%' }}
+        />
       </div>
 
-      {/* Footer Branding TV */}
-      <div className="pt-24 border-t border-white/5 flex justify-between items-center opacity-30">
-        <p className="text-2xl font-black uppercase tracking-[1em]">Publicidad Digital</p>
-        <div className="flex items-center gap-4">
-            <span className="h-3 w-3 rounded-full bg-primary animate-ping" />
-            <p className="text-xl font-bold uppercase tracking-widest">Actualizado en tiempo real</p>
+      {/* Footer Branding */}
+      <footer className="relative z-10 px-12 py-6 bg-black/40 backdrop-blur-md flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
+        <div className="flex items-center gap-8">
+          <span className="flex items-center gap-2">
+            <CheckCircle className="h-3 w-3 text-primary" /> Calidad Garantizada
+          </span>
+          <span className="flex items-center gap-2">
+            <CheckCircle className="h-3 w-3 text-primary" /> Servicio a la Habitación 24/7
+          </span>
         </div>
-      </div>
+        <div className="flex items-center gap-2">
+          <span>Menú Board v2.0</span>
+          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+        </div>
+      </footer>
     </div>
+  );
+}
+
+function CheckCircle({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   );
 }
