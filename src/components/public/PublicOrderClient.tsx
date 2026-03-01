@@ -1,40 +1,38 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { 
-    collection, query, where, orderBy, doc, onSnapshot, 
-    addDoc, Timestamp, runTransaction, increment, updateDoc, getDocs 
-} from 'firebase/firestore';
-import type { Service, Tax, RestaurantTable, Order, AppliedTax, ProductCategory, ProductSubCategory } from '@/types';
-import { 
-    Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter 
-} from '@/components/ui/card';
+import React, { useState, useTransition, useMemo, useEffect } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy, doc, onSnapshot, limit, Timestamp } from 'firebase/firestore';
+import type { Service, RestaurantTable, Order, ProductCategory, ProductSubCategory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { 
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { 
-    Dialog, DialogContent, DialogDescription, DialogFooter, 
-    DialogHeader, DialogTitle, DialogTrigger 
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { 
     Search, ShoppingCart, Plus, Minus, Trash2, 
-    Smartphone, User, Utensils, Beer, PackageCheck, 
-    Clock, CheckCircle, X, Sun, MapPin, MessageSquare, 
-    ChevronRight, ChevronLeft, CreditCard, Wallet, 
-    AlertCircle, Image as ImageIcon, SmartphoneIcon
+    Smartphone, ChevronRight, ChevronLeft,
+    ImageIcon, Utensils, Beer, Sun, MapPin, 
+    MessageSquare, CheckCircle, Clock, X,
+    AlertCircle, Info
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistance } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
+import { getServices } from '@/lib/actions/service.actions';
+
+const TYPE_LABELS: Record<string, string> = {
+    'Table': 'Mesa',
+    'Bar': 'Barra',
+    'Terraza': 'Terraza',
+    'Pooles': 'Pooles'
+};
 
 type CartItem = {
   service: Service;
@@ -42,56 +40,40 @@ type CartItem = {
   notes?: string;
 };
 
-const ZONE_LABELS: Record<string, string> = {
-    'Table': 'Mesas',
-    'Bar': 'Barra',
-    'Terraza': 'Terraza',
-    'Pooles': 'Pooles'
-};
-
-const ZONE_ICON: Record<string, any> = {
-    'Table': Utensils,
-    'Bar': Beer,
-    'Terraza': Sun,
-    'Pooles': MapPin
-};
-
 export default function PublicOrderClient() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
-    const [now, setNow] = useState(new Date());
-
-    // State Management
+    
+    // View state
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'account'>('menu');
     const [zoneFilter, setZoneFilter] = useState<string>('all');
+    
+    // Search & Filter
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-    const [cart, setCart] = useState<CartItem[]>([]);
     
-    // UI Dialogs
+    // Order state
+    const [cart, setCart] = useState<CartItem[]>([]);
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
 
-    // Session Management
-    const [sessionOrderIds, setSessionOrderIds] = useState<string[]>([]);
+    // Session Privacy: Use a unique ID for this device's current stay
+    const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
     useEffect(() => {
-        const timer = setInterval(() => setNow(new Date()), 60000);
-        const stored = localStorage.getItem('my_orders_session');
-        if (stored) setSessionOrderIds(JSON.parse(stored));
-        return () => clearInterval(timer);
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('gomotel_public_order_id');
+            if (saved) setSessionOrderId(saved);
+        }
     }, []);
 
-    const updateSessionOrders = (id: string) => {
-        const newIds = [...sessionOrderIds, id];
-        setSessionOrderIds(newIds);
-        localStorage.setItem('my_orders_session', JSON.stringify(newIds));
-    };
+    // Data
+    const [services, setServices] = useState<Service[]>([]);
+    useEffect(() => { getServices().then(setServices); }, []);
 
-    // Data Fetching
     const tablesQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, 
         [firestore]
@@ -104,21 +86,36 @@ export default function PublicOrderClient() {
     );
     const { data: categories } = useCollection<ProductCategory>(categoriesQuery);
 
-    const servicesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'services'), where('isActive', '==', true), orderBy('name')) : null, 
-        [firestore]
-    );
-    const { data: services } = useCollection<Service>(servicesQuery);
+    // Watch current session order in real-time
+    const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+    useEffect(() => {
+        if (!firestore || !sessionOrderId) {
+            setCurrentOrder(null);
+            return;
+        }
+        const unsub = onSnapshot(doc(firestore, 'orders', sessionOrderId), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data() as Order;
+                // Si la orden ya no está pendiente, limpiar sesión (el cliente ya pagó o se cerró)
+                if (data.status !== 'Pendiente') {
+                    localStorage.removeItem('gomotel_public_order_id');
+                    setSessionOrderId(null);
+                    setCurrentOrder(null);
+                } else {
+                    setCurrentOrder({ id: snap.id, ...data });
+                }
+            } else {
+                localStorage.removeItem('gomotel_public_order_id');
+                setSessionOrderId(null);
+                setCurrentOrder(null);
+            }
+        });
+        return () => unsub();
+    }, [firestore, sessionOrderId]);
 
-    const taxesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'taxes')) : null, [firestore]
-    );
-    const { data: allTaxes } = useCollection<Tax>(taxesQuery);
-
-    // Filter Logic
-    const locationTypes = useMemo(() => {
+    const zones = useMemo(() => {
         if (!allTables) return [];
-        return Array.from(new Set(allTables.map(t => t.type))).sort();
+        return Array.from(new Set(allTables.map(t => t.type)));
     }, [allTables]);
 
     const filteredTables = useMemo(() => {
@@ -127,37 +124,20 @@ export default function PublicOrderClient() {
     }, [allTables, zoneFilter]);
 
     const filteredServices = useMemo(() => {
-        if (!services) return [];
         return services.filter(s => {
-            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = s.isActive && (
+                s.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
             return matchesSearch && matchesCategory;
         });
     }, [services, searchTerm, selectedCategoryId]);
 
-    // Cart Logic
-    const { subtotal, totalTax, grandTotal, appliedTaxes } = useMemo(() => {
-        const sub = cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0);
-        let taxTotal = 0;
-        const taxMap = new Map<string, AppliedTax>();
-
-        if (allTaxes) {
-            cart.forEach(item => {
-                const itemTotal = item.service.price * item.quantity;
-                item.service.taxIds?.forEach(taxId => {
-                    const taxInfo = allTaxes.find(t => t.id === taxId);
-                    if (taxInfo) {
-                        const amount = itemTotal * (taxInfo.percentage / 100);
-                        taxTotal += amount;
-                        const existing = taxMap.get(taxId);
-                        if (existing) existing.amount += amount;
-                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount });
-                    }
-                });
-            });
-        }
-        return { subtotal: sub, totalTax: taxTotal, grandTotal: sub + taxTotal, appliedTaxes: Array.from(taxMap.values()) };
-    }, [cart, allTaxes]);
+    const { subtotal, grandTotal } = useMemo(() => {
+        const sub = cart.reduce((sum, i) => sum + i.service.price * i.quantity, 0);
+        // En este MVP público simplificamos el total (impuestos ya mostrados en precio final o calculados en el envío)
+        return { subtotal: sub, grandTotal: sub };
+    }, [cart]);
 
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
@@ -167,10 +147,10 @@ export default function PublicOrderClient() {
             }
             return [...prev, { service, quantity: 1 }];
         });
-        toast({ title: "Añadido", description: `${service.name} al carrito.` });
+        toast({ title: "Agregado", description: `${service.name} listo en el carrito.`, duration: 1500 });
     };
 
-    const handleRemoveOne = (serviceId: string) => {
+    const handleRemoveFromCart = (serviceId: string) => {
         setCart(prev => {
             const item = prev.find(i => i.service.id === serviceId);
             if (item && item.quantity > 1) {
@@ -180,15 +160,9 @@ export default function PublicOrderClient() {
         });
     };
 
-    const handleRemoveAll = (serviceId: string) => {
+    const handleDeleteItem = (serviceId: string) => {
         setCart(prev => prev.filter(i => i.service.id !== serviceId));
-        toast({ title: "Eliminado", description: "Producto removido del carrito." });
-    };
-
-    const handleOpenNote = (index: number) => {
-        setEditingNoteIndex(index);
-        setCurrentNoteValue(cart[index].notes || '');
-        setNoteDialogOpen(true);
+        toast({ title: "Eliminado", description: "Producto quitado del carrito." });
     };
 
     const handleSaveNote = () => {
@@ -198,103 +172,77 @@ export default function PublicOrderClient() {
         setEditingNoteIndex(null);
     };
 
-    const handleSendOrder = () => {
+    const handleOpenNoteDialog = (index: number) => {
+        setEditingNoteIndex(index);
+        setCurrentNoteValue(cart[index].notes || '');
+        setNoteDialogOpen(true);
+    };
+
+    const handleConfirmOrder = () => {
         if (!selectedTable || cart.length === 0) return;
 
         startTransition(async () => {
-            try {
-                await runTransaction(firestore!, async (transaction) => {
-                    const tableRef = doc(firestore!, 'restaurantTables', selectedTable.id);
-                    const orderRef = doc(collection(firestore!, 'orders'));
-                    
-                    const newOrder = {
-                        locationType: selectedTable.type,
-                        locationId: selectedTable.id,
-                        label: `Pedido Móvil - ${selectedTable.number}`,
-                        items: cart.map(i => ({
-                            serviceId: i.service.id,
-                            name: i.service.name,
-                            quantity: i.quantity,
-                            price: i.service.price,
-                            notes: i.notes || null
-                        })),
-                        total: grandTotal,
-                        createdAt: Timestamp.now(),
-                        status: 'Pendiente',
-                        paymentStatus: 'Pendiente',
-                        source: 'Public'
-                    };
+            let result;
+            if (sessionOrderId && currentOrder) {
+                result = await addToTableAccount(sessionOrderId, cart);
+            } else {
+                result = await openTableAccount(selectedTable.id, cart, `Cliente ${selectedTable.number}`, 'Public');
+            }
 
-                    transaction.set(orderRef, newOrder);
-                    transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
-                    updateSessionOrders(orderRef.id);
-                });
-
+            if (result.success) {
+                if (result.orderId) {
+                    setSessionOrderId(result.orderId);
+                    localStorage.setItem('gomotel_public_order_id', result.orderId);
+                }
                 setCart([]);
                 setActiveTab('account');
-                toast({ title: "¡Pedido Enviado!", description: "Estamos preparando tus productos." });
-            } catch (e: any) {
-                toast({ title: "Error", description: e.message, variant: "destructive" });
+                toast({ title: "¡Pedido Enviado!", description: "Lo recibiremos en breve.", variant: "default" });
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
             }
         });
     };
 
-    // My Account Logic (Filtered by Session)
-    const [myOrders, setMyOrders] = useState<Order[]>([]);
-    useEffect(() => {
-        if (!firestore || sessionOrderIds.length === 0) return;
-        const q = query(collection(firestore, 'orders'), where('__name__', 'in', sessionOrderIds.slice(-10)));
-        return onSnapshot(q, (snap) => {
-            setMyOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)).sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
-        });
-    }, [firestore, sessionOrderIds]);
-
     if (!selectedTable) {
         return (
-            <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center animate-in fade-in duration-500">
-                <div className="w-full max-w-md space-y-8 text-center">
-                    <div className="space-y-2">
-                        <div className="mx-auto w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6">
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 sm:p-10">
+                <div className="w-full max-w-md space-y-8 text-center animate-in fade-in zoom-in-95 duration-500">
+                    <div className="space-y-3">
+                        <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-primary/20 shadow-xl">
                             <Utensils className="h-10 w-10 text-primary" />
                         </div>
                         <h1 className="text-4xl font-black uppercase tracking-tight">Bienvenido</h1>
-                        <p className="text-muted-foreground font-medium">¿Dónde se encuentra? Seleccione su mesa para ver el menú.</p>
+                        <p className="text-muted-foreground font-medium">Seleccione su mesa para comenzar a ordenar.</p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="space-y-2 text-left">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Filtrar Zona</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Filtrar por Zona</Label>
                             <Select value={zoneFilter} onValueChange={setZoneFilter}>
-                                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-lg bg-background">
+                                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-lg bg-background shadow-sm">
                                     <SelectValue placeholder="Todas las zonas" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-2xl">
                                     <SelectItem value="all">Todas las zonas</SelectItem>
-                                    {locationTypes.map(t => (
-                                        <SelectItem key={t} value={t}>{ZONE_LABELS[t] || t}</SelectItem>
+                                    {zones.map(z => (
+                                        <SelectItem key={z} value={z}>{TYPE_LABELS[z] || z}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <ScrollArea className="h-[400px] border-2 rounded-3xl bg-muted/20 p-4">
-                            <div className="grid grid-cols-2 gap-3 pb-10">
-                                {filteredTables.map(table => {
-                                    const Icon = ZONE_ICON[table.type] || MapPin;
-                                    return (
-                                        <button
-                                            key={table.id}
-                                            onClick={() => setSelectedTable(table)}
-                                            className="group flex flex-col items-center justify-center p-6 bg-background border-2 rounded-2xl transition-all hover:border-primary hover:shadow-xl active:scale-95"
-                                        >
-                                            <div className="p-3 bg-muted rounded-xl group-hover:bg-primary/10 transition-colors">
-                                                <Icon className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-                                            </div>
-                                            <span className="mt-3 font-black text-3xl tracking-tighter">{table.number}</span>
-                                            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{ZONE_LABELS[table.type] || table.type}</span>
-                                        </button>
-                                    );
-                                })}
+                        <ScrollArea className="h-[45vh] rounded-3xl border-2 bg-muted/20 p-2">
+                            <div className="grid grid-cols-2 gap-3 p-2">
+                                {filteredTables.map(table => (
+                                    <button
+                                        key={table.id}
+                                        onClick={() => setSelectedTable(table)}
+                                        className="flex flex-col items-center justify-center h-28 bg-background border-2 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all active:scale-95 shadow-sm group"
+                                    >
+                                        <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors">{table.number}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">{TYPE_LABELS[table.type] || table.type}</span>
+                                    </button>
+                                ))}
                             </div>
                         </ScrollArea>
                     </div>
@@ -304,33 +252,36 @@ export default function PublicOrderClient() {
     }
 
     return (
-        <div className="min-h-screen bg-muted/30 flex flex-col max-w-md mx-auto relative shadow-2xl">
-            {/* Header */}
-            <div className="bg-background border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <SmartphoneIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">Mesa Seleccionada</p>
-                        <p className="text-xl font-black text-primary tracking-tighter">{selectedTable.number}</p>
-                    </div>
+        <div className="min-h-screen bg-muted/30 flex flex-col">
+            {/* Header Fijo */}
+            <div className="bg-background border-b px-6 py-4 sticky top-0 z-30 shadow-sm flex items-center justify-between">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Ubicación Actual</span>
+                    <h2 className="text-lg font-black uppercase tracking-tighter text-primary">
+                        {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
+                    </h2>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedTable(null)} className="rounded-full">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full h-10 w-10 text-muted-foreground hover:text-destructive"
+                    onClick={() => { setSelectedTable(null); setSessionOrderId(null); localStorage.removeItem('gomotel_public_order_id'); }}
+                >
                     <X className="h-5 w-5" />
                 </Button>
             </div>
 
-            {/* Content Tabs */}
-            <div className="flex-1 flex flex-col overflow-hidden pb-24">
+            {/* Contenido Principal */}
+            <div className="flex-1 flex flex-col overflow-hidden relative">
                 {activeTab === 'menu' && (
-                    <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-300">
-                        <div className="p-4 bg-background border-b space-y-4 shadow-sm">
+                    <div className="flex-1 flex flex-col animate-in slide-in-from-left-4 duration-300">
+                        {/* Filtros de Menú */}
+                        <div className="p-4 bg-background/80 backdrop-blur-md sticky top-0 z-20 border-b space-y-4">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input 
-                                    placeholder="Buscar comida o bebida..." 
-                                    className="pl-10 h-12 bg-muted/50 border-0 rounded-2xl text-base"
+                                    placeholder="Buscar platillo..." 
+                                    className="pl-9 h-12 bg-muted/50 rounded-xl border-none shadow-inner"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                 />
@@ -339,8 +290,8 @@ export default function PublicOrderClient() {
                                 <div className="flex gap-2 pb-2">
                                     <button 
                                         className={cn(
-                                            "h-9 px-5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all",
-                                            selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-lg" : "bg-background border-2 text-muted-foreground"
+                                            "h-9 px-5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
+                                            selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                         )}
                                         onClick={() => setSelectedCategoryId(null)}
                                     >
@@ -350,8 +301,8 @@ export default function PublicOrderClient() {
                                         <button 
                                             key={cat.id}
                                             className={cn(
-                                                "h-9 px-5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all",
-                                                selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-lg" : "bg-background border-2 text-muted-foreground"
+                                                "h-9 px-5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
+                                                selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                             )}
                                             onClick={() => setSelectedCategoryId(cat.id)}
                                         >
@@ -363,37 +314,44 @@ export default function PublicOrderClient() {
                             </ScrollArea>
                         </div>
 
+                        {/* Cuadrícula de Productos */}
                         <ScrollArea className="flex-1">
-                            <div className="grid grid-cols-2 gap-4 p-4 pb-10">
+                            <div className="grid grid-cols-2 gap-3 p-4 pb-24">
                                 {filteredServices.map(service => (
-                                    <div key={service.id} className="bg-background rounded-[2rem] overflow-hidden border-2 border-transparent hover:border-primary/20 shadow-sm flex flex-col">
-                                        <div className="aspect-square relative overflow-hidden bg-muted group">
+                                    <div 
+                                        key={service.id}
+                                        className="group relative bg-card rounded-3xl overflow-hidden shadow-sm border border-border/50 flex flex-col animate-in fade-in duration-500"
+                                    >
+                                        <div className="aspect-square relative overflow-hidden bg-muted">
                                             <Avatar className="h-full w-full rounded-none">
-                                                <AvatarImage src={service.imageUrl || undefined} className="object-cover transition-transform group-hover:scale-110 duration-500" />
+                                                <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
                                                 <AvatarFallback className="rounded-none">
                                                     <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div className="absolute top-3 left-3 flex flex-col gap-1">
-                                                <Badge className="bg-black/60 backdrop-blur-md text-white border-0 font-black text-[8px] uppercase tracking-widest px-2 h-5">
+                                            
+                                            {/* Info superior */}
+                                            <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-10">
+                                                <Badge className="bg-black/60 backdrop-blur-md text-white border-0 font-black text-[8px] uppercase px-2 py-0.5">
                                                     {service.category}
                                                 </Badge>
                                                 {service.source !== 'Internal' && (
-                                                    <Badge className={cn(
-                                                        "border-0 font-black text-[8px] uppercase tracking-widest px-2 h-5",
-                                                        service.stock <= (service.minStock || 5) ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
-                                                    )}>
+                                                    <Badge variant="outline" className="bg-white/90 text-primary border-0 font-black text-[8px]">
                                                         STOCK: {service.stock}
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
-                                                <h3 className="font-black text-sm uppercase tracking-tight text-white leading-tight drop-shadow-md">{service.name}</h3>
-                                                <p className="text-primary-foreground font-black text-lg mt-1">{formatCurrency(service.price)}</p>
+
+                                            {/* Overlay Inferior */}
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-10 z-10">
+                                                <h3 className="text-white font-black text-[11px] uppercase leading-tight line-clamp-2 drop-shadow-lg mb-1">{service.name}</h3>
+                                                <p className="text-primary font-black text-sm">{formatCurrency(service.price)}</p>
                                             </div>
+
+                                            {/* Botón Añadir */}
                                             <button 
                                                 onClick={() => handleAddToCart(service)}
-                                                className="absolute bottom-3 right-3 w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-transform"
+                                                className="absolute bottom-2 right-2 z-20 h-10 w-10 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-2 border-white/20"
                                             >
                                                 <Plus className="h-6 w-6" />
                                             </button>
@@ -406,252 +364,225 @@ export default function PublicOrderClient() {
                 )}
 
                 {activeTab === 'cart' && (
-                    <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-300 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-3xl font-black uppercase tracking-tighter">Mi Carrito</h2>
-                            <Badge variant="outline" className="h-8 px-4 font-black bg-background border-2 rounded-xl text-primary">{cart.length} ITEMS</Badge>
+                    <div className="flex-1 flex flex-col p-4 sm:p-6 animate-in slide-in-from-right-4 duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <ShoppingCart className="h-6 w-6 text-primary" />
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">Tu Carrito</h2>
                         </div>
 
-                        <ScrollArea className="flex-1 -mx-2 pr-2">
-                            {cart.length === 0 ? (
-                                <div className="h-[400px] flex flex-col items-center justify-center text-center space-y-6">
-                                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center opacity-20">
-                                        <ShoppingCart className="h-12 w-12" />
-                                    </div>
-                                    <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">Tu carrito está vacío</p>
-                                    <Button onClick={() => setActiveTab('menu')} variant="outline" className="rounded-2xl h-12 font-black text-xs uppercase tracking-widest border-2">Explorar Menú</Button>
-                                </div>
-                            ) : (
-                                <div className="space-y-4 pb-10">
-                                    {cart.map((item, idx) => (
-                                        <div key={item.service.id} className="bg-background rounded-3xl p-4 border-2 shadow-sm relative group">
-                                            <div className="flex gap-4">
-                                                <Avatar className="h-20 w-20 rounded-2xl border-2">
-                                                    <AvatarImage src={item.service.imageUrl || undefined} className="object-cover" />
-                                                    <AvatarFallback><ImageIcon className="h-8 w-8 text-muted-foreground/20" /></AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 min-w-0 space-y-1">
-                                                    <div className="flex justify-between items-start pr-8">
-                                                        <h4 className="font-black text-sm uppercase tracking-tight truncate">{item.service.name}</h4>
-                                                        <p className="font-black text-primary text-base">{formatCurrency(item.service.price * item.quantity)}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex items-center bg-muted/50 rounded-xl p-1 border">
-                                                            <button onClick={() => handleRemoveOne(item.service.id)} className="w-8 h-8 flex items-center justify-center bg-background rounded-lg shadow-sm"><Minus className="h-3 w-3" /></button>
-                                                            <span className="w-10 text-center font-black text-sm">{item.quantity}</span>
-                                                            <button onClick={() => handleAddToCart(item.service)} className="w-8 h-8 flex items-center justify-center bg-background rounded-lg shadow-sm"><Plus className="h-3 w-3" /></button>
-                                                        </div>
-                                                        {item.service.source === 'Internal' && (
-                                                            <button onClick={() => handleOpenNote(idx)} className="h-10 px-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-black text-[10px] uppercase flex items-center gap-2">
-                                                                <MessageSquare className="h-3 w-3" /> {item.notes ? 'Editar Nota' : 'Añadir Nota'}
+                        {cart.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-20">
+                                <Utensils className="h-32 w-32 mb-4" />
+                                <p className="text-xl font-black uppercase">Carrito Vacío</p>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col min-h-0">
+                                <ScrollArea className="flex-1 pr-4">
+                                    <div className="space-y-4">
+                                        {cart.map((item, idx) => (
+                                            <Card key={item.service.id} className="rounded-2xl border-none shadow-sm overflow-hidden bg-background">
+                                                <div className="p-4 flex gap-4">
+                                                    <Avatar className="h-16 w-16 rounded-xl border">
+                                                        <AvatarImage src={item.service.imageUrl || undefined} className="object-cover" />
+                                                        <AvatarFallback><ImageIcon /></AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start">
+                                                            <h4 className="font-black text-sm uppercase truncate leading-none mb-1">{item.service.name}</h4>
+                                                            <button 
+                                                                onClick={() => handleDeleteItem(item.service.id)}
+                                                                className="text-destructive h-8 w-8 flex items-center justify-center hover:bg-destructive/10 rounded-full"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
                                                             </button>
-                                                        )}
+                                                        </div>
+                                                        <p className="text-primary font-black text-xs mb-3">{formatCurrency(item.service.price)}</p>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-1 bg-muted rounded-full p-1 border">
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-7 w-7 rounded-full" 
+                                                                    onClick={() => handleRemoveFromCart(item.service.id)}
+                                                                >
+                                                                    <Minus className="h-3 w-3" />
+                                                                </Button>
+                                                                <span className="w-8 text-center font-black text-xs text-primary">{item.quantity}</span>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-7 w-7 rounded-full" 
+                                                                    onClick={() => handleAddToCart(item.service)}
+                                                                    disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
+                                                                >
+                                                                    <Plus className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => handleOpenNoteDialog(idx)}
+                                                                className={cn(
+                                                                    "text-[9px] font-black uppercase px-3 py-1.5 rounded-full border transition-all flex items-center gap-1",
+                                                                    item.notes ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {item.notes ? "Ver Nota" : "+ Nota Cocina"}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            {/* Botón Eliminar Evidente */}
-                                            <button 
-                                                onClick={() => handleRemoveAll(item.service.id)}
-                                                className="absolute top-4 right-4 w-8 h-8 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                            {item.notes && (
-                                                <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-dashed border-primary/20 text-xs italic text-primary">
-                                                    "{item.notes}"
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </ScrollArea>
-
-                        {cart.length > 0 && (
-                            <Card className="border-0 shadow-2xl overflow-hidden rounded-3xl mt-4">
-                                <CardContent className="p-6 bg-primary text-primary-foreground">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between text-xs font-bold uppercase opacity-70">
-                                            <span>Subtotal</span>
-                                            <span>{formatCurrency(subtotal)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs font-bold uppercase opacity-70">
-                                            <span>Impuestos</span>
-                                            <span>{formatCurrency(totalTax)}</span>
-                                        </div>
-                                        <Separator className="bg-white/20" />
-                                        <div className="flex justify-between items-center pt-2">
-                                            <span className="text-sm font-black uppercase tracking-widest">Total Pedido</span>
-                                            <span className="text-3xl font-black tracking-tighter">{formatCurrency(grandTotal)}</span>
-                                        </div>
+                                            </Card>
+                                        ))}
                                     </div>
-                                </CardContent>
-                                <CardFooter className="p-0">
+                                </ScrollArea>
+
+                                <div className="mt-6 pt-6 border-t space-y-4">
+                                    <div className="flex justify-between items-center text-muted-foreground uppercase font-black text-[10px] tracking-widest">
+                                        <span>Subtotal Neto</span>
+                                        <span>{formatCurrency(subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-lg font-black uppercase tracking-tight">Total Pedido</span>
+                                        <span className="text-3xl font-black text-primary tracking-tighter">{formatCurrency(grandTotal)}</span>
+                                    </div>
                                     <Button 
-                                        disabled={isPending}
-                                        onClick={handleSendOrder}
-                                        className="w-full h-16 rounded-none bg-background text-primary hover:bg-muted text-base font-black uppercase tracking-widest border-t-4 border-primary"
+                                        className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-widest shadow-xl shadow-primary/20"
+                                        disabled={isPending || cart.length === 0}
+                                        onClick={handleConfirmOrder}
                                     >
-                                        {isPending ? 'Enviando...' : 'Confirmar y Pedir'}
-                                        <ChevronRight className="ml-2 h-5 w-5" />
+                                        {isPending ? "Procesando..." : "Enviar Comanda"}
                                     </Button>
-                                </CardFooter>
-                            </Card>
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
 
                 {activeTab === 'account' && (
-                    <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-300 p-6">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-3xl font-black uppercase tracking-tighter">Mi Cuenta</h2>
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Resumen de consumo actual</p>
-                            </div>
-                            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl">
-                                <CreditCard className="h-7 w-7" />
-                            </div>
+                    <div className="flex-1 flex flex-col p-4 sm:p-6 animate-in slide-in-from-top-4 duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Clock className="h-6 w-6 text-primary" />
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">Mi Cuenta</h2>
                         </div>
 
-                        <ScrollArea className="flex-1">
-                            <div className="space-y-6 pb-10">
+                        {!currentOrder ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-background rounded-3xl border-2 border-dashed">
+                                <Info className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
+                                <p className="font-black uppercase text-muted-foreground opacity-40">No tienes pedidos activos en esta sesión.</p>
+                                <Button variant="link" className="mt-4 font-bold text-primary" onClick={() => setActiveTab('menu')}>Ver el menú ahora</Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
                                 <Card className="border-0 shadow-2xl overflow-hidden rounded-[2.5rem] bg-card">
                                     <div className="bg-primary p-8 text-primary-foreground relative">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                                         <div className="relative z-10 flex justify-between items-center">
-                                            <span className="text-xs font-black uppercase tracking-[0.2em] opacity-80">Total Acumulado</span>
-                                            <Badge variant="outline" className="border-white/30 text-white font-black text-[10px] px-4 py-1.5 rounded-full pointer-events-none">
-                                                {myOrders.length} PEDIDOS
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-1">Total Acumulado</p>
+                                                <h3 className="text-5xl font-black tracking-tighter">{formatCurrency(currentOrder.total)}</h3>
+                                            </div>
+                                            <Badge className={cn("px-4 py-1.5 rounded-full border-0 pointer-events-none", 
+                                                currentOrder.status === 'Pendiente' ? "bg-white text-primary" : "bg-emerald-500 text-white")}>
+                                                {currentOrder.status}
                                             </Badge>
                                         </div>
-                                        <p className="text-5xl font-black tracking-tighter mt-4 relative z-10">
-                                            {formatCurrency(myOrders.reduce((sum, o) => sum + o.total, 0))}
-                                        </p>
                                     </div>
-                                    <CardContent className="p-8 pt-10 space-y-8">
-                                        <div className="space-y-4">
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                                                <Clock className="h-3 w-3" /> Historial de Sesión
-                                            </h4>
-                                            {myOrders.length === 0 ? (
-                                                <div className="text-center py-10 border-2 border-dashed rounded-3xl opacity-40">
-                                                    <p className="text-xs font-bold uppercase tracking-widest">Sin consumos registrados</p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-4">
-                                                    {myOrders.map(order => (
-                                                        <div key={order.id} className="space-y-3 p-4 bg-muted/30 rounded-3xl border-2 border-transparent hover:border-primary/10 transition-all">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-[10px] font-black text-muted-foreground">
-                                                                    {formatDistance(order.createdAt.toDate(), now, { locale: es, addSuffix: true })}
-                                                                </span>
-                                                                <Badge className={cn(
-                                                                    "pointer-events-none uppercase text-[9px] font-black px-3 h-5 rounded-full",
-                                                                    order.status === 'Pendiente' ? "bg-orange-500 text-white" : "bg-emerald-500 text-white"
-                                                                )}>
-                                                                    {order.status}
-                                                                </Badge>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                {order.items.map((item, idx) => (
-                                                                    <div key={idx} className="flex justify-between text-xs font-bold">
-                                                                        <span className="text-muted-foreground">{item.quantity}x {item.name}</span>
-                                                                        <span>{formatCurrency(item.price * item.quantity)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            <Separator className="opacity-50" />
-                                                            <div className="flex justify-between items-center font-black text-sm">
-                                                                <span className="uppercase tracking-widest text-[10px]">Total Pedido</span>
-                                                                <span className="text-primary">{formatCurrency(order.total)}</span>
+                                    <CardContent className="p-8 pt-10">
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="h-1 w-8 bg-primary rounded-full" />
+                                                <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Detalle de Consumos</h4>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {currentOrder.items.map((item, idx) => (
+                                                    <div key={idx} className="flex justify-between items-start border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                                                        <div className="space-y-1 pr-4">
+                                                            <p className="font-black text-sm uppercase leading-tight">{item.name}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">x{item.quantity}</span>
+                                                                {item.notes && <span className="text-[9px] font-medium text-muted-foreground italic truncate max-w-[120px]">"{item.notes}"</span>}
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="p-6 bg-amber-50 dark:bg-amber-950/20 rounded-[2rem] border-2 border-amber-200 dark:border-amber-800/50 flex gap-4 items-center">
-                                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-2xl flex items-center justify-center shrink-0">
-                                                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                                        <span className="font-black text-sm tabular-nums whitespace-nowrap">{formatCurrency(item.price * item.quantity)}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <p className="text-sm font-medium text-amber-700 dark:text-amber-300 leading-tight">
-                                                Para solicitar el cobro, por favor comunícate con la recepción o un salonero.
-                                            </p>
                                         </div>
                                     </CardContent>
                                 </Card>
+
+                                <div className="p-6 rounded-[2rem] bg-amber-500/10 border-2 border-amber-500/20 border-dashed flex items-start gap-4">
+                                    <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-1">
+                                        <Info className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">¿Deseas liquidar tu cuenta?</p>
+                                        <p className="text-xs font-medium text-amber-700/80 dark:text-amber-300/90 leading-relaxed">
+                                            Para solicitar el cobro, por favor comunícate con la recepción o un salonero. También puedes pedir más productos desde el menú.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        </ScrollArea>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* Bottom Navigation */}
-            <div className="bg-background border-t px-6 h-20 flex items-center justify-between fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+            {/* Barra de Navegación Inferior Estilo App */}
+            <div className="bg-background/95 backdrop-blur-xl border-t h-20 px-6 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sticky bottom-0 z-40">
                 <button 
+                    className={cn("flex flex-col items-center gap-1 transition-all", activeTab === 'menu' ? "text-primary scale-110" : "text-muted-foreground opacity-50")}
                     onClick={() => setActiveTab('menu')}
-                    className={cn(
-                        "flex flex-col items-center gap-1 transition-all",
-                        activeTab === 'menu' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
-                    )}
                 >
-                    <Utensils className="h-6 w-6" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Menú</span>
-                </button>
-                
-                <button 
-                    onClick={() => setActiveTab('cart')}
-                    className={cn(
-                        "flex flex-col items-center gap-1 transition-all relative",
-                        activeTab === 'cart' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
-                    )}
-                >
-                    <ShoppingCart className="h-6 w-6" />
-                    {cart.length > 0 && (
-                        <span className="absolute -top-2 -right-3 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-black flex items-center justify-center rounded-full ring-4 ring-background animate-in zoom-in duration-300">
-                            {cart.length}
-                        </span>
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-widest">Carrito</span>
+                    <div className={cn("p-2 rounded-xl transition-all", activeTab === 'menu' && "bg-primary/10")}>
+                        <Utensils className="h-5 w-5" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Menú</span>
                 </button>
 
                 <button 
-                    onClick={() => setActiveTab('account')}
-                    className={cn(
-                        "flex flex-col items-center gap-1 transition-all",
-                        activeTab === 'account' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
-                    )}
+                    className={cn("flex flex-col items-center gap-1 relative transition-all", activeTab === 'cart' ? "text-primary scale-110" : "text-muted-foreground opacity-50")}
+                    onClick={() => setActiveTab('cart')}
                 >
-                    <Wallet className="h-6 w-6" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Cuenta</span>
+                    <div className={cn("p-2 rounded-xl transition-all", activeTab === 'cart' && "bg-primary/10")}>
+                        <ShoppingCart className="h-5 w-5" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Carrito</span>
+                    {cart.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-destructive text-white text-[10px] font-black h-5 w-5 flex items-center justify-center rounded-full ring-2 ring-background animate-in zoom-in">
+                            {cart.length}
+                        </span>
+                    )}
+                </button>
+
+                <button 
+                    className={cn("flex flex-col items-center gap-1 transition-all", activeTab === 'account' ? "text-primary scale-110" : "text-muted-foreground opacity-50")}
+                    onClick={() => setActiveTab('account')}
+                >
+                    <div className={cn("p-2 rounded-xl transition-all", activeTab === 'account' && "bg-primary/10")}>
+                        <Clock className="h-5 w-5" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Cuenta</span>
+                    {currentOrder && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-white h-2.5 w-2.5 flex items-center justify-center rounded-full ring-2 ring-background animate-pulse" />
+                    )}
                 </button>
             </div>
 
             {/* Note Dialog */}
             <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-                <DialogContent className="sm:max-w-md rounded-[2.5rem] p-8 border-0">
+                <DialogContent className="sm:max-w-md rounded-3xl p-6">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Instrucciones</DialogTitle>
-                        <DialogDescription className="font-medium">¿Cómo desea que preparemos su pedido?</DialogDescription>
+                        <DialogTitle className="text-xl font-black uppercase tracking-tight">Instrucciones de Cocina</DialogTitle>
+                        <DialogDescription className="text-sm font-medium">Añade indicaciones especiales para tu pedido.</DialogDescription>
                     </DialogHeader>
-                    <div className="py-6 space-y-6">
-                        <div className="p-4 bg-primary/5 rounded-3xl border-2 border-primary/10 flex items-center gap-4">
-                            <div className="bg-primary/10 p-3 rounded-2xl"><Utensils className="h-5 w-5 text-primary" /></div>
-                            <span className="font-black text-sm uppercase tracking-tight">
-                                {editingNoteIndex !== null && cart[editingNoteIndex] ? cart[editingNoteIndex].service.name : ''}
-                            </span>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Notas especiales</Label>
-                            <Textarea 
-                                placeholder="Ej: Término medio, sin cebolla, mucha salsa..."
-                                value={currentNoteValue}
-                                onChange={e => setCurrentNoteValue(e.target.value)}
-                                className="min-h-[120px] rounded-3xl border-2 bg-muted/20 focus:bg-background transition-all resize-none text-base font-bold p-4"
-                                autoFocus
-                            />
-                        </div>
+                    <div className="py-4">
+                        <Textarea 
+                            placeholder="Ej: Término medio, sin cebolla, salsa aparte..."
+                            value={currentNoteValue}
+                            onChange={e => setCurrentNoteValue(e.target.value)}
+                            className="min-h-[150px] rounded-2xl border-2 bg-muted/20 text-base font-bold shadow-inner resize-none p-4"
+                            autoFocus
+                        />
                     </div>
                     <DialogFooter className="gap-2 sm:gap-3">
                         <Button variant="ghost" className="flex-1 h-14 rounded-2xl font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>

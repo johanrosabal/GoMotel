@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Service } from '@/types';
+import type { Service, CompanyProfile } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -11,167 +11,162 @@ import { AnimatePresence, motion } from 'framer-motion';
 export default function PublicMenuClient() {
   const { firestore } = useFirebase();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [time, setNow] = useState(new Date());
+  const [time, setTime] = useState(new Date());
 
+  // Data Fetching
   const servicesQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'services'), where('isActive', '==', true), orderBy('name')) : null, 
+    firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, 
     [firestore]
   );
-  const { data: services } = useCollection<Service>(servicesQuery);
+  const { data: allServices, isLoading } = useCollection<Service>(servicesQuery);
+
+  const activeServices = useMemo(() => {
+    if (!allServices) return [];
+    return allServices.filter(s => s.source === 'Internal' || s.stock > 0);
+  }, [allServices]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (!services || services.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % services.length);
+    if (activeServices.length <= 1) return;
+    const slideTimer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % activeServices.length);
     }, 8000);
-    return () => clearInterval(interval);
-  }, [services]);
+    return () => clearInterval(slideTimer);
+  }, [activeServices.length]);
 
-  const currentService = services?.[currentIndex];
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-white font-black uppercase tracking-[0.3em] animate-pulse">Cargando Menú...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeServices.length === 0) {
+    return (
+      <div className="h-screen w-full bg-black flex items-center justify-center">
+        <p className="text-white font-black uppercase tracking-[0.3em]">Menú no disponible</p>
+      </div>
+    );
+  }
+
+  const currentProduct = activeServices[currentIndex];
 
   return (
-    <div className="h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
-      {/* Background Slideshow */}
+    <div className="h-screen w-full bg-black overflow-hidden relative font-sans cursor-none">
+      {/* Reloj y Marca */}
+      <div className="absolute top-10 left-10 z-50 flex items-baseline gap-6 drop-shadow-2xl">
+        <div className="bg-black/40 backdrop-blur-3xl px-8 py-4 rounded-[2rem] border-2 border-white/10 flex items-center gap-4">
+          <Clock className="h-8 w-8 text-primary animate-pulse" />
+          <span className="text-5xl font-black tracking-tighter text-white tabular-nums">
+            {time.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+      </div>
+
       <AnimatePresence mode="wait">
-        {currentService && (
-          <motion.div
-            key={currentService.id}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute inset-0 z-0"
-          >
-            {currentService.imageUrl ? (
-              <div 
-                className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${currentService.imageUrl})` }}
+        <motion.div
+          key={currentProduct.id}
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="absolute inset-0"
+        >
+          {/* Imagen de Fondo Gigante */}
+          <div className="absolute inset-0">
+            {currentProduct.imageUrl ? (
+              <img 
+                src={currentProduct.imageUrl} 
+                alt={currentProduct.name}
+                className="w-full h-full object-cover brightness-[0.7] scale-105"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-black" />
+              <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                <Utensils className="h-64 w-64 text-white/5" />
+              </div>
             )}
-            {/* Multi-layered overlays for depth and contrast */}
-            <div className="absolute inset-0 bg-black/30" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main UI Layer */}
-      <div className="relative z-10 h-full w-full flex flex-col p-16 lg:p-24 justify-between">
-        
-        {/* Header: Brand & Time */}
-        <div className="flex justify-between items-start animate-in fade-in slide-in-from-top-10 duration-1000">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3">
-              <UtensilsIcon className="h-10 w-10 text-white" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-4xl font-black tracking-tighter uppercase">Go Motel</h2>
-              <p className="text-primary font-black tracking-[0.3em] text-sm uppercase">Room Service 24/7</p>
-            </div>
           </div>
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-2xl px-8 py-4 rounded-[2rem] border border-white/10 shadow-2xl">
-            <Clock className="h-6 w-6 text-primary" />
-            <span className="text-3xl font-black tabular-nums tracking-tighter">
-              {time.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        </div>
 
-        {/* Center: Hero Product Info */}
-        <AnimatePresence mode="wait">
-          {currentService && (
+          {/* Información del Producto */}
+          <div className="absolute inset-0 flex flex-col justify-end p-20 pb-32">
             <motion.div
-              key={currentService.id + '-info'}
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="max-w-[90%] space-y-10"
+              initial={{ x: -100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="space-y-6 max-w-[80%]"
             >
-              <div className="space-y-4">
-                <Badge className="bg-primary text-white font-black px-6 py-2 rounded-full text-lg uppercase tracking-[0.2em] shadow-xl shadow-primary/20">
-                  {currentService.category === 'Food' ? 'Deliciosa Comida' : 
-                   currentService.category === 'Beverage' ? 'Refrescante Bebida' : 'Cuidado Personal'}
-                </Badge>
-                <h1 className="text-[7rem] font-black text-white uppercase tracking-tighter leading-[0.85] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-                  {currentService.name}
-                </h1>
-              </div>
+              <Badge className="bg-primary text-white text-3xl font-black uppercase tracking-[0.2em] px-10 py-4 rounded-full border-0 shadow-2xl">
+                {currentProduct.category}
+              </Badge>
+              
+              <h1 
+                className="text-white font-black tracking-tighter leading-[0.85] uppercase drop-shadow-2xl"
+                style={{ fontSize: '7rem' }}
+              >
+                {currentProduct.name}
+              </h1>
 
-              <div className="flex items-center gap-12">
-                <div className="bg-white/10 backdrop-blur-3xl border border-white/20 p-8 rounded-[3rem] shadow-2xl">
-                  <p className="text-primary font-black text-xl uppercase tracking-widest mb-1">Precio Especial</p>
-                  <p className="text-7xl font-black tracking-tighter">{formatCurrency(currentService.price)}</p>
+              <div className="flex items-center gap-10 pt-4">
+                <div className="bg-white/10 backdrop-blur-3xl border-2 border-white/20 px-12 py-6 rounded-[3rem] shadow-2xl">
+                  <span className="text-primary font-black tracking-tighter" style={{ fontSize: '6rem' }}>
+                    {formatCurrency(currentProduct.price)}
+                  </span>
                 </div>
-                <div className="space-y-2 max-w-xl">
-                  <p className="text-2xl text-white/80 font-medium leading-relaxed italic">
-                    {currentService.description || "Disponible para entrega inmediata en su habitación. Calidad premium garantizada."}
+                
+                {currentProduct.description && (
+                  <p className="text-white/60 text-3xl font-medium max-w-2xl leading-relaxed italic">
+                    "{currentProduct.description}"
                   </p>
-                </div>
+                )}
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Footer: Dynamic Progress & Instructions */}
-        <div className="flex items-end justify-between border-t border-white/10 pt-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-          <div className="flex items-center gap-8">
-            <div className="p-6 bg-white rounded-[2rem] text-black shadow-2xl flex items-center gap-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-                <SmartphoneIcon className="h-8 w-8 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pide desde tu móvil</p>
-                <p className="text-xl font-black uppercase tracking-tighter">Escanea el Código QR</p>
-              </div>
-            </div>
           </div>
+        </motion.div>
+      </AnimatePresence>
 
-          <div className="flex gap-3">
-            {services?.slice(0, 8).map((_, idx) => (
-              <div 
-                key={idx} 
-                className={cn(
-                  "h-2 rounded-full transition-all duration-1000",
-                  idx === currentIndex ? "w-16 bg-primary" : "w-2 bg-white/20"
-                )} 
-              />
-            ))}
-          </div>
-        </div>
+      {/* Indicadores de Progreso Inferiores */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-3">
+        {activeServices.map((_, i) => (
+          <div 
+            key={i}
+            className={cn(
+              "h-2 rounded-full transition-all duration-1000",
+              currentIndex === i ? "w-16 bg-primary" : "w-2 bg-white/20"
+            )}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function UtensilsIcon(props: any) {
+function Utensils(props: any) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+      <path d="M7 2v20" />
+      <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
     </svg>
-  );
-}
-
-function SmartphoneIcon(props: any) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>
-    </svg>
-  );
-}
-
-function Badge({ children, className }: any) {
-  return (
-    <div className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)}>
-      {children}
-    </div>
   );
 }
