@@ -34,6 +34,7 @@ import {
   BarChart3,
   ShoppingBasket,
   MonitorPlay,
+  QrCode,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -185,7 +186,7 @@ export default function DashboardPage() {
     {
       title: 'Marketing y Visualización',
       scope: 'Pantallas públicas y promoción.',
-      description: 'Configuración de menús digitales para clientes.',
+      description: 'Configuración de menús digitales y pedidos remotos.',
       roles: ['Administrador', 'Recepcion'],
       links: [
         {
@@ -193,6 +194,13 @@ export default function DashboardPage() {
           title: 'Menú Digital (TV)',
           description: 'Abrir pantalla pública para televisores en modo kiosko.',
           icon: MonitorPlay,
+          badge: 'PÚBLICO',
+        },
+        {
+          href: '/public/order',
+          title: 'Auto-Pedido (Móvil)',
+          description: 'Interfaz para que el cliente pida desde su mesa vía QR.',
+          icon: QrCode,
           badge: 'PÚBLICO',
         },
       ],
@@ -277,6 +285,12 @@ export default function DashboardPage() {
           title: 'Ajustes del Sistema',
           description: 'Configura tipos de habitación, sonidos de alerta y otros parámetros.',
           icon: Cog,
+        },
+        {
+          href: '/settings/room-types',
+          title: 'Tipos de Habitación',
+          description: 'Configure tarifas y características de habitaciones.',
+          icon: BedDouble,
         },
         {
           href: '/users',
