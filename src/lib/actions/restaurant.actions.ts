@@ -102,7 +102,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     name: i.service.name,
                     quantity: i.quantity,
                     price: i.service.price,
-                    notes: i.notes
+                    notes: i.notes || null // Fix: ensure it's not undefined
                 })),
                 total,
                 createdAt: Timestamp.now(),
@@ -119,6 +119,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
         revalidatePath('/public/order');
         return { success: true };
     } catch (e: any) {
+        console.error("Open table account error:", e);
         return { error: e.message || "Error al abrir cuenta." };
     }
 }
@@ -136,7 +137,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             // Update items
             const updatedItems = [...orderData.items];
             for (const item of items) {
-                const existing = updatedItems.find(ui => ui.serviceId === item.service.id && ui.notes === item.notes);
+                const existing = updatedItems.find(ui => ui.serviceId === item.service.id && (ui.notes || null) === (item.notes || null));
                 if (existing) {
                     existing.quantity += item.quantity;
                 } else {
@@ -145,7 +146,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                         name: item.service.name,
                         quantity: item.quantity,
                         price: item.service.price,
-                        notes: item.notes
+                        notes: item.notes || null // Fix: ensure it's not undefined
                     });
                 }
 
@@ -166,6 +167,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
         revalidatePath('/public/order');
         return { success: true };
     } catch (e: any) {
+        console.error("Add to table account error:", e);
         return { error: e.message || "Error al actualizar cuenta." };
     }
 }
@@ -225,7 +227,7 @@ export async function payRestaurantAccount(
                 taxes: details.taxes,
                 total: details.total,
                 paymentMethod: details.paymentMethod,
-                voucherNumber: details.voucherNumber,
+                voucherNumber: details.voucherNumber || null,
                 orderId: orderId
             };
 

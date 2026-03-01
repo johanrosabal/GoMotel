@@ -80,7 +80,7 @@ export async function createOrder(
           name: detail.service.name,
           quantity: detail.quantity,
           price: detail.service.price,
-          notes: detail.notes
+          notes: detail.notes || null // Fix: ensure not undefined
         });
       }
 
@@ -92,7 +92,7 @@ export async function createOrder(
         status: 'Entregado',
         paymentStatus: paymentDetails ? 'Pagado' : 'Pendiente',
         paymentMethod: paymentDetails ? paymentDetails.paymentMethod : 'Por Definir',
-        voucherNumber: paymentDetails ? paymentDetails.voucherNumber : undefined,
+        voucherNumber: paymentDetails?.voucherNumber || null,
       };
 
       if (paymentDetails) {
@@ -122,7 +122,7 @@ export async function createOrder(
             orderId: orderRef.id,
             stayId: stayId,
             clientName: stayData.guestName,
-            clientId: stayData.guestId,
+            clientId: stayData.guestId || null,
             createdAt: Timestamp.now(),
             status: 'Pagada',
             items: cart.map(item => ({
@@ -135,7 +135,7 @@ export async function createOrder(
             taxes: paymentDetails.taxes,
             total: paymentDetails.total,
             paymentMethod: paymentDetails.paymentMethod,
-            voucherNumber: paymentDetails.voucherNumber,
+            voucherNumber: paymentDetails.voucherNumber || null,
         };
 
         transaction.set(invoiceRef, newInvoice);
