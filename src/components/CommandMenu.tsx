@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,6 +17,7 @@ import {
   Receipt,
   ShoppingCart,
   ShoppingBasket,
+  MonitorPlay,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -64,6 +64,13 @@ export function CommandMenu({ open, setOpen }: Props) {
             <CommandItem onSelect={() => runCommand(() => router.push('/pos'))}>
                 <ShoppingBasket className="mr-2 h-4 w-4" />
                 <span>Punto de Venta (POS)</span>
+            </CommandItem>
+          )}
+
+          {(role === 'Administrador' || role === 'Recepcion') && (
+            <CommandItem onSelect={() => runCommand(() => window.open('/public/menu', '_blank'))}>
+                <MonitorPlay className="mr-2 h-4 w-4" />
+                <span>Menú Digital (TV)</span>
             </CommandItem>
           )}
 

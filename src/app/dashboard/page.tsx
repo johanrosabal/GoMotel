@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,6 +33,7 @@ import {
   Building,
   BarChart3,
   ShoppingBasket,
+  MonitorPlay,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -179,6 +179,21 @@ export default function DashboardPage() {
           description: 'Controle los niveles de stock y el valor de sus activos.',
           icon: Package,
           roles: ['Administrador', 'Recepcion', 'Contador'],
+        },
+      ],
+    },
+    {
+      title: 'Marketing y Visualización',
+      scope: 'Pantallas públicas y promoción.',
+      description: 'Configuración de menús digitales para clientes.',
+      roles: ['Administrador', 'Recepcion'],
+      links: [
+        {
+          href: '/public/menu',
+          title: 'Menú Digital (TV)',
+          description: 'Abrir pantalla pública para televisores en modo kiosko.',
+          icon: MonitorPlay,
+          badge: 'PÚBLICO',
         },
       ],
     },
@@ -340,8 +355,8 @@ export default function DashboardPage() {
 
       {/* Navigation Sections */}
       {navSections.filter(section => section.roles.includes(userRole)).map((section) => (
-          <div key={section.title}>
-              <div className="space-y-1">
+          <div key={section.title} className="space-y-4">
+              <div className="space-y-1 mt-4">
                   <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
                       {section.title}
                       <span className="h-px flex-1 bg-primary/10"></span>
@@ -353,9 +368,9 @@ export default function DashboardPage() {
                       {section.description}
                   </p>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {section.links.filter(link => !link.roles || link.roles.includes(userRole)).map((link) => (
-                  <Link key={link.title} href={link.href} className="group relative">
+                  <Link key={link.title} href={link.href} className="group relative" target={link.href.startsWith('/public') ? "_blank" : "_self"}>
                       {link.badge === 'PASO 1' && (
                           <div className="absolute -top-2 -right-2 z-20">
                               <div className="rounded-full border transition-colors hover:bg-primary/80 bg-accent text-accent-foreground border-accent shadow-lg animate-bounce text-[8px] font-black py-0 px-1.5 h-5 flex items-center gap-1">
@@ -372,6 +387,8 @@ export default function DashboardPage() {
                           ? "border-primary border-2 ring-4 ring-primary/10 bg-primary/[0.03]"
                           : link.badge === 'NUEVO'
                           ? "border-primary/40 border-2 ring-4 ring-primary/5 bg-primary/[0.01]"
+                          : link.badge === 'PÚBLICO'
+                          ? "border-emerald-500/40 border-2 ring-4 ring-emerald-500/5 bg-emerald-500/[0.02]"
                           : "bg-card border-primary/5"
                       )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
@@ -380,13 +397,16 @@ export default function DashboardPage() {
                                       <Badge variant="default" className={cn("font-black text-[10px] px-2 h-5",
                                         link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 
                                         link.badge === 'NUEVO' ? 'bg-green-600 text-white' :
+                                        link.badge === 'PÚBLICO' ? 'bg-emerald-600 text-white' :
                                         'bg-primary text-primary-foreground'
                                       )}>{link.badge}</Badge>
                                   </div>
                               )}
                               <div className={cn(
                                   "mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm",
-                                  link.badge === 'PASO 1' ? "text-accent bg-accent/10" : "bg-primary/10 text-primary"
+                                  link.badge === 'PASO 1' ? "text-accent bg-accent/10" : 
+                                  link.badge === 'PÚBLICO' ? "text-emerald-600 bg-emerald-100" :
+                                  "bg-primary/10 text-primary"
                               )}>
                                   <link.icon className="size-6" />
                               </div>
