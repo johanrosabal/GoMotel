@@ -7,24 +7,105 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Eye } from 'lucide-react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Eye, Printer, FileDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import React, { useRef } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import InvoiceTemplate from './InvoiceTemplate';
 
 function ActionsMenu({ invoice }: { invoice: Invoice }) {
-    // Later we can add actions like "View PDF", "Send Email", etc.
+    const invoiceRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = () => {
+        const input = invoiceRef.current;
+        if (!input) return;
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const styles = Array.from(document.styleSheets)
+            .map(styleSheet => {
+                try {
+                    return Array.from(styleSheet.cssRules)
+                        .map(rule => rule.cssText)
+                        .join('');
+                } catch (e) {
+                    return '';
+                }
+            })
+            .join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Factura ${invoice.invoiceNumber}</title>
+                    <style>${styles}</style>
+                    <style>
+                        @page { size: auto; margin: 0mm; }
+                        body { margin: 1cm; background: white !important; }
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    </style>
+                </head>
+                <body>
+                    ${input.innerHTML}
+                    <script>
+                        window.onload = () => {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handleDownloadPdf = () => {
+        const input = invoiceRef.current;
+        if (!input) return;
+
+        html2canvas(input, { scale: 2 }).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`factura-${invoice.invoiceNumber}.pdf`);
+        });
+    };
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuItem disabled>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Detalle (Próximamente)
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Imprimir / Virtual
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleDownloadPdf}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Descargar PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalle (Próximamente)
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Template oculto para generación de PDF/Impresión */}
+            <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                <InvoiceTemplate invoice={invoice} ref={invoiceRef} />
+            </div>
+        </>
     );
 }
 
@@ -72,5 +153,3 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
         </div>
     );
 }
-
-    

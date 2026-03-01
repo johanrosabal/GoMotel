@@ -1,7 +1,7 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download } from 'lucide-react';
+import { CheckCircle, Download, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import React, { useRef, useState } from 'react';
 import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
@@ -68,22 +68,63 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
         });
     };
 
+    const handlePrint = () => {
+        const input = invoiceRefForPDF.current;
+        if (!input || !invoice) return;
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        // Capturar estilos actuales para que se vea bien en la ventana de impresión
+        const styles = Array.from(document.styleSheets)
+            .map(styleSheet => {
+                try {
+                    return Array.from(styleSheet.cssRules)
+                        .map(rule => rule.cssText)
+                        .join('');
+                } catch (e) {
+                    return '';
+                }
+            })
+            .join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Factura ${invoice.invoiceNumber}</title>
+                    <style>${styles}</style>
+                    <style>
+                        @page { size: auto; margin: 0mm; }
+                        body { margin: 1cm; background: white !important; }
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    </style>
+                </head>
+                <body>
+                    ${input.innerHTML}
+                    <script>
+                        window.onload = () => {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const handleShareViaWhatsApp = () => {
         if (!invoice) return;
-        
-        // Sanitize phone number (only digits)
         const cleanPhone = phoneNumber.replace(/\D/g, '');
-        
         const publicUrl = `${window.location.origin}/invoices/${invoice.id}`;
-        
         const whatsappMessage = encodeURIComponent(
             `¡Hola! Puedes ver y descargar tu factura #${invoice.invoiceNumber} por un monto de ${formatCurrency(invoice.total)} en el siguiente enlace: ${publicUrl}`
         );
-        
         const whatsappUrl = cleanPhone 
             ? `https://wa.me/${cleanPhone}?text=${whatsappMessage}`
             : `https://wa.me/?text=${whatsappMessage}`;
-            
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
         setShowPhoneInput(false);
     };
@@ -132,7 +173,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                         </div>
                     )}
 
-                    {/* Hidden div for PDF generation */}
+                    {/* Hidden div for PDF generation and Printing */}
                     <div className="absolute -left-[9999px] top-0">
                         <InvoiceTemplate invoice={invoice} ref={invoiceRefForPDF} />
                     </div>
@@ -141,9 +182,13 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                 <DialogFooter className="flex-col sm:flex-row sm:justify-center gap-2">
                     {!showPhoneInput && (
                         <>
+                            <Button type="button" variant="outline" onClick={handlePrint} disabled={isLoading || !invoice}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Imprimir
+                            </Button>
                             <Button type="button" onClick={handleDownloadPdf} disabled={isLoading || !invoice}>
                                 <Download className="mr-2 h-4 w-4" />
-                                Descargar PDF
+                                PDF
                             </Button>
                             <Button 
                                 type="button" 
@@ -153,7 +198,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                 onClick={() => setShowPhoneInput(true)}
                             >
                                 <WhatsAppIcon className="mr-2 h-4 w-4 fill-current" />
-                                Compartir por WhatsApp
+                                WhatsApp
                             </Button>
                         </>
                     )}
