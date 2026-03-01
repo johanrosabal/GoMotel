@@ -67,7 +67,7 @@ export async function deleteRestaurantTable(id: string) {
     }
 }
 
-export async function openTableAccount(tableId: string, items: { service: Service; quantity: number; notes?: string }[], label?: string) {
+export async function openTableAccount(tableId: string, items: { service: Service; quantity: number; notes?: string }[], label?: string, source: 'POS' | 'Public' = 'POS') {
     try {
         let orderIdForReturn: string | undefined;
 
@@ -110,7 +110,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                 total,
                 createdAt: Timestamp.now(),
                 status: 'Pendiente',
-                paymentStatus: 'Pendiente'
+                paymentStatus: 'Pendiente',
+                source: source
             };
 
             transaction.set(orderRef, newOrder);

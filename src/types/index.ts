@@ -149,6 +149,7 @@ export interface Order {
   invoiceId?: string;
   voucherNumber?: string;
   stayId?: string; // For compatibility with older code
+  source?: 'POS' | 'Public';
 }
 
 export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador';

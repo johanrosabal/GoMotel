@@ -15,7 +15,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare, Printer
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -334,7 +334,7 @@ export default function PosClientPage() {
 
         startTransition(async () => {
             let result;
-            // FIX: If there's no open account (currentOrder), process as direct sale even if a table is selected.
+            // If there's no open account (currentOrder), process as direct sale even if a table is selected.
             if (viewMode === 'fast' || !currentOrder) {
                 result = await createDirectSale({
                     items: cart.map(i => ({
@@ -387,7 +387,7 @@ export default function PosClientPage() {
                 result = await addToTableAccount(currentOrder.id, cart);
             } else {
                 const label = newAccountLabel.trim() || `Cuenta ${activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0 + 1}`;
-                result = await openTableAccount(selectedTable.id, cart, label);
+                result = await openTableAccount(selectedTable.id, cart, label, 'POS');
             }
 
             if (result.error) {
@@ -534,6 +534,7 @@ export default function PosClientPage() {
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
+                                        const isPublicOrder = tableOrders.some(o => o.source === 'Public');
                                         const oldestOrder = hasOrders ? [...tableOrders].sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
                                         const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
                                         const Icon = getTypeIcon(table.type);
@@ -544,32 +545,46 @@ export default function PosClientPage() {
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
                                                     "group relative flex flex-col items-center justify-between min-h-[220px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
-                                                    hasOrders 
-                                                        ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
-                                                        : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
+                                                    isPublicOrder
+                                                        ? "bg-orange-500/10 border-orange-500 shadow-xl shadow-orange-500/10 ring-4 ring-orange-500/5"
+                                                        : hasOrders 
+                                                            ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
+                                                            : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
-                                                    hasOrders 
-                                                        ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
-                                                        : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
+                                                    isPublicOrder
+                                                        ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20"
+                                                        : hasOrders 
+                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
+                                                            : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
-                                                    <Icon className="h-5 w-5" />
+                                                    {isPublicOrder ? <SmartphoneIcon className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                                                 </div>
                                                 
                                                 <div className="flex-1 flex flex-col items-center justify-center py-2 relative w-full">
                                                     <span className={cn(
                                                         "font-black text-5xl tracking-tighter transition-colors",
-                                                        hasOrders ? "text-primary" : "text-foreground"
+                                                        isPublicOrder ? "text-orange-600" : hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                     
                                                     {hasOrders && (
                                                         <div className="flex flex-col items-center gap-1 mt-1 animate-in fade-in zoom-in-95 duration-500">
-                                                            <div className="flex items-center gap-1 text-[9px] font-black text-primary/80 uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/10 backdrop-blur-sm">
+                                                            <div className={cn(
+                                                                "flex items-center gap-1 text-[9px] font-black uppercase px-3 py-1 rounded-full border backdrop-blur-sm",
+                                                                isPublicOrder 
+                                                                    ? "text-orange-700 bg-orange-100 border-orange-200" 
+                                                                    : "text-primary/80 bg-primary/10 border-primary/10"
+                                                            )}>
                                                                 <Clock className="h-3 w-3" /> {formatDistance(oldestOrder!.createdAt.toDate(), now, { locale: es, addSuffix: false })}
                                                             </div>
-                                                            {tableOrders.length > 1 && (
+                                                            {isPublicOrder && (
+                                                                <Badge className="text-[8px] font-black tracking-widest bg-orange-500 text-white h-4 px-1.5 animate-pulse">
+                                                                    AUTO-PEDIDO
+                                                                </Badge>
+                                                            )}
+                                                            {tableOrders.length > 1 && !isPublicOrder && (
                                                                 <Badge variant="outline" className="text-[8px] font-black tracking-widest border-primary/20 bg-background/50 text-primary h-4 px-1.5">
                                                                     {tableOrders.length} CUENTAS
                                                                 </Badge>
@@ -580,9 +595,11 @@ export default function PosClientPage() {
                                                 
                                                 <div className={cn(
                                                     "w-full px-4 py-3 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[48px]",
-                                                    hasOrders 
-                                                        ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
-                                                        : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
+                                                    isPublicOrder
+                                                        ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20"
+                                                        : hasOrders 
+                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
+                                                            : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
                                                     {hasOrders ? (
                                                         <span className="font-black text-base tracking-tighter shadow-sm">
@@ -647,13 +664,16 @@ export default function PosClientPage() {
                                                         className={cn(
                                                             "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 pr-14 gap-3 flex items-center border-2 transition-all",
                                                             selectedOrderId === order.id 
-                                                                ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                                                                ? order.source === 'Public' ? "bg-orange-500 text-white border-orange-600 shadow-lg scale-105" : "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
                                                                 : "bg-background text-muted-foreground border-input hover:border-primary/30"
                                                         )}
                                                         onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
                                                     >
                                                         <div className="flex flex-col items-start leading-none gap-1">
-                                                            <span className="truncate max-w-[120px]">{order.label}</span>
+                                                            <span className="truncate max-w-[120px] flex items-center gap-1.5">
+                                                                {order.source === 'Public' && <SmartphoneIcon className="h-3 w-3 opacity-70" />}
+                                                                {order.label}
+                                                            </span>
                                                             <span className={cn("text-[10px] font-bold", selectedOrderId === order.id ? "text-white/70" : "text-primary")}>
                                                                 {formatCurrency(order.total)}
                                                             </span>
