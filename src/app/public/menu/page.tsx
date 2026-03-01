@@ -1,6 +1,9 @@
-
 import PublicMenuClient from '@/components/public/PublicMenuClient';
 
 export default function PublicMenuPage() {
-  return <PublicMenuClient />;
+  return (
+    <div className="min-h-screen bg-black overflow-hidden">
+      <PublicMenuClient />
+    </div>
+  );
 }

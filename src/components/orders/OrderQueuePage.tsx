@@ -9,8 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, CheckCircle, Flame, ChefHat, GlassWater, Bell, MapPin } from 'lucide-react';
-import { formatDistance } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { updateOrderStatus } from '@/lib/actions/order.actions';
 import { useToast } from '@/hooks/use-toast';
 import { playNotificationSound } from '@/lib/sound';
@@ -52,34 +50,32 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
             currentAreaStatus === 'En preparación' && "border-primary bg-primary/[0.02]"
         )}>
             <CardHeader className={cn(
-                "p-4 border-b flex flex-row items-center justify-between",
+                "p-4 border-b flex flex-col gap-2",
                 isLate && currentAreaStatus !== 'Entregado' ? "bg-destructive/10" : "bg-muted/30"
             )}>
-                <div>
-                    <CardTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {order.locationLabel || 'LLEVAR'}
-                    </CardTitle>
-                    <div className="flex flex-col gap-0.5 mt-1">
+                <div className="flex items-start justify-between w-full">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            {order.locationLabel || 'LLEVAR'}
+                        </CardTitle>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase">
                             Ticket: {order.id.slice(-5).toUpperCase()}
                         </p>
-                        {order.label && order.label !== order.locationLabel && (
-                            <p className="text-[9px] font-black text-primary uppercase">
-                                Cliente: {order.label}
-                            </p>
-                        )}
                     </div>
-                </div>
-                <div className={cn(
-                    "flex flex-col items-end gap-1 px-3 py-1.5 rounded-xl border-2",
-                    isLate ? "border-destructive bg-destructive text-destructive-foreground" : "border-primary/20 bg-primary/10 text-primary"
-                )}>
-                    <div className="flex items-center gap-1.5 font-black text-sm tabular-nums">
+                    <div className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 font-black text-sm tabular-nums shadow-sm",
+                        isLate ? "border-destructive bg-destructive text-destructive-foreground" : "border-primary/20 bg-primary/10 text-primary"
+                    )}>
                         <Clock className="h-3.5 w-3.5" />
                         {Math.floor(elapsedTime / 60000)}:{(Math.floor(elapsedTime / 1000) % 60).toString().padStart(2, '0')}
                     </div>
                 </div>
+                {order.label && order.label !== order.locationLabel && (
+                    <Badge variant="outline" className="w-fit text-[9px] font-black tracking-widest bg-background/50 border-primary/20 text-primary uppercase">
+                        Cliente: {order.label}
+                    </Badge>
+                )}
             </CardHeader>
             <CardContent className="p-0 flex-1 flex flex-col">
                 <ScrollArea className="flex-1 p-4">
@@ -91,7 +87,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                                     <span className="flex-1 font-bold text-lg leading-tight uppercase">{item.name}</span>
                                 </div>
                                 {item.notes && (
-                                    <div className="ml-8 p-2 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded text-xs font-bold text-amber-700 dark:text-amber-400 italic">
+                                    <div className="ml-8 p-2 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded text-xs font-bold text-amber-700 dark:text-amber-400 italic shadow-sm">
                                         "{item.notes}"
                                     </div>
                                 )}
@@ -175,17 +171,17 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
                         {type === 'Kitchen' ? <Flame className="h-6 w-6" /> : <GlassWater className="h-6 w-6" />}
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black uppercase tracking-tighter">
+                        <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">
                             Cola de {type === 'Kitchen' ? 'Cocina' : 'Bar'}
                         </h1>
-                        <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                        <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2 mt-1">
                             <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                             Sistema en Línea - {filteredOrders.length} Pendientes
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="h-10 px-4 text-sm font-black bg-background border-2 tabular-nums">
+                    <Badge variant="outline" className="h-10 px-4 text-sm font-black bg-background border-2 tabular-nums shadow-sm">
                         {new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
                     </Badge>
                 </div>
