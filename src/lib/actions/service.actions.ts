@@ -168,6 +168,19 @@ export async function deleteService(serviceId: string) {
     }
 }
 
+export async function toggleServiceStatus(serviceId: string, currentStatus: boolean) {
+    try {
+        const serviceRef = doc(db, 'services', serviceId);
+        await updateDoc(serviceRef, { isActive: !currentStatus });
+        revalidatePath('/inventory');
+        revalidatePath('/catalog');
+        return { success: true, newStatus: !currentStatus };
+    } catch (e: any) {
+        console.error('Error toggling service status:', e);
+        return { error: 'No se pudo cambiar el estado del producto.' };
+    }
+}
+
 const spoilageSchema = z.object({
   serviceId: z.string(),
   quantity: z.coerce.number().int().min(1, 'La cantidad debe ser mayor a 0.'),

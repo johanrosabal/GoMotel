@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Service } from '@/types';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, cn } from '@/lib/utils';
-import { MoreHorizontal, ArchiveX, Trash2, Search, Filter, AlertTriangle, Edit } from 'lucide-react';
+import { MoreHorizontal, ArchiveX, Trash2, Search, Filter, AlertTriangle, Edit, Power, PowerOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,8 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EditServiceDialog from './EditServiceDialog';
+import { toggleServiceStatus } from '@/lib/actions/service.actions';
+import { useToast } from '@/hooks/use-toast';
 
 interface InventoryTableProps {
   initialServices: Service[];
@@ -45,13 +47,29 @@ function ActionsCell({ service, allServices }: { service: Service, allServices: 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSpoilageDialogOpen, setIsSpoilageDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const { userProfile } = useUserProfile();
+    const { toast } = useToast();
+
+    const handleToggleStatus = () => {
+        startTransition(async () => {
+            const result = await toggleServiceStatus(service.id, !!service.isActive);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ 
+                    title: result.newStatus ? 'Producto Activado' : 'Producto Desactivado',
+                    description: `El producto "${service.name}" ha sido ${result.newStatus ? 'activado' : 'desactivado'}.`
+                });
+            }
+        });
+    };
 
     return (
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                <Button aria-haspopup="true" size="icon" variant="ghost">
+                <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending}>
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Toggle menu</span>
                 </Button>
@@ -65,6 +83,14 @@ function ActionsCell({ service, allServices }: { service: Service, allServices: 
                 <DropdownMenuItem onSelect={() => setIsSpoilageDialogOpen(true)}>
                     <ArchiveX className="mr-2 h-4 w-4" />
                     Registrar Merma
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleToggleStatus} className={cn(service.isActive ? "text-amber-600" : "text-green-600")}>
+                    {service.isActive ? (
+                        <><PowerOff className="mr-2 h-4 w-4" /> Desactivar Producto</>
+                    ) : (
+                        <><Power className="mr-2 h-4 w-4" /> Activar Producto</>
+                    )}
                 </DropdownMenuItem>
                 {userProfile?.role === 'Administrador' && (
                   <>
@@ -179,8 +205,12 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
                 <TableBody>
                     {filteredServices.map((service) => {
                         const isLowStock = service.minStock != null && service.stock <= service.minStock && service.source !== 'Internal';
+                        const isInactive = service.isActive === false;
                         return (
-                            <TableRow key={service.id} className={cn(isLowStock && "bg-yellow-50/50 dark:bg-yellow-900/10")}>
+                            <TableRow key={service.id} className={cn(
+                                isLowStock && "bg-yellow-50/50 dark:bg-yellow-900/10",
+                                isInactive && "opacity-60 bg-muted/30"
+                            )}>
                                 <TableCell>
                                 <Badge variant="outline" className="font-mono">{service.code}</Badge>
                                 </TableCell>
@@ -201,7 +231,7 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
                                         <span className={cn("font-black text-sm", isLowStock ? "text-destructive" : "text-foreground")}>
                                             {service.source === 'Internal' ? '-' : service.stock}
                                         </span>
-                                        {isLowStock && (
+                                        {isLowStock && !isInactive && (
                                             <span className="text-[9px] font-black text-destructive uppercase flex items-center gap-1">
                                                 <AlertTriangle className="h-2 w-2" /> Stock Bajo
                                             </span>
