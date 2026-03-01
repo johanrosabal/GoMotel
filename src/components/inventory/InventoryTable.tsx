@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Service } from '@/types';
@@ -13,8 +13,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/utils';
-import { MoreHorizontal, ArchiveX, Trash2 } from 'lucide-react';
+import { formatCurrency, cn } from '@/lib/utils';
+import { MoreHorizontal, ArchiveX, Trash2, Search, Filter, AlertTriangle, Edit } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,9 @@ import { Button } from '@/components/ui/button';
 import DeleteServiceAlert from './DeleteServiceAlert';
 import ServiceSpoilageDialog from './ServiceSpoilageDialog';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import EditServiceDialog from './EditServiceDialog';
 
 interface InventoryTableProps {
   initialServices: Service[];
@@ -38,9 +41,10 @@ const categoryMap: Record<Service['category'], string> = {
   Amenity: 'Amenidad',
 };
 
-function ActionsCell({ service }: { service: Service }) {
+function ActionsCell({ service, allServices }: { service: Service, allServices: Service[] }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSpoilageDialogOpen, setIsSpoilageDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const { userProfile } = useUserProfile();
 
     return (
@@ -53,8 +57,11 @@ function ActionsCell({ service }: { service: Service }) {
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Acciones de Producto</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar Detalles
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setIsSpoilageDialogOpen(true)}>
                     <ArchiveX className="mr-2 h-4 w-4" />
                     Registrar Merma
@@ -72,6 +79,7 @@ function ActionsCell({ service }: { service: Service }) {
             </DropdownMenu>
             <DeleteServiceAlert serviceId={service.id} open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} />
             <ServiceSpoilageDialog service={service} open={isSpoilageDialogOpen} onOpenChange={setIsSpoilageDialogOpen} />
+            <EditServiceDialog service={service} allServices={allServices} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
         </>
     );
 }
@@ -79,6 +87,8 @@ function ActionsCell({ service }: { service: Service }) {
 export default function InventoryTable({ initialServices }: InventoryTableProps) {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [loading, setLoading] = useState(initialServices.length === 0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     const q = query(
@@ -102,54 +112,117 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
     return () => unsubscribe();
   }, []);
 
-  if (loading && services.length === 0) {
-    return <div className="text-center text-muted-foreground py-8">Cargando inventario...</div>;
-  }
+  const filteredServices = useMemo(() => {
+    return services.filter(service => {
+        const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             service.code?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = categoryFilter === 'all' || service.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+    });
+  }, [services, searchTerm, categoryFilter]);
 
-  if (services.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">
-        No se encontraron servicios. Haga clic en 'Añadir Servicio' para comenzar.
-      </div>
-    );
+  if (loading && services.length === 0) {
+    return <div className="text-center text-muted-foreground py-12">Cargando inventario...</div>;
   }
 
   return (
-    <div className="rounded-md border">
-        <Table>
-        <TableHeader>
-            <TableRow>
-            <TableHead>Código</TableHead>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="text-right">Existencias</TableHead>
-            <TableHead>
-                <span className="sr-only">Acciones</span>
-            </TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {services.map((service) => (
-            <TableRow key={service.id}>
-                <TableCell>
-                  <Badge variant="outline">{service.code}</Badge>
-                </TableCell>
-                <TableCell className="font-medium">{service.name}</TableCell>
-                <TableCell>
-                <Badge variant="secondary">{categoryMap[service.category]}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                {formatCurrency(service.price)}
-                </TableCell>
-                <TableCell className="text-right">{service.stock}</TableCell>
-                <TableCell>
-                    <ActionsCell service={service} />
-                </TableCell>
-            </TableRow>
-            ))}
-        </TableBody>
-        </Table>
+    <div className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4 items-end bg-muted/20 p-4 rounded-xl border">
+            <div className="grid gap-2 w-full md:flex-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Buscador</label>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar por nombre o código..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 bg-background"
+                    />
+                </div>
+            </div>
+            <div className="grid gap-2 w-full md:w-48">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Categoría Contable</label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="Food">Comidas</SelectItem>
+                        <SelectItem value="Beverage">Bebidas</SelectItem>
+                        <SelectItem value="Amenity">Amenidades</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
+        {filteredServices.length === 0 ? (
+            <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+                No se encontraron productos con los filtros aplicados.
+            </div>
+        ) : (
+            <div className="rounded-md border overflow-hidden">
+                <Table>
+                <TableHeader className="bg-muted/50">
+                    <TableRow>
+                    <TableHead className="w-[100px]">Código</TableHead>
+                    <TableHead>Nombre del Producto</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead className="text-right">Precio Venta</TableHead>
+                    <TableHead className="text-right">Stock Actual</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead className="text-right w-[50px]">
+                        <span className="sr-only">Acciones</span>
+                    </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredServices.map((service) => {
+                        const isLowStock = service.minStock != null && service.stock <= service.minStock && service.source !== 'Internal';
+                        return (
+                            <TableRow key={service.id} className={cn(isLowStock && "bg-yellow-50/50 dark:bg-yellow-900/10")}>
+                                <TableCell>
+                                <Badge variant="outline" className="font-mono">{service.code}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold">{service.name}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase">{service.source === 'Internal' ? 'Producción Interna' : 'Producto Comprado'}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="secondary" className="font-medium">{categoryMap[service.category]}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-black">
+                                    {formatCurrency(service.price)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex flex-col items-end">
+                                        <span className={cn("font-black text-sm", isLowStock ? "text-destructive" : "text-foreground")}>
+                                            {service.source === 'Internal' ? '-' : service.stock}
+                                        </span>
+                                        {isLowStock && (
+                                            <span className="text-[9px] font-black text-destructive uppercase flex items-center gap-1">
+                                                <AlertTriangle className="h-2 w-2" /> Stock Bajo
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant={service.isActive ? "default" : "secondary"} className={cn(service.isActive && "bg-green-600")}>
+                                        {service.isActive ? 'Activo' : 'Inactivo'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <ActionsCell service={service} allServices={services} />
+                                </TableCell>
+                            </TableRow>
+                        )
+                    })}
+                </TableBody>
+                </Table>
+            </div>
+        )}
     </div>
   );
 }
