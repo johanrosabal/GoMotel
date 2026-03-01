@@ -2,142 +2,162 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
-import type { Service, CompanyProfile } from '@/types';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Service, ProductCategory } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import AppLogo from '@/components/AppLogo';
+import { ImageIcon, Clock, Star, Zap } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+
+const SLIDE_DURATION = 8000; // 8 seconds per slide
 
 export default function PublicMenuClient() {
   const { firestore } = useFirebase();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [now, setNow] = useState(new Date());
-  const [activeIndex, setActiveIndex] = useState(0);
 
-  // Auto-slide effect
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'services'), orderBy('name'));
-  }, [firestore]);
-
+  const servicesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, 
+    [firestore]
+  );
   const { data: services, isLoading } = useCollection<Service>(servicesQuery);
-  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
-  const { data: company } = useDoc<CompanyProfile>(companyRef);
 
-  const activeServices = useMemo(() => services?.filter(s => s.isActive) || [], [services]);
+  const featuredServices = useMemo(() => {
+    if (!services) return [];
+    // Only show products with images for high impact
+    return services.filter(s => !!s.imageUrl);
+  }, [services]);
 
   useEffect(() => {
-    if (activeServices.length > 0) {
-      const interval = setInterval(() => {
-        setActiveIndex((prev) => (prev + 1) % activeServices.length);
-      }, 8000); // Rotate every 8 seconds
-      return () => clearInterval(interval);
-    }
-  }, [activeServices]);
+    if (featuredServices.length <= 1) return;
 
-  if (isLoading) {
-    return <div className="h-screen w-full bg-black flex items-center justify-center"><Skeleton className="h-20 w-64 bg-zinc-800" /></div>;
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % featuredServices.length);
+      setProgress(0);
+    }, SLIDE_DURATION);
+
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + (100 / (SLIDE_DURATION / 100)), 100));
+    }, 100);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(progressInterval);
+    };
+  }, [featuredServices.length]);
+
+  if (isLoading || featuredServices.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-20 w-20 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-white font-black uppercase tracking-widest animate-pulse">Cargando Menú Board...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (activeServices.length === 0) {
-    return <div className="h-screen w-full bg-black flex items-center justify-center text-white font-black uppercase tracking-widest">No hay productos activos</div>;
-  }
-
-  const currentProduct = activeServices[activeIndex];
+  const currentService = featuredServices[currentIndex];
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden relative cursor-none select-none">
-      {/* Background Images Layer */}
-      {activeServices.map((service, index) => (
+    <div className="fixed inset-0 bg-black overflow-hidden select-none cursor-none">
+      {/* Top Progress Bar */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 z-50 bg-white/10">
         <div 
-          key={service.id}
-          className={cn(
-            "absolute inset-0 transition-all duration-1000 ease-in-out",
-            index === activeIndex ? "opacity-100 scale-100 z-10" : "opacity-0 scale-110 z-0"
-          )}
-        >
-          <img 
-            src={service.imageUrl || 'https://picsum.photos/seed/menu/1920/1080'} 
-            alt={service.name} 
-            className="w-full h-full object-cover brightness-[0.6]"
-          />
-        </div>
-      ))}
-
-      {/* Progress Bar Top */}
-      <div className="fixed top-0 left-0 right-0 h-1 z-50">
-        <div 
-          key={activeIndex}
-          className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)] animate-progress-fast"
-          style={{ animationDuration: '8s' }}
+          className="h-full bg-primary transition-all duration-100 ease-linear shadow-[0_0_20px_rgba(var(--primary),0.5)]" 
+          style={{ width: `${progress}%` }} 
         />
       </div>
 
-      {/* Overlay Content */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-between p-12 lg:p-20">
-        {/* Top Branding & Clock */}
-        <div className="flex justify-between items-start animate-in fade-in slide-in-from-top-10 duration-700">
-          <div className="flex items-center gap-6 bg-black/40 backdrop-blur-xl px-8 py-4 rounded-full border border-white/10 shadow-2xl">
-            {company?.logoUrl ? (
-              <img src={company.logoUrl} className="h-12 w-12 object-contain" alt="Logo" />
-            ) : <AppLogo className="h-12 w-12 text-primary" />}
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-white">{company?.tradeName || 'Go Motel'}</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Menú Board</p>
-            </div>
-          </div>
+      {/* Main Slide */}
+      <div className="absolute inset-0 transition-opacity duration-1000">
+        <img 
+          key={currentService.id}
+          src={currentService.imageUrl} 
+          alt={currentService.name}
+          className="w-full h-full object-cover animate-ken-burns"
+        />
+        
+        {/* Cinematic Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
 
-          <div className="text-right bg-white/5 px-8 py-4 rounded-3xl border border-white/10 backdrop-blur-md">
-            <p className="text-5xl font-black font-mono tracking-tighter text-primary">
-              {now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-            <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mt-1">
-              {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
+        {/* Content Area */}
+        <div className="absolute inset-x-0 bottom-0 p-24 z-20 flex flex-col justify-end min-h-screen">
+          <div className="max-w-[90%] space-y-10 animate-in slide-in-from-left-10 duration-1000">
+            
+            <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <Badge className="bg-primary text-white h-12 px-8 text-xl font-black uppercase tracking-[0.3em] rounded-full border-0 shadow-2xl">
+                        {currentService.category === 'Food' ? 'Comida' : currentService.category === 'Beverage' ? 'Bebida' : 'Servicio'}
+                    </Badge>
+                    <div className="flex items-center gap-2 text-yellow-400">
+                        <Star className="h-8 w-8 fill-current" />
+                        <span className="text-2xl font-black uppercase tracking-widest text-white/80">RECOMENDADO</span>
+                    </div>
+                </div>
+                
+                <h1 className="text-[7rem] font-black text-white uppercase tracking-tighter leading-[0.85] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                    {currentService.name}
+                </h1>
+            </div>
+
+            <div className="flex items-center gap-12">
+                <div className="bg-white/10 backdrop-blur-2xl border-2 border-white/20 px-12 py-6 rounded-[3rem] shadow-2xl inline-block">
+                    <p className="text-7xl font-black text-white font-mono tracking-tighter">
+                        {formatCurrency(currentService.price)}
+                    </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <p className="text-2xl font-black text-primary uppercase tracking-widest flex items-center gap-3">
+                        <Zap className="h-8 w-8 fill-current" /> Pídelo desde tu mesa
+                    </p>
+                    <p className="text-xl text-white/60 font-medium">Escanea el código QR y ordena al instante</p>
+                </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Product Information */}
-        <div key={`info-${currentProduct.id}`} className="space-y-6 animate-in fade-in zoom-in-95 duration-1000 max-w-[90%]">
-          <div className="space-y-2">
-            <Badge className="bg-primary text-white text-xl px-6 py-2 rounded-full font-black uppercase tracking-widest border-none shadow-2xl">
-              RECOMENDADO: {currentProduct.category === 'Beverage' ? 'BEBIDAS' : currentProduct.category === 'Food' ? 'COMIDAS' : 'AMENIDADES'}
-            </Badge>
-            <h1 className="text-[7rem] font-black text-white uppercase tracking-tighter leading-[0.85] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-              {currentProduct.name}
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-10">
-            <div className="bg-white px-10 py-6 rounded-[2.5rem] shadow-2xl transform -rotate-2">
-              <p className="text-6xl font-black text-black tracking-tighter">
-                {formatCurrency(currentProduct.price)}
-              </p>
-            </div>
-            {currentProduct.description && (
-              <p className="text-2xl font-bold text-white/80 max-w-2xl drop-shadow-lg leading-tight uppercase tracking-tight">
-                {currentProduct.description}
-              </p>
-            )}
-          </div>
+      {/* Floating Info (Clock & Logo) */}
+      <div className="absolute top-12 right-12 z-50 flex items-center gap-8">
+        <div className="text-right bg-black/40 backdrop-blur-2xl px-10 py-6 rounded-[2.5rem] border-2 border-white/10 shadow-2xl">
+          <p className="text-6xl font-black font-mono tracking-tighter text-white leading-none mb-1">
+            {now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}
+          </p>
+          <p className="text-sm font-black text-primary uppercase tracking-[0.4em] ml-1">
+            {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+      </div>
+
+      {/* Background Music Hint or Extra Branding */}
+      <div className="absolute bottom-12 right-12 z-50">
+        <div className="bg-primary h-24 w-24 rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 border-4 border-white/20 animate-pulse">
+            <Smartphone className="h-10 w-10 text-white" />
         </div>
       </div>
 
       <style jsx global>{`
-        @keyframes progress-fast {
-          from { width: 0%; }
-          to { width: 100%; }
+        @keyframes kenburns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.15); }
         }
-        .animate-progress-fast {
-          animation-name: progress-fast;
-          animation-timing-function: linear;
-          animation-fill-mode: forwards;
+        .animate-ken-burns {
+          animation: kenburns ${SLIDE_DURATION + 1000}ms ease-out forwards;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>
