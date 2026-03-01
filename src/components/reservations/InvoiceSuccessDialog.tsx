@@ -1,7 +1,7 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, Printer } from 'lucide-react';
+import { CheckCircle, Download, Printer, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import React, { useRef, useState } from 'react';
 import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
@@ -10,6 +10,7 @@ import type { Invoice } from '@/types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import InvoiceTemplate from '../billing/invoices/InvoiceTemplate';
+import PosTicketTemplate from '../billing/invoices/PosTicketTemplate';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -27,6 +28,7 @@ interface InvoiceSuccessDialogProps {
 export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: InvoiceSuccessDialogProps) {
     const { firestore } = useFirebase();
     const invoiceRefForPDF = useRef<HTMLDivElement>(null);
+    const ticketRefForPrint = useRef<HTMLDivElement>(null);
     const [showPhoneInput, setShowPhoneInput] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -68,14 +70,59 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
         });
     };
 
-    const handlePrint = () => {
+    const handlePrintTicket = () => {
+        const input = ticketRefForPrint.current;
+        if (!input || !invoice) return;
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const styles = Array.from(document.styleSheets)
+            .map(styleSheet => {
+                try {
+                    return Array.from(styleSheet.cssRules)
+                        .map(rule => rule.cssText)
+                        .join('');
+                } catch (e) {
+                    return '';
+                }
+            })
+            .join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Ticket ${invoice.invoiceNumber}</title>
+                    <style>${styles}</style>
+                    <style>
+                        @page { size: 80mm auto; margin: 0mm; }
+                        body { margin: 0; padding: 0; background: white !important; }
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    </style>
+                </head>
+                <body>
+                    ${input.innerHTML}
+                    <script>
+                        window.onload = () => {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handlePrintInvoice = () => {
         const input = invoiceRefForPDF.current;
         if (!input || !invoice) return;
         
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
-        // Capturar estilos actuales para que se vea bien en la ventana de impresión
         const styles = Array.from(document.styleSheets)
             .map(styleSheet => {
                 try {
@@ -134,77 +181,86 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader className="items-center text-center">
                     <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                    <DialogTitle className="text-2xl">¡Pago Exitoso!</DialogTitle>
+                    <DialogTitle className="text-2xl font-black">¡PAGO COMPLETADO!</DialogTitle>
                     <DialogDescription>
-                        La factura se ha generado correctamente.
+                        Venta finalizada exitosamente.
                     </DialogDescription>
                 </DialogHeader>
-                {isLoading ? <p className="text-center">Cargando factura...</p> : invoice && (
+                {isLoading ? <p className="text-center animate-pulse">Generando comprobante...</p> : invoice && (
                 <>
-                    <div className="py-4 text-center">
-                        <p className="text-sm text-muted-foreground">Factura No.</p>
-                        <p className="text-3xl font-bold font-mono tracking-wider">{invoice.invoiceNumber}</p>
-                        <div className="mt-4 text-sm">
-                            <p><strong>Cliente:</strong> {invoice.clientName}</p>
-                            <p><strong>Total Pagado:</strong> {formatCurrency(invoice.total)}</p>
+                    <div className="py-6 text-center bg-muted/30 rounded-2xl border-2 border-dashed">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Comprobante N°</p>
+                        <p className="text-4xl font-black font-mono tracking-tighter text-primary">{invoice.invoiceNumber.split('-')[1]}</p>
+                        <div className="mt-4 px-4 space-y-1">
+                            <p className="text-xs font-bold uppercase truncate">{invoice.clientName}</p>
+                            <p className="text-2xl font-black text-foreground">{formatCurrency(invoice.total)}</p>
                         </div>
                     </div>
 
                     {showPhoneInput && (
-                        <div className="space-y-2 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <Label htmlFor="whatsapp-phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Número de WhatsApp</Label>
+                        <div className="space-y-3 p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-500/20 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label htmlFor="whatsapp-phone" className="text-[10px] font-black uppercase tracking-widest text-green-700 dark:text-green-400 ml-1">Número de WhatsApp</Label>
                             <div className="flex gap-2">
                                 <Input 
                                     id="whatsapp-phone"
-                                    placeholder="(506) 8888-8888" 
+                                    placeholder="(506) 0000-0000" 
                                     value={phoneNumber} 
                                     onChange={handlePhoneChange}
-                                    className="h-10 font-bold"
+                                    className="h-12 font-black text-lg rounded-xl border-green-500/30"
                                     autoFocus
                                 />
-                                <Button onClick={handleShareViaWhatsApp} className="bg-green-500 hover:bg-green-600">
-                                    Enviar
+                                <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg">
+                                    <ChevronRight className="h-6 w-6" />
                                 </Button>
                             </div>
-                            <p className="text-[10px] text-muted-foreground italic">Ingrese el número completo con el código de área.</p>
                         </div>
                     )}
 
                     {/* Hidden div for PDF generation and Printing */}
                     <div className="absolute -left-[9999px] top-0">
                         <InvoiceTemplate invoice={invoice} ref={invoiceRefForPDF} />
+                        <PosTicketTemplate invoice={invoice} ref={ticketRefForPrint} />
                     </div>
                 </>
                 )}
-                <DialogFooter className="flex-col sm:flex-row sm:justify-center gap-2">
+                <DialogFooter className="flex-col sm:flex-col gap-3">
                     {!showPhoneInput && (
                         <>
-                            <Button type="button" variant="outline" onClick={handlePrint} disabled={isLoading || !invoice}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Imprimir
-                            </Button>
-                            <Button type="button" onClick={handleDownloadPdf} disabled={isLoading || !invoice}>
-                                <Download className="mr-2 h-4 w-4" />
-                                PDF
-                            </Button>
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                className="bg-green-500 text-white hover:bg-green-600 hover:text-white" 
-                                disabled={isLoading || !invoice} 
-                                onClick={() => setShowPhoneInput(true)}
-                            >
-                                <WhatsAppIcon className="mr-2 h-4 w-4 fill-current" />
-                                WhatsApp
-                            </Button>
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                                <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md">
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Imprimir Ticket
+                                </Button>
+                                <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2">
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Factura Full
+                                </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2 border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white" 
+                                    disabled={isLoading || !invoice} 
+                                    onClick={() => setShowPhoneInput(true)}
+                                >
+                                    <WhatsAppIcon className="mr-2 h-4 w-4 fill-current" />
+                                    Enviar WhatsApp
+                                </Button>
+                                <Button type="button" variant="ghost" onClick={handleDownloadPdf} disabled={isLoading || !invoice} className="h-12 rounded-xl font-bold text-[10px] uppercase text-muted-foreground">
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Bajar PDF
+                                </Button>
+                            </div>
                         </>
                     )}
                     {showPhoneInput && (
-                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)}>
-                            Cancelar
+                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)} className="w-full font-bold">
+                            Cancelar y volver
                         </Button>
                     )}
                 </DialogFooter>

@@ -7,17 +7,19 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Eye, Printer, FileDown } from 'lucide-react';
+import { MoreHorizontal, Eye, Printer, FileDown, ReceiptText } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import InvoiceTemplate from './InvoiceTemplate';
+import PosTicketTemplate from './PosTicketTemplate';
 
 function ActionsMenu({ invoice }: { invoice: Invoice }) {
     const invoiceRef = useRef<HTMLDivElement>(null);
+    const ticketRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = () => {
+    const handlePrintInvoice = () => {
         const input = invoiceRef.current;
         if (!input) return;
         
@@ -63,6 +65,52 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
         printWindow.document.close();
     };
 
+    const handlePrintTicket = () => {
+        const input = ticketRef.current;
+        if (!input) return;
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const styles = Array.from(document.styleSheets)
+            .map(styleSheet => {
+                try {
+                    return Array.from(styleSheet.cssRules)
+                        .map(rule => rule.cssText)
+                        .join('');
+                } catch (e) {
+                    return '';
+                }
+            })
+            .join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Ticket ${invoice.invoiceNumber}</title>
+                    <style>${styles}</style>
+                    <style>
+                        @page { size: 80mm auto; margin: 0mm; }
+                        body { margin: 0; padding: 0; background: white !important; }
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    </style>
+                </head>
+                <body>
+                    ${input.innerHTML}
+                    <script>
+                        window.onload = () => {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const handleDownloadPdf = () => {
         const input = invoiceRef.current;
         if (!input) return;
@@ -84,26 +132,27 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                     <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={handlePrint}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Imprimir / Virtual
+                    <DropdownMenuLabel>Acciones de Impresión</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={handlePrintTicket}>
+                        <ReceiptText className="mr-2 h-4 w-4" />
+                        Imprimir Ticket (POS)
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handlePrintInvoice}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Imprimir Factura (Full)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleDownloadPdf}>
                         <FileDown className="mr-2 h-4 w-4" />
                         Descargar PDF
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver Detalle (Próximamente)
-                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Template oculto para generación de PDF/Impresión */}
+            {/* Templates ocultos para generación de PDF/Impresión */}
             <div className="absolute -left-[9999px] top-0 pointer-events-none">
                 <InvoiceTemplate invoice={invoice} ref={invoiceRef} />
+                <PosTicketTemplate invoice={invoice} ref={ticketRef} />
             </div>
         </>
     );
