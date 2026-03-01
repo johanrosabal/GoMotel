@@ -1,172 +1,128 @@
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Service, CompanyProfile } from '@/types';
-import { formatCurrency, cn } from '@/lib/utils';
+import { collection, query, where } from 'firebase/firestore';
+import type { Service } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import { Clock } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 
 export default function PublicMenuClient() {
   const { firestore } = useFirebase();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [time, setTime] = useState(new Date());
+  const [now, setNow] = useState(new Date());
 
-  // Data Fetching
   const servicesQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, 
     [firestore]
   );
-  const { data: allServices, isLoading } = useCollection<Service>(servicesQuery);
-
-  const activeServices = useMemo(() => {
-    if (!allServices) return [];
-    return allServices.filter(s => s.source === 'Internal' || s.stock > 0);
-  }, [allServices]);
+  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (activeServices.length <= 1) return;
-    const slideTimer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % activeServices.length);
-    }, 8000);
-    return () => clearInterval(slideTimer);
-  }, [activeServices.length]);
+    if (!services || services.length === 0) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % services.length);
+    }, 8000); // Rotar cada 8 segundos
+    return () => clearInterval(interval);
+  }, [services]);
 
-  if (isLoading) {
+  if (isLoading || !services || services.length === 0) {
     return (
-      <div className="h-screen w-full bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-white font-black uppercase tracking-[0.3em] animate-pulse">Cargando Menú...</p>
+      <div className="h-screen w-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="h-20 w-20 bg-muted rounded-full" />
+          <div className="h-4 w-48 bg-muted rounded" />
         </div>
       </div>
     );
   }
 
-  if (activeServices.length === 0) {
-    return (
-      <div className="h-screen w-full bg-black flex items-center justify-center">
-        <p className="text-white font-black uppercase tracking-[0.3em]">Menú no disponible</p>
-      </div>
-    );
-  }
-
-  const currentProduct = activeServices[currentIndex];
+  const currentService = services[currentIndex];
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden relative font-sans cursor-none">
-      {/* Reloj y Marca */}
-      <div className="absolute top-10 left-10 z-50 flex items-baseline gap-6 drop-shadow-2xl">
-        <div className="bg-black/40 backdrop-blur-3xl px-8 py-4 rounded-[2rem] border-2 border-white/10 flex items-center gap-4">
-          <Clock className="h-8 w-8 text-primary animate-pulse" />
-          <span className="text-5xl font-black tracking-tighter text-white tabular-nums">
-            {time.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
+    <div className="h-screen w-screen bg-black overflow-hidden relative">
+      {/* Background Image with Zoom Effect */}
+      <div className="absolute inset-0 transition-all duration-[8000ms] ease-linear scale-110">
+        {currentService.imageUrl ? (
+          <img 
+            src={currentService.imageUrl} 
+            alt={currentService.name} 
+            className="w-full h-full object-cover opacity-60"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-background" />
+        )}
+      </div>
+
+      {/* Overlay Content */}
+      <div className="absolute inset-0 flex flex-col justify-end p-20 bg-gradient-to-t from-black via-transparent to-transparent">
+        <div className="space-y-6 max-w-6xl animate-in slide-in-from-left-10 duration-1000">
+          <div className="flex items-center gap-4">
+            <span className="px-6 py-2 rounded-full bg-primary text-primary-foreground font-black uppercase text-xl tracking-[0.3em]">
+              {currentService.category === 'Food' ? 'Comida' : 'Bebida'}
+            </span>
+            <div className="h-1 flex-1 bg-white/20 rounded-full" />
+          </div>
+          
+          <h1 className="text-[10rem] font-black uppercase tracking-tighter leading-[0.85] text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            {currentService.name}
+          </h1>
+          
+          <div className="flex items-baseline gap-10">
+            <p className="text-[8rem] font-black text-primary tracking-tighter drop-shadow-2xl">
+              {formatCurrency(currentService.price)}
+            </p>
+            {currentService.description && (
+              <p className="text-3xl text-white/60 font-medium max-w-2xl leading-relaxed italic">
+                "{currentService.description}"
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentProduct.id}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="absolute inset-0"
-        >
-          {/* Imagen de Fondo Gigante */}
-          <div className="absolute inset-0">
-            {currentProduct.imageUrl ? (
-              <img 
-                src={currentProduct.imageUrl} 
-                alt={currentProduct.name}
-                className="w-full h-full object-cover brightness-[0.7] scale-105"
-              />
-            ) : (
-              <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
-                <Utensils className="h-64 w-64 text-white/5" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
+      {/* Header Info */}
+      <div className="absolute top-0 left-0 w-full p-12 flex justify-between items-start pointer-events-none">
+        <div className="bg-black/40 backdrop-blur-2xl p-6 rounded-[2rem] border border-white/10 flex items-center gap-6 shadow-2xl">
+          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center">
+            <Clock className="h-8 w-8 text-primary-foreground" />
           </div>
-
-          {/* Información del Producto */}
-          <div className="absolute inset-0 flex flex-col justify-end p-20 pb-32">
-            <motion.div
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="space-y-6 max-w-[80%]"
-            >
-              <Badge className="bg-primary text-white text-3xl font-black uppercase tracking-[0.2em] px-10 py-4 rounded-full border-0 shadow-2xl">
-                {currentProduct.category}
-              </Badge>
-              
-              <h1 
-                className="text-white font-black tracking-tighter leading-[0.85] uppercase drop-shadow-2xl"
-                style={{ fontSize: '7rem' }}
-              >
-                {currentProduct.name}
-              </h1>
-
-              <div className="flex items-center gap-10 pt-4">
-                <div className="bg-white/10 backdrop-blur-3xl border-2 border-white/20 px-12 py-6 rounded-[3rem] shadow-2xl">
-                  <span className="text-primary font-black tracking-tighter" style={{ fontSize: '6rem' }}>
-                    {formatCurrency(currentProduct.price)}
-                  </span>
-                </div>
-                
-                {currentProduct.description && (
-                  <p className="text-white/60 text-3xl font-medium max-w-2xl leading-relaxed italic">
-                    "{currentProduct.description}"
-                  </p>
-                )}
-              </div>
-            </motion.div>
+          <div className="pr-4">
+            <p className="text-5xl font-black text-white tabular-nums tracking-tighter">
+              {now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-xs font-black uppercase tracking-[0.4em] text-primary mt-1">Servicio Disponible</p>
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
 
-      {/* Indicadores de Progreso Inferiores */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-        {activeServices.map((_, i) => (
+        <div className="flex flex-col items-end gap-2">
+            <div className="bg-white text-black px-8 py-4 rounded-full font-black text-2xl uppercase tracking-widest shadow-2xl">
+                Menú Digital
+            </div>
+            <div className="text-white/40 font-black text-sm uppercase tracking-[0.5em] pr-4">
+                Publicidad Real-Time
+            </div>
+        </div>
+      </div>
+
+      {/* Progress Bars (Indicators) */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3">
+        {services.map((_, idx) => (
           <div 
-            key={i}
+            key={idx} 
             className={cn(
-              "h-2 rounded-full transition-all duration-1000",
-              currentIndex === i ? "w-16 bg-primary" : "w-2 bg-white/20"
-            )}
+              "h-2 rounded-full transition-all duration-500",
+              idx === currentIndex ? "w-16 bg-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "w-2 bg-white/20"
+            )} 
           />
         ))}
       </div>
     </div>
-  );
-}
-
-function Utensils(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-      <path d="M7 2v20" />
-      <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-    </svg>
   );
 }
