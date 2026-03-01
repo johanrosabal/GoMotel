@@ -40,9 +40,26 @@ export async function createOrder(
     return { error: 'ID de estancia no válido o carrito vacío.' };
   }
 
-  let invoiceIdForReturn: string | undefined;
-
   try {
+    let invoiceIdForReturn: string | undefined;
+    let nextInvoiceNumber = '';
+
+    // 1. Fetch Invoice Number if payment is upfront (Before transaction)
+    if (paymentDetails) {
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+        let nextInvoiceNumberInt = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
+            }
+        }
+        nextInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+    }
+
     await runTransaction(db, async (transaction) => {
       const serviceDetails: { service: Service; ref: DocumentReference; quantity: number; notes?: string }[] = [];
 
@@ -80,7 +97,7 @@ export async function createOrder(
           name: detail.service.name,
           quantity: detail.quantity,
           price: detail.service.price,
-          notes: detail.notes || null // Fix: ensure not undefined
+          notes: detail.notes || null
         });
       }
 
@@ -101,24 +118,11 @@ export async function createOrder(
         if (!staySnap.exists()) throw new Error('La estancia asociada no existe.');
         const stayData = staySnap.data();
 
-        const invoicesRef = collection(db, 'invoices');
-        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
-        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
-        let nextInvoiceNumberInt = 1;
-        if (!lastInvoiceSnap.empty) {
-            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
-            if (lastInvoiceData.invoiceNumber) {
-                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
-                if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
-            }
-        }
-        const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
-        
         const invoiceRef = doc(collection(db, 'invoices'));
         invoiceIdForReturn = invoiceRef.id;
 
         const newInvoice: Omit<Invoice, 'id'> = {
-            invoiceNumber: newInvoiceNumber,
+            invoiceNumber: nextInvoiceNumber,
             orderId: orderRef.id,
             stayId: stayId,
             clientName: stayData.guestName,

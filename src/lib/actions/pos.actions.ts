@@ -37,11 +37,26 @@ interface DirectSaleInput {
 export async function createDirectSale(values: DirectSaleInput) {
     if (values.items.length === 0) return { error: 'El carrito está vacío.' };
 
-    let invoiceIdForReturn: string | undefined;
-
     try {
+        // 1. Generate Invoice Number (Before transaction)
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+        
+        let nextNum = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastPart)) nextNum = lastPart + 1;
+            }
+        }
+        const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
+
+        let invoiceIdForReturn: string | undefined;
+
         await runTransaction(db, async (transaction) => {
-            // 1. Validar Stock
+            // 2. Validate Stock and update
             for (const item of values.items) {
                 const serviceRef = doc(db, 'services', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
@@ -57,22 +72,7 @@ export async function createDirectSale(values: DirectSaleInput) {
                 }
             }
 
-            // 2. Generar Número de Factura
-            const invoicesRef = collection(db, 'invoices');
-            const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
-            const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
-            
-            let nextNum = 1;
-            if (!lastInvoiceSnap.empty) {
-                const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
-                if (lastData.invoiceNumber) {
-                    const lastPart = parseInt(lastData.invoiceNumber.split('-')[1], 10);
-                    if (!isNaN(lastPart)) nextNum = lastPart + 1;
-                }
-            }
-            const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
-
-            // 3. Crear Factura
+            // 3. Create Invoice
             const invoiceRef = doc(collection(db, 'invoices'));
             invoiceIdForReturn = invoiceRef.id;
 
@@ -91,12 +91,12 @@ export async function createDirectSale(values: DirectSaleInput) {
                 taxes: values.taxes,
                 total: values.total,
                 paymentMethod: values.paymentMethod,
-                voucherNumber: values.voucherNumber,
+                voucherNumber: values.voucherNumber || null,
             };
 
             transaction.set(invoiceRef, invoiceData);
 
-            // 4. Actualizar SINPE si aplica
+            // 4. Update SINPE if applies
             if (values.paymentMethod === 'Sinpe Movil') {
                 const sinpeRef = collection(db, 'sinpeAccounts');
                 const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));

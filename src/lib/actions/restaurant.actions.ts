@@ -102,7 +102,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     name: i.service.name,
                     quantity: i.quantity,
                     price: i.service.price,
-                    notes: i.notes || null // Fix: ensure it's not undefined
+                    notes: i.notes || null
                 })),
                 total,
                 createdAt: Timestamp.now(),
@@ -146,7 +146,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                         name: item.service.name,
                         quantity: item.quantity,
                         price: item.service.price,
-                        notes: item.notes || null // Fix: ensure it's not undefined
+                        notes: item.notes || null
                     });
                 }
 
@@ -185,31 +185,33 @@ export async function payRestaurantAccount(
     }
 ) {
     try {
+        // 1. Generate Invoice Number (Before transaction to avoid atomic fetch issues)
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+        
+        let nextNum = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastPart)) nextNum = lastPart + 1;
+            }
+        }
+        const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
+
         let invoiceIdForReturn: string | undefined;
 
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
             const tableRef = doc(db, 'restaurantTables', tableId);
             
-            // Generate Invoice Number
-            const invoicesRef = collection(db, 'invoices');
-            const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
-            const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
-            let nextNum = 1;
-            if (!lastInvoiceSnap.empty) {
-                const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
-                if (lastData.invoiceNumber) {
-                    const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
-                    if (!isNaN(lastPart)) nextNum = lastPart + 1;
-                }
-            }
-            const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
-
             // Create Invoice
             const invoiceRef = doc(collection(db, 'invoices'));
             invoiceIdForReturn = invoiceRef.id;
 
             const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error("Pedido no encontrado.");
             const orderData = orderSnap.data() as Order;
 
             const invoiceData: Omit<Invoice, 'id'> = {
@@ -235,21 +237,36 @@ export async function payRestaurantAccount(
             transaction.update(orderRef, { status: 'Entregado', paymentStatus: 'Pagado', invoiceId: invoiceIdForReturn });
             
             // Check if there are other pending orders for this table
-            const ordersRef = collection(db, 'orders');
+            const ordersCollection = collection(db, 'orders');
             const otherOrdersQuery = query(
-                ordersRef, 
+                ordersCollection, 
                 where('locationId', '==', tableId), 
                 where('status', '==', 'Pendiente')
             );
             const otherOrdersSnap = await getDocs(otherOrdersQuery);
             
-            // Only set table to available if NO other orders are pending (counting the one we just paid)
             const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
             if (remainingOrders.length === 0) {
                 transaction.update(tableRef, { status: 'Available', currentOrderId: null });
             } else {
-                // Set the next pending order as current
                 transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+            }
+
+            // Update SINPE balance if applies
+            if (details.paymentMethod === 'Sinpe Movil') {
+                const sinpeRef = collection(db, 'sinpeAccounts');
+                const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
+                const sinpeSnap = await getDocs(sinpeQ);
+                
+                let targetRef = null;
+                for (const d of sinpeSnap.docs) {
+                    const acc = d.data();
+                    if ((acc.balance + details.total) <= (acc.limitAmount || Infinity)) {
+                        targetRef = d.ref;
+                        break;
+                    }
+                }
+                if (targetRef) transaction.update(targetRef, { balance: increment(details.total) });
             }
         });
 
@@ -257,6 +274,7 @@ export async function payRestaurantAccount(
         revalidatePath('/billing/invoices');
         return { success: true, invoiceId: invoiceIdForReturn };
     } catch (e: any) {
+        console.error("Pay restaurant account error:", e);
         return { error: e.message || "Error al procesar pago." };
     }
 }
@@ -305,9 +323,6 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
             const updatedItems = [...orderData.items];
             updatedItems.splice(itemIndex, 1);
 
-            // TODO: Log deletion reason/notes in an audit collection
-            console.log(`Item removed from order ${orderId}: ${item.name}. Reason: ${reason}. Notes: ${notes || 'N/A'}`);
-
             if (updatedItems.length === 0) {
                 // If no items left, cancel the order
                 transaction.update(orderRef, {
@@ -316,13 +331,11 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
                     status: 'Cancelado'
                 });
                 
-                // If this order is linked to a table, we check if we should free the table
                 if (orderData.locationId) {
                     const tableRef = doc(db, 'restaurantTables', orderData.locationId);
-                    // Check for other orders at the same location that are still pending
-                    const ordersRef = collection(db, 'orders');
+                    const ordersCollection = collection(db, 'orders');
                     const otherOrdersQuery = query(
-                        ordersRef, 
+                        ordersCollection, 
                         where('locationId', '==', orderData.locationId), 
                         where('status', '==', 'Pendiente')
                     );
