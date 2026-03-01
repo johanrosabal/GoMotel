@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -19,8 +20,8 @@ export default function TopNav() {
   const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
   const { data: company } = useDoc<CompanyProfile>(companyRef);
 
-  // Ocultar el TopNav en las rutas públicas para permitir una experiencia a pantalla completa (TV/Móvil Cliente)
-  const isPublicRoute = pathname?.startsWith('/public') || pathname?.startsWith('/invoices/');
+  // Ocultar el TopNav en las rutas públicas (TV y Móvil Cliente) para permitir experiencia a pantalla completa
+  const isPublicRoute = pathname?.includes('/public/') || pathname?.startsWith('/invoices/');
   if (isPublicRoute) return null;
 
   const showBackButton = user && pathname !== '/dashboard' && pathname !== '/';
