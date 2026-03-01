@@ -5,7 +5,7 @@ import { useFirebase } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const publicRoutes = ['/', '/register'];
+const publicRoutes = ['/', '/register', '/public/menu'];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useFirebase();
@@ -24,7 +24,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       router.push('/');
     } else if (user && publicRoutes.includes(pathname)) {
       // If user is logged in and on a base public route (login/register), redirect to home
-      router.push('/dashboard');
+      // Exception: allow authenticated users to view the public menu too
+      if (pathname !== '/public/menu') {
+        router.push('/dashboard');
+      }
     }
   }, [user, isUserLoading, router, pathname]);
 
@@ -53,12 +56,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   // If user is not logged in and not on a public page, we are about to redirect, so show nothing.
-  if (!user && !publicRoutes.includes(pathname) && !pathname.startsWith('/invoices/')) {
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/invoices/');
+  if (!user && !isPublicRoute) {
       return null;
   }
   
-  // If user is logged in and on a public page (but not a public invoice page), we are about to redirect, show nothing.
-  if(user && publicRoutes.includes(pathname)) {
+  // If user is logged in and on a base public page, redirect unless it's the menu
+  if(user && (pathname === '/' || pathname === '/register')) {
       return null;
   }
 
