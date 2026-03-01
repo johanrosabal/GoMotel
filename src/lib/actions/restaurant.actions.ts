@@ -116,6 +116,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
         });
 
         revalidatePath('/pos');
+        revalidatePath('/public/order');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || "Error al abrir cuenta." };
@@ -162,6 +163,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
         });
 
         revalidatePath('/pos');
+        revalidatePath('/public/order');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || "Error al actualizar cuenta." };
@@ -195,7 +197,7 @@ export async function payRestaurantAccount(
             if (!lastInvoiceSnap.empty) {
                 const lastData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
                 if (lastData.invoiceNumber) {
-                    const lastPart = parseInt(lastData.invoiceNumber.split('-')[1], 10);
+                    const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
                     if (!isNaN(lastPart)) nextNum = lastPart + 1;
                 }
             }

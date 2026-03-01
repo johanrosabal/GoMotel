@@ -5,7 +5,7 @@ import { useFirebase } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const publicRoutes = ['/', '/register', '/public/menu'];
+const publicRoutes = ['/', '/register', '/public/menu', '/public/order'];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useFirebase();
@@ -22,12 +22,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     if (!user && !isPublicRoute) {
       // If user is not logged in and not on a public route, redirect to login
       router.push('/');
-    } else if (user && publicRoutes.includes(pathname)) {
+    } else if (user && (pathname === '/' || pathname === '/register')) {
       // If user is logged in and on a base public route (login/register), redirect to home
-      // Exception: allow authenticated users to view the public menu too
-      if (pathname !== '/public/menu') {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     }
   }, [user, isUserLoading, router, pathname]);
 
@@ -61,7 +58,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       return null;
   }
   
-  // If user is logged in and on a base public page, redirect unless it's the menu
+  // If user is logged in and on a base public page, redirect
   if(user && (pathname === '/' || pathname === '/register')) {
       return null;
   }
