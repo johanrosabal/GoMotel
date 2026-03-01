@@ -69,6 +69,8 @@ export async function deleteRestaurantTable(id: string) {
 
 export async function openTableAccount(tableId: string, items: { service: Service; quantity: number; notes?: string }[], label?: string) {
     try {
+        let orderIdForReturn: string | undefined;
+
         await runTransaction(db, async (transaction) => {
             const tableRef = doc(db, 'restaurantTables', tableId);
             const tableSnap = await transaction.get(tableRef);
@@ -91,6 +93,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
 
             // 2. Create Order
             const orderRef = doc(collection(db, 'orders'));
+            orderIdForReturn = orderRef.id;
             const total = items.reduce((sum, i) => sum + i.service.price * i.quantity, 0);
             
             const newOrder: Omit<Order, 'id'> = {
@@ -111,13 +114,13 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             };
 
             transaction.set(orderRef, newOrder);
-            // Update table to occupied and set the most recent order as current (for legacy compatibility)
+            // Update table to occupied and set the most recent order as current
             transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
         });
 
         revalidatePath('/pos');
         revalidatePath('/public/order');
-        return { success: true };
+        return { success: true, orderId: orderIdForReturn };
     } catch (e: any) {
         console.error("Open table account error:", e);
         return { error: e.message || "Error al abrir cuenta." };
@@ -185,7 +188,7 @@ export async function payRestaurantAccount(
     }
 ) {
     try {
-        // 1. Generate Invoice Number (Before transaction to avoid atomic fetch issues)
+        // 1. Generate Invoice Number (Before transaction)
         const invoicesRef = collection(db, 'invoices');
         const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
         const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
