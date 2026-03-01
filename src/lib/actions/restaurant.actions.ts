@@ -105,6 +105,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     name: i.service.name,
                     quantity: i.quantity,
                     price: i.service.price,
+                    category: i.service.category,
                     notes: i.notes || null
                 })),
                 total,
@@ -121,6 +122,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
 
         revalidatePath('/pos');
         revalidatePath('/public/order');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
         return { success: true, orderId: orderIdForReturn };
     } catch (e: any) {
         console.error("Open table account error:", e);
@@ -150,6 +153,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                         name: item.service.name,
                         quantity: item.quantity,
                         price: item.service.price,
+                        category: item.service.category,
                         notes: item.notes || null
                     });
                 }
@@ -163,12 +167,15 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
 
             transaction.update(orderRef, {
                 items: updatedItems,
-                total: increment(newTotal)
+                total: increment(newTotal),
+                status: 'Pendiente' // Reset status to pending if new items are added
             });
         });
 
         revalidatePath('/pos');
         revalidatePath('/public/order');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
         return { success: true };
     } catch (e: any) {
         console.error("Add to table account error:", e);
@@ -359,6 +366,8 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
         });
 
         revalidatePath('/pos');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
         return { success: true };
     } catch (e: any) {
         console.error("Remove item error:", e);

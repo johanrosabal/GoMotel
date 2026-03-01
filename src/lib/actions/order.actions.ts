@@ -14,6 +14,7 @@ import {
   runTransaction,
   DocumentReference,
   limit,
+  updateDoc,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -97,6 +98,7 @@ export async function createOrder(
           name: detail.service.name,
           quantity: detail.quantity,
           price: detail.service.price,
+          category: detail.service.category,
           notes: detail.notes || null
         });
       }
@@ -106,7 +108,7 @@ export async function createOrder(
         items: orderItems,
         total: totalOrderPrice,
         createdAt: Timestamp.now(),
-        status: 'Entregado',
+        status: 'Pendiente',
         paymentStatus: paymentDetails ? 'Pagado' : 'Pendiente',
         paymentMethod: paymentDetails ? paymentDetails.paymentMethod : 'Por Definir',
         voucherNumber: paymentDetails?.voucherNumber || null,
@@ -175,6 +177,18 @@ export async function createOrder(
     console.error('Failed to create order:', error);
     return { error: error.message || 'Ocurrió un error inesperado al realizar el pedido.' };
   }
+}
+
+export async function updateOrderStatus(orderId: string, status: Order['status']) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, { status });
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || 'Error al actualizar estado del pedido.' };
+    }
 }
 
 export async function getOrdersForStay(stayId: string): Promise<Order[]> {

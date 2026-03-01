@@ -24,6 +24,7 @@ interface DirectSaleInput {
         name: string;
         quantity: number;
         price: number;
+        category?: 'Food' | 'Beverage' | 'Amenity';
         notes?: string;
     }[];
     clientName: string;
@@ -96,6 +97,28 @@ export async function createDirectSale(values: DirectSaleInput) {
 
             transaction.set(invoiceRef, invoiceData);
 
+            // Create Order for KDS
+            const orderRef = doc(collection(db, 'orders'));
+            transaction.set(orderRef, {
+                locationType: 'Takeout',
+                label: values.clientName || 'Venta POS',
+                items: values.items.map(i => ({
+                    serviceId: i.serviceId,
+                    name: i.name,
+                    quantity: i.quantity,
+                    price: i.price,
+                    category: i.category,
+                    notes: i.notes || null
+                })),
+                total: values.total,
+                createdAt: Timestamp.now(),
+                status: 'Entregado',
+                paymentStatus: 'Pagado',
+                paymentMethod: values.paymentMethod,
+                invoiceId: invoiceIdForReturn,
+                source: 'POS'
+            });
+
             // 4. Update SINPE if applies
             if (values.paymentMethod === 'Sinpe Movil') {
                 const sinpeRef = collection(db, 'sinpeAccounts');
@@ -117,6 +140,8 @@ export async function createDirectSale(values: DirectSaleInput) {
         revalidatePath('/inventory');
         revalidatePath('/billing/invoices');
         revalidatePath('/pos');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
         
         return { success: true, invoiceId: invoiceIdForReturn };
 

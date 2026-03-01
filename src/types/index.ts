@@ -132,6 +132,7 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  category?: 'Food' | 'Beverage' | 'Amenity';
   notes?: string;
 }
 

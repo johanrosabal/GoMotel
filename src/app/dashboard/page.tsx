@@ -35,6 +35,8 @@ import {
   ShoppingBasket,
   MonitorPlay,
   QrCode,
+  Flame,
+  GlassWater,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -137,6 +139,28 @@ export default function DashboardPage() {
   ];
 
   const navSections: NavSection[] = [
+    {
+      title: 'Centros de Preparación',
+      scope: 'Gestión de colas de producción en tiempo real.',
+      description: 'Pantallas para Cocineros y Bartenders.',
+      roles: ['Administrador', 'Recepcion', 'Conserje', 'Contador'],
+      links: [
+        {
+          href: '/kitchen',
+          title: 'Cola de Cocina',
+          description: 'Gestione los pedidos de comida en preparación.',
+          icon: Flame,
+          badge: 'ENVIVO',
+        },
+        {
+          href: '/bar',
+          title: 'Cola de Bar',
+          description: 'Gestione los pedidos de bebidas en preparación.',
+          icon: GlassWater,
+          badge: 'ENVIVO',
+        },
+      ],
+    },
     {
       title: 'Operaciones Principales',
       scope: 'Flujo de trabajo diario y atención al cliente.',
@@ -403,6 +427,8 @@ export default function DashboardPage() {
                           ? "border-primary/40 border-2 ring-4 ring-primary/5 bg-primary/[0.01]"
                           : link.badge === 'PÚBLICO'
                           ? "border-emerald-500/40 border-2 ring-4 ring-emerald-500/5 bg-emerald-500/[0.02]"
+                          : link.badge === 'ENVIVO'
+                          ? "border-orange-500/40 border-2 ring-4 ring-orange-500/5 bg-orange-500/[0.02]"
                           : "bg-card border-primary/5"
                       )}>
                           <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
@@ -412,6 +438,7 @@ export default function DashboardPage() {
                                         link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 
                                         link.badge === 'NUEVO' ? 'bg-green-600 text-white' :
                                         link.badge === 'PÚBLICO' ? 'bg-emerald-600 text-white' :
+                                        link.badge === 'ENVIVO' ? 'bg-orange-600 text-white' :
                                         'bg-primary text-primary-foreground'
                                       )}>{link.badge}</Badge>
                                   </div>
@@ -420,6 +447,7 @@ export default function DashboardPage() {
                                   "mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm",
                                   link.badge === 'PASO 1' ? "text-accent bg-accent/10" : 
                                   link.badge === 'PÚBLICO' ? "text-emerald-600 bg-emerald-100" :
+                                  link.badge === 'ENVIVO' ? "text-orange-600 bg-orange-100" :
                                   "bg-primary/10 text-primary"
                               )}>
                                   <link.icon className="size-6" />
