@@ -2,42 +2,31 @@
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { 
-    collection, 
-    query, 
-    where, 
-    orderBy, 
-    onSnapshot, 
-    doc, 
-    getDoc, 
-    updateDoc, 
-    addDoc, 
-    limit, 
-    increment, 
-    runTransaction 
-} from 'firebase/firestore';
-import type { Service, Tax, SinpeAccount, AppliedTax, RestaurantTable, Order, OrderItem } from '@/types';
+import { collection, query, where, orderBy, doc, onSnapshot, getDoc } from 'firebase/firestore';
+import type { Service, RestaurantTable, Order, SinpeAccount, AppliedTax } from '@/types';
+import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
+import { getServices } from '@/lib/actions/service.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
     Search, ShoppingCart, Plus, Minus, 
-    Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
-    ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, X, Sun, MapPin,
-    MessageSquare, History
+    Smartphone, ChevronRight, X, Utensils, 
+    CheckCircle, MessageSquare, MapPin, 
+    History, Clock, User
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const SESSION_ORDER_KEY = 'go_motel_active_order_id';
+const SESSION_TOKEN_KEY = 'public_order_session_v1';
 
 type CartItem = {
   service: Service;
@@ -50,107 +39,96 @@ export default function PublicOrderClient() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     
-    // View States
-    const [step, setStep] = useState(1); // 1: Welcome/Table, 2: Menu, 3: Cart/Payment
-    const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+    // UI State
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const [typeFilter, setTypeFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    
-    // Kitchen Notes
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+    const [view, setView] = useState<'menu' | 'cart' | 'history'>('menu');
+
+    // Notes state
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
 
-    // Persistence: Recover session on load
-    useEffect(() => {
-        const savedOrderId = localStorage.getItem(SESSION_ORDER_KEY);
-        if (savedOrderId && firestore) {
-            setActiveOrderId(savedOrderId);
-            setStep(2); // Jump to menu
-        }
-    }, [firestore]);
-
-    // Firestore Real-time data
+    // Fetch Tables
     const tablesQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, 
         [firestore]
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
-    const servicesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, 
-        [firestore]
-    );
-    const { data: services } = useCollection<Service>(servicesQuery);
-
-    const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes')) : null, [firestore]);
-    const { data: allTaxes } = useCollection<Tax>(taxesQuery);
-
-    const sinpeAccountsQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc')) : null, 
-        [firestore]
-    );
-    const { data: activeSinpeAccounts } = useCollection<SinpeAccount>(sinpeAccountsQuery);
-
-    // Watch active order for payment status
+    // Fetch Services
+    const [availableServices, setAvailableServices] = useState<Service[]>([]);
     useEffect(() => {
-        if (!activeOrderId || !firestore) return;
+        getServices().then(setAvailableServices);
+    }, []);
+
+    // Session Management
+    useEffect(() => {
+        const savedSession = localStorage.getItem(SESSION_TOKEN_KEY);
+        if (savedSession) {
+            const { tableId, orderId } = JSON.parse(savedSession);
+            if (tableId && allTables) {
+                const table = allTables.find(t => t.id === tableId);
+                if (table) setSelectedTable(table);
+            }
+            if (orderId) setActiveOrderId(orderId);
+        }
+    }, [allTables]);
+
+    // Monitor Active Order
+    useEffect(() => {
+        if (!firestore || !activeOrderId) return;
         const unsub = onSnapshot(doc(firestore, 'orders', activeOrderId), (snap) => {
             if (snap.exists()) {
                 const data = snap.data() as Order;
-                if (data.status === 'Entregado' && data.paymentStatus === 'Pagado') {
-                    localStorage.removeItem(SESSION_ORDER_KEY);
+                if (data.status === 'Cancelado' || data.paymentStatus === 'Pagado') {
+                    // Session ended
                     setActiveOrderId(null);
-                    setStep(1);
-                    toast({ title: "Cuenta Cerrada", description: "Su pago ha sido procesado. ¡Gracias por su visita!" });
+                    setSelectedTable(null);
+                    localStorage.removeItem(SESSION_TOKEN_KEY);
+                    toast({ title: 'Cuenta cerrada', description: 'Su cuenta ha sido pagada o cerrada.' });
                 }
             }
         });
         return () => unsub();
-    }, [activeOrderId, firestore, toast]);
+    }, [firestore, activeOrderId]);
+
+    const activeOrderQuery = useMemoFirebase(() => {
+        if (!firestore || !activeOrderId) return null;
+        return doc(firestore, 'orders', activeOrderId);
+    }, [firestore, activeOrderId]);
+    const { data: currentOrder } = useDoc<Order>(activeOrderQuery);
+
+    const filteredTables = useMemo(() => {
+        if (!allTables) return [];
+        return allTables.filter(t => typeFilter === 'all' || t.type === typeFilter);
+    }, [allTables, typeFilter]);
 
     const filteredServices = useMemo(() => {
-        if (!services) return [];
-        return services.filter(s => {
-            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
-            return matchesSearch && matchesCategory;
-        });
-    }, [services, searchTerm, categoryFilter]);
+        return availableServices.filter(s => 
+            s.isActive && (s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }, [availableServices, searchTerm]);
 
-    const totals = useMemo(() => {
-        const sub = cart.reduce((sum, i) => sum + i.service.price * i.quantity, 0);
-        let taxTotal = 0;
-        const taxMap = new Map<string, AppliedTax>();
-
-        if (allTaxes) {
-            cart.forEach(item => {
-                const itemTotal = item.service.price * item.quantity;
-                item.service.taxIds?.forEach(taxId => {
-                    const taxInfo = allTaxes.find(t => t.id === taxId);
-                    if (taxInfo) {
-                        const amount = itemTotal * (taxInfo.percentage / 100);
-                        taxTotal += amount;
-                        const existing = taxMap.get(taxId);
-                        if (existing) existing.amount += amount;
-                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount });
-                    }
-                });
-            });
-        }
-        return { subtotal: sub, totalTax: taxTotal, grandTotal: sub + taxTotal, appliedTaxes: Array.from(taxMap.values()) };
-    }, [cart, allTaxes]);
+    const cartTotal = useMemo(() => {
+        return cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0);
+    }, [cart]);
 
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
             if (existing) {
-                return prev.map(i => i.service.id === service.id ? { ...i, quantity: i.quantity + 1 } : i);
+                return prev.map(i => i.service.id === service.id 
+                    ? { ...i, quantity: i.quantity + 1 } 
+                    : i
+                );
             }
             return [...prev, { service, quantity: 1 }];
         });
+        toast({ title: 'Agregado', description: `${service.name} al carrito.` });
     };
 
     const handleRemoveFromCart = (serviceId: string) => {
@@ -163,12 +141,6 @@ export default function PublicOrderClient() {
         });
     };
 
-    const handleOpenNoteDialog = (index: number) => {
-        setEditingNoteIndex(index);
-        setCurrentNoteValue(cart[index].notes || '');
-        setNoteDialogOpen(true);
-    };
-
     const handleSaveNote = () => {
         if (editingNoteIndex === null) return;
         setCart(prev => prev.map((item, i) => i === editingNoteIndex ? { ...item, notes: currentNoteValue } : item));
@@ -176,312 +148,283 @@ export default function PublicOrderClient() {
         setEditingNoteIndex(null);
     };
 
-    const handleSelectTable = (table: RestaurantTable) => {
-        setSelectedTable(table);
-        startTransition(async () => {
-            const orderRef = doc(collection(firestore!, 'orders'));
-            const newOrder: Omit<Order, 'id'> = {
-                locationId: table.id,
-                locationType: table.type,
-                label: `Cliente Móvil - ${table.number}`,
-                items: [],
-                total: 0,
-                createdAt: Timestamp.now(),
-                status: 'Pendiente',
-                paymentStatus: 'Pendiente'
-            };
-            await updateDoc(doc(firestore!, 'restaurantTables', table.id), { status: 'Occupied', currentOrderId: orderRef.id });
-            await addDoc(collection(firestore!, 'orders'), newOrder);
-            
-            localStorage.setItem(SESSION_ORDER_KEY, orderRef.id);
-            setActiveOrderId(orderRef.id);
-            setStep(2);
-        });
-    };
-
     const handleSendOrder = () => {
-        if (!activeOrderId || cart.length === 0) return;
+        if (!selectedTable || cart.length === 0) return;
+
         startTransition(async () => {
-            const orderRef = doc(firestore!, 'orders', activeOrderId);
-            const snap = await getDoc(orderRef);
-            if (!snap.exists()) return;
-            
-            const existingItems = snap.data().items as OrderItem[];
-            const newItems = cart.map(i => ({
-                serviceId: i.service.id,
-                name: i.service.name,
-                quantity: i.quantity,
-                price: i.service.price,
-                notes: i.notes || null
-            }));
-
-            await updateDoc(orderRef, {
-                items: [...existingItems, ...newItems],
-                total: increment(totals.grandTotal),
-                status: 'Pendiente'
-            });
-
-            // Update stock
-            for (const item of cart) {
-                if (item.service.source !== 'Internal') {
-                    await updateDoc(doc(firestore!, 'services', item.service.id), { stock: increment(-item.quantity) });
-                }
+            let result;
+            if (activeOrderId) {
+                result = await addToTableAccount(activeOrderId, cart);
+            } else {
+                result = await openTableAccount(selectedTable.id, cart, `Cliente ${selectedTable.number}`);
             }
 
-            setCart([]);
-            setStep(2);
-            toast({ title: "Pedido Enviado", description: "En breve lo llevaremos a su ubicación." });
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                const orderId = result.orderId || activeOrderId;
+                setActiveOrderId(orderId);
+                localStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ tableId: selectedTable.id, orderId }));
+                setCart([]);
+                setView('history');
+                toast({ title: '¡Pedido enviado!', description: 'Su solicitud está siendo procesada.' });
+            }
         });
     };
 
-    // Step 1: Selection
-    if (step === 1) {
+    // --- VIEW: Selection ---
+    if (!selectedTable) {
         return (
-            <div className="h-[100dvh] w-full flex flex-col bg-muted/30 p-6">
-                <div className="flex-1 flex flex-col items-center justify-center space-y-8 max-w-md mx-auto w-full text-center">
-                    <div className="p-6 bg-primary/10 rounded-full"><Utensils className="h-12 w-12 text-primary" /></div>
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-black uppercase tracking-tight">Bienvenido</h1>
-                        <p className="text-muted-foreground font-medium">Por favor, seleccione su ubicación para comenzar a ordenar.</p>
+            <div className="min-h-[100dvh] bg-background p-6 flex flex-col items-center justify-center space-y-8">
+                <div className="text-center space-y-2">
+                    <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                        <MapPin className="h-10 w-10 text-primary" />
                     </div>
-                    
-                    <ScrollArea className="w-full h-96 border rounded-2xl bg-background shadow-sm">
-                        <div className="p-4 grid grid-cols-2 gap-3">
-                            {allTables?.map(table => (
-                                <button
-                                    key={table.id}
-                                    onClick={() => handleSelectTable(table)}
-                                    disabled={table.status === 'Occupied' || isPending}
-                                    className={cn(
-                                        "h-24 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all",
-                                        table.status === 'Occupied' 
-                                            ? "opacity-50 grayscale bg-muted cursor-not-allowed" 
-                                            : "hover:border-primary hover:bg-primary/5 active:scale-95"
-                                    )}
-                                >
-                                    <span className="text-xs font-black uppercase text-muted-foreground">{table.type}</span>
-                                    <span className="text-2xl font-black">{table.number}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                    <h1 className="text-3xl font-black uppercase tracking-tight">Bienvenido</h1>
+                    <p className="text-muted-foreground font-medium">Por favor, seleccione su ubicación para comenzar.</p>
+                </div>
+
+                <div className="w-full max-w-sm space-y-6">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Filtrar Zona</Label>
+                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                            <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-base bg-card">
+                                <SelectValue placeholder="Todas las zonas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las zonas</SelectItem>
+                                <SelectItem value="Table">Mesas</SelectItem>
+                                <SelectItem value="Bar">Barra</SelectItem>
+                                <SelectItem value="Terraza">Terraza</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        {filteredTables.map(table => (
+                            <button
+                                key={table.id}
+                                onClick={() => setSelectedTable(table)}
+                                className="h-24 bg-card border-2 rounded-2xl flex flex-col items-center justify-center transition-all hover:border-primary hover:shadow-lg active:scale-95"
+                            >
+                                <span className="text-3xl font-black">{table.number}</span>
+                                <span className="text-[10px] font-bold uppercase opacity-50">{table.type}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // Step 2 & 3: Menu & Cart
     return (
-        <div className="h-[100dvh] w-full flex flex-col bg-background overflow-hidden relative">
+        <div className="flex flex-col h-[100dvh] bg-muted/30 overflow-hidden">
             {/* Header */}
-            <header className="h-16 border-b flex items-center justify-between px-4 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+            <div className="bg-background border-b px-6 py-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-black">GM</div>
-                    <h2 className="font-black text-sm uppercase tracking-tighter">Auto-Pedido</h2>
+                    <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
+                        <Utensils className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="font-black uppercase tracking-tight text-sm leading-none">Mesa {selectedTable.number}</h2>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">{selectedTable.type}</p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                        <History className="h-5 w-5" />
-                    </Button>
                     <button 
-                        onClick={() => setStep(3)}
-                        className="relative h-10 w-10 flex items-center justify-center bg-muted rounded-full"
-                    >
-                        <ShoppingCart className="h-5 w-5" />
-                        {cart.length > 0 && (
-                            <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary text-primary-foreground text-[10px] font-black rounded-full flex items-center justify-center animate-in zoom-in">
-                                {cart.reduce((s, i) => s + i.quantity, 0)}
-                            </span>
+                        onClick={() => setView('history')}
+                        className={cn(
+                            "h-10 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all",
+                            view === 'history' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                         )}
+                    >
+                        <History className="h-4 w-4" /> Mi Cuenta
                     </button>
                 </div>
-            </header>
-
-            {/* Menu View */}
-            <div className={cn("flex-1 flex flex-col overflow-hidden", step === 3 && "hidden")}>
-                <div className="p-4 border-b space-y-4 bg-muted/10">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="¿Qué se le antoja hoy?" 
-                            className="pl-9 h-12 bg-background border-none shadow-sm rounded-2xl"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <ScrollArea className="w-full whitespace-nowrap">
-                        <div className="flex gap-2 pb-2">
-                            {['all', 'Food', 'Beverage', 'Amenity'].map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setCategoryFilter(cat)}
-                                    className={cn(
-                                        "px-5 h-9 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
-                                        categoryFilter === cat ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
-                                    )}
-                                >
-                                    {cat === 'all' ? 'Todo' : cat === 'Food' ? 'Comidas' : cat === 'Beverage' ? 'Bebidas' : 'Extras'}
-                                </button>
-                            ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-
-                <ScrollArea className="flex-1">
-                    <div className="grid grid-cols-2 gap-4 p-4 pb-32">
-                        {filteredServices.map(service => (
-                            <div key={service.id} className="group relative aspect-[4/5] bg-card rounded-3xl overflow-hidden shadow-lg active:scale-95 transition-transform border border-border/10">
-                                <img src={service.imageUrl || 'https://picsum.photos/seed/food/400/500'} className="h-full w-full object-cover" alt="" />
-                                
-                                {/* Info Top: Category & Stock */}
-                                <div className="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/60 to-transparent flex justify-between items-start">
-                                    <span className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] font-black text-primary uppercase shadow-sm">
-                                        {service.category === 'Food' ? 'Cocina' : 'Bar'}
-                                    </span>
-                                    {service.source !== 'Internal' && (
-                                        <span className="text-[10px] font-black text-white drop-shadow-md">
-                                            {service.stock} Disp.
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Info Bottom: Name, Price, Add Button */}
-                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black via-black/40 to-transparent">
-                                    <h3 className="text-white font-black text-sm uppercase leading-tight line-clamp-2 mb-1">{service.name}</h3>
-                                    <p className="text-primary font-black text-lg mb-3">{formatCurrency(service.price)}</p>
-                                    <Button 
-                                        className="w-full h-10 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20"
-                                        onClick={() => handleAddToCart(service)}
-                                    >
-                                        Agregar
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-
-                {/* Floating Bottom Bar */}
-                {cart.length > 0 && (
-                    <div className="absolute bottom-6 inset-x-6 z-50 animate-in slide-in-from-bottom-10">
-                        <button 
-                            onClick={() => setStep(3)}
-                            className="w-full h-16 bg-primary text-primary-foreground rounded-3xl shadow-2xl flex items-center justify-between px-8 ring-4 ring-primary/20"
-                        >
-                            <div className="flex flex-col items-start leading-none">
-                                <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Ver Carrito</span>
-                                <span className="text-xl font-black">{formatCurrency(totals.grandTotal)}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm font-black uppercase">{cart.reduce((s,i) => s+i.quantity, 0)} Items</span>
-                                <ChevronRight className="h-6 w-6" />
-                            </div>
-                        </button>
-                    </div>
-                )}
             </div>
 
-            {/* Cart View */}
-            {step === 3 && (
-                <div className="flex-1 flex flex-col p-6 animate-in slide-in-from-right-10">
-                    <div className="flex items-center gap-4 mb-8">
-                        <Button variant="ghost" size="icon" onClick={() => setStep(2)} className="rounded-full h-12 w-12 bg-muted/50">
-                            <ChevronLeft className="h-6 w-6" />
-                        </Button>
-                        <h2 className="text-2xl font-black uppercase tracking-tight">Su Carrito</h2>
-                    </div>
-
-                    <ScrollArea className="flex-1 -mx-2 px-2">
-                        {cart.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 opacity-20">
-                                <ShoppingCart className="h-20 w-20" />
-                                <p className="font-black uppercase mt-4">Carrito Vacío</p>
+            {/* Content */}
+            <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6 pb-32">
+                    {view === 'menu' && (
+                        <>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Buscar comida o bebida..." 
+                                    className="pl-10 h-12 rounded-2xl border-2 bg-background focus:border-primary transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {cart.map((item, idx) => (
-                                    <div key={item.service.id} className="bg-card p-4 rounded-3xl border shadow-sm flex flex-col gap-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <img src={item.service.imageUrl} className="h-12 w-12 rounded-xl object-cover" alt="" />
-                                                <div>
-                                                    <p className="font-black text-xs uppercase">{item.service.name}</p>
-                                                    <p className="text-primary font-black">{formatCurrency(item.service.price)}</p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {filteredServices.map(service => (
+                                    <div key={service.id} className="bg-card rounded-3xl border-2 overflow-hidden shadow-sm group">
+                                        <div className="aspect-[4/5] relative overflow-hidden">
+                                            <img src={service.imageUrl || `https://picsum.photos/seed/${service.id}/400/500`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                                            
+                                            {/* Top Labels */}
+                                            <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap gap-1.5">
+                                                <Badge className="bg-white/90 backdrop-blur-md text-black border-none font-black text-[8px] uppercase px-2 py-0.5 rounded-lg shadow-sm">
+                                                    {service.category === 'Food' ? 'Comida' : 'Bebida'}
+                                                </Badge>
+                                                {service.source !== 'Internal' && (
+                                                    <Badge className="bg-primary/90 backdrop-blur-md text-primary-foreground border-none font-black text-[8px] uppercase px-2 py-0.5 rounded-lg shadow-sm">
+                                                        Stock: {service.stock}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            {/* Bottom Info Overlay */}
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 pt-10 z-10">
+                                                <h3 className="font-black text-xs uppercase tracking-tight text-white leading-tight mb-2 drop-shadow-md">{service.name}</h3>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-base font-black text-primary drop-shadow-md">{formatCurrency(service.price)}</span>
+                                                    <button 
+                                                        onClick={() => handleAddToCart(service)}
+                                                        className="h-8 w-8 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg active:scale-90 transition-transform"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 bg-primary/10 rounded-2xl p-1.5 border border-primary/20">
-                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="h-8 w-8 flex items-center justify-center bg-background rounded-xl shadow-sm text-primary">
-                                                    <Minus className="h-4 w-4" />
-                                                </button>
-                                                <span className="text-sm font-black text-primary min-w-[20px] text-center">{item.quantity}</span>
-                                                <button onClick={() => handleAddToCart(item.service)} className="h-8 w-8 flex items-center justify-center bg-background rounded-xl shadow-sm text-primary">
-                                                    <Plus className="h-4 w-4" />
-                                                </button>
-                                            </div>
                                         </div>
-                                        {item.service.source === 'Internal' && (
-                                            <div className="flex items-center gap-2">
-                                                <button 
-                                                    onClick={() => handleOpenNoteDialog(idx)}
-                                                    className={cn(
-                                                        "text-[9px] font-black uppercase px-3 py-1.5 rounded-xl border transition-all flex items-center gap-2",
-                                                        item.notes ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <MessageSquare className="h-3 w-3" />
-                                                    {item.notes ? "Instrucciones Guardadas" : "Añadir Instrucciones"}
-                                                </button>
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </ScrollArea>
+                        </>
+                    )}
 
-                    <div className="pt-6 border-t space-y-4">
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase">
-                                <span>Subtotal</span>
-                                <span>{formatCurrency(totals.subtotal)}</span>
+                    {view === 'history' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="flex items-center justify-between px-2">
+                                <h3 className="text-xl font-black uppercase tracking-tight">Consumo Actual</h3>
+                                <button onClick={() => setView('menu')} className="text-primary font-bold text-xs uppercase flex items-center gap-1">
+                                    <Plus className="h-3 w-3" /> Añadir más
+                                </button>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="font-black uppercase tracking-tight">Total a Pagar</span>
-                                <span className="text-3xl font-black text-primary tracking-tighter">{formatCurrency(totals.grandTotal)}</span>
+
+                            {currentOrder ? (
+                                <div className="space-y-4">
+                                    <div className="bg-card rounded-3xl border-2 p-6 shadow-sm space-y-4">
+                                        <div className="flex items-center justify-between border-b pb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                                                    <CheckCircle className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground leading-none">Estado</p>
+                                                    <p className="font-bold text-emerald-600 uppercase mt-1">{currentOrder.status}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground leading-none">Iniciado</p>
+                                                <p className="font-bold uppercase mt-1">{formatDistanceToNow(currentOrder.createdAt.toDate(), { locale: es, addSuffix: true })}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {currentOrder.items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-start py-1">
+                                                    <div className="flex gap-3">
+                                                        <span className="font-black text-primary">{item.quantity}x</span>
+                                                        <div>
+                                                            <p className="font-bold uppercase text-[11px] leading-none">{item.name}</p>
+                                                            {item.notes && <p className="text-[9px] text-muted-foreground italic mt-1">"{item.notes}"</p>}
+                                                        </div>
+                                                    </div>
+                                                    <span className="font-black text-xs">{formatCurrency(item.price * item.quantity)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-4 border-t space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-black uppercase text-muted-foreground">Total a Pagar</span>
+                                                <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(currentOrder.total)}</span>
+                                            </div>
+                                            <p className="text-[9px] text-center font-bold text-muted-foreground uppercase pt-2">Solicite su factura al personal</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-20 text-center space-y-4">
+                                    <ShoppingCart className="h-16 w-16 mx-auto opacity-10" />
+                                    <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Aún no tiene pedidos confirmados</p>
+                                    <Button onClick={() => setView('menu')} className="rounded-2xl h-12 px-8 font-black uppercase text-xs tracking-widest">Ver Catálogo</Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+
+            {/* Footer Cart Bar */}
+            {cart.length > 0 && (
+                <div className="absolute bottom-6 left-6 right-6 z-50 animate-in slide-in-from-bottom-10 duration-500">
+                    <div className="bg-black text-white p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between border-2 border-white/10 ring-8 ring-black/5">
+                        <div className="flex items-center gap-4 pl-2">
+                            <div className="relative">
+                                <ShoppingCart className="h-6 w-6 text-primary" />
+                                <Badge className="absolute -top-3 -right-3 h-5 w-5 flex items-center justify-center p-0 rounded-full font-black text-[10px]">{cart.length}</Badge>
+                            </div>
+                            <div className="flex flex-col leading-none">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Subtotal</span>
+                                <span className="text-xl font-black tracking-tighter">{formatCurrency(cartTotal)}</span>
                             </div>
                         </div>
-                        <Button 
-                            className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-base shadow-2xl shadow-primary/20"
-                            disabled={cart.length === 0 || isPending}
+                        <button 
                             onClick={handleSendOrder}
+                            disabled={isPending}
+                            className="h-14 px-8 bg-primary text-primary-foreground rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
                         >
-                            {isPending ? "PROCESANDO..." : "ENVIAR PEDIDO"}
-                        </Button>
+                            {isPending ? 'Enviando...' : (
+                                <>Confirmar <ChevronRight className="h-4 w-4" /></>
+                            )}
+                        </button>
                     </div>
                 </div>
             )}
 
             {/* Note Dialog */}
             <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-                <DialogContent className="sm:max-w-md rounded-3xl p-6">
+                <DialogContent className="sm:max-w-md rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-black uppercase">Instrucciones</DialogTitle>
-                        <DialogDescription className="font-medium">¿Cómo desea que preparemos su {editingNoteIndex !== null ? cart[editingNoteIndex].service.name : 'producto'}?</DialogDescription>
+                        <DialogTitle>Instrucciones de Cocina</DialogTitle>
+                        <DialogDescription>Añada indicaciones especiales para su preparación.</DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
-                        <Textarea 
-                            placeholder="Ej: Término medio, sin cebolla, muy caliente..." 
-                            className="min-h-[120px] rounded-2xl border-2 resize-none font-bold text-sm p-4 focus:border-primary"
-                            value={currentNoteValue}
-                            onChange={e => setCurrentNoteValue(e.target.value)}
-                        />
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas</Label>
+                            <Textarea 
+                                placeholder="Ej: Sin hielo, término medio, etc..."
+                                value={currentNoteValue}
+                                onChange={e => setCurrentNoteValue(e.target.value)}
+                                className="min-h-[120px] rounded-2xl border-2 resize-none text-sm font-bold"
+                                autoFocus
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
-                        <Button className="w-full h-12 rounded-2xl font-black uppercase tracking-widest" onClick={handleSaveNote}>Guardar Nota</Button>
+                        <Button variant="outline" className="rounded-2xl h-12 font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
+                        <Button className="rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote}>Guardar Nota</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
     );
+}
+
+// Internal component for real-time order monitoring
+function useDoc<T>(memoizedDocRef: any) {
+    const [data, setData] = useState<T | null>(null);
+    useEffect(() => {
+        if (!memoizedDocRef) return;
+        return onSnapshot(memoizedDocRef, (snap: any) => {
+            if (snap.exists()) setData({ id: snap.id, ...snap.data() } as T);
+            else setData(null);
+        });
+    }, [memoizedDocRef]);
+    return { data };
 }
