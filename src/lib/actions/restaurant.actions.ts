@@ -67,6 +67,12 @@ export async function deleteRestaurantTable(id: string) {
     }
 }
 
+const TYPE_LABELS: Record<string, string> = {
+    'Table': 'MESA',
+    'Bar': 'BARRA',
+    'Terraza': 'TERRAZA'
+};
+
 export async function openTableAccount(tableId: string, items: { service: Service; quantity: number; notes?: string }[], label?: string, source: 'POS' | 'Public' = 'POS') {
     try {
         let orderIdForReturn: string | undefined;
@@ -77,9 +83,16 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
             
             const tableData = tableSnap.data() as RestaurantTable;
+            const locationLabel = `${TYPE_LABELS[tableData.type] || tableData.type} ${tableData.number}`;
 
             // 1. Validate and Discount Stock
+            let hasKitchen = false;
+            let hasBar = false;
+
             for (const item of items) {
+                if (item.service.category === 'Food') hasKitchen = true;
+                if (item.service.category === 'Beverage') hasBar = true;
+
                 if (item.service.source !== 'Internal') {
                     const sRef = doc(db, 'services', item.service.id);
                     const sSnap = await transaction.get(sRef);
@@ -99,7 +112,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             const newOrder: Omit<Order, 'id'> = {
                 locationType: tableData.type,
                 locationId: tableId,
-                label: label || 'Cuenta Principal',
+                locationLabel: locationLabel,
+                label: label || locationLabel,
                 items: items.map(i => ({
                     serviceId: i.service.id,
                     name: i.service.name,
@@ -111,6 +125,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                 total,
                 createdAt: Timestamp.now(),
                 status: 'Pendiente',
+                kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+                barStatus: hasBar ? 'Pendiente' : 'Entregado',
                 paymentStatus: 'Pendiente',
                 source: source
             };
@@ -143,7 +159,13 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
 
             // Update items
             const updatedItems = [...orderData.items];
+            let hasNewKitchen = false;
+            let hasNewBar = false;
+
             for (const item of items) {
+                if (item.service.category === 'Food') hasNewKitchen = true;
+                if (item.service.category === 'Beverage') hasNewBar = true;
+
                 const existing = updatedItems.find(ui => ui.serviceId === item.service.id && (ui.notes || null) === (item.notes || null));
                 if (existing) {
                     existing.quantity += item.quantity;
@@ -165,11 +187,21 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                 }
             }
 
-            transaction.update(orderRef, {
+            const updates: Record<string, any> = {
                 items: updatedItems,
-                total: increment(newTotal),
-                status: 'Pendiente' // Reset status to pending if new items are added
-            });
+                total: increment(newTotal)
+            };
+
+            if (hasNewKitchen) {
+                updates.kitchenStatus = 'Pendiente';
+                updates.status = 'Pendiente';
+            }
+            if (hasNewBar) {
+                updates.barStatus = 'Pendiente';
+                updates.status = 'Pendiente';
+            }
+
+            transaction.update(orderRef, updates);
         });
 
         revalidatePath('/pos');
@@ -245,7 +277,13 @@ export async function payRestaurantAccount(
             };
 
             transaction.set(invoiceRef, invoiceData);
-            transaction.update(orderRef, { status: 'Entregado', paymentStatus: 'Pagado', invoiceId: invoiceIdForReturn });
+            transaction.update(orderRef, { 
+                status: 'Entregado', 
+                kitchenStatus: 'Entregado',
+                barStatus: 'Entregado',
+                paymentStatus: 'Pagado', 
+                invoiceId: invoiceIdForReturn 
+            });
             
             // Check if there are other pending orders for this table
             const ordersCollection = collection(db, 'orders');
@@ -339,7 +377,9 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
                 transaction.update(orderRef, {
                     items: [],
                     total: 0,
-                    status: 'Cancelado'
+                    status: 'Cancelado',
+                    kitchenStatus: 'Cancelado',
+                    barStatus: 'Cancelado'
                 });
                 
                 if (orderData.locationId) {

@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Order, OrderItem } from '@/types';
+import type { Order, OrderItem, PrepStatus } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Clock, CheckCircle, Flame, ChefHat, GlassWater, Bell } from 'lucide-react';
+import { Clock, CheckCircle, Flame, ChefHat, GlassWater, Bell, MapPin } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { updateOrderStatus } from '@/lib/actions/order.actions';
@@ -25,6 +25,8 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
     const { toast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
 
+    const currentAreaStatus = type === 'Kitchen' ? order.kitchenStatus : order.barStatus;
+
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(timer);
@@ -34,9 +36,9 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
     const minutes = Math.floor(elapsedTime / 60000);
     const isLate = minutes >= 15;
 
-    const handleUpdateStatus = async (newStatus: Order['status']) => {
+    const handleUpdateStatus = async (newStatus: PrepStatus) => {
         setIsUpdating(true);
-        const result = await updateOrderStatus(order.id, newStatus);
+        const result = await updateOrderStatus(order.id, newStatus, type);
         setIsUpdating(false);
         if (result.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -46,20 +48,28 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
     return (
         <Card className={cn(
             "flex flex-col h-full border-2 transition-all duration-300",
-            isLate && order.status !== 'Entregado' ? "border-destructive animate-pulse shadow-destructive/20" : "border-border shadow-md",
-            order.status === 'En preparación' && "border-primary bg-primary/[0.02]"
+            isLate && currentAreaStatus !== 'Entregado' ? "border-destructive animate-pulse shadow-destructive/20" : "border-border shadow-md",
+            currentAreaStatus === 'En preparación' && "border-primary bg-primary/[0.02]"
         )}>
             <CardHeader className={cn(
                 "p-4 border-b flex flex-row items-center justify-between",
-                isLate && order.status !== 'Entregado' ? "bg-destructive/10" : "bg-muted/30"
+                isLate && currentAreaStatus !== 'Entregado' ? "bg-destructive/10" : "bg-muted/30"
             )}>
                 <div>
-                    <CardTitle className="text-xl font-black uppercase tracking-tighter">
-                        {order.locationType === 'Takeout' ? 'LLEVAR' : `MESA ${order.label || order.locationId}`}
+                    <CardTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        {order.locationLabel || 'LLEVAR'}
                     </CardTitle>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                        Pedido: {order.id.slice(-5).toUpperCase()}
-                    </p>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Ticket: {order.id.slice(-5).toUpperCase()}
+                        </p>
+                        {order.label && order.label !== order.locationLabel && (
+                            <p className="text-[9px] font-black text-primary uppercase">
+                                Cliente: {order.label}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div className={cn(
                     "flex flex-col items-end gap-1 px-3 py-1.5 rounded-xl border-2",
@@ -91,7 +101,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                 </ScrollArea>
             </CardContent>
             <CardFooter className="p-4 border-t bg-muted/10 gap-2">
-                {order.status === 'Pendiente' ? (
+                {currentAreaStatus === 'Pendiente' ? (
                     <Button 
                         className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-lg"
                         onClick={() => handleUpdateStatus('En preparación')}
@@ -120,14 +130,16 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     const { firestore } = useFirebase();
     const lastOrderCount = useRef(0);
 
+    const areaStatusField = type === 'Kitchen' ? 'kitchenStatus' : 'barStatus';
+
     const ordersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
             collection(firestore, 'orders'),
-            where('status', 'in', ['Pendiente', 'En preparación']),
+            where(areaStatusField, 'in', ['Pendiente', 'En preparación']),
             orderBy('createdAt', 'asc')
         );
-    }, [firestore]);
+    }, [firestore, areaStatusField]);
 
     const { data: allOrders, isLoading } = useCollection<Order>(ordersQuery);
 

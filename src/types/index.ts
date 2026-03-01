@@ -136,15 +136,20 @@ export interface OrderItem {
   notes?: string;
 }
 
+export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
+
 export interface Order {
   id: string;
   locationType: string; // Dynamic
   locationId?: string;
-  label?: string; // For split accounts (e.g. "Persona 1", "Cuenta A")
+  locationLabel?: string; // Human readable (e.g. "Mesa 01", "Hab. 101")
+  label?: string; // Account label (e.g. "Persona 1")
   items: OrderItem[];
   total: number;
   createdAt: Timestamp;
-  status: 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
+  status: PrepStatus; // Global status
+  kitchenStatus?: PrepStatus;
+  barStatus?: PrepStatus;
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   invoiceId?: string;

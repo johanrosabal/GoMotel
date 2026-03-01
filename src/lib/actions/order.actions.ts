@@ -3,7 +3,6 @@
 import {
   collection,
   doc,
-  writeBatch,
   Timestamp,
   getDocs,
   query,
@@ -18,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Order, OrderItem, Service, AppliedTax, Invoice } from '@/types';
+import type { Order, OrderItem, Service, AppliedTax, Invoice, PrepStatus, Stay } from '@/types';
 
 type CartItem = {
   service: Service;
@@ -62,6 +61,11 @@ export async function createOrder(
     }
 
     await runTransaction(db, async (transaction) => {
+      const stayRef = doc(db, 'stays', stayId);
+      const staySnap = await transaction.get(stayRef);
+      if (!staySnap.exists()) throw new Error('La estancia asociada no existe.');
+      const stayData = staySnap.data() as Stay;
+
       const serviceDetails: { service: Service; ref: DocumentReference; quantity: number; notes?: string }[] = [];
 
       for (const item of cart) {
@@ -84,6 +88,8 @@ export async function createOrder(
       const orderRef = doc(collection(db, 'orders'));
       let totalOrderPrice = 0;
       const orderItems: OrderItem[] = [];
+      let hasKitchen = false;
+      let hasBar = false;
 
       for (const detail of serviceDetails) {
         if (detail.service.source !== 'Internal') {
@@ -92,6 +98,9 @@ export async function createOrder(
 
         const itemPrice = detail.service.price * detail.quantity;
         totalOrderPrice += itemPrice;
+
+        if (detail.service.category === 'Food') hasKitchen = true;
+        if (detail.service.category === 'Beverage') hasBar = true;
 
         orderItems.push({
           serviceId: detail.service.id,
@@ -105,21 +114,22 @@ export async function createOrder(
 
       const newOrder: Omit<Order, 'id'> = {
         stayId,
+        locationType: 'Stay',
+        locationId: stayId,
+        locationLabel: `Hab. ${stayData.roomNumber}`,
+        label: stayData.guestName,
         items: orderItems,
         total: totalOrderPrice,
         createdAt: Timestamp.now(),
         status: 'Pendiente',
+        kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+        barStatus: hasBar ? 'Pendiente' : 'Entregado',
         paymentStatus: paymentDetails ? 'Pagado' : 'Pendiente',
         paymentMethod: paymentDetails ? paymentDetails.paymentMethod : 'Por Definir',
         voucherNumber: paymentDetails?.voucherNumber || null,
       };
 
       if (paymentDetails) {
-        const stayRef = doc(db, 'stays', stayId);
-        const staySnap = await transaction.get(stayRef);
-        if (!staySnap.exists()) throw new Error('La estancia asociada no existe.');
-        const stayData = staySnap.data();
-
         const invoiceRef = doc(collection(db, 'invoices'));
         invoiceIdForReturn = invoiceRef.id;
 
@@ -179,10 +189,34 @@ export async function createOrder(
   }
 }
 
-export async function updateOrderStatus(orderId: string, status: Order['status']) {
+export async function updateOrderStatus(orderId: string, status: PrepStatus, area?: 'Kitchen' | 'Bar') {
     try {
         const orderRef = doc(db, 'orders', orderId);
-        await updateDoc(orderRef, { status });
+        const updates: Record<string, any> = {};
+        
+        if (area === 'Kitchen') {
+            updates.kitchenStatus = status;
+        } else if (area === 'Bar') {
+            updates.barStatus = status;
+        } else {
+            updates.status = status;
+        }
+
+        // Si se marca algo como entregado, verificar si el pedido global está completo
+        const snap = await getDoc(orderRef);
+        if (snap.exists() && area) {
+            const data = snap.data() as Order;
+            const newKitchen = area === 'Kitchen' ? status : data.kitchenStatus;
+            const newBar = area === 'Bar' ? status : data.barStatus;
+            
+            if (newKitchen === 'Entregado' && newBar === 'Entregado') {
+                updates.status = 'Entregado';
+            } else if (newKitchen === 'En preparación' || newBar === 'En preparación') {
+                updates.status = 'En preparación';
+            }
+        }
+
+        await updateDoc(orderRef, updates);
         revalidatePath('/kitchen');
         revalidatePath('/bar');
         return { success: true };
@@ -248,7 +282,11 @@ export async function cancelOrder(orderId: string) {
             transaction.update(serviceUpdate.ref, { stock: increment(serviceUpdate.quantity) });
         }
 
-        transaction.update(orderRef, { status: 'Cancelado' });
+        transaction.update(orderRef, { 
+            status: 'Cancelado',
+            kitchenStatus: 'Cancelado',
+            barStatus: 'Cancelado'
+        });
     });
 
     revalidatePath(`/rooms/*`);
