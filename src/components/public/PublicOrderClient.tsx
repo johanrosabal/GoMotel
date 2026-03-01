@@ -1,226 +1,218 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, onSnapshot } from 'firebase/firestore';
-import type { Service, RestaurantTable, Order, ProductCategory, ProductSubCategory } from '@/types';
+import { useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, orderBy, doc, onSnapshot, Timestamp, addDoc, updateDoc } from 'firebase/firestore';
+import type { Service, RestaurantTable, Order, ProductCategory } from '@/types';
 import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { getServices } from '@/lib/actions/service.actions';
 import { 
-    Search, ShoppingCart, Plus, Minus, 
-    ChevronRight, CheckCircle, Smartphone, 
-    Utensils, Beer, Sun, MapPin, X, 
-    ImageIcon, History, LayoutGrid
+    Search, ShoppingCart, Plus, Minus, CheckCircle, 
+    Utensils, Beer, Sun, MapPin, PackageCheck, 
+    Smartphone, History, Clock, ArrowRight, X,
+    ChevronRight, ImageIcon, AlertCircle
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { 
+    Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter 
+} from '@/components/ui/card';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const TYPE_LABELS: Record<string, string> = {
+type CartItem = {
+  service: Service;
+  quantity: number;
+};
+
+const ZONE_LABELS: Record<string, string> = {
     'Table': 'Mesas',
     'Bar': 'Barra',
     'Terraza': 'Terraza',
     'Pooles': 'Pooles'
 };
 
-const TYPE_ICONS: Record<string, any> = {
-    'Table': Utensils,
-    'Bar': Beer,
-    'Terraza': Sun,
-    'Pooles': LayoutGrid
-};
-
 export default function PublicOrderClient() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const [view, setView] = useState<'menu' | 'cart' | 'account'>('menu');
     
-    // View state
+    // Selection state
     const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'account'>('menu');
-    const [zoneFilter, setRoleFilter] = useState<string>('all');
+    const [zoneFilter, setZoneFilter] = useState<string>('all');
     
-    // Catalog state
+    // Order state
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+    const [activeOrder, setActiveOrder] = useState<Order | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-    const [cart, setCart] = useState<{ service: Service; quantity: number }[]>([]);
-    
-    // Session state
-    const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
-    // Persistence of session order in localStorage
+    // Initial Data
+    const [availableServices, setAvailableServices] = useState<Service[]>([]);
     useEffect(() => {
-        if (selectedTableId) {
-            const savedId = localStorage.getItem(`session_order_${selectedTableId}`);
-            setSessionOrderId(savedId);
-        }
-    }, [selectedTableId]);
+        getServices().then(setAvailableServices);
+    }, []);
 
-    // Firestore Data
     const tablesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, [firestore]
+        firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, 
+        [firestore]
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
     const categoriesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, [firestore]
+        firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, 
+        [firestore]
     );
     const { data: categories } = useCollection<ProductCategory>(categoriesQuery);
 
-    const servicesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'services'), where('isActive', '==', true)) : null, [firestore]
-    );
-    const { data: services } = useCollection<Service>(servicesQuery);
-
-    // Watch current session order in real-time
-    const [orderHistory, setOrderHistory] = useState<Order | null>(null);
+    // Persistence & Real-time Sync
     useEffect(() => {
-        if (!firestore || !sessionOrderId) {
-            setOrderHistory(null);
-            return;
-        }
-        const unsub = onSnapshot(doc(firestore, 'orders', sessionOrderId), (snap) => {
+        const savedOrderId = localStorage.getItem('guest_order_id');
+        const savedTableId = localStorage.getItem('guest_table_id');
+        if (savedOrderId) setActiveOrderId(savedOrderId);
+        if (savedTableId) setSelectedTableId(savedTableId);
+    }, []);
+
+    useEffect(() => {
+        if (!activeOrderId || !firestore) return;
+        const unsub = onSnapshot(doc(firestore, 'orders', activeOrderId), (snap) => {
             if (snap.exists()) {
-                const data = snap.data() as Order;
-                if (data.status === 'Entregado' || data.status === 'Cancelado') {
-                    // Session ended
-                    localStorage.removeItem(`session_order_${selectedTableId}`);
-                    setSessionOrderId(null);
-                    setOrderHistory(null);
-                } else {
-                    setOrderHistory({ id: snap.id, ...data });
-                }
+                setActiveOrder({ id: snap.id, ...snap.data() } as Order);
             } else {
-                setSessionOrderId(null);
-                setOrderHistory(null);
+                localStorage.removeItem('guest_order_id');
+                setActiveOrderId(null);
+                setActiveOrder(null);
             }
         });
         return () => unsub();
-    }, [firestore, sessionOrderId, selectedTableId]);
-
-    const selectedTable = useMemo(() => allTables?.find(t => t.id === selectedTableId), [allTables, selectedTableId]);
-    
-    const locationTypes = useMemo(() => {
-        if (!allTables) return [];
-        return Array.from(new Set(allTables.map(t => t.type))).sort();
-    }, [allTables]);
+    }, [activeOrderId, firestore]);
 
     const filteredTables = useMemo(() => {
         if (!allTables) return [];
-        return allTables.filter(t => zoneFilter === 'all' || t.type === zoneFilter);
+        return zoneFilter === 'all' ? allTables : allTables.filter(t => t.type === zoneFilter);
     }, [allTables, zoneFilter]);
 
+    const zones = useMemo(() => {
+        if (!allTables) return [];
+        return Array.from(new Set(allTables.map(t => t.type)));
+    }, [allTables]);
+
     const filteredServices = useMemo(() => {
-        return (services || []).filter(s => {
-            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+        return availableServices.filter(s => {
+            const matchesSearch = s.isActive && (
+                s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                s.code?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
             return matchesSearch && matchesCategory;
         });
-    }, [services, searchTerm, selectedCategoryId]);
-
-    const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.service.price * item.quantity, 0), [cart]);
+    }, [availableServices, searchTerm, selectedCategoryId]);
 
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
             if (existing) {
                 return prev.map(i => i.service.id === service.id 
-                    ? { ...i, quantity: Math.min(i.quantity + 1, service.stock || 99) } 
+                    ? { ...i, quantity: i.service.source === 'Internal' ? i.quantity + 1 : Math.min(i.quantity + 1, service.stock) } 
                     : i
                 );
             }
             return [...prev, { service, quantity: 1 }];
         });
+        toast({ title: 'Añadido', description: `${service.name} al carrito.` });
     };
 
-    const handleRemoveFromCart = (serviceId: string) => {
+    const handleUpdateCart = (serviceId: string, delta: number) => {
         setCart(prev => {
-            const existing = prev.find(i => i.service.id === serviceId);
-            if (existing && existing.quantity > 1) {
-                return prev.map(i => i.service.id === serviceId ? { ...i, quantity: i.quantity - 1 } : i);
-            }
-            return prev.filter(i => i.service.id !== serviceId);
+            const item = prev.find(i => i.service.id === serviceId);
+            if (!item) return prev;
+            const newQty = item.quantity + delta;
+            if (newQty <= 0) return prev.filter(i => i.service.id !== serviceId);
+            return prev.map(i => i.service.id === serviceId ? { ...i, quantity: newQty } : i);
         });
     };
 
-    const handleSendOrder = () => {
+    const handlePlaceOrder = () => {
         if (!selectedTableId || cart.length === 0) return;
 
         startTransition(async () => {
             let result;
-            if (sessionOrderId) {
-                result = await addToTableAccount(sessionOrderId, cart);
+            if (activeOrderId) {
+                result = await addToTableAccount(activeOrderId, cart);
             } else {
-                result = await openTableAccount(selectedTableId, cart, `Cliente Móvil - ${selectedTable?.number}`, 'Public');
+                result = await openTableAccount(selectedTableId, cart, 'Auto-Pedido', 'Public');
             }
 
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 if (result.orderId) {
-                    setSessionOrderId(result.orderId);
-                    localStorage.setItem(`session_order_${selectedTableId}`, result.orderId);
+                    setActiveOrderId(result.orderId);
+                    localStorage.setItem('guest_order_id', result.orderId);
                 }
                 setCart([]);
-                setActiveTab('account');
-                toast({ title: '¡Pedido enviado!', description: 'Estamos preparando su orden.' });
+                setView('account');
+                toast({ title: '¡Pedido enviado!', description: 'Estamos preparando su solicitud.' });
             }
         });
     };
 
+    const cartTotal = cart.reduce((sum, item) => sum + (item.service.price * item.quantity), 0);
+
+    // Initial Table Selection Screen
     if (!selectedTableId) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 sm:p-10 animate-in fade-in duration-500">
-                <div className="w-full max-w-md space-y-10 text-center">
-                    <div className="space-y-4">
-                        <div className="mx-auto w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center border-2 border-primary/20 shadow-xl shadow-primary/5">
-                            <Smartphone className="h-12 w-12 text-primary" />
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 lg:p-12">
+                <div className="w-full max-w-md space-y-8 text-center">
+                    <div className="space-y-3">
+                        <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <Smartphone className="h-10 w-10 text-primary" />
                         </div>
                         <h1 className="text-4xl font-black tracking-tighter uppercase">Bienvenido</h1>
-                        <p className="text-muted-foreground font-medium">Seleccione su mesa para ver el menú digital y realizar su pedido.</p>
+                        <p className="text-muted-foreground font-medium">Seleccione su mesa para comenzar a ordenar.</p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="text-left space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Filtrar por Zona</Label>
-                            <Select value={zoneFilter} onValueChange={setRoleFilter}>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Filtrar Zona</Label>
+                            <Select value={zoneFilter} onValueChange={setZoneFilter}>
                                 <SelectTrigger className="h-14 rounded-2xl border-2 font-bold text-lg bg-background">
                                     <SelectValue placeholder="Todas las zonas" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Todas las zonas</SelectItem>
-                                    {locationTypes.map(type => (
-                                        <SelectItem key={type} value={type}>{TYPE_LABELS[type] || type}</SelectItem>
-                                    ))}
+                                    {zones.map(z => <SelectItem key={z} value={z}>{ZONE_LABELS[z] || z}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <ScrollArea className="h-[45vh] rounded-3xl border-2 bg-muted/20 p-2">
-                            <div className="grid grid-cols-3 gap-3 p-2">
-                                {filteredTables.map(table => {
-                                    const Icon = TYPE_ICONS[table.type] || MapPin;
-                                    return (
-                                        <button
-                                            key={table.id}
-                                            onClick={() => setSelectedTableId(table.id)}
-                                            className="group aspect-square flex flex-col items-center justify-center bg-background border-2 rounded-[2rem] hover:border-primary hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95"
-                                        >
-                                            <Icon className="h-5 w-5 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                            <span className="text-2xl font-black tracking-tighter">{table.number}</span>
-                                            <span className="text-[8px] font-black uppercase text-muted-foreground mt-1 opacity-60">
-                                                {TYPE_LABELS[table.type] || table.type}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
+                        <ScrollArea className="h-[400px] border-2 rounded-3xl bg-muted/20 p-2">
+                            <div className="grid grid-cols-2 gap-3 p-2">
+                                {filteredTables.map(table => (
+                                    <button
+                                        key={table.id}
+                                        onClick={() => {
+                                            setSelectedTableId(table.id);
+                                            localStorage.setItem('guest_table_id', table.id);
+                                        }}
+                                        className="h-24 rounded-2xl bg-background border-2 border-transparent hover:border-primary transition-all flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95"
+                                    >
+                                        <span className="text-3xl font-black text-primary">{table.number}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-40">
+                                            {ZONE_LABELS[table.type] || table.type}
+                                        </span>
+                                    </button>
+                                ))}
                             </div>
                         </ScrollArea>
                     </div>
@@ -229,45 +221,47 @@ export default function PublicOrderClient() {
         );
     }
 
+    const selectedTable = allTables?.find(t => t.id === selectedTableId);
+
     return (
-        <div className="flex flex-col h-screen w-full bg-background overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-            {/* Top Navigation */}
-            <div className="bg-background border-b px-6 py-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                        <span className="font-black text-xl">{selectedTable?.number}</span>
+        <div className="min-h-screen bg-muted/30 flex flex-col pb-24 lg:pb-0 lg:pl-20">
+            {/* Header */}
+            <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <Utensils className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-black uppercase tracking-tight">Mesa Seleccionada</h2>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{TYPE_LABELS[selectedTable?.type || ''] || selectedTable?.type}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none">Mesa Seleccionada</p>
+                        <p className="text-xl font-black text-primary leading-tight">{selectedTable?.number}</p>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedTableId(null)} className="h-10 w-10 rounded-xl">
+                <Button variant="ghost" size="icon" onClick={() => { setSelectedTableId(null); localStorage.removeItem('guest_table_id'); }} className="rounded-xl h-10 w-10">
                     <X className="h-5 w-5" />
                 </Button>
-            </div>
+            </header>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-hidden">
-                {activeTab === 'menu' && (
-                    <div className="h-full flex flex-col">
-                        <div className="p-4 space-y-4 bg-muted/10 border-b">
+            {/* View Content */}
+            <main className="flex-1 overflow-hidden flex flex-col">
+                {view === 'menu' && (
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <div className="p-4 space-y-4 shrink-0">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input 
                                     placeholder="Buscar producto..." 
-                                    className="pl-10 h-12 bg-background rounded-2xl border-2 shadow-sm"
+                                    className="pl-10 h-12 rounded-2xl border-none bg-background shadow-sm text-base font-bold"
                                     value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <ScrollArea className="w-full whitespace-nowrap">
-                                <div className="flex gap-2 pb-2">
+                            <ScrollArea className="w-full whitespace-nowrap pb-2">
+                                <div className="flex gap-2">
                                     <button 
                                         onClick={() => setSelectedCategoryId(null)}
                                         className={cn(
-                                            "h-9 px-5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
-                                            selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground"
+                                            "px-6 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                                            !selectedCategoryId ? "bg-primary text-primary-foreground shadow-lg" : "bg-background text-muted-foreground border"
                                         )}
                                     >
                                         Todos
@@ -277,27 +271,21 @@ export default function PublicOrderClient() {
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryId(cat.id)}
                                             className={cn(
-                                                "h-9 px-5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
-                                                selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground"
+                                                "px-6 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                                                selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-lg" : "bg-background text-muted-foreground border"
                                             )}
                                         >
                                             {cat.name}
                                         </button>
                                     ))}
                                 </div>
-                                <ScrollBar orientation="horizontal" />
                             </ScrollArea>
                         </div>
 
-                        <ScrollArea className="flex-1">
-                            <div className="grid grid-cols-2 gap-4 p-4 pb-24">
+                        <ScrollArea className="flex-1 px-4">
+                            <div className="grid grid-cols-2 gap-4 pb-10">
                                 {filteredServices.map(service => (
-                                    <button
-                                        key={service.id}
-                                        onClick={() => handleAddToCart(service)}
-                                        disabled={service.source !== 'Internal' && (service.stock || 0) <= 0}
-                                        className="group relative flex flex-col bg-card border-2 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50"
-                                    >
+                                    <div key={service.id} className="bg-card rounded-3xl overflow-hidden shadow-sm border border-border/50 group active:scale-95 transition-all">
                                         <div className="aspect-square relative overflow-hidden bg-muted">
                                             <Avatar className="h-full w-full rounded-none">
                                                 <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
@@ -305,217 +293,221 @@ export default function PublicOrderClient() {
                                                     <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-between">
-                                                <div className="flex flex-wrap gap-1">
-                                                    <Badge className="bg-white/90 text-black text-[8px] font-black uppercase">
-                                                        {service.category === 'Food' ? 'Comida' : 'Bebida'}
+                                            
+                                            {/* Badges */}
+                                            <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                                                <Badge className="bg-white/90 text-black border-none text-[8px] font-black uppercase">
+                                                    {service.category === 'Beverage' ? 'Bebida' : service.category === 'Food' ? 'Comida' : 'Servicio'}
+                                                </Badge>
+                                                {service.source !== 'Internal' && (
+                                                    <Badge variant="secondary" className="bg-black/50 text-white text-[8px] font-bold border-none backdrop-blur-md">
+                                                        STOCK: {service.stock}
                                                     </Badge>
-                                                    {service.source !== 'Internal' && (
-                                                        <Badge variant="secondary" className="text-[8px] font-black">
-                                                            STOCK: {service.stock}
-                                                        </Badge>
-                                                    )}
-                                                </div>
+                                                )}
+                                            </div>
+
+                                            {/* Info Overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-between">
+                                                <div />
                                                 <div className="space-y-1">
-                                                    <h3 className="font-black text-[11px] uppercase text-white leading-tight line-clamp-2 drop-shadow-md">
+                                                    <h3 className="text-white font-black text-xs sm:text-sm uppercase tracking-tight leading-none drop-shadow-md">
                                                         {service.name}
                                                     </h3>
-                                                    <p className="text-primary font-black text-sm drop-shadow-lg">
+                                                    <p className="text-primary font-black text-lg sm:text-xl tracking-tighter drop-shadow-lg">
                                                         {formatCurrency(service.price)}
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* ADD BUTTON */}
+                                            <button 
+                                                onClick={() => handleAddToCart(service)}
+                                                disabled={service.source !== 'Internal' && service.stock <= 0}
+                                                className="absolute bottom-3 right-3 h-10 w-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 disabled:opacity-50 disabled:grayscale transition-transform z-20"
+                                            >
+                                                <Plus className="h-6 w-6 stroke-[3px]" />
+                                            </button>
                                         </div>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         </ScrollArea>
                     </div>
                 )}
 
-                {activeTab === 'cart' && (
-                    <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-right-4">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">Su Carrito</h3>
-                            <Badge variant="outline" className="h-8 px-4 font-black">{cart.length} items</Badge>
-                        </div>
-
-                        <ScrollArea className="flex-1 -mx-2 px-2">
-                            {cart.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-6">
-                                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
-                                        <ShoppingCart className="h-10 w-10 opacity-20" />
-                                    </div>
-                                    <p className="font-black uppercase text-xs tracking-widest">Carrito vacío</p>
-                                    <Button onClick={() => setActiveTab('menu')} variant="outline" className="rounded-xl font-bold">Volver al Menú</Button>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {cart.map(item => (
-                                        <div key={item.service.id} className="flex items-center gap-4 p-4 bg-muted/20 border-2 rounded-[2rem]">
-                                            <Avatar className="h-16 w-16 rounded-2xl border shadow-sm">
-                                                <AvatarImage src={item.service.imageUrl || undefined} className="object-cover" />
-                                                <AvatarFallback><ImageIcon /></AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-black text-[11px] uppercase truncate">{item.service.name}</p>
-                                                <p className="text-primary font-black">{formatCurrency(item.service.price * item.quantity)}</p>
-                                            </div>
-                                            <div className="flex items-center gap-3 bg-background rounded-2xl p-1 border shadow-sm">
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={() => handleRemoveFromCart(item.service.id)}>
-                                                    <Minus className="h-3 w-3" />
-                                                </Button>
-                                                <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                                <button 
-                                                    className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50"
-                                                    onClick={() => handleAddToCart(item.service)}
-                                                    disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
-                                                >
-                                                    <Plus className="h-3 w-3" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </ScrollArea>
-
-                        <div className="pt-6 space-y-4 bg-background">
-                            <div className="flex justify-between items-end p-2">
-                                <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Total Estimado</span>
-                                <span className="text-4xl font-black tracking-tighter text-primary">{formatCurrency(cartTotal)}</span>
+                {view === 'cart' && (
+                    <div className="flex-1 flex flex-col p-4 animate-in fade-in duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+                                <ShoppingCart className="h-6 w-6 text-primary" />
                             </div>
-                            <Button 
-                                className="w-full h-16 rounded-[2rem] text-lg font-black uppercase tracking-[0.1em] shadow-xl shadow-primary/20"
-                                disabled={cart.length === 0 || isPending}
-                                onClick={handleSendOrder}
-                            >
-                                {isPending ? 'Enviando...' : 'Confirmar Pedido'}
-                            </Button>
+                            <h2 className="text-2xl font-black uppercase tracking-tight">Tu Carrito</h2>
                         </div>
+
+                        {cart.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4">
+                                <div className="h-24 w-24 bg-muted rounded-full flex items-center justify-center">
+                                    <ShoppingCart className="h-10 w-10 opacity-20" />
+                                </div>
+                                <p className="font-bold uppercase text-xs tracking-widest">El carrito está vacío</p>
+                                <Button onClick={() => setView('menu')} variant="outline" className="rounded-xl font-bold">Volver al Menú</Button>
+                            </div>
+                        ) : (
+                            <>
+                                <ScrollArea className="flex-1 pr-2">
+                                    <div className="space-y-3">
+                                        {cart.map(item => (
+                                            <div key={item.service.id} className="bg-background rounded-3xl p-4 flex items-center justify-between border-2 border-border/50 shadow-sm">
+                                                <div className="flex items-center gap-4">
+                                                    <Avatar className="h-14 w-14 rounded-2xl border-2">
+                                                        <AvatarImage src={item.service.imageUrl} className="object-cover" />
+                                                        <AvatarFallback><ImageIcon /></AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="space-y-0.5">
+                                                        <p className="font-black text-xs uppercase tracking-tight truncate max-w-[120px]">{item.service.name}</p>
+                                                        <p className="text-primary font-black text-sm">{formatCurrency(item.service.price)}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 bg-muted/50 rounded-2xl p-1 border">
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={() => handleUpdateCart(item.service.id, -1)}>
+                                                        <Minus className="h-3 w-3" />
+                                                    </Button>
+                                                    <span className="w-8 text-center font-black text-sm text-primary">{item.quantity}</span>
+                                                    <Button 
+                                                        size="icon" 
+                                                        variant="ghost" 
+                                                        className="h-8 w-8 rounded-xl" 
+                                                        onClick={() => handleUpdateCart(item.service.id, 1)}
+                                                        disabled={item.service.source !== 'Internal' && item.quantity >= item.service.stock}
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                                
+                                <div className="mt-6 space-y-4 pt-6 border-t">
+                                    <div className="flex justify-between items-end px-2">
+                                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total del Pedido</span>
+                                        <span className="text-4xl font-black text-primary tracking-tighter">{formatCurrency(cartTotal)}</span>
+                                    </div>
+                                    <Button 
+                                        className="w-full h-16 rounded-[2rem] text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                                        onClick={handlePlaceOrder}
+                                        disabled={isPending}
+                                    >
+                                        {isPending ? 'Enviando...' : 'Confirmar Pedido'}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
-                {activeTab === 'account' && (
-                    <div className="h-full flex flex-col p-6 animate-in fade-in slide-in-from-right-4">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">Mi Consumo</h3>
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <History className="h-5 w-5 text-primary" />
+                {view === 'account' && (
+                    <div className="flex-1 flex flex-col p-4 animate-in fade-in duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+                                <History className="h-6 w-6 text-primary" />
                             </div>
+                            <h2 className="text-2xl font-black uppercase tracking-tight">Mi Cuenta</h2>
                         </div>
 
-                        <ScrollArea className="flex-1">
-                            {!orderHistory ? (
-                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-6 text-center">
-                                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
-                                        <History className="h-10 w-10 opacity-20" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="font-black uppercase text-xs tracking-widest">Sin historial actual</p>
-                                        <p className="text-[10px] max-w-[200px] font-medium">Sus pedidos de la estancia actual aparecerán aquí una vez enviados.</p>
-                                    </div>
-                                </div>
-                            ) : (
+                        {!activeOrder ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4">
+                                <History className="h-12 w-12 opacity-10" />
+                                <p className="font-bold uppercase text-xs tracking-widest">No hay consumos registrados</p>
+                            </div>
+                        ) : (
+                            <ScrollArea className="flex-1">
                                 <div className="space-y-6 pb-10">
                                     <Card className="border-0 shadow-2xl overflow-hidden rounded-[2.5rem] bg-card">
                                         <div className="bg-primary p-8 text-primary-foreground relative">
                                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                                             <div className="relative z-10 flex justify-between items-center">
                                                 <div>
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Saldo Pendiente</p>
-                                                    <p className="text-5xl font-black tracking-tighter mt-1">{formatCurrency(orderHistory.total)}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Total Acumulado</p>
+                                                    <h3 className="text-5xl font-black tracking-tighter">{formatCurrency(activeOrder.total)}</h3>
                                                 </div>
-                                                <Badge className="bg-white/20 backdrop-blur-md text-white border-0 font-black uppercase text-[9px] px-3 h-6">
-                                                    {orderHistory.status}
+                                                <Badge className="bg-white text-primary font-black uppercase text-[10px] px-4 py-1.5 rounded-full">
+                                                    {activeOrder.status}
                                                 </Badge>
                                             </div>
                                         </div>
-                                        <CardContent className="p-8 space-y-6">
+                                        <CardContent className="p-6">
                                             <div className="space-y-4">
-                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Productos pedidos</h4>
-                                                {orderHistory.items.map((item, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center group">
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-1 h-1 rounded-full bg-primary" />
-                                                                <p className="font-black text-xs uppercase truncate tracking-tight">{item.name}</p>
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Detalle de Consumo</h4>
+                                                <div className="space-y-2">
+                                                    {activeOrder.items.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-muted/30 border border-border/50">
+                                                            <div>
+                                                                <p className="font-black text-[11px] uppercase tracking-tight">{item.name}</p>
+                                                                <p className="text-[10px] text-muted-foreground font-bold">{item.quantity} un x {formatCurrency(item.price)}</p>
                                                             </div>
-                                                            <p className="text-[10px] text-muted-foreground font-bold ml-3">{item.quantity} x {formatCurrency(item.price)}</p>
+                                                            <p className="font-black text-sm text-primary">{formatCurrency(item.price * item.quantity)}</p>
                                                         </div>
-                                                        <p className="font-black text-sm tracking-tighter">{formatCurrency(item.price * item.quantity)}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            
-                                            <div className="pt-6 border-t border-dashed">
-                                                <div className="bg-amber-50 dark:bg-amber-950/20 p-6 rounded-3xl border-2 border-amber-200/50 flex gap-4 items-start">
-                                                    <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-xl">
-                                                        <CheckCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-black uppercase tracking-tight text-amber-800 dark:text-amber-300">Solicitar Cobro</p>
-                                                        <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400/80 leading-relaxed">
-                                                            Para cancelar su cuenta, por favor comuníquese con la recepción o un salonero.
-                                                        </p>
-                                                    </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </CardContent>
+                                        <CardFooter className="bg-amber-500/5 p-6 border-t border-amber-500/10">
+                                            <div className="flex gap-4">
+                                                <div className="h-10 w-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0">
+                                                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                                                </div>
+                                                <p className="text-sm font-medium text-amber-600 dark:text-amber-400 leading-snug">
+                                                    Para solicitar el cobro, por favor comunícate con la recepción o un salonero.
+                                                </p>
+                                            </div>
+                                        </CardFooter>
                                     </Card>
                                 </div>
-                            )}
-                        </ScrollArea>
+                            </ScrollArea>
+                        )}
                     </div>
                 )}
-            </div>
+            </main>
 
-            {/* Bottom Tab Bar */}
-            <div className="bg-background border-t px-6 py-2 pb-8 flex items-center justify-around shrink-0 shadow-2xl relative z-50">
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t p-2 px-4 flex justify-around items-center h-20 z-50">
                 <button 
-                    onClick={() => setActiveTab('menu')}
+                    onClick={() => setView('menu')}
                     className={cn(
-                        "flex flex-col items-center gap-1.5 p-2 transition-all active:scale-90",
-                        activeTab === 'menu' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
+                        "flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all w-20",
+                        view === 'menu' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" : "text-muted-foreground"
                     )}
                 >
-                    <div className={cn("p-2 rounded-2xl transition-colors", activeTab === 'menu' && "bg-primary/10")}>
-                        <LayoutGrid className="h-6 w-6" />
-                    </div>
+                    <Utensils className="h-5 w-5" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Menú</span>
                 </button>
-
                 <button 
-                    onClick={() => setActiveTab('cart')}
+                    onClick={() => setView('cart')}
                     className={cn(
-                        "flex flex-col items-center gap-1.5 p-2 transition-all active:scale-90 relative",
-                        activeTab === 'cart' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
+                        "flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all w-20 relative",
+                        view === 'cart' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" : "text-muted-foreground"
                     )}
                 >
-                    <div className={cn("p-2 rounded-2xl transition-colors", activeTab === 'cart' && "bg-primary/10")}>
-                        <ShoppingCart className="h-6 w-6" />
-                    </div>
+                    <ShoppingCart className="h-5 w-5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Carrito</span>
                     {cart.length > 0 && (
-                        <span className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-background animate-in zoom-in">
+                        <span className="absolute top-1 right-4 bg-destructive text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-background">
                             {cart.length}
                         </span>
                     )}
-                    <span className="text-[9px] font-black uppercase tracking-widest">Carrito</span>
                 </button>
-
                 <button 
-                    onClick={() => setActiveTab('account')}
+                    onClick={() => setView('account')}
                     className={cn(
-                        "flex flex-col items-center gap-1.5 p-2 transition-all active:scale-90",
-                        activeTab === 'account' ? "text-primary scale-110" : "text-muted-foreground opacity-50"
+                        "flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all w-20",
+                        view === 'account' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" : "text-muted-foreground"
                     )}
                 >
-                    <div className={cn("p-2 rounded-2xl transition-colors", activeTab === 'account' && "bg-primary/10")}>
-                        <History className="h-6 w-6" />
-                    </div>
+                    <History className="h-5 w-5" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Cuenta</span>
                 </button>
-            </div>
+            </nav>
         </div>
     );
 }
