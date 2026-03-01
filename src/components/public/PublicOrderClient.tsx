@@ -1,38 +1,27 @@
-
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Service, RestaurantTable, ProductCategory, ProductSubCategory, Order, Tax, AppliedTax } from '@/types';
+import { collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import type { Service, RestaurantTable, Order, ProductCategory, ProductSubCategory } from '@/types';
 import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
-    Search, ShoppingBag, Plus, Minus, 
-    ChevronRight, ChevronLeft, ImageIcon, 
-    Utensils, Beer, Sun, MapPin, CheckCircle2, Clock,
-    ShoppingCart, X, AlertCircle
+    Search, ShoppingCart, Plus, Minus, 
+    Smartphone, ChevronRight, ChevronLeft,
+    ImageIcon, Utensils, Beer, Sun, MapPin, X,
+    Clock, CheckCircle, Receipt, History, ShoppingBag
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import AppLogo from '../AppLogo';
-
-type CartItem = {
-  service: Service;
-  quantity: number;
-};
-
-const TYPE_ICONS: Record<string, any> = {
-    'Table': Utensils,
-    'Bar': Beer,
-    'Terraza': Sun,
-};
+import { useToast } from '@/hooks/use-toast';
+import { formatDistance } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const TYPE_LABELS: Record<string, string> = {
     'Table': 'Mesa',
@@ -40,23 +29,30 @@ const TYPE_LABELS: Record<string, string> = {
     'Terraza': 'Terraza'
 };
 
+const STATUS_CONFIG = {
+    'Pendiente': { color: 'text-amber-500 bg-amber-50 border-amber-200', icon: Clock },
+    'En preparación': { color: 'text-blue-500 bg-blue-50 border-blue-200', icon: Utensils },
+    'Entregado': { color: 'text-emerald-500 bg-emerald-50 border-emerald-200', icon: CheckCircle },
+    'Cancelado': { color: 'text-destructive bg-destructive/10 border-destructive/20', icon: X }
+};
+
 export default function PublicOrderClient() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
-
-    // App State
-    const [step, setStep] = useState(1); // 1: Location, 2: Menu, 3: Cart/Review, 4: Success
+    
+    // State
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
-    const [locationFilter, setLocationFilter] = useState<string>('all');
+    const [activeTab, setActiveTab] = useState<'menu' | 'account'>('menu');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const [cart, setCart] = useState<{ service: Service; quantity: number; notes?: string }[]>([]);
+    const [viewMode, setViewMode] = useState<string>('all');
 
-    // Data
-    const [availableServices, setAvailableServices] = useState<Service[]>([]);
+    // Data Fetching
+    const [services, setServices] = useState<Service[]>([]);
     useEffect(() => {
-        getServices().then(setAvailableServices);
+        getServices().then(setServices);
     }, []);
 
     const categoriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'productCategories'), orderBy('name')) : null, [firestore]);
@@ -68,36 +64,44 @@ export default function PublicOrderClient() {
     );
     const { data: availableTables } = useCollection<RestaurantTable>(tablesQuery);
 
-    const activeOrdersQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'orders'), where('status', '==', 'Pendiente')) : null, 
-        [firestore]
-    );
-    const { data: activeOrders } = useCollection<Order>(activeOrdersQuery);
+    // Fetch client's orders if a table is selected
+    const clientOrdersQuery = useMemoFirebase(() => {
+        if (!firestore || !selectedTable) return null;
+        return query(
+            collection(firestore, 'orders'), 
+            where('locationId', '==', selectedTable.id),
+            where('status', '!=', 'Cancelado'),
+            orderBy('createdAt', 'desc')
+        );
+    }, [firestore, selectedTable]);
+    const { data: myOrders } = useCollection<Order>(clientOrdersQuery);
 
-    const locationTypes = useMemo(() => {
-        if (!availableTables) return [];
-        return Array.from(new Set(availableTables.map(t => t.type)));
-    }, [availableTables]);
+    const activeAccountOrders = useMemo(() => {
+        if (!myOrders) return [];
+        // Only show orders that haven't been paid (legacy check: paymentStatus)
+        return myOrders.filter(o => o.paymentStatus !== 'Pagado');
+    }, [myOrders]);
+
+    const accountTotal = useMemo(() => {
+        return activeAccountOrders.reduce((sum, o) => sum + o.total, 0);
+    }, [activeAccountOrders]);
 
     const filteredTables = useMemo(() => {
         if (!availableTables) return [];
-        if (locationFilter === 'all') return availableTables;
-        return availableTables.filter(t => t.type === locationFilter);
-    }, [availableTables, locationFilter]);
+        if (viewMode === 'all') return availableTables;
+        return availableTables.filter(t => t.type === viewMode);
+    }, [availableTables, viewMode]);
 
     const filteredServices = useMemo(() => {
-        return availableServices.filter(s => {
-            const matchesSearch = s.isActive && (s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        return services.filter(s => {
+            const matchesSearch = s.isActive && s.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
             return matchesSearch && matchesCategory;
         });
-    }, [availableServices, searchTerm, selectedCategoryId]);
+    }, [services, searchTerm, selectedCategoryId]);
 
-    const cartTotal = useMemo(() => {
-        return cart.reduce((sum, item) => sum + (item.service.price * item.quantity), 0);
-    }, [cart]);
+    const cartTotal = cart.reduce((sum, i) => sum + i.service.price * i.quantity, 0);
 
-    // Handlers
     const handleAddToCart = (service: Service) => {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
@@ -109,197 +113,184 @@ export default function PublicOrderClient() {
             }
             return [...prev, { service, quantity: 1 }];
         });
-        toast({ title: "Agregado", description: `${service.name} al carrito.` });
     };
 
-    const handleUpdateQuantity = (serviceId: string, delta: number) => {
+    const handleRemoveFromCart = (serviceId: string) => {
         setCart(prev => {
             const item = prev.find(i => i.service.id === serviceId);
-            if (!item) return prev;
-            const newQty = item.quantity + delta;
-            if (newQty <= 0) return prev.filter(i => i.service.id !== serviceId);
-            
-            // Stock validation for purchased items
-            if (delta > 0 && item.service.source !== 'Internal' && newQty > (item.service.stock || 0)) {
-                return prev;
+            if (item && item.quantity > 1) {
+                return prev.map(i => i.service.id === serviceId ? { ...i, quantity: i.quantity - 1 } : i);
             }
-
-            return prev.map(i => i.service.id === serviceId ? { ...i, quantity: newQty } : i);
+            return prev.filter(i => i.service.id !== serviceId);
         });
     };
 
-    const handleConfirmOrder = () => {
+    const handleSendOrder = () => {
         if (!selectedTable || cart.length === 0) return;
 
         startTransition(async () => {
-            // Check if there's already an order for this table (though we filtered by Available, things happen)
-            const existingOrder = activeOrders?.find(o => o.locationId === selectedTable.id);
             let result;
+            const currentActiveOrder = activeAccountOrders[0]; // Logic: add to the first open account found for this table
 
-            if (existingOrder) {
-                result = await addToTableAccount(existingOrder.id, cart);
+            if (currentActiveOrder) {
+                result = await addToTableAccount(currentActiveOrder.id, cart);
             } else {
-                result = await openTableAccount(selectedTable.id, cart, `Pedido Móvil ${selectedTable.number}`);
+                result = await openTableAccount(selectedTable.id, cart, `Pedido Móvil ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
             }
 
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                setStep(4);
+                toast({ title: '¡Pedido enviado!', description: 'Estamos preparando tu orden.' });
                 setCart([]);
+                setActiveTab('account');
             }
         });
     };
 
-    // Render Logic
-    if (step === 4) {
+    const getTypeIcon = (type: string) => {
+        if (type === 'Table') return Utensils;
+        if (type === 'Bar') return Beer;
+        if (type === 'Terraza') return Sun;
+        return MapPin;
+    };
+
+    if (!selectedTable) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center animate-in fade-in zoom-in-95 duration-500">
-                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle2 className="w-12 h-12 text-primary" />
+            <div className="flex flex-col min-h-screen p-4 sm:p-6 bg-background animate-in fade-in duration-500">
+                <header className="mb-8 text-center pt-6">
+                    <h1 className="text-3xl font-black uppercase tracking-tighter text-primary">Go Motel Menu</h1>
+                    <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-1">Selecciona tu ubicación para pedir</p>
+                </header>
+
+                <div className="flex flex-wrap gap-2 mb-6 justify-center">
+                    <button 
+                        className={cn(
+                            "px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border-2 transition-all",
+                            viewMode === 'all' ? "bg-primary text-primary-foreground border-primary shadow-lg" : "bg-muted text-muted-foreground border-transparent"
+                        )}
+                        onClick={() => setViewMode('all')}
+                    >
+                        Todos
+                    </button>
+                    {['Table', 'Bar', 'Terraza'].map(type => (
+                        <button 
+                            key={type}
+                            className={cn(
+                                "px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                viewMode === type ? "bg-primary text-primary-foreground border-primary shadow-lg" : "bg-muted text-muted-foreground border-transparent"
+                            )}
+                            onClick={() => setViewMode(type)}
+                        >
+                            {TYPE_LABELS[type] || type}
+                        </button>
+                    ))}
                 </div>
-                <h1 className="text-3xl font-black uppercase tracking-tighter mb-2 text-primary">¡Pedido Recibido!</h1>
-                <p className="text-muted-foreground mb-8 font-medium">Estamos preparando su orden para enviarla a la {TYPE_LABELS[selectedTable?.type || ''] || 'Mesa'} {selectedTable?.number}.</p>
-                <Button className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs" onClick={() => { setStep(2); setSelectedTable(null); setSelectedTable(null); }}>
-                    Hacer otro pedido
-                </Button>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-10">
+                    {filteredTables.map(table => {
+                        const Icon = getTypeIcon(table.type);
+                        return (
+                            <button
+                                key={table.id}
+                                onClick={() => setSelectedTable(table)}
+                                className="flex flex-col items-center justify-center aspect-square rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95 group"
+                            >
+                                <div className="p-3 rounded-2xl bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors mb-2">
+                                    <Icon className="h-6 w-6" />
+                                </div>
+                                <span className="text-4xl font-black tracking-tighter">{table.number}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{TYPE_LABELS[table.type] || table.type}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background relative overflow-hidden">
-            
-            {/* Header */}
-            <header className="px-6 pt-8 pb-4 flex flex-col gap-4 shrink-0">
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+            {/* Header Fijo */}
+            <header className="shrink-0 bg-primary text-primary-foreground p-4 shadow-lg z-20">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="bg-primary p-2 rounded-xl">
-                            <AppLogo className="w-6 h-6 text-white" />
+                        <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                            <Utensils className="h-5 w-5" />
                         </div>
-                        <h1 className="text-xl font-black uppercase tracking-tighter">Go Motel <span className="text-primary font-bold">Menu</span></h1>
+                        <div>
+                            <h2 className="font-black text-lg leading-none uppercase tracking-tighter">
+                                {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
+                            </h2>
+                            <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Cliente Auto-Servicio</p>
+                        </div>
                     </div>
-                    {step > 1 && (
-                        <button 
-                            onClick={() => {
-                                if (step === 3) setStep(2);
-                                else if (step === 2) { setStep(1); setSelectedTable(null); }
-                            }}
-                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground"
-                        >
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => { setSelectedTable(null); setCart([]); setActiveTab('menu'); }}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
                 </div>
-
-                {selectedTable && step >= 2 && (
-                    <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/10 rounded-xl animate-in slide-in-from-top-2 duration-300">
-                        <MapPin className="w-3.5 h-3.5 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">
-                            Ubicación: {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
-                        </span>
-                    </div>
-                )}
             </header>
 
-            {/* Content Area */}
-            <div className="flex-1 flex flex-col min-h-0">
-                
-                {/* Step 1: Location Selection */}
-                {step === 1 && (
-                    <div className="flex-1 flex flex-col p-6 animate-in fade-in duration-500">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-2">¿Dónde se encuentra?</h2>
-                            <p className="text-sm text-muted-foreground font-medium">Seleccione su ubicación para iniciar su pedido.</p>
-                        </div>
+            {/* Tabs de Navegación */}
+            <div className="shrink-0 flex border-b bg-muted/30">
+                <button 
+                    onClick={() => setActiveTab('menu')}
+                    className={cn(
+                        "flex-1 py-4 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+                        activeTab === 'menu' ? "bg-background text-primary border-b-2 border-primary" : "text-muted-foreground"
+                    )}
+                >
+                    <ShoppingBag className="h-4 w-4" /> Menú
+                </button>
+                <button 
+                    onClick={() => setActiveTab('account')}
+                    className={cn(
+                        "flex-1 py-4 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all relative",
+                        activeTab === 'account' ? "bg-background text-primary border-b-2 border-primary" : "text-muted-foreground"
+                    )}
+                >
+                    <Receipt className="h-4 w-4" /> Mi Cuenta
+                    {activeAccountOrders.length > 0 && (
+                        <div className="absolute top-3 right-1/4 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                </button>
+            </div>
 
-                        {/* Location Type Chips (WRAP) */}
-                        <div className="flex flex-wrap gap-2 mb-8">
-                            <button 
-                                onClick={() => setLocationFilter('all')}
-                                className={cn(
-                                    "px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 transition-all",
-                                    locationFilter === 'all' ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-background border-border text-muted-foreground hover:bg-muted/50"
-                                )}
-                            >
-                                Todas
-                            </button>
-                            {locationTypes.map(type => (
-                                <button 
-                                    key={type}
-                                    onClick={() => setLocationFilter(type)}
-                                    className={cn(
-                                        "px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 transition-all",
-                                        locationFilter === type ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-background border-border text-muted-foreground hover:bg-muted/50"
-                                    )}
-                                >
-                                    {getLocationLabel(type)}
-                                </button>
-                            ))}
-                        </div>
-
-                        <ScrollArea className="flex-1 -mx-2 px-2">
-                            <div className="grid grid-cols-2 gap-4 pb-10">
-                                {filteredTables.map(table => {
-                                    const Icon = TYPE_ICONS[table.type] || MapPin;
-                                    return (
-                                        <button
-                                            key={table.id}
-                                            onClick={() => { setSelectedTable(table); setStep(2); }}
-                                            className="group flex flex-col items-center justify-center aspect-square rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl transition-all active:scale-95"
-                                        >
-                                            <Icon className="w-8 h-8 text-muted-foreground group-hover:text-primary mb-3 transition-colors" />
-                                            <span className="text-4xl font-black tracking-tighter group-hover:text-primary transition-colors">{table.number}</span>
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-1">
-                                                {TYPE_LABELS[table.type] || table.type}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                                {filteredTables.length === 0 && (
-                                    <div className="col-span-2 py-20 text-center flex flex-col items-center gap-4 text-muted-foreground/40">
-                                        <AlertCircle className="w-12 h-12" />
-                                        <p className="text-xs font-black uppercase tracking-widest">No hay puntos disponibles</p>
-                                    </div>
-                                )}
-                            </div>
-                        </ScrollArea>
-                    </div>
-                )}
-
-                {/* Step 2: Menu / Product Selection */}
-                {step === 2 && (
-                    <div className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-right-4 duration-500">
-                        <div className="px-6 mb-6 space-y-4">
+            <main className="flex-1 overflow-hidden relative">
+                {activeTab === 'menu' ? (
+                    <div className="flex flex-col h-full">
+                        {/* Categorías y Búsqueda */}
+                        <div className="p-4 space-y-4 bg-muted/10 border-b">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input 
-                                    placeholder="Buscar comida, bebidas..." 
-                                    className="pl-10 h-12 bg-muted/30 border-none rounded-2xl text-sm"
+                                    placeholder="¿Qué se te antoja hoy?..." 
+                                    className="pl-9 h-11 bg-background border-2 rounded-xl shadow-inner"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                 />
                             </div>
-
-                            {/* Category Chips (WRAP) */}
                             <div className="flex flex-wrap gap-2">
                                 <button 
-                                    onClick={() => setSelectedCategoryId(null)}
                                     className={cn(
-                                        "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
-                                        selectedCategoryId === null ? "bg-primary text-white border-primary shadow-md" : "bg-background border-border text-muted-foreground"
+                                        "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
+                                        selectedCategoryId === null ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-background text-muted-foreground border-border"
                                     )}
+                                    onClick={() => setSelectedCategoryId(null)}
                                 >
                                     Todos
                                 </button>
                                 {categories?.map(cat => (
                                     <button 
                                         key={cat.id}
-                                        onClick={() => setSelectedCategoryId(cat.id)}
                                         className={cn(
-                                            "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
-                                            selectedCategoryId === cat.id ? "bg-primary text-white border-primary shadow-md" : "bg-background border-border text-muted-foreground"
+                                            "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
+                                            selectedCategoryId === cat.id ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-background text-muted-foreground border-border"
                                         )}
+                                        onClick={() => setSelectedCategoryId(cat.id)}
                                     >
                                         {cat.name}
                                     </button>
@@ -308,149 +299,155 @@ export default function PublicOrderClient() {
                         </div>
 
                         <ScrollArea className="flex-1">
-                            <div className="grid grid-cols-2 gap-4 px-6 pb-32">
-                                {filteredServices.map(service => (
-                                    <button
-                                        key={service.id}
-                                        onClick={() => handleAddToCart(service)}
-                                        disabled={service.source !== 'Internal' && service.stock <= 0}
-                                        className="group flex flex-col bg-card border rounded-3xl overflow-hidden hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
-                                    >
-                                        <div className="aspect-square relative overflow-hidden bg-muted">
-                                            <Avatar className="h-full w-full rounded-none">
-                                                <AvatarImage src={service.imageUrl || undefined} alt={service.name} className="object-cover" />
-                                                <AvatarFallback className="rounded-none bg-transparent">
-                                                    <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="absolute top-2 right-2">
-                                                <Badge className="font-black bg-white/90 text-primary border-none shadow-sm backdrop-blur-sm">
-                                                    {formatCurrency(service.price)}
-                                                </Badge>
+                            <div className="grid grid-cols-2 gap-4 p-4 pb-24">
+                                {filteredServices.map(service => {
+                                    const qty = cart.find(i => i.service.id === service.id)?.quantity || 0;
+                                    return (
+                                        <div key={service.id} className="flex flex-col bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+                                            <div className="aspect-square relative overflow-hidden bg-muted">
+                                                <Avatar className="h-full w-full rounded-none">
+                                                    <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
+                                                    <AvatarFallback className="rounded-none"><ImageIcon className="h-8 w-8 opacity-10" /></AvatarFallback>
+                                                </Avatar>
+                                                <div className="absolute top-2 right-2">
+                                                    <Badge className="font-black bg-background/90 text-primary border-none shadow-sm backdrop-blur-sm">
+                                                        {formatCurrency(service.price)}
+                                                    </Badge>
+                                                </div>
+                                                {qty > 0 && (
+                                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[2px] animate-in fade-in zoom-in-95">
+                                                        <div className="bg-primary text-white font-black h-10 w-10 rounded-full flex items-center justify-center text-lg shadow-xl ring-4 ring-white/20">
+                                                            {qty}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                        <div className="p-3 text-left">
-                                            <h3 className="font-black text-[11px] uppercase tracking-tight line-clamp-2 leading-tight min-h-[2.4rem]">
-                                                {service.name}
-                                            </h3>
-                                            <div className="mt-2 flex items-center justify-between">
-                                                <span className={cn(
-                                                    "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                                                    service.source === 'Internal' ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                                )}>
-                                                    {service.source === 'Internal' ? 'Cocina' : 'Comprado'}
-                                                </span>
-                                                <div className="bg-primary/10 p-1.5 rounded-full">
-                                                    <Plus className="w-3 h-3 text-primary" />
+                                            <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                                                <h3 className="font-black text-[11px] uppercase leading-tight line-clamp-2">{service.name}</h3>
+                                                <div className="flex items-center gap-1">
+                                                    {qty === 0 ? (
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="w-full h-8 rounded-lg font-black text-[10px] uppercase tracking-widest"
+                                                            onClick={() => handleAddToCart(service)}
+                                                        >
+                                                            Añadir
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="flex items-center w-full gap-1">
+                                                            <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" onClick={() => handleRemoveFromCart(service.id)}>
+                                                                <Minus className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" onClick={() => handleAddToCart(service)}>
+                                                                <Plus className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                    </button>
-                                ))}
+                                    );
+                                })}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                ) : (
+                    <div className="flex flex-col h-full bg-muted/10">
+                        <ScrollArea className="flex-1">
+                            <div className="p-4 space-y-6">
+                                {activeAccountOrders.length > 0 ? (
+                                    <>
+                                        <div className="bg-background rounded-2xl p-6 border-2 border-primary/10 shadow-sm text-center">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Monto Total de la Cuenta</p>
+                                            <p className="text-4xl font-black text-primary tracking-tighter">{formatCurrency(accountTotal)}</p>
+                                            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase">
+                                                <CheckCircle className="h-3 w-3 text-emerald-500" /> {activeAccountOrders.length} Pedidos registrados
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Historial de Pedidos</h3>
+                                            {activeAccountOrders.map(order => (
+                                                <div key={order.id} className="bg-background rounded-2xl border shadow-sm overflow-hidden">
+                                                    <div className="p-4 border-b bg-muted/5 flex justify-between items-center">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="bg-primary/10 p-2 rounded-xl"><History className="h-4 w-4 text-primary" /></div>
+                                                            <div>
+                                                                <p className="text-[11px] font-black uppercase leading-none">Orden #{order.id.slice(-4)}</p>
+                                                                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">
+                                                                    {formatDistance(order.createdAt.toDate(), new Date(), { locale: es, addSuffix: true })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                                            STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.color || 'bg-muted'
+                                                        )}>
+                                                            {order.status}
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-4 space-y-2">
+                                                        {order.items.map((item, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center text-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-black text-primary text-xs">{item.quantity}x</span>
+                                                                    <span className="font-bold text-xs uppercase tracking-tight text-muted-foreground">{item.name}</span>
+                                                                </div>
+                                                                <span className="font-black text-xs">{formatCurrency(item.price * item.quantity)}</span>
+                                                            </div>
+                                                        ))}
+                                                        <Separator className="my-2" />
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Subtotal Orden</span>
+                                                            <span className="font-black text-sm">{formatCurrency(order.total)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                        <div className="bg-muted p-6 rounded-full"><Receipt className="h-12 w-12 text-muted-foreground/30" /></div>
+                                        <div className="space-y-1">
+                                            <h3 className="font-black uppercase tracking-tight">Sin consumos aún</h3>
+                                            <p className="text-xs text-muted-foreground max-w-[200px]">Tus pedidos confirmados aparecerán aquí para que lleves el control de tu cuenta.</p>
+                                        </div>
+                                        <Button variant="outline" className="rounded-xl font-bold text-xs uppercase h-11 px-8" onClick={() => setActiveTab('menu')}>Ir al Menú</Button>
+                                    </div>
+                                )}
                             </div>
                         </ScrollArea>
                     </div>
                 )}
 
-                {/* Step 3: Cart Review */}
-                {step === 3 && (
-                    <div className="flex-1 flex flex-col p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-2">Su Pedido</h2>
-                            <p className="text-sm text-muted-foreground font-medium">Revise los artículos antes de enviar a cocina.</p>
-                        </div>
-
-                        <ScrollArea className="flex-1 -mx-2 px-2">
-                            <div className="space-y-4 pb-10">
-                                {cart.map(item => (
-                                    <div key={item.service.id} className="flex items-center gap-4 p-4 rounded-3xl border bg-card shadow-sm">
-                                        <Avatar className="h-16 w-16 rounded-2xl border">
-                                            <AvatarImage src={item.service.imageUrl || undefined} alt={item.service.name} className="object-cover" />
-                                            <AvatarFallback className="bg-muted rounded-2xl"><ImageIcon className="w-6 h-6 text-muted-foreground/30" /></AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-black text-[11px] uppercase truncate tracking-tight">{item.service.name}</h4>
-                                            <p className="text-xs font-bold text-primary">{formatCurrency(item.service.price)}</p>
-                                            
-                                            <div className="mt-3 flex items-center gap-3">
-                                                <div className="flex items-center bg-muted/50 rounded-full p-1 border">
-                                                    <button onClick={() => handleUpdateQuantity(item.service.id, -1)} className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white transition-colors">
-                                                        <Minus className="w-3 h-3" />
-                                                    </button>
-                                                    <span className="w-8 text-center text-xs font-black">{item.quantity}</span>
-                                                    <button 
-                                                        onClick={() => handleUpdateQuantity(item.service.id, 1)} 
-                                                        className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white transition-colors"
-                                                        disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
-                                                    >
-                                                        <Plus className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-black text-sm">{formatCurrency(item.service.price * item.quantity)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-
-                        <div className="pt-6 space-y-4 border-t bg-background">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                                    <span>Subtotal</span>
-                                    <span>{formatCurrency(cartTotal)}</span>
+                {/* Resumen de Carrito Flotante */}
+                {cart.length > 0 && (
+                    <div className="absolute bottom-6 left-4 right-6 z-30 animate-in slide-in-from-bottom-10 duration-500">
+                        <div className="bg-primary text-primary-foreground p-4 rounded-2xl shadow-2xl flex items-center justify-between ring-4 ring-primary/20">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white/20 h-12 w-12 rounded-xl flex items-center justify-center relative">
+                                    <ShoppingCart className="h-6 w-6" />
+                                    <span className="absolute -top-2 -right-2 bg-white text-primary text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg">
+                                        {cart.reduce((s, i) => s + i.quantity, 0)}
+                                    </span>
                                 </div>
-                                <div className="flex justify-between text-xl font-black tracking-tighter">
-                                    <span>Total Estimado</span>
-                                    <span className="text-primary">{formatCurrency(cartTotal)}</span>
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Total del Pedido</p>
+                                    <p className="text-xl font-black tracking-tighter">{formatCurrency(cartTotal)}</p>
                                 </div>
-                                <p className="text-[9px] text-muted-foreground leading-relaxed text-center italic mt-4">
-                                    * Los impuestos y cargos de servicio se aplicarán al momento del cierre de cuenta.
-                                </p>
                             </div>
                             <Button 
-                                className="w-full h-16 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
-                                onClick={handleConfirmOrder}
-                                disabled={isPending || cart.length === 0}
+                                className="bg-white text-primary hover:bg-white/90 font-black uppercase text-xs tracking-widest h-12 px-6 rounded-xl shadow-lg"
+                                onClick={handleSendOrder}
+                                disabled={isPending}
                             >
-                                {isPending ? "Procesando..." : "Confirmar y Enviar Pedido"}
+                                {isPending ? 'Enviando...' : 'Confirmar'}
                             </Button>
                         </div>
                     </div>
                 )}
-            </div>
-
-            {/* Bottom Floating Bar (for Step 2) */}
-            {step === 2 && cart.length > 0 && (
-                <div className="fixed bottom-6 inset-x-6 z-50 animate-in slide-in-from-bottom-8 duration-500">
-                    <button 
-                        onClick={() => setStep(3)}
-                        className="w-full h-16 bg-primary text-primary-foreground rounded-2xl shadow-2xl flex items-center justify-between px-6 transition-transform active:scale-95 group"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/20 h-10 w-10 flex items-center justify-center rounded-xl font-black text-sm">
-                                {cart.reduce((s, i) => s + i.quantity, 0)}
-                            </div>
-                            <div className="flex flex-col items-start leading-none gap-1">
-                                <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Revisar pedido</span>
-                                <span className="text-lg font-black tracking-tighter">{formatCurrency(cartTotal)}</span>
-                            </div>
-                        </div>
-                        <div className="bg-white/20 p-2 rounded-lg group-hover:translate-x-1 transition-transform">
-                            <ChevronRight className="w-5 h-5" />
-                        </div>
-                    </button>
-                </div>
-            )}
+            </main>
         </div>
     );
-}
-
-function getLocationLabel(type: string) {
-    if (type === 'Table') return 'Mesas';
-    if (type === 'Bar') return 'Barra';
-    if (type === 'Terraza') return 'Terraza';
-    return type;
 }
