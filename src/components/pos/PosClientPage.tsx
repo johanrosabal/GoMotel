@@ -15,7 +15,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -306,9 +306,11 @@ export default function PosClientPage() {
     };
 
     const handleOpenNoteDialog = (index: number) => {
-        setEditingNoteIndex(index);
-        setCurrentNoteValue(cart[index].notes || '');
-        setNoteDialogOpen(true);
+        if (cart[index]) {
+            setEditingNoteIndex(index);
+            setCurrentNoteValue(cart[index].notes || '');
+            setNoteDialogOpen(true);
+        }
     };
 
     const handleSaveNote = () => {
@@ -332,7 +334,8 @@ export default function PosClientPage() {
 
         startTransition(async () => {
             let result;
-            if (viewMode === 'fast') {
+            // FIX: If there's no open account (currentOrder), process as direct sale even if a table is selected.
+            if (viewMode === 'fast' || !currentOrder) {
                 result = await createDirectSale({
                     items: cart.map(i => ({
                         serviceId: i.service.id,
