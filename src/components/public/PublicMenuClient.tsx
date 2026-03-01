@@ -2,142 +2,140 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import type { Service, CompanyProfile } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import AppLogo from '@/components/AppLogo';
 
 export default function PublicMenuClient() {
   const { firestore } = useFirebase();
   const [now, setNow] = useState(new Date());
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  // Data fetching
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'services'), where('isActive', '==', true), orderBy('category'));
-  }, [firestore]);
-  const { data: services } = useCollection<Service>(servicesQuery);
-
-  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
-  const { data: company } = useDoc<CompanyProfile>(companyRef);
-
-  // Filter out Internal products (usually kitchen items without stock tracking but maybe we want to show them too)
-  // For a Menu Board, we usually show everything that is active.
-  const activeProducts = useMemo(() => services || [], [services]);
-
-  // Slideshow logic
-  useEffect(() => {
-    if (activeProducts.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % activeProducts.length);
-    }, 8000); // 8 seconds per product
-    return () => clearInterval(interval);
-  }, [activeProducts]);
-
-  // Clock update
+  // Auto-slide effect
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  if (!services || services.length === 0) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-black text-white">
-        <p className="text-2xl font-black uppercase tracking-widest animate-pulse">Cargando Menú Board...</p>
-      </div>
-    );
+  const servicesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'services'), orderBy('name'));
+  }, [firestore]);
+
+  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
+  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+  const { data: company } = useDoc<CompanyProfile>(companyRef);
+
+  const activeServices = useMemo(() => services?.filter(s => s.isActive) || [], [services]);
+
+  useEffect(() => {
+    if (activeServices.length > 0) {
+      const interval = setInterval(() => {
+        setActiveIndex((prev) => (prev + 1) % activeServices.length);
+      }, 8000); // Rotate every 8 seconds
+      return () => clearInterval(interval);
+    }
+  }, [activeServices]);
+
+  if (isLoading) {
+    return <div className="h-screen w-full bg-black flex items-center justify-center"><Skeleton className="h-20 w-64 bg-zinc-800" /></div>;
   }
 
-  const currentProduct = activeProducts[currentIndex];
+  if (activeServices.length === 0) {
+    return <div className="h-screen w-full bg-black flex items-center justify-center text-white font-black uppercase tracking-widest">No hay productos activos</div>;
+  }
+
+  const currentProduct = activeServices[activeIndex];
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden relative">
-      {/* Background Image with Ken Burns Effect */}
-      {activeProducts.map((product, index) => (
+    <div className="h-screen w-full bg-black overflow-hidden relative cursor-none select-none">
+      {/* Background Images Layer */}
+      {activeServices.map((service, index) => (
         <div 
-          key={product.id}
+          key={service.id}
           className={cn(
-            "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-            index === currentIndex ? "opacity-100" : "opacity-0"
+            "absolute inset-0 transition-all duration-1000 ease-in-out",
+            index === activeIndex ? "opacity-100 scale-100 z-10" : "opacity-0 scale-110 z-0"
           )}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
           <img 
-            src={product.imageUrl || `https://picsum.photos/seed/${product.id}/1920/1080`}
-            alt={product.name}
-            className={cn(
-              "w-full h-full object-cover transition-transform duration-[8000ms] ease-linear",
-              index === currentIndex ? "scale-110" : "scale-100"
-            )}
+            src={service.imageUrl || 'https://picsum.photos/seed/menu/1920/1080'} 
+            alt={service.name} 
+            className="w-full h-full object-cover brightness-[0.6]"
           />
         </div>
       ))}
 
-      {/* Header: Logo and Clock */}
-      <div className="absolute top-0 left-0 w-full p-12 z-20 flex justify-between items-start">
-        <div className="flex items-center gap-6 bg-black/20 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
-          {company?.logoUrl && <img src={company.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />}
-          <h2 className="text-4xl font-black text-white uppercase tracking-tighter">
-            {company?.tradeName || 'Go Motel'}
-          </h2>
-        </div>
-
-        <div className="text-right bg-black/20 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
-          <p className="text-6xl font-black font-mono tracking-tighter text-primary">
-            {now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true })}
-          </p>
-          <p className="text-sm font-black text-white/60 uppercase tracking-[0.3em] mt-1">
-            {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="absolute top-0 left-0 w-full h-2 bg-white/5 z-30">
+      {/* Progress Bar Top */}
+      <div className="fixed top-0 left-0 right-0 h-1 z-50">
         <div 
-          key={currentIndex}
-          className="h-full bg-primary shadow-[0_0_20px_rgba(var(--primary),0.8)] animate-progress" 
-          style={{ animationDuration: '8000ms' }}
+          key={activeIndex}
+          className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)] animate-progress-fast"
+          style={{ animationDuration: '8s' }}
         />
       </div>
 
-      {/* Product Info Overlay */}
-      <div className="absolute bottom-0 left-0 w-full p-20 z-20">
-        <div className="max-w-[90%] space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-          <Badge className="bg-primary text-black font-black text-xl px-6 py-2 uppercase tracking-[0.2em] rounded-full shadow-2xl">
-            Recomendado: {currentProduct.category === 'Food' ? 'Comida' : currentProduct.category === 'Beverage' ? 'Bebida' : 'Amenidad'}
-          </Badge>
-          
-          <div className="space-y-4">
+      {/* Overlay Content */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-between p-12 lg:p-20">
+        {/* Top Branding & Clock */}
+        <div className="flex justify-between items-start animate-in fade-in slide-in-from-top-10 duration-700">
+          <div className="flex items-center gap-6 bg-black/40 backdrop-blur-xl px-8 py-4 rounded-full border border-white/10 shadow-2xl">
+            {company?.logoUrl ? (
+              <img src={company.logoUrl} className="h-12 w-12 object-contain" alt="Logo" />
+            ) : <AppLogo className="h-12 w-12 text-primary" />}
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-white">{company?.tradeName || 'Go Motel'}</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Menú Board</p>
+            </div>
+          </div>
+
+          <div className="text-right bg-white/5 px-8 py-4 rounded-3xl border border-white/10 backdrop-blur-md">
+            <p className="text-5xl font-black font-mono tracking-tighter text-primary">
+              {now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mt-1">
+              {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+        </div>
+
+        {/* Product Information */}
+        <div key={`info-${currentProduct.id}`} className="space-y-6 animate-in fade-in zoom-in-95 duration-1000 max-w-[90%]">
+          <div className="space-y-2">
+            <Badge className="bg-primary text-white text-xl px-6 py-2 rounded-full font-black uppercase tracking-widest border-none shadow-2xl">
+              RECOMENDADO: {currentProduct.category === 'Beverage' ? 'BEBIDAS' : currentProduct.category === 'Food' ? 'COMIDAS' : 'AMENIDADES'}
+            </Badge>
             <h1 className="text-[7rem] font-black text-white uppercase tracking-tighter leading-[0.85] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
               {currentProduct.name}
             </h1>
-            
-            <div className="flex items-center gap-8">
-              <div className="bg-white text-black px-10 py-4 rounded-3xl shadow-2xl transform -rotate-2">
-                <span className="text-7xl font-black tracking-tighter">
-                  {formatCurrency(currentProduct.price)}
-                </span>
-              </div>
-              
-              {currentProduct.description && (
-                <p className="text-2xl text-white/80 font-medium max-w-xl leading-snug drop-shadow-md">
-                  {currentProduct.description}
-                </p>
-              )}
+          </div>
+          
+          <div className="flex items-center gap-10">
+            <div className="bg-white px-10 py-6 rounded-[2.5rem] shadow-2xl transform -rotate-2">
+              <p className="text-6xl font-black text-black tracking-tighter">
+                {formatCurrency(currentProduct.price)}
+              </p>
             </div>
+            {currentProduct.description && (
+              <p className="text-2xl font-bold text-white/80 max-w-2xl drop-shadow-lg leading-tight uppercase tracking-tight">
+                {currentProduct.description}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       <style jsx global>{`
-        @keyframes progress {
+        @keyframes progress-fast {
           from { width: 0%; }
           to { width: 100%; }
         }
-        .animate-progress {
-          animation-name: progress;
+        .animate-progress-fast {
+          animation-name: progress-fast;
           animation-timing-function: linear;
           animation-fill-mode: forwards;
         }
@@ -145,8 +143,3 @@ export default function PublicMenuClient() {
     </div>
   );
 }
-
-// Additional imports needed for the logic above
-import { Badge } from '@/components/ui/badge';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { useDoc } from '@/firebase';

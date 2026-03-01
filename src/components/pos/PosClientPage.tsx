@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, onSnapshot } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
 import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount } from '@/lib/actions/restaurant.actions';
@@ -629,7 +629,7 @@ export default function PosClientPage() {
                                                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                                                     <Separator orientation="vertical" className="h-4 hidden sm:block bg-primary/20" />
                                                     <div className="relative">
-                                                        <UserPlus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-primary/50" />
+                                                        <UserPlus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary/50" />
                                                         <Input 
                                                             placeholder="Identificador de cuenta (opcional)..." 
                                                             value={newAccountLabel}
