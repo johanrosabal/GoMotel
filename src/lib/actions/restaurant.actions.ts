@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Order, Service, AppliedTax, Invoice, RestaurantTable } from '@/types';
+import type { Order, Service, AppliedTax, RestaurantTable } from '@/types';
 
 /**
  * Creates a new restaurant table or bar spot.
@@ -208,7 +208,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
         revalidatePath('/public/order');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
-        return { success: true };
+        return { success: true, orderId };
     } catch (e: any) {
         console.error("Add to table account error:", e);
         return { error: e.message || "Error al actualizar cuenta." };
@@ -290,7 +290,7 @@ export async function payRestaurantAccount(
             const otherOrdersQuery = query(
                 ordersCollection, 
                 where('locationId', '==', tableId), 
-                where('status', '==', 'Pendiente')
+                where('paymentStatus', '==', 'Pendiente')
             );
             const otherOrdersSnap = await getDocs(otherOrdersQuery);
             
