@@ -1,160 +1,140 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import React, { useState, useEffect } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Service } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { Clock } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ImageIcon } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function PublicMenuClient() {
-  const { firestore } = useFirebase();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [now, setNow] = useState(new Date());
+    const { firestore } = useFirebase();
+    const [currentIndex, setCurrentSetIndex] = useState(0);
 
-  const servicesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, 'services'),
-      where('isActive', '==', true),
-      orderBy('name')
+    const servicesQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'services'), where('isActive', '==', true), orderBy('price', 'desc')) : null, 
+        [firestore]
     );
-  }, [firestore]);
+    const { data: allServices } = useCollection<Service>(servicesQuery);
 
-  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
+    // Filter out services without images for the TV board
+    const promotionalServices = allServices?.filter(s => s.imageUrl) || [];
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    useEffect(() => {
+        if (promotionalServices.length === 0) return;
+        const interval = setInterval(() => {
+            setCurrentSetIndex((prev) => (prev + 1) % promotionalServices.length);
+        }, 8000); // 8 seconds per slide
+        return () => clearInterval(interval);
+    }, [promotionalServices.length]);
 
-  useEffect(() => {
-    if (services && services.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % services.length);
-      }, 8000); // Rota cada 8 segundos
-      return () => clearInterval(interval);
+    if (!allServices || promotionalServices.length === 0) {
+        return <div className="min-h-screen bg-black flex items-center justify-center text-white font-black text-4xl uppercase tracking-widest">Cargando Menú...</div>;
     }
-  }, [services]);
 
-  if (isLoading || !services || services.length === 0) {
+    const currentService = promotionalServices[currentIndex];
+
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black">
-        <div className="text-white font-black text-2xl animate-pulse uppercase tracking-[0.3em]">
-          Cargando Menú...
+        <div className="h-screen w-screen bg-black overflow-hidden relative font-sans text-white">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentService.id}
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="absolute inset-0"
+                >
+                    {/* Background Fullscreen Image */}
+                    <div className="absolute inset-0">
+                        <Avatar className="h-full w-full rounded-none">
+                            <AvatarImage src={currentService.imageUrl} className="object-cover" />
+                            <AvatarFallback className="bg-zinc-900 rounded-none">
+                                <ImageIcon className="h-20 w-20 opacity-10" />
+                            </AvatarFallback>
+                        </Avatar>
+                        {/* Overlay Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
+                    </div>
+
+                    {/* Content Overlay */}
+                    <div className="relative h-full flex flex-col justify-center px-20 max-w-5xl space-y-8">
+                        <motion.div
+                            initial={{ x: -100, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.8 }}
+                            className="space-y-4"
+                        >
+                            <span className="inline-block px-6 py-2 bg-primary text-white font-black text-xl uppercase tracking-[0.3em] rounded-full">
+                                {currentService.category === 'Food' ? 'Nuestra Cocina' : 'Desde la Barra'}
+                            </span>
+                            <h1 className="text-[7.5rem] leading-[0.85] font-black uppercase tracking-tighter drop-shadow-2xl italic">
+                                {currentService.name}
+                            </h1>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 1, duration: 0.8 }}
+                            className="flex items-center gap-12"
+                        >
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-black text-primary uppercase tracking-widest opacity-80">Precio Especial</span>
+                                <span className="text-[9rem] font-black leading-none tracking-tighter tabular-nums drop-shadow-2xl">
+                                    {formatCurrency(currentService.price)}
+                                </span>
+                            </div>
+                        </motion.div>
+
+                        {currentService.description && (
+                            <motion.p 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 1.5, duration: 1 }}
+                                className="text-3xl text-zinc-300 font-bold max-w-2xl leading-tight italic opacity-80"
+                            >
+                                "{currentService.description}"
+                            </motion.p>
+                        )}
+                    </div>
+                </motion.div>
+            </AnimatePresence>
+
+            {/* Sidebar with Set Menu (Simple List) */}
+            <div className="absolute right-0 top-0 bottom-0 w-[400px] bg-black/60 backdrop-blur-3xl border-l border-white/10 p-12 flex flex-col">
+                <div className="flex justify-between items-center mb-12">
+                    <h2 className="text-2xl font-black uppercase tracking-widest border-b-4 border-primary pb-2">Menú del Día</h2>
+                    <div className="text-right">
+                        <p className="text-4xl font-black font-mono">
+                            {new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="flex-1 space-y-8">
+                    {allServices.slice(0, 8).map(s => (
+                        <div key={s.id} className={cn(
+                            "flex justify-between items-start transition-all duration-500",
+                            s.id === currentService.id ? "scale-110 text-primary translate-x-[-10px]" : "opacity-40"
+                        )}>
+                            <div className="max-w-[200px]">
+                                <p className="font-black text-xl uppercase leading-none tracking-tight">{s.name}</p>
+                                <p className="text-xs font-bold uppercase opacity-60 mt-1">{s.category === 'Food' ? 'Cocina' : 'Bar'}</p>
+                            </div>
+                            <span className="font-black text-2xl tabular-nums">{formatCurrency(s.price)}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-auto pt-12 border-t border-white/10 text-center">
+                    <p className="text-sm font-black uppercase tracking-[0.3em] opacity-40">Go Motel - Room Service</p>
+                </div>
+            </div>
         </div>
-      </div>
     );
-  }
-
-  const currentProduct = services[currentIndex];
-
-  return (
-    <div className="h-screen w-screen relative bg-black select-none cursor-none">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentProduct.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          className="absolute inset-0"
-        >
-          {/* Fondo de Imagen con Efecto Zoom Suave */}
-          <motion.div 
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 8, ease: "linear" }}
-            className="absolute inset-0"
-          >
-            <img 
-              src={currentProduct.imageUrl || 'https://picsum.photos/seed/menu/1920/1080'} 
-              alt={currentProduct.name}
-              className="w-full h-full object-cover opacity-60 grayscale-[20%]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-          </motion.div>
-
-          {/* Contenido Informativo Gigante */}
-          <div className="absolute inset-0 flex flex-col justify-end p-20 pb-32">
-            <motion.div
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="max-w-[80%]"
-            >
-              <span className="inline-block px-6 py-2 bg-primary text-primary-foreground font-black text-2xl uppercase tracking-[0.3em] mb-8 rounded-full shadow-2xl">
-                {currentProduct.category === 'Food' ? 'Deliciosa Comida' : 'Bebida Refrescante'}
-              </span>
-              <h1 className="text-[7rem] lg:text-[9rem] font-black text-white leading-none uppercase tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
-                {currentProduct.name}
-              </h1>
-              <div className="flex items-center gap-12 mt-10">
-                <div className="text-8xl font-black text-primary drop-shadow-2xl">
-                  {formatCurrency(currentProduct.price)}
-                </div>
-                <div className="h-20 w-1 bg-white/20" />
-                <div className="max-w-xl">
-                  <p className="text-2xl text-white/80 font-bold leading-tight italic">
-                    {currentProduct.description || "Pregunta a nuestro personal por los ingredientes especiales de este platillo."}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Reloj y Logo Superior */}
-      <div className="absolute top-12 left-20 right-20 flex justify-between items-center z-20">
-        <div className="flex items-center gap-6">
-          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center shadow-2xl">
-            <Flame className="h-10 w-10 text-white" />
-          </div>
-          <div className="text-white">
-            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Go Motel</h2>
-            <p className="text-primary font-black uppercase tracking-[0.2em] text-sm mt-1">Digital Menu Board</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 bg-black/40 backdrop-blur-2xl px-8 py-4 rounded-3xl border-2 border-white/10 shadow-2xl">
-          <Clock className="h-8 w-8 text-primary" />
-          <span className="text-5xl font-black text-white tabular-nums tracking-tighter">
-            {now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-      </div>
-
-      {/* Barra de Progreso Inferior */}
-      <div className="absolute bottom-0 left-0 right-0 h-2 bg-white/5 overflow-hidden">
-        <motion.div 
-          key={currentIndex}
-          initial={{ x: '-100%' }}
-          animate={{ x: '0%' }}
-          transition={{ duration: 8, ease: "linear" }}
-          className="h-full bg-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]"
-        />
-      </div>
-    </div>
-  );
-}
-
-function Flame(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-    </svg>
-  );
 }
