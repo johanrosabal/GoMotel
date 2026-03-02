@@ -90,23 +90,19 @@ export default function PosClientPage() {
         return () => clearInterval(timer);
     }, []);
 
-    // View Management
     const [viewMode, setViewMode] = useState<string>('fast');
     const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
     const [manageTablesOpen, setManageTablesOpen] = useState(false);
 
-    // Renaming state
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [renamingOrderId, setRenamingOrderId] = useState<string | null>(null);
     const [newLabelName, setNewLabelName] = useState('');
 
-    // Kitchen Notes state
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
 
-    // Deletion state
     const [removeItemDialogOpen, setRemoveItemDialogOpen] = useState(false);
     const [itemToRemove, setItemToRemove] = useState<{ orderId: string, serviceId: string, name: string } | null>(null);
     const [deletionReason, setDeletionReason] = useState('');
@@ -116,7 +112,7 @@ export default function PosClientPage() {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [step, setStep] = useState(1); // 1: Select, 2: Payment
+    const [step, setStep] = useState(1);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(null);
     const [cashTendered, setCashTendered] = useState('');
@@ -129,7 +125,6 @@ export default function PosClientPage() {
 
     const paymentMethod = form.watch('paymentMethod');
 
-    // Data Fetching
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     useEffect(() => {
         getServices().then(setAvailableServices);
@@ -150,11 +145,11 @@ export default function PosClientPage() {
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
-    const activeOrdersQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'orders'), where('status', '==', 'Pendiente')) : null, 
+    const unpaidOrdersQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'orders'), where('paymentStatus', '==', 'Pendiente')) : null, 
         [firestore]
     );
-    const { data: activeOrders } = useCollection<Order>(activeOrdersQuery);
+    const { data: activeOrders } = useCollection<Order>(unpaidOrdersQuery);
 
     const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes')) : null, [firestore]);
     const { data: allTaxes } = useCollection<Tax>(taxesQuery);
@@ -334,7 +329,6 @@ export default function PosClientPage() {
 
         startTransition(async () => {
             let result;
-            // If there's no open account (currentOrder), process as direct sale even if a table is selected.
             if (viewMode === 'fast' || !currentOrder) {
                 result = await createDirectSale({
                     items: cart.map(i => ({
@@ -342,6 +336,7 @@ export default function PosClientPage() {
                         name: i.service.name,
                         quantity: i.quantity,
                         price: i.service.price,
+                        category: i.service.category,
                         notes: i.notes
                     })),
                     clientName: values.clientName,
@@ -467,7 +462,6 @@ export default function PosClientPage() {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
-            {/* Top Mode Selector */}
             <div className="mx-2 sm:mx-4 lg:mx-6 mt-4 flex items-center justify-between bg-background border rounded-2xl p-1.5 shadow-sm">
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
                     <button 
@@ -520,7 +514,6 @@ export default function PosClientPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6">
-                {/* Main Content Area */}
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
                     
                     {viewMode !== 'fast' && !selectedTable ? (
@@ -619,7 +612,6 @@ export default function PosClientPage() {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col min-0">
-                            {/* Sub-Accounts Barra Superior */}
                             {selectedTable && (
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
                                     <div className="flex items-center justify-between px-1">
@@ -788,14 +780,12 @@ export default function PosClientPage() {
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 
-                                                {/* Price Badge */}
                                                 <div className="absolute top-2 right-2 z-10">
                                                     <Badge className="font-black bg-background/90 text-primary border-primary/20 shadow-sm backdrop-blur-sm">
                                                         {formatCurrency(service.price)}
                                                     </Badge>
                                                 </div>
 
-                                                {/* Name Overlay */}
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
                                                     <h3 className="font-black text-[10px] sm:text-[11px] uppercase tracking-tight line-clamp-2 leading-tight text-white drop-shadow-md">
                                                         {service.name}
@@ -823,7 +813,6 @@ export default function PosClientPage() {
                     )}
                 </div>
 
-                {/* Cart & Checkout Area */}
                 <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
                     
                     <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
@@ -872,7 +861,6 @@ export default function PosClientPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            {/* Productos ya pedidos (Existentes en la orden) */}
                                             {currentOrder && currentOrder.items.map((item, idx) => (
                                                 <div key={`existing-${idx}`} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
                                                     <div className="flex items-center justify-between gap-2">
@@ -889,7 +877,6 @@ export default function PosClientPage() {
                                                         <div className="text-right w-16">
                                                             <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
                                                         </div>
-                                                        {/* Borrar Item Existente */}
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon" 
@@ -906,7 +893,6 @@ export default function PosClientPage() {
                                                 </div>
                                             ))}
 
-                                            {/* Productos por añadir (Carrito temporal) */}
                                             {cart.map((item, idx) => (
                                                 <div key={item.service.id} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-background shadow-sm border-primary/20">
                                                     <div className="flex items-center justify-between gap-2">
@@ -1174,7 +1160,6 @@ export default function PosClientPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Note Dialog */}
             <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -1209,7 +1194,6 @@ export default function PosClientPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Remove Item Dialog */}
             <Dialog open={removeItemDialogOpen} onOpenChange={setRemoveItemDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>

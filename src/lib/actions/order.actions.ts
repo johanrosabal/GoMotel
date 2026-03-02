@@ -44,7 +44,6 @@ export async function createOrder(
     let invoiceIdForReturn: string | undefined;
     let nextInvoiceNumber = '';
 
-    // 1. Fetch Invoice Number if payment is upfront (Before transaction)
     if (paymentDetails) {
         const invoicesRef = collection(db, 'invoices');
         const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
@@ -59,6 +58,8 @@ export async function createOrder(
         }
         nextInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
     }
+
+    let orderIdForReturn: string | undefined;
 
     await runTransaction(db, async (transaction) => {
       const stayRef = doc(db, 'stays', stayId);
@@ -86,6 +87,7 @@ export async function createOrder(
       }
 
       const orderRef = doc(collection(db, 'orders'));
+      orderIdForReturn = orderRef.id;
       let totalOrderPrice = 0;
       const orderItems: OrderItem[] = [];
       let hasKitchen = false;
@@ -170,8 +172,6 @@ export async function createOrder(
             }
             if (targetAccountRef) {
                 transaction.update(targetAccountRef, { balance: increment(paymentDetails.total) });
-            } else {
-                 throw new Error("No hay cuentas SINPE disponibles o todas han alcanzado su límite.");
             }
         }
       }
@@ -182,7 +182,7 @@ export async function createOrder(
     revalidatePath(`/rooms/${stayId}`);
     revalidatePath('/inventory');
     if (invoiceIdForReturn) revalidatePath('/billing/invoices');
-    return { success: true, invoiceId: invoiceIdForReturn };
+    return { success: true, orderId: orderIdForReturn, invoiceId: invoiceIdForReturn };
   } catch (error: any) {
     console.error('Failed to create order:', error);
     return { error: error.message || 'Ocurrió un error inesperado al realizar el pedido.' };
@@ -202,12 +202,11 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
             updates.status = status;
         }
 
-        // Si se marca algo como entregado, verificar si el pedido global está completo
         const snap = await getDoc(orderRef);
         if (snap.exists() && area) {
             const data = snap.data() as Order;
-            const newKitchen = area === 'Kitchen' ? status : data.kitchenStatus;
-            const newBar = area === 'Bar' ? status : data.barStatus;
+            const newKitchen = area === 'Kitchen' ? status : (data.kitchenStatus || 'Entregado');
+            const newBar = area === 'Bar' ? status : (data.barStatus || 'Entregado');
             
             if (newKitchen === 'Entregado' && newBar === 'Entregado') {
                 updates.status = 'Entregado';
@@ -222,28 +221,6 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Error al actualizar estado del pedido.' };
-    }
-}
-
-export async function getOrdersForStay(stayId: string): Promise<Order[]> {
-    if (!stayId) return [];
-    try {
-        const ordersCollection = collection(db, 'orders');
-        const q = query(ordersCollection, where('stayId', '==', stayId));
-        const ordersSnapshot = await getDocs(q);
-
-        const orders = ordersSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Order));
-
-        orders.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
-        return orders;
-
-    } catch (error) {
-        console.error('Error fetching orders for stay:', error);
-        return [];
     }
 }
 
@@ -289,7 +266,6 @@ export async function cancelOrder(orderId: string) {
         });
     });
 
-    revalidatePath(`/rooms/*`);
     revalidatePath('/inventory');
     return { success: true };
   } catch (error: any) {
