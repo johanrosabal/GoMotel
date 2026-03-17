@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -60,11 +61,11 @@ export default function CatalogClientPage() {
     }, [firestore, selectedCategory]);
     const { data: subCategories, isLoading: isLoadingSubCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
 
-    const servicesQuery = useMemoFirebase(() => {
+    const productsQuery = useMemoFirebase(() => {
         if (!firestore || !selectedSubCategory) return null;
-        return query(collection(firestore, 'services'), where('subCategoryId', '==', selectedSubCategory.id), orderBy('name'));
+        return query(collection(firestore, 'products'), where('subCategoryId', '==', selectedSubCategory.id), orderBy('name'));
     }, [firestore, selectedSubCategory]);
-    const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+    const { data: services, isLoading: isLoadingServices } = useCollection<Service>(productsQuery);
 
     const handleSelectCategory = (category: ProductCategory) => {
         setSelectedCategory(category);

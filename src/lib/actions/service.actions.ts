@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -44,8 +45,8 @@ const toServiceObject = (doc: any): Service => {
 
 export async function getServices(): Promise<Service[]> {
   try {
-    const servicesCollection = collection(db, 'services');
-    const q = query(servicesCollection);
+    const productsCollection = collection(db, 'products');
+    const q = query(productsCollection);
     const servicesSnapshot = await getDocs(q);
     const services = servicesSnapshot.docs.map(toServiceObject);
     services.sort((a, b) => {
@@ -113,15 +114,15 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
   try {
     if (id) {
       // Update existing service
-      const serviceRef = doc(db, 'services', id);
+      const serviceRef = doc(db, 'products', id);
       await updateDoc(serviceRef, {
         ...serviceData,
         code: code, // Pass code for updates
       });
     } else {
        // Add new service with incremental code
-      const servicesCollection = collection(db, 'services');
-      const servicesSnapshot = await getDocs(query(servicesCollection));
+      const productsCollection = collection(db, 'products');
+      const servicesSnapshot = await getDocs(query(productsCollection));
       
       const existingCodes = servicesSnapshot.docs
         .map(d => d.data().code)
@@ -132,7 +133,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
       const nextCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
       const newCode = `P${String(nextCodeNumber).padStart(3, '0')}`;
 
-      await addDoc(servicesCollection, { 
+      await addDoc(productsCollection, { 
           ...serviceData, 
           code: newCode 
       });
@@ -158,7 +159,7 @@ export async function deleteService(serviceId: string) {
     }
 
     try {
-        await deleteDoc(doc(db, 'services', serviceId));
+        await deleteDoc(doc(db, 'products', serviceId));
         revalidatePath('/inventory');
         revalidatePath('/catalog');
         return { success: true };
@@ -170,7 +171,7 @@ export async function deleteService(serviceId: string) {
 
 export async function toggleServiceStatus(serviceId: string, currentStatus: boolean) {
     try {
-        const serviceRef = doc(db, 'services', serviceId);
+        const serviceRef = doc(db, 'products', serviceId);
         await updateDoc(serviceRef, { isActive: !currentStatus });
         revalidatePath('/inventory');
         revalidatePath('/catalog');
@@ -197,7 +198,7 @@ export async function registerServiceSpoilage(values: z.infer<typeof spoilageSch
 
     try {
         await runTransaction(db, async (transaction) => {
-            const serviceRef = doc(db, 'services', serviceId);
+            const serviceRef = doc(db, 'products', serviceId);
             const serviceSnap = await transaction.get(serviceRef);
             if (!serviceSnap.exists()) {
                 throw new Error(`El producto no fue encontrado.`);

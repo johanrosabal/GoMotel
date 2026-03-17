@@ -232,7 +232,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Service",
       "type": "object",
-      "description": "Represents a service offered by the motel (e.g., food, drinks).",
+      "description": "Represents a service offered by the motel (e.g., food, drinks). Map to 'products' collection.",
       "properties": {
         "id": {
           "type": "string",
@@ -664,6 +664,15 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": { "$ref": "#/backend/entities/Service" },
+          "description": "Stores services and products available for sale.",
+          "params": [{ "name": "productId", "description": "Unique ID" }]
+        }
+      },
       {
         "path": "/restaurantTables/{tableId}",
         "definition": {

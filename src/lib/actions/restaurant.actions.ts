@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -108,7 +109,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                 if (item.service.category === 'Beverage') hasBar = true;
 
                 if (item.service.source !== 'Internal') {
-                    const sRef = doc(db, 'services', item.service.id);
+                    const sRef = doc(db, 'products', item.service.id);
                     const sSnap = await transaction.get(sRef);
                     const currentStock = sSnap.data()?.stock || 0;
                     if (currentStock < item.quantity) {
@@ -233,7 +234,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                 }
 
                 if (item.service.source !== 'Internal') {
-                    const sRef = doc(db, 'services', item.service.id);
+                    const sRef = doc(db, 'products', item.service.id);
                     transaction.update(sRef, { stock: increment(-item.quantity) });
                 }
 
@@ -436,7 +437,7 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
             const itemPrice = item.price * item.quantity;
 
             // 1. Restore Stock
-            const serviceRef = doc(db, 'services', serviceId);
+            const serviceRef = doc(db, 'products', serviceId);
             const serviceSnap = await transaction.get(serviceRef);
             if (serviceSnap.exists()) {
                 const serviceData = serviceSnap.data() as Service;
@@ -515,7 +516,7 @@ export async function cancelRestaurantOrder(orderId: string) {
             
             // 1. Restore Stock for all items
             for (const item of orderData.items) {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
                 if (serviceSnap.exists()) {
                     const serviceData = serviceSnap.data() as Service;

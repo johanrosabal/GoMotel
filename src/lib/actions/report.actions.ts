@@ -1,3 +1,4 @@
+
 'use server';
 
 import { collection, getDocs, query, where, Timestamp, orderBy } from 'firebase/firestore';
@@ -27,9 +28,9 @@ export async function getDashboardStats(days: number = 7) {
     const staysSnap = await getDocs(staysQuery);
     const stays = staysSnap.docs.map(d => ({ id: d.id, ...d.data() } as Stay));
 
-    // 3. Fetch Services for Stock Alerts
-    const servicesRef = collection(db, 'services');
-    const servicesSnap = await getDocs(servicesRef);
+    // 3. Fetch Products for Stock Alerts
+    const productsRef = collection(db, 'products');
+    const servicesSnap = await getDocs(productsRef);
     const services = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
 
     // --- Processing Data for Charts ---

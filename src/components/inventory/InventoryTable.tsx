@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -118,7 +119,7 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
 
   useEffect(() => {
     const q = query(
-      collection(db, 'services')
+      collection(db, 'products')
     );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const servicesData: Service[] = [];

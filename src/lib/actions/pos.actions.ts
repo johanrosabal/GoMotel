@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -59,7 +60,7 @@ export async function createDirectSale(values: DirectSaleInput) {
         await runTransaction(db, async (transaction) => {
             // 2. Validate Stock and update
             for (const item of values.items) {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
                 if (!serviceSnap.exists()) throw new Error(`Producto "${item.name}" no encontrado.`);
                 

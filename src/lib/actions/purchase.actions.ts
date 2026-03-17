@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -62,13 +63,13 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
 
             // 1. Revert original stock changes
             originalInvoice.items.forEach(item => {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 batch.update(serviceRef, { stock: increment(-item.quantity) });
             });
 
             // 2. Apply new stock changes
             items.forEach(item => {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 batch.update(serviceRef, {
                     stock: increment(item.quantity),
                     costPrice: item.costPrice
@@ -103,7 +104,7 @@ export async function savePurchaseInvoice(values: z.infer<typeof purchaseInvoice
             });
 
             items.forEach(item => {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 batch.update(serviceRef, { 
                     stock: increment(item.quantity),
                     costPrice: item.costPrice
@@ -146,7 +147,7 @@ export async function voidPurchaseInvoice(purchaseInvoiceId: string) {
         
         // Revert stock changes from this invoice
         invoice.items.forEach(item => {
-            const serviceRef = doc(db, 'services', item.serviceId);
+            const serviceRef = doc(db, 'products', item.serviceId);
             batch.update(serviceRef, { stock: increment(-item.quantity) });
         });
 
@@ -193,7 +194,7 @@ export async function registerSpoilage(values: z.infer<typeof registerSpoilageSc
             }
             
             for (const item of items) {
-                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceRef = doc(db, 'products', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
                 if (!serviceSnap.exists()) {
                      throw new Error(`El producto no fue encontrado.`);

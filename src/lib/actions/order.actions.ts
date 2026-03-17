@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -74,7 +75,7 @@ export async function createOrder(
       const serviceDetails: { service: Service; ref: DocumentReference; quantity: number; notes?: string }[] = [];
 
       for (const item of cart) {
-        const serviceRef = doc(db, 'services', item.service.id);
+        const serviceRef = doc(db, 'products', item.service.id);
         const serviceSnap = await transaction.get(serviceRef);
 
         if (!serviceSnap.exists()) {
@@ -282,7 +283,7 @@ export async function cancelOrder(orderId: string) {
 
         const servicesToUpdate: { ref: DocumentReference, quantity: number }[] = [];
         for (const item of orderData.items) {
-            const serviceRef = doc(db, 'services', item.serviceId);
+            const serviceRef = doc(db, 'products', item.serviceId);
             const serviceSnap = await transaction.get(serviceRef);
             if (serviceSnap.exists()) {
                 const serviceData = serviceSnap.data() as Service;

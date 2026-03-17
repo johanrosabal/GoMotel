@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, type ReactNode, useEffect, useRef } from 'react';
@@ -133,6 +134,12 @@ export default function EditServiceDialog({ children, service, allServices, open
     return query(collection(firestore, 'productSubCategories'), where('categoryId', '==', selectedCategoryId), orderBy('name'));
   }, [firestore, selectedCategoryId]);
   const { data: subCategories, isLoading: isLoadingSubCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
+
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products'), orderBy('name'));
+  }, [firestore]);
+  const { data: products } = useCollection<Service>(productsQuery);
 
   const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes'), orderBy('name')) : null, [firestore]);
   const { data: taxes, isLoading: isLoadingTaxes } = useCollection<Tax>(taxesQuery);

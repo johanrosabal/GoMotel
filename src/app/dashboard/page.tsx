@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -69,8 +70,8 @@ export default function DashboardPage() {
   const roomsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'rooms')) : null, [firestore]);
   const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
 
-  const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'services')) : null, [firestore]);
-  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+  const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
+  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(productsQuery);
 
   const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
   const { data: company } = useDoc<CompanyProfile>(companyRef);

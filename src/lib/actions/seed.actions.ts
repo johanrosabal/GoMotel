@@ -162,10 +162,10 @@ export async function seedDatabase() {
       }
     });
 
-    // 4. Seed Services (Assigned IVA by default)
-    const servicesCollection = collection(db, 'services');
+    // 4. Seed Products (was 'services')
+    const productsCollection = collection(db, 'products');
     servicesToSeed.forEach(service => {
-      const docRef = doc(servicesCollection);
+      const docRef = doc(productsCollection);
       batch.set(docRef, {
           ...service,
           taxIds: ivaTax ? [ivaTax.id] : []
