@@ -143,6 +143,18 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
     });
   };
 
+  const onNextStep = () => {
+      if (billing.totalDue > 0) {
+          setStep(2);
+      } else {
+          // Si el total es 0, procesar directamente con valores por defecto
+          handleProcessCheckout({
+              paymentMethod: 'Efectivo',
+              paymentConfirmed: true
+          });
+      }
+  };
+
   return (
     <React.Fragment>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -186,8 +198,18 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
                             </div>
                             <Separator className="bg-border/50" />
                             <div className="flex justify-between items-center pt-1">
-                                <span className="text-lg font-black uppercase tracking-tight">Total Pendiente</span>
-                                <span className="text-2xl font-black text-primary">{formatCurrency(billing.totalDue)}</span>
+                                <span className={cn(
+                                    "text-lg font-black uppercase tracking-tight",
+                                    billing.totalDue === 0 ? "text-green-600" : "text-foreground"
+                                )}>
+                                    Total Pendiente
+                                </span>
+                                <span className={cn(
+                                    "text-2xl font-black tracking-tighter",
+                                    billing.totalDue === 0 ? "text-green-600" : "text-primary"
+                                )}>
+                                    {formatCurrency(billing.totalDue)}
+                                </span>
                             </div>
                         </div>
 
@@ -321,9 +343,23 @@ export default function CheckoutDialog({ children, stay, room, orders }: Checkou
             <DialogFooter className="gap-2 pt-4 border-t">
                 {step === 1 ? (
                     <>
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12">Cancelar</Button>
-                        <Button type="button" onClick={() => setStep(2)} className="flex-1 h-12 font-bold shadow-lg">
-                            Pasar a Cobro <ChevronRight className="ml-2 h-4 w-4" />
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12" disabled={isPending}>Cancelar</Button>
+                        <Button 
+                            type="button" 
+                            onClick={onNextStep} 
+                            className={cn(
+                                "flex-1 h-12 font-black uppercase text-[10px] tracking-widest shadow-lg transition-all",
+                                billing.totalDue === 0 ? "bg-green-600 hover:bg-green-700 shadow-green-500/20" : ""
+                            )}
+                            disabled={isPending}
+                        >
+                            {isPending ? "Procesando..." : (
+                                billing.totalDue > 0 ? (
+                                    <>Pasar a Cobro <ChevronRight className="ml-2 h-4 w-4" /></>
+                                ) : (
+                                    <>Finalizar Check-Out <CheckCircle className="ml-2 h-4 w-4" /></>
+                                )
+                            )}
                         </Button>
                     </>
                 ) : (
