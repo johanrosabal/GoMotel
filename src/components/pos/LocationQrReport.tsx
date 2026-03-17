@@ -88,12 +88,12 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                                         </div>
                                     </div>
 
-                                    {/* Footer Label */}
-                                    <div className="text-center w-full space-y-3">
-                                        <div className="bg-primary text-primary-foreground px-8 py-3 rounded-[2rem] inline-block shadow-lg">
-                                            <span className="text-4xl font-black uppercase tracking-widest">{locationName}</span>
-                                        </div>
-                                        <p className="text-xs font-black text-gray-300 uppercase tracking-[0.3em]">Escanee para pedir</p>
+                                    {/* Footer Label - ESTILO ACTUALIZADO A TÍTULO NORMAL */}
+                                    <div className="text-center w-full space-y-1">
+                                        <h2 className="text-4xl font-black uppercase tracking-widest text-primary">
+                                            {locationName}
+                                        </h2>
+                                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Escanee para pedir</p>
                                     </div>
                                 </div>
                             </div>
