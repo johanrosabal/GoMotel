@@ -150,6 +150,7 @@ export default function PosClientPage() {
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
+    // FIX: Active orders query should be reactive and listen to ALL location changes
     const unpaidOrdersQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'orders'), where('paymentStatus', '==', 'Pendiente')) : null, 
         [firestore]
@@ -734,7 +735,7 @@ export default function PosClientPage() {
 
                             <div className="p-4 border-b space-y-4 bg-muted/5 shrink-0">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                                     <Input 
                                         placeholder="Buscar producto por nombre o código..." 
                                         className="pl-9 h-11 bg-background rounded-xl border-2 transition-all focus:border-primary"
@@ -813,7 +814,7 @@ export default function PosClientPage() {
                                                 <Avatar className="h-full w-full rounded-none">
                                                     <AvatarImage src={service.imageUrl || undefined} alt={service.name} className="object-cover transition-transform group-hover:scale-110 duration-500" />
                                                     <AvatarFallback className="rounded-none bg-transparent">
-                                                        <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                                                        <ImageIcon className="h-10 w-10 text-neutral-500/20" />
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 
@@ -906,13 +907,13 @@ export default function PosClientPage() {
                                                                 <CheckCircle className="h-3 w-3 text-primary" />
                                                                 <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
                                                             </div>
-                                                            <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)}</p>
+                                                            <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.price)}</p>
                                                         </div>
                                                         <div className="flex items-center gap-2 px-3">
                                                             <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
                                                         </div>
                                                         <div className="text-right w-16">
-                                                            <p className="text-[11px] font-bold text-muted-foreground">{formatCurrency(item.price * item.quantity)}</p>
+                                                            <p className="text-[11px] font-bold text-neutral-500">{formatCurrency(item.price * item.quantity)}</p>
                                                         </div>
                                                         <Button 
                                                             variant="ghost" 
@@ -936,7 +937,7 @@ export default function PosClientPage() {
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.service.name}</p>
                                                             <div className="flex items-center gap-2 mt-0.5">
-                                                                <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.service.price)}</p>
+                                                                <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.service.price)}</p>
                                                                 {item.service.source === 'Internal' && (
                                                                     <button 
                                                                         onClick={() => handleOpenNoteDialog(idx)}
@@ -988,10 +989,10 @@ export default function PosClientPage() {
                                             name="clientName"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Facturar a</FormLabel>
+                                                    <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Facturar a</FormLabel>
                                                     <FormControl>
                                                         <div className="relative">
-                                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500" />
                                                             <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" />
                                                         </div>
                                                     </FormControl>
@@ -1005,7 +1006,7 @@ export default function PosClientPage() {
                                             name="paymentMethod"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Método de Pago</FormLabel>
+                                                    <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Método de Pago</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl">
@@ -1076,7 +1077,7 @@ export default function PosClientPage() {
                                                 name="voucherNumber"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Voucher</FormLabel>
+                                                        <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Voucher</FormLabel>
                                                         <FormControl>
                                                             <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" />
                                                         </FormControl>
@@ -1093,7 +1094,7 @@ export default function PosClientPage() {
                         <div className="p-4 border-t bg-background space-y-3 mt-auto shrink-0">
                             {currentOrder && (
                                 <div className="p-2 rounded-lg bg-muted/50 border border-dashed mb-2 space-y-1">
-                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-neutral-500">
                                         <span>Consumo Acumulado (Neto)</span>
                                         <span>{formatCurrency(currentOrderSubtotal)}</span>
                                     </div>
@@ -1107,19 +1108,19 @@ export default function PosClientPage() {
                             )}
 
                             <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase">
+                                <div className="flex justify-between text-[9px] font-bold text-neutral-500 uppercase">
                                     <span>Subtotal</span>
                                     <span>{formatCurrency(subtotal)}</span>
                                 </div>
                                 {appliedTaxes.map(tax => (
-                                    <div key={tax.taxId} className="flex justify-between text-[9px] font-bold text-muted-foreground/60 uppercase">
+                                    <div key={tax.taxId} className="flex justify-between text-[9px] font-bold text-neutral-500/60 uppercase">
                                         <span>{tax.name} {tax.percentage}%</span>
                                         <span>{formatCurrency(tax.amount)}</span>
                                     </div>
                                 ))}
                                 <Separator className="my-1.5" />
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Total General</span>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-neutral-500">Total General</span>
                                     <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </div>
@@ -1178,7 +1179,7 @@ export default function PosClientPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <Label htmlFor="rename-label" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 mb-2 block">Nombre de la Cuenta</Label>
+                        <Label htmlFor="rename-label" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1 mb-2 block">Nombre de la Cuenta</Label>
                         <Input 
                             id="rename-label"
                             placeholder="Ej: Persona 1, Mesa Ventana, etc." 
@@ -1213,7 +1214,7 @@ export default function PosClientPage() {
                             </span>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="kitchen-note" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Instrucciones Especiales</Label>
+                            <Label htmlFor="kitchen-note" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Instrucciones Especiales</Label>
                             <Textarea 
                                 id="kitchen-note"
                                 placeholder="Ej: Con poca sal, sin cebolla, término medio..."
@@ -1244,7 +1245,7 @@ export default function PosClientPage() {
                     
                     <div className="space-y-6 py-4">
                         <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Razón de la eliminación *</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Razón de la eliminación *</Label>
                             <RadioGroup value={deletionReason} onValueChange={setDeletionReason} className="grid gap-2">
                                 {DELETION_REASONS.map((reason) => (
                                     <Label
@@ -1262,7 +1263,7 @@ export default function PosClientPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="deletion-notes" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas Especiales (Opcional)</Label>
+                            <Label htmlFor="deletion-notes" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Notas Especiales (Opcional)</Label>
                             <Textarea 
                                 id="deletion-notes"
                                 placeholder="Describa el motivo detallado si es necesario..."
