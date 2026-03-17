@@ -248,7 +248,7 @@ export async function checkOut(
       taxes: [], 
       total: Math.max(0, totalDueAtCheckout),
       paymentMethod: paymentDetails?.paymentMethod || 'Efectivo',
-      voucherNumber: paymentDetails?.voucherNumber,
+      voucherNumber: paymentDetails?.voucherNumber || null,
   };
   batch.set(invoiceRef, finalInvoice);
 
@@ -454,7 +454,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
   
       const now = new Date();
       const currentCheckOut = stayData.expectedCheckOut.toDate();
-      const baseDate = isOverdue && now > currentCheckOut ? now : currentCheckOut;
+      const baseDate = now > currentCheckOut ? now : currentCheckOut;
   
       let newExpectedCheckOut = new Date(baseDate);
       switch (newPlan.unit) {
@@ -517,7 +517,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
               taxes: [],
               total: newPlan.price,
               paymentMethod: paymentMethod!,
-              voucherNumber: voucherNumber ?? undefined,
+              voucherNumber: voucherNumber || null,
           };
           batch.set(invoiceRef, newInvoice);
   
@@ -546,6 +546,8 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
           }
           
           updatedStayData.paymentAmount = increment(newPlan.price);
+          updatedStayData.paymentMethod = paymentMethod || null;
+          updatedStayData.voucherNumber = voucherNumber || null;
           // If the stay was pending, and now it's paid, it's fully paid
           if (stayData.paymentStatus === 'Pendiente') {
             updatedStayData.paymentStatus = 'Pagado';

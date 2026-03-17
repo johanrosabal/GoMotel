@@ -146,7 +146,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
       paymentStatus,
       paymentMethod,
       paymentAmount,
-      voucherNumber: voucherNumber ?? undefined,
+      voucherNumber: voucherNumber || null,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -200,6 +200,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
         const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
         
         const invoiceRef = doc(collection(db, 'invoices'));
+        invoiceIdForReturn = invoiceRef.id;
+
         const invoiceItems = [{
             description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
             quantity: 1,
@@ -220,11 +222,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
             taxes: [], // Taxes logic can be added later
             total: pricePlanAmount,
             paymentMethod: paymentMethod,
-            voucherNumber: voucherNumber ?? undefined,
+            voucherNumber: voucherNumber || null,
         };
         batch.set(invoiceRef, newInvoice);
-
-        invoiceIdForReturn = invoiceRef.id;
     }
 
     if (checkInNow && stayRef) {
@@ -245,7 +245,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           paymentStatus,
           paymentMethod,
           paymentAmount,
-          voucherNumber: voucherNumber ?? undefined,
+          voucherNumber: voucherNumber || null,
         };
         batch.set(stayRef, newStay);
         
@@ -340,7 +340,7 @@ export async function checkInFromReservation(reservationId: string) {
       paymentStatus: reservation.paymentStatus,
       paymentMethod: reservation.paymentMethod,
       paymentAmount: reservation.paymentAmount,
-      voucherNumber: reservation.voucherNumber,
+      voucherNumber: reservation.voucherNumber || null,
     };
     batch.set(stayRef, newStay);
 
