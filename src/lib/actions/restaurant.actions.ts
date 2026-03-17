@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -412,5 +413,64 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
     } catch (e: any) {
         console.error("Remove item error:", e);
         return { error: e.message || "Error al eliminar producto." };
+    }
+}
+
+/**
+ * Deletes/Cancels an entire restaurant account and restores all stock.
+ */
+export async function cancelRestaurantOrder(orderId: string) {
+    try {
+        await runTransaction(db, async (transaction) => {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+            
+            const orderData = orderSnap.data() as Order;
+            
+            // 1. Restore Stock for all items
+            for (const item of orderData.items) {
+                const serviceRef = doc(db, 'services', item.serviceId);
+                const serviceSnap = await transaction.get(serviceRef);
+                if (serviceSnap.exists()) {
+                    const serviceData = serviceSnap.data() as Service;
+                    if (serviceData.source !== 'Internal') {
+                        transaction.update(serviceRef, { stock: increment(item.quantity) });
+                    }
+                }
+            }
+
+            // 2. Delete the order
+            transaction.delete(orderRef);
+
+            // 3. Update table status if it was the last pending order
+            if (orderData.locationId) {
+                const tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                
+                // Get other pending orders for this location
+                const ordersCollection = collection(db, 'orders');
+                const otherOrdersQuery = query(
+                    ordersCollection, 
+                    where('locationId', '==', orderData.locationId), 
+                    where('paymentStatus', '==', 'Pendiente')
+                );
+                const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                
+                const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
+                if (remainingOrders.length === 0) {
+                    transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                } else {
+                    transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+                }
+            }
+        });
+
+        revalidatePath('/pos');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Cancel entire order error:", e);
+        return { error: e.message || "Error al cancelar la cuenta." };
     }
 }

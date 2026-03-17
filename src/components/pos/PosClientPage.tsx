@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, doc, onSnapshot } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const posPaymentSchema = z.object({
   clientName: z.string().default('Cliente de Contado'),
@@ -107,6 +109,9 @@ export default function PosClientPage() {
     const [itemToRemove, setItemToRemove] = useState<{ orderId: string, serviceId: string, name: string } | null>(null);
     const [deletionReason, setDeletionReason] = useState('');
     const [deletionNotes, setDeletionNotes] = useState('');
+
+    const [cancelAccountDialogOpen, setCancelAccountDialogOpen] = useState(false);
+    const [accountToCancel, setAccountToCancel] = useState<{ id: string, label: string } | null>(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -422,6 +427,22 @@ export default function PosClientPage() {
         });
     };
 
+    const handleCancelEntireAccount = () => {
+        if (!accountToCancel) return;
+        startTransition(async () => {
+            const result = await cancelRestaurantOrder(accountToCancel.id);
+            if (result.error) {
+                toast({ title: 'Error al cancelar', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Cuenta eliminada', description: 'La cuenta ha sido cerrada y el inventario restaurado.' });
+                setCancelAccountDialogOpen(false);
+                setAccountToCancel(null);
+                setSelectedOrderId(null);
+                handleClearCart();
+            }
+        });
+    };
+
     const handleOpenRemoveItemDialog = (orderId: string, serviceId: string, name: string) => {
         setItemToRemove({ orderId, serviceId, name });
         setDeletionReason('');
@@ -435,7 +456,7 @@ export default function PosClientPage() {
         startTransition(async () => {
             const result = await removeItemFromAccount(itemToRemove.orderId, itemToRemove.serviceId, deletionReason, deletionNotes);
             if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                toast({ title: 'Error al eliminar producto', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Producto eliminado', description: 'Se ha actualizado la cuenta y devuelto el stock.' });
                 setRemoveItemDialogOpen(false);
@@ -654,7 +675,7 @@ export default function PosClientPage() {
                                                 <div key={order.id} className="relative group/account shrink-0">
                                                     <button
                                                         className={cn(
-                                                            "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 pr-14 gap-3 flex items-center border-2 transition-all",
+                                                            "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 pr-20 gap-3 flex items-center border-2 transition-all",
                                                             selectedOrderId === order.id 
                                                                 ? order.source === 'Public' ? "bg-orange-500 text-white border-orange-600 shadow-lg scale-105" : "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
                                                                 : "bg-background text-muted-foreground border-input hover:border-primary/30"
@@ -662,7 +683,7 @@ export default function PosClientPage() {
                                                         onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
                                                     >
                                                         <div className="flex flex-col items-start leading-none gap-1">
-                                                            <span className="truncate max-w-[120px] flex items-center gap-1.5">
+                                                            <span className="truncate max-w-[100px] flex items-center gap-1.5">
                                                                 {order.source === 'Public' && <SmartphoneIcon className="h-3 w-3 opacity-70" />}
                                                                 {order.label}
                                                             </span>
@@ -671,22 +692,38 @@ export default function PosClientPage() {
                                                             </span>
                                                         </div>
                                                     </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setRenamingOrderId(order.id);
-                                                            setNewLabelName(order.label || '');
-                                                            setRenameDialogOpen(true);
-                                                        }}
-                                                        className={cn(
-                                                            "absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-xl transition-all",
-                                                            selectedOrderId === order.id 
-                                                                ? "bg-white/20 text-white hover:bg-white/30" 
-                                                                : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary opacity-0 group-hover/account:opacity-100"
-                                                        )}
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </button>
+                                                    <div className={cn(
+                                                        "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-all",
+                                                        selectedOrderId === order.id ? "opacity-100" : "opacity-0 group-hover/account:opacity-100"
+                                                    )}>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRenamingOrderId(order.id);
+                                                                setNewLabelName(order.label || '');
+                                                                setRenameDialogOpen(true);
+                                                            }}
+                                                            className={cn(
+                                                                "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
+                                                                selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-white/30" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                                            )}
+                                                        >
+                                                            <Pencil className="h-3 w-3" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setAccountToCancel({ id: order.id, label: order.label || 'Esta cuenta' });
+                                                                setCancelAccountDialogOpen(true);
+                                                            }}
+                                                            className={cn(
+                                                                "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
+                                                                selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-red-500" : "bg-muted text-muted-foreground hover:bg-red-100 hover:text-red-600"
+                                                            )}
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1249,6 +1286,29 @@ export default function PosClientPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={cancelAccountDialogOpen} onOpenChange={setCancelAccountDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5" /> ¿Cerrar cuenta permanentemente?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción eliminará la cuenta <strong>{accountToCancel?.label}</strong> y restaurará todas las existencias de productos al inventario. No se podrá facturar después de esta acción.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleCancelEntireAccount} 
+                            disabled={isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isPending ? 'Cerrando...' : 'Confirmar Cierre de Cuenta'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {allTables && (
                 <TableManagementDialog 
