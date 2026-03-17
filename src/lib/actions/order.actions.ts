@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
-import type { Order, OrderItem, Service, AppliedTax, Invoice, PrepStatus, Stay } from '@/types';
+import type { Order, OrderItem, Service, AppliedTax, Invoice, PrepStatus, Stay, Tax } from '@/types';
 
 type CartItem = {
   service: Service;
@@ -30,7 +30,7 @@ export async function createOrder(
   cart: CartItem[],
   paymentDetails?: {
     paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
-    voucherNumber?: string;
+    voucherNumber?: string | null;
     total: number;
     subtotal: number;
     taxes: AppliedTax[];
@@ -61,6 +61,10 @@ export async function createOrder(
 
     let orderIdForReturn: string | undefined;
 
+    // Fetch all taxes to have them ready for calculation in the transaction
+    const taxesSnap = await getDocs(collection(db, 'taxes'));
+    const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
+
     await runTransaction(db, async (transaction) => {
       const stayRef = doc(db, 'stays', stayId);
       const staySnap = await transaction.get(stayRef);
@@ -88,18 +92,26 @@ export async function createOrder(
 
       const orderRef = doc(collection(db, 'orders'));
       orderIdForReturn = orderRef.id;
-      let totalOrderPrice = 0;
+      
+      let orderSubtotal = 0;
       const orderItems: OrderItem[] = [];
       let hasKitchen = false;
       let hasBar = false;
+      const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+
+      // 10% Service Tax for restaurant stays
+      const serviceTaxInfo = allTaxes.find(t => 
+        t.name.toLowerCase().includes('servicio') || 
+        t.name.toLowerCase().includes('service')
+      );
 
       for (const detail of serviceDetails) {
         if (detail.service.source !== 'Internal') {
           transaction.update(detail.ref, { stock: increment(-detail.quantity) });
         }
 
-        const itemPrice = detail.service.price * detail.quantity;
-        totalOrderPrice += itemPrice;
+        const itemSubtotal = detail.service.price * detail.quantity;
+        orderSubtotal += itemSubtotal;
 
         if (detail.service.category === 'Food') hasKitchen = true;
         if (detail.service.category === 'Beverage') hasBar = true;
@@ -112,7 +124,28 @@ export async function createOrder(
           category: detail.service.category,
           notes: detail.notes || null
         });
+
+        // Calculate item taxes
+        const effectiveTaxIds = new Set(detail.service.taxIds || []);
+        if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+        effectiveTaxIds.forEach(taxId => {
+            const taxInfo = allTaxes.find(t => t.id === taxId);
+            if (taxInfo) {
+                const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                const existing = taxMap.get(taxId);
+                if (existing) {
+                    existing.amount += taxAmount;
+                } else {
+                    taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                }
+            }
+        });
       }
+
+      const appliedTaxes = Array.from(taxMap.values());
+      const totalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+      const orderTotal = orderSubtotal + totalTax;
 
       const newOrder: Omit<Order, 'id'> = {
         stayId,
@@ -121,7 +154,9 @@ export async function createOrder(
         locationLabel: `Hab. ${stayData.roomNumber}`,
         label: stayData.guestName,
         items: orderItems,
-        total: totalOrderPrice,
+        subtotal: orderSubtotal,
+        taxes: appliedTaxes,
+        total: orderTotal,
         createdAt: Timestamp.now(),
         status: 'Pendiente',
         kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',

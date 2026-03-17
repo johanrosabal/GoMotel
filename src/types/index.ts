@@ -93,7 +93,7 @@ export interface Stay {
   total: number;
   isPaid: boolean;
   reservationId?: string;
-  guestId?: string;
+  guestId?: string | null;
   pricePlanName?: string;
   pricePlanAmount?: number;
   checkOutReason?: string;
@@ -103,7 +103,7 @@ export interface Stay {
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
-  voucherNumber?: string;
+  voucherNumber?: string | null;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
@@ -114,7 +114,7 @@ export interface Reservation {
   roomNumber: string;
   roomType: string;
   guestName: string;
-  guestId?: string;
+  guestId?: string | null;
   checkInDate: Timestamp;
   checkOutDate: Timestamp;
   status: ReservationStatus;
@@ -124,7 +124,7 @@ export interface Reservation {
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
-  voucherNumber?: string;
+  voucherNumber?: string | null;
 }
 
 export interface OrderItem {
@@ -133,7 +133,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   category?: 'Food' | 'Beverage' | 'Amenity';
-  notes?: string;
+  notes?: string | null;
 }
 
 export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
@@ -145,6 +145,8 @@ export interface Order {
   locationLabel?: string; // Human readable (e.g. "Mesa 01", "Hab. 101")
   label?: string; // Account label (e.g. "Persona 1")
   items: OrderItem[];
+  subtotal: number;
+  taxes: AppliedTax[];
   total: number;
   createdAt: Timestamp;
   status: PrepStatus; // Global status
@@ -153,7 +155,7 @@ export interface Order {
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   invoiceId?: string;
-  voucherNumber?: string;
+  voucherNumber?: string | null;
   stayId?: string; // For compatibility with older code
   source?: 'POS' | 'Public';
 }
@@ -186,7 +188,7 @@ export interface Client {
   email: string;
   phoneNumber: string;
   whatsappNumber?: string;
-  birthDate: Timestamp;
+  birthDate: Timestamp | null;
   address?: string;
   notes?: string;
   isVip?: boolean;
@@ -219,8 +221,8 @@ export interface Invoice {
     id: string;
     invoiceNumber: string;
     reservationId?: string;
-    stayId?: string;
-    clientId?: string;
+    stayId?: string | null;
+    clientId?: string | null;
     clientName: string;
     createdAt: Timestamp;
     status: 'Pagada' | 'Pendiente' | 'Anulada';
@@ -229,7 +231,7 @@ export interface Invoice {
     taxes: AppliedTax[];
     total: number;
     paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
-    voucherNumber?: string;
+    voucherNumber?: string | null;
     orderId?: string;
 }
 

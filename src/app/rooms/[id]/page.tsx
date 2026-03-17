@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -58,7 +58,6 @@ export default function RoomDetailsPage() {
     const [progress, setProgress] = useState(0);
     const [isCancelling, startCancelTransition] = useTransition();
 
-    // Facturación global para evitar desmonte por cambio de estado
     const [successInvoiceId, setSuccessInvoiceId] = useState<string | null>(null);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
@@ -92,6 +91,20 @@ export default function RoomDetailsPage() {
         return allOrders?.filter(o => o.status !== 'Cancelado') || [];
     }, [allOrders]);
 
+    const financialSummary = useMemo(() => {
+        if (!stay) return null;
+        const roomTotal = stay.pricePlanAmount || 0;
+        const unpaidOrders = activeOrders.filter(o => o.paymentStatus !== 'Pagado');
+        const servicesSubtotal = unpaidOrders.reduce((sum, o) => sum + (o.subtotal || o.total), 0);
+        const servicesTaxes = unpaidOrders.reduce((sum, o) => sum + (o.total - (o.subtotal || o.total)), 0);
+        const upfrontPaid = stay.paymentAmount || 0;
+        
+        const totalStay = roomTotal + servicesSubtotal + servicesTaxes;
+        const netDue = Math.max(0, totalStay - upfrontPaid);
+
+        return { roomTotal, servicesSubtotal, servicesTaxes, totalStay, upfrontPaid, netDue };
+    }, [stay, activeOrders]);
+
     const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
 
     useEffect(() => {
@@ -122,8 +135,8 @@ export default function RoomDetailsPage() {
                 setIsOverdue(isStayOverdue);
             };
 
-            checkOverdue(); // Check immediately
-            const interval = setInterval(checkOverdue, 30000); // And every 30 seconds
+            checkOverdue(); 
+            const interval = setInterval(checkOverdue, 30000); 
             return () => clearInterval(interval);
         } else {
             setIsOverdue(false);
@@ -150,11 +163,11 @@ export default function RoomDetailsPage() {
                 const elapsedTime = now.getTime() - checkInTime.getTime();
                 
                 const calculatedProgress = (elapsedTime / totalDuration) * 100;
-                setProgress(Math.min(100, calculatedProgress)); // Cap at 100%
+                setProgress(Math.min(100, calculatedProgress)); 
             };
     
             calculateProgress();
-            const interval = setInterval(calculateProgress, 60000); // Update every minute
+            const interval = setInterval(calculateProgress, 60000); 
             return () => clearInterval(interval);
         } else {
             setProgress(0);
@@ -207,7 +220,7 @@ export default function RoomDetailsPage() {
         )
     }
     
-    if (!room) return null; // Should not happen if loading is false, but for TS safety.
+    if (!room) return null; 
 
     const renderRoomActions = () => {
         switch (room.status) {
@@ -274,37 +287,37 @@ export default function RoomDetailsPage() {
                 <div className="md:col-span-1 space-y-6">
                     <Card className={cn(isOverdue && 'animate-overdue-pulse')}>
                         <CardHeader>
-                            <div className="flex justify-between items-start">
-                                <div className="space-y-2">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-start">
                                     <CardTitle className="text-3xl font-bold">Habitación {room.number}</CardTitle>
-                                    {stay && (
-                                        <div className="flex">
-                                            <Badge 
-                                                variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
-                                                className={cn(
-                                                    "text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1 h-auto rounded-md shadow-sm border-2",
-                                                    stay.paymentStatus === 'Pagado' 
-                                                        ? "bg-green-600 text-white border-green-700 shadow-sm" 
-                                                        : "text-amber-700 border-amber-500 bg-amber-50 dark:bg-amber-950/20 shadow-sm"
-                                                )}
-                                            >
-                                                {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
-                                            </Badge>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <StatusBadge status={room.status} isOverdue={isOverdue} />
+                                        {room.status === 'Cleaning' && timeInStatus && (
+                                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            {timeInStatus}
                                         </div>
-                                    )}
-                                    <CardDescription className="text-sm font-medium">
-                                        Tarifa: {formatCurrency(room.ratePerHour)} / hora
-                                    </CardDescription>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <StatusBadge status={room.status} isOverdue={isOverdue} />
-                                    {room.status === 'Cleaning' && timeInStatus && (
-                                    <div className="text-xs text-muted-foreground flex items-center gap-1" title={`Iniciado el ${room.statusUpdatedAt ? format(room.statusUpdatedAt.toDate(), "dd MMM yyyy, h:mm a", { locale: es }) : ''}`}>
-                                        <Clock className="h-3 w-3" />
-                                        {timeInStatus}
+                                        )}
                                     </div>
-                                    )}
                                 </div>
+                                {stay && (
+                                    <div className="flex">
+                                        <Badge 
+                                            variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
+                                            className={cn(
+                                                "text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1 h-auto rounded-md shadow-sm border-2",
+                                                stay.paymentStatus === 'Pagado' 
+                                                    ? "bg-green-600 text-white border-green-700 shadow-sm" 
+                                                    : "text-amber-700 border-amber-500 bg-amber-50 dark:bg-amber-950/20 shadow-sm"
+                                            )}
+                                        >
+                                            {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
+                                        </Badge>
+                                    </div>
+                                )}
+                                <CardDescription className="text-sm font-medium">
+                                    Tarifa: {formatCurrency(room.ratePerHour)} / hora
+                                </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -383,6 +396,55 @@ export default function RoomDetailsPage() {
                             <div className="pt-4">{renderRoomActions()}</div>
                         </CardContent>
                     </Card>
+
+                    {financialSummary && room.status === 'Occupied' && (
+                        <Card className="border-primary/20 bg-primary/[0.02] shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                    <ReceiptText className="h-4 w-4" />
+                                    Estado de Cuenta Proyectado
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="space-y-1.5 text-xs font-semibold uppercase tracking-tight">
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Subtotal Hospedaje:</span>
+                                        <span className="font-bold text-foreground">{formatCurrency(financialSummary.roomTotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Consumos Netos:</span>
+                                        <span className="font-bold text-foreground">{formatCurrency(financialSummary.servicesSubtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Impuestos y Servicios:</span>
+                                        <span className="font-bold text-foreground">{formatCurrency(financialSummary.servicesTaxes)}</span>
+                                    </div>
+                                    <Separator className="my-1 opacity-50" />
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Total Estancia:</span>
+                                        <span className="font-black text-foreground">{formatCurrency(financialSummary.totalStay)}</span>
+                                    </div>
+                                    {financialSummary.upfrontPaid > 0 && (
+                                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                                            <span>Pagos Recibidos:</span>
+                                            <span className="font-black">-{formatCurrency(financialSummary.upfrontPaid)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="pt-3 border-t-2 border-primary/10">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Saldo Pendiente</span>
+                                        <span className={cn(
+                                            "text-2xl font-black tracking-tighter",
+                                            financialSummary.netDue === 0 ? "text-green-600" : "text-primary"
+                                        )}>
+                                            {formatCurrency(financialSummary.netDue)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
                 <div className="md:col-span-2">
                      <Card className="h-full flex flex-col">
@@ -396,31 +458,57 @@ export default function RoomDetailsPage() {
                                 {activeOrders && activeOrders.length > 0 ? (
                                     <ul className="space-y-4">
                                         {activeOrders.map(order => (
-                                            <li key={order.id} className="p-3 border rounded-lg bg-muted/50">
-                                                <div className="flex justify-between items-center mb-2">
+                                            <li key={order.id} className="p-4 border rounded-xl bg-muted/30 shadow-sm transition-all hover:shadow-md border-primary/10">
+                                                <div className="flex justify-between items-center mb-3">
                                                     <div className='flex items-center gap-2'>
                                                         <History className="w-4 h-4 text-muted-foreground" />
-                                                        <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
-                                                        <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'}>{order.status}</Badge>
+                                                        <p className="text-xs font-black uppercase tracking-widest">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
+                                                        <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className="text-[10px] h-5">{order.status}</Badge>
                                                     </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                        {isCancelling ? 'Cancelando...' : 'Remover'}
+                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] tracking-widest">
+                                                        {isCancelling ? '...' : 'Remover'}
                                                     </Button>
                                                 </div>
-                                                <ul className="pl-6 space-y-1 text-sm">
+                                                <ul className="space-y-2 mb-4">
                                                     {order.items.map(item => (
-                                                        <li key={item.serviceId} className="flex justify-between items-center group">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-bold">{item.quantity}x</span>
-                                                                <span className="uppercase">{item.name}</span>
-                                                                {item.category === 'Food' && <Badge variant="outline" className="text-[9px] h-4 uppercase">{order.kitchenStatus}</Badge>}
-                                                                {item.category === 'Beverage' && <Badge variant="outline" className="text-[9px] h-4 uppercase">{order.barStatus}</Badge>}
+                                                        <li key={item.serviceId} className="flex justify-between items-start group">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="font-black text-sm text-primary">{item.quantity}x</span>
+                                                                <div className="flex flex-col">
+                                                                    <span className="uppercase text-xs font-bold tracking-tight">{item.name}</span>
+                                                                    <div className="flex gap-1.5 items-center mt-0.5">
+                                                                        {item.category === 'Food' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-orange-50 border-orange-200 text-orange-700">{order.kitchenStatus}</Badge>}
+                                                                        {item.category === 'Beverage' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-blue-50 border-blue-200 text-blue-700">{order.barStatus}</Badge>}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
+                                                            <span className="font-bold text-xs text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
-                                                <div className="text-right font-bold mt-2 pt-2 border-t text-primary">Total: {formatCurrency(order.total)}</div>
+                                                
+                                                <div className="pt-3 border-t border-dashed border-primary/20 space-y-1">
+                                                    {(order.taxes && order.taxes.length > 0) ? (
+                                                        <>
+                                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
+                                                                <span>Subtotal Neto:</span>
+                                                                <span>{formatCurrency(order.subtotal || order.total)}</span>
+                                                            </div>
+                                                            {order.taxes.map(tax => (
+                                                                <div key={tax.taxId} className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
+                                                                    <span>{tax.name} ({tax.percentage}%):</span>
+                                                                    <span>{formatCurrency(tax.amount)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-[9px] italic text-muted-foreground/50">Impuestos incluidos en total.</p>
+                                                    )}
+                                                    <div className="flex justify-between items-center pt-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total del Pedido:</span>
+                                                        <span className="text-lg font-black text-primary tracking-tighter">{formatCurrency(order.total)}</span>
+                                                    </div>
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -446,7 +534,6 @@ export default function RoomDetailsPage() {
                     </Card>
                 </div>
             </div>
-            {/* Modal de Factura Global para persistir después del check-out */}
             <InvoiceSuccessDialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen} invoiceId={successInvoiceId} />
         </div>
     )
