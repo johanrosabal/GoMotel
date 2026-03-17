@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
     ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, 
     ConciergeBell, ShoppingCart, ArchiveX, Database, BookCopy, Truck, Users, 
-    Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard, GitGraph
+    Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard, GitGraph,
+    Clock, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { Mermaid } from '@/components/ui/mermaid';
@@ -56,23 +57,36 @@ const SettingsStep = ({ icon, title, usage, useCase, href }: { icon: React.Eleme
 
 const lifecycleChart = `
 graph TD
-    A[Huésped llega / Reserva] --> B{Paso 3: Cobro}
-    B -- "Pago Adelantado" --> C[Estado: Hospedaje Pagado]
-    B -- "Cuenta Abierta" --> D[Estado: Hospedaje Pendiente]
-    C --> E[Estancia Activa]
-    D --> E
-    E --> F[Añadir Consumos / Servicios]
-    F --> G[Check-out]
-    G --> H{¿Saldo Pendiente?}
-    H -- "0.00 (Ya pagó)" --> I[Confirmación Directa]
-    H -- "> 0.00" --> J[Pantalla de Cobro]
-    J --> I
-    I --> K[Estado: Limpieza]
-    K --> L[Estado: Disponible]
+    Start[Asistente de Reservación] --> CheckType{¿Tipo de Ingreso?}
+    CheckType -- "Check-in Ahora (Walk-in)" --> FilterDisp[Selector: Solo Hab. Disponibles]
+    CheckType -- "Reserva Futura" --> FilterDisp
     
-    style C fill:#dcfce7,stroke:#166534
-    style D fill:#fef3c7,stroke:#92400e
-    style I fill:#10b981,stroke:#059669,color:#fff
+    FilterDisp --> Step3{Paso 3: Cobro}
+    
+    Step3 -- "Pago Adelantado" --> PaidState[Estado: Hospedaje Pagado]
+    Step3 -- "Cuenta Abierta" --> OpenState[Estado: Hospedaje Pendiente]
+    
+    PaidState --> Active[Estancia Activa / Reservada]
+    OpenState --> Active
+    
+    Active --> Services[Añadir Consumos / Servicios]
+    Services --> Stock[Deducción Automática de Stock]
+    
+    Active --> Checkout[Check-out]
+    Checkout --> Balance{¿Saldo Pendiente?}
+    
+    Balance -- "0.00 (Ya pagó)" --> DirectConfirm[Factura Directa]
+    Balance -- "> 0.00" --> PaymentScreen[Selector de Pago]
+    
+    PaymentScreen -- "Efectivo / SINPE / Tarjeta" --> DirectConfirm
+    
+    DirectConfirm --> Cleaning[Estado: Limpieza]
+    Cleaning --> Finish[Estado: Disponible]
+    
+    style PaidState fill:#dcfce7,stroke:#166534
+    style OpenState fill:#fef3c7,stroke:#92400e
+    style DirectConfirm fill:#10b981,stroke:#059669,color:#fff
+    style CheckType fill:#e0e7ff,stroke:#4338ca
 `;
 
 export default function ManualOperationsPage() {
@@ -84,7 +98,7 @@ export default function ManualOperationsPage() {
                     Manual Operativo del Sistema
                 </h1>
                 <p className="text-muted-foreground max-w-3xl">
-                    Guía de flujos de trabajo actuales: desde la reservación con asistente hasta el cobro inteligente y control de inventarios.
+                    Guía completa de flujos de trabajo: desde la gestión de estados hasta el cobro inteligente y rotación de cuentas.
                 </p>
             </div>
 
@@ -92,10 +106,10 @@ export default function ManualOperationsPage() {
                 <CardHeader>
                     <CardTitle className="text-primary flex items-center gap-2">
                         <GitGraph className="h-5 w-5" />
-                        Mapa Visual del Ciclo de Vida
+                        Mapa Visual del Ciclo de Vida del Huésped
                     </CardTitle>
                     <CardDescription>
-                        Diagrama de flujo que detalla las decisiones de pago y estados de habitación.
+                        Diagrama de flujo que detalla las decisiones de registro, cobro y cambios de estado.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -105,7 +119,7 @@ export default function ManualOperationsPage() {
 
             <Card className="border-primary/20 bg-primary/[0.01]">
                 <CardHeader>
-                    <CardTitle className="text-primary">Detalle por Pasos</CardTitle>
+                    <CardTitle className="text-primary">Flujos Detallados</CardTitle>
                     <CardDescription>
                         Procesos guiados para asegurar el registro correcto y la liquidación de cuentas.
                     </CardDescription>
@@ -114,38 +128,37 @@ export default function ManualOperationsPage() {
                     <div className="space-y-16 max-w-3xl mx-auto py-8">
                         <Step
                             icon={CalendarPlus}
-                            title="1. Registro con Asistente de 3 Pasos"
-                            description="Toda nueva estancia utiliza un asistente guiado obligatorio: 1. Datos del Huésped (con búsqueda en CRM), 2. Configuración de Estancia (Plan de precios y fechas) y 3. Definición de Pago (Cobro inmediato o Cuenta Abierta). Solo las habitaciones 'Disponibles' son elegibles."
+                            title="1. Registro: Walk-in vs Reserva Futura"
+                            description="El asistente permite dos modalidades: 'Check-in Inmediato' (el tiempo corre ya) o 'Reserva Futura' (agenda con fecha posterior). El selector de habitaciones filtra automáticamente para mostrar SOLO habitaciones con estado 'Disponible', evitando colisiones con unidades ocupadas o en limpieza."
                             statuses={[
-                                { type: 'Estado', name: 'Confirmada', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-                                { type: 'Validación', name: '3 Pasos Obligatorios', color: 'bg-green-100 text-green-800 border-green-200' },
-                                { type: 'Habitación', name: 'Solo Disponibles', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+                                { type: 'Filtro', name: 'Solo Disponibles', color: 'bg-green-100 text-green-800 border-green-200' },
+                                { type: 'Modalidad', name: 'Inmediata / Futura', color: 'bg-blue-100 text-blue-800 border-blue-200' },
                             ]}
                         />
                         <Step
-                            icon={LogIn}
-                            title="2. Estancia Activa e Indicadores"
-                            description="Al ingresar, la habitación muestra un distintivo de estado debajo del título: 'Hospedaje Pagado' (Verde) o 'Hospedaje Pendiente' (Ámbar). Durante este tiempo se pueden añadir pedidos que descuentan stock automáticamente."
+                            icon={Wallet}
+                            title="2. Gestión de Pago en el Paso 3"
+                            description="Al registrar, se debe decidir: 'Pago Adelantado' (genera factura inmediata y marca la estancia como saldada) o 'Cuenta Abierta' (permite añadir cargos y cobrar al final). Si se paga por adelantado, la habitación mostrará el distintivo verde 'Hospedaje Pagado'."
                             statuses={[
-                                { type: 'Visual', name: 'Estado de Pago visible', color: 'bg-amber-100 text-amber-800 border-amber-500' },
-                                { type: 'Servicios', name: 'Descuento Stock en vivo', color: 'bg-primary/10 text-primary border-primary/20' },
+                                { type: 'Control', name: 'Hospedaje Pagado', color: 'bg-green-600 text-white border-none' },
+                                { type: 'Control', name: 'Hospedaje Pendiente', color: 'bg-amber-100 text-amber-800 border-amber-500' },
                             ]}
                         />
                          <Step
                             icon={LogOut}
-                            title="3. Check-out Inteligente"
-                            description="El sistema calcula el saldo en tiempo real. Si el 'Total Pendiente' es 0.00 (porque ya pagó por adelantado), el sistema salta automáticamente al comprobante final. Si hay deuda, permite seleccionar método de pago antes de liberar la habitación."
+                            title="3. Check-out Inteligente (Saldo 0.00)"
+                            description="El sistema audita el saldo automáticamente. Si el huésped pagó por adelantado y no tiene consumos extras (Saldo = 0.00), el botón 'Pasar a Cobro' se transforma en 'Finalizar Check-out' y cierra la estancia en un solo clic, enviando directo al comprobante final."
                             statuses={[
-                                { type: 'Lógica', name: 'Cobro Dinámico', color: 'bg-green-100 text-green-800 border-green-200' },
-                                { type: 'Comprobante', name: 'WhatsApp e Impresión', color: 'bg-primary text-white border-none shadow-sm' },
+                                { type: 'Lógica', name: 'Salto de Cobro Automático', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+                                { type: 'Estado Final', name: 'Limpieza', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
                             ]}
                         />
                         <Step
                             icon={Sparkles}
-                            title="4. Proceso de Limpieza"
-                            description="Las habitaciones pasan automáticamente a 'Limpieza' al terminar la estancia. El personal debe marcarlas como 'Disponibles' para que vuelvan a aparecer en la lista de reservaciones."
+                            title="4. Ciclo de Limpieza y Disponibilidad"
+                            description="Al terminar el check-out, la habitación pasa a 'Limpieza'. En este estado, NO es visible en el selector de nuevas reservaciones para asegurar que ninguna habitación sea asignada sin antes ser higienizada. Una vez lista, el personal la marca como 'Disponible'."
                             statuses={[
-                                { type: 'Estado', name: 'Limpieza Requerida', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+                                { type: 'Estado', name: 'No Elegible para Reservar', color: 'bg-red-100 text-red-800 border-red-200' },
                             ]}
                             isLast
                         />
@@ -156,25 +169,25 @@ export default function ManualOperationsPage() {
             <div className="grid md:grid-cols-2 gap-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><ShoppingCart className="h-5 w-5 text-primary" />Inventario y Compras</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-primary" />Métodos de Pago Avanzados</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="flex items-start gap-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                                <Plus className="h-5 w-5" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
+                                <RefreshCw className="h-5 w-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold">Entradas de Stock</h4>
-                                <p className="text-sm text-muted-foreground">El registro de facturas de proveedores aumenta automáticamente el stock y actualiza el costo unitario de los productos.</p>
+                                <h4 className="font-bold">Rotación de Cuentas SINPE</h4>
+                                <p className="text-sm text-muted-foreground">El sistema gestiona múltiples cuentas SINPE. Al elegir este método, se selecciona automáticamente la cuenta activa que aún no ha alcanzado su límite de saldo mensual, asegurando que los fondos siempre lleguen a una cuenta disponible.</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                                <ArchiveX className="h-5 w-5" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                <CreditCard className="h-5 w-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold">Mermas y Ajustes</h4>
-                                <p className="text-sm text-muted-foreground">Permite dar de baja productos dañados o vencidos directamente desde el inventario o la factura de compra.</p>
+                                <h4 className="font-bold">Tarjeta y Voucher</h4>
+                                <p className="text-sm text-muted-foreground">Para pagos con tarjeta, el sistema requiere obligatoriamente el número de voucher. Este dato queda registrado en la factura y en la estancia para facilitar auditorías de datafonos al final del día.</p>
                             </div>
                         </div>
                     </CardContent>
@@ -182,25 +195,25 @@ export default function ManualOperationsPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-primary" />Métodos de Pago</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-primary" />Alertas y Vencimientos</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="flex items-start gap-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
-                                <Smartphone className="h-5 w-5" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                                <Clock className="h-5 w-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold">SINPE Móvil con Rotación</h4>
-                                <p className="text-sm text-muted-foreground">El sistema elige automáticamente la cuenta activa que no haya superado su límite mensual, asegurando la recepción de pagos.</p>
+                                <h4 className="font-bold">Detección de Atrasos</h4>
+                                <p className="text-sm text-muted-foreground">El sistema monitorea en tiempo real si un huésped ha superado su hora de salida o si una reservación confirmada no ha llegado (No-show). Estas habitaciones se marcan en rojo y disparan una alerta sonora en recepción.</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                                <CreditCard className="h-5 w-5" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                                <Smartphone className="h-5 w-5" />
                             </div>
                             <div>
-                                <h4 className="font-bold">Tarjeta y Efectivo</h4>
-                                <p className="text-sm text-muted-foreground">Soporte para registro de voucher y cálculo automático de vuelto en transacciones de contado.</p>
+                                <h4 className="font-bold">Envío de Comprobantes</h4>
+                                <p className="text-sm text-muted-foreground">Al finalizar cualquier cobro (Hospedaje o Servicios), el sistema genera un enlace público único. Este enlace puede enviarse directamente al WhatsApp del cliente, permitiéndole descargar su factura en PDF en cualquier momento.</p>
                             </div>
                         </div>
                     </CardContent>
