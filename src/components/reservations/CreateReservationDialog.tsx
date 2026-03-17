@@ -19,10 +19,9 @@ import { es } from 'date-fns/locale';
 import { Check, Star, Clock, CheckCircle, User, BedDouble, CalendarDays, Wallet, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
-import { Switch } from '../ui/switch';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '../ui/checkbox';
-import { FormDescription } from '../ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '../ui/separator';
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 
@@ -111,6 +110,9 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
   const [cashTendered, setCashTendered] = useState('');
+  
+  // Cooldown to prevent double-click skip on Step 3
+  const [canFinalize, setCanFinalize] = useState(false);
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
@@ -167,9 +169,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   }, [clients]);
 
   const filteredClients = useMemo(() => {
-    if (!guestNameValue) {
-        return sortedClients;
-    }
+    if (!guestNameValue) return sortedClients;
     const lowercasedQuery = guestNameValue.toLowerCase();
     return sortedClients.filter(client =>
         `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
@@ -197,17 +197,13 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   }, [selectedPlanName, availablePlans]);
 
   const targetSinpeAccount = useMemo(() => {
-    if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts || !selectedPlan) {
-      return null;
-    }
+    if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts || !selectedPlan) return null;
     const paymentAmount = selectedPlan.price;
     for (const account of activeSinpeAccounts) {
         const limit = account.limitAmount || Infinity;
-        if ((account.balance + paymentAmount) <= limit) {
-            return account;
-        }
+        if ((account.balance + paymentAmount) <= limit) return account;
     }
-    return null; // No account available
+    return null;
   }, [paymentMethod, activeSinpeAccounts, selectedPlan]);
 
   const resetForm = useCallback(() => {
@@ -227,17 +223,25 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     setCalculatedCheckOut(null);
     setShowSuggestions(false);
     setCashTendered('');
+    setCanFinalize(false);
   }, [form, isWalkIn, initialRoomId]);
 
   useEffect(() => {
-    if (open) {
-      resetForm();
-    }
+    if (open) resetForm();
   }, [open, resetForm]);
+
+  // Handle Step 3 Cooldown
+  useEffect(() => {
+    if (currentStep === 3) {
+        const timer = setTimeout(() => setCanFinalize(true), 500);
+        return () => clearTimeout(timer);
+    } else {
+        setCanFinalize(false);
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     const baseDate = checkInNow ? new Date() : checkInDateValue;
-
     if (!baseDate || !selectedPlanName || !availablePlans.length) {
       setCalculatedCheckOut(null);
       return;
@@ -246,41 +250,25 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     if (plan) {
         let newCheckOutDate = new Date(baseDate);
         const { duration, unit } = plan;
-        
         if (unit === 'Minutes') newCheckOutDate = addMinutes(newCheckOutDate, duration);
         else if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
         else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
         else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
         else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
-        
         setCalculatedCheckOut(newCheckOutDate);
     }
   }, [checkInDateValue, selectedPlanName, availablePlans, checkInNow]);
 
-  useEffect(() => {
-    setCashTendered('');
-  }, [paymentMethod]);
-
   const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, '');
-    if (rawValue === '') {
-        setCashTendered('');
-    } else {
-        setCashTendered(new Intl.NumberFormat('en-US').format(Number(rawValue)));
-    }
+    setCashTendered(rawValue === '' ? '' : new Intl.NumberFormat('en-US').format(Number(rawValue)));
   };
 
-  const numericCashTendered = useMemo(() => {
-    return Number(cashTendered.replace(/\D/g, ''));
-  }, [cashTendered]);
+  const numericCashTendered = useMemo(() => Number(cashTendered.replace(/\D/g, '')), [cashTendered]);
 
   const validateStep = async () => {
-      if (currentStep === 1) {
-          return await form.trigger(['guestName', 'roomId']);
-      }
-      if (currentStep === 2) {
-          return await form.trigger(['pricePlanName', 'checkInDate']);
-      }
+      if (currentStep === 1) return await form.trigger(['guestName', 'roomId']);
+      if (currentStep === 2) return await form.trigger(['pricePlanName', 'checkInDate']);
       return true;
   }
 
@@ -300,11 +288,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   }
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
-    // CRITICAL: Prevent submission if we are not on the final step
-    if (currentStep < 3) {
-        console.warn("Prevented premature submission at step", currentStep);
-        return;
-    }
+    // SECURITY: Absolute prevention of premature submission
+    if (currentStep < 3) return;
 
     if (!calculatedCheckOut) {
         toast({ title: "Error", description: "Fecha de salida no válida.", variant: "destructive" });
@@ -312,26 +297,19 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     }
 
     const finalCheckInDate = values.checkInNow ? new Date() : values.checkInDate;
-    if (!finalCheckInDate) {
-        toast({ title: "Error", description: "Fecha de check-in no válida.", variant: "destructive" });
-        return;
-    }
-
     if (isBefore(calculatedCheckOut, finalCheckInDate)) {
-        toast({ title: "Error", description: "La fecha de check-out debe ser posterior a la fecha de check-in.", variant: "destructive" });
+        toast({ title: "Error", description: "La fecha de check-out debe ser posterior al ingreso.", variant: "destructive" });
         return;
     }
-
-    const submissionData = {
-        ...values,
-        checkInDate: finalCheckInDate,
-        checkOutDate: calculatedCheckOut,
-    };
 
     startTransition(async () => {
-      const result = await createReservation(submissionData);
+      const result = await createReservation({
+          ...values,
+          checkInDate: finalCheckInDate,
+          checkOutDate: calculatedCheckOut,
+      });
       if (result.error) {
-        toast({ title: 'Error al Procesar', description: result.error, variant: 'destructive' });
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
         setOpen(false);
         if (result.invoiceId) {
@@ -353,7 +331,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isWalkIn ? 'Registro Rápido' : 'Nueva Reservación'}</DialogTitle>
-          <DialogDescription>Complete el flujo para confirmar la estancia.</DialogDescription>
+          <DialogDescription>Complete los 3 pasos para confirmar la estancia.</DialogDescription>
         </DialogHeader>
 
         <Stepper currentStep={currentStep} />
@@ -361,7 +339,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         <Form {...form}>
           <form onSubmit={e => e.preventDefault()} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }}>
             <div className="min-h-[320px] flex flex-col justify-center">
-                {/* Paso 1: Huésped y Habitación */}
                 {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
@@ -372,7 +349,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Cliente / Huésped</FormLabel>
                                 <FormControl>
                                 <Input
-                                    placeholder="Buscar o escribir nombre..."
+                                    placeholder="Nombre del cliente..."
                                     {...field}
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
@@ -394,7 +371,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                 form.setValue('guestId', client.id);
                                                 setShowSuggestions(false);
                                             }}
-                                            className="flex w-full cursor-pointer items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors"
+                                            className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors"
                                             >
                                             <div className="flex items-center gap-3">
                                                 {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
@@ -405,7 +382,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         ))
                                         ) : (
                                         <div className="p-4 text-center text-xs text-muted-foreground font-medium">
-                                            No se encontraron clientes. Se registrará como nuevo.
+                                            Se registrará como nuevo cliente.
                                         </div>
                                         )}
                                     </div>
@@ -426,7 +403,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
                                     <FormControl>
                                     <SelectTrigger className="h-12 text-lg">
-                                        <SelectValue placeholder={isLoadingRooms ? "Cargando..." : "Seleccione habitación"} />
+                                        <SelectValue placeholder="Seleccione habitación" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -447,7 +424,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                     </div>
                 )}
 
-                {/* Paso 2: Estancia y Tiempos */}
                 {currentStep === 2 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
@@ -456,10 +432,10 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Plan de Estancia</FormLabel>
-                                <Select onValueChange={(value) => { field.onChange(value); form.trigger('pricePlanName'); }} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                                <Select onValueChange={(value) => field.onChange(value)} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                                     <FormControl>
                                     <SelectTrigger className="h-12 text-lg">
-                                        <SelectValue placeholder="Seleccione un plan de tiempo" />
+                                        <SelectValue placeholder="Seleccione plan de tiempo" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -478,17 +454,15 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             )}
                         />
 
-                        <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-inner">
+                        <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
                             <FormField
                                 control={form.control}
                                 name="checkInNow"
                                 render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between">
                                     <div className="space-y-0.5">
-                                        <FormLabel className="font-bold text-sm">Hacer Check-in Ahora</FormLabel>
-                                        <p className="text-xs text-muted-foreground">
-                                            El tiempo empieza a correr de inmediato.
-                                        </p>
+                                        <FormLabel className="font-bold text-sm">Ingreso Inmediato</FormLabel>
+                                        <p className="text-xs text-muted-foreground">El tiempo empieza a correr ahora.</p>
                                     </div>
                                     <FormControl>
                                         <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} />
@@ -496,17 +470,15 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 </FormItem>
                                 )}
                             />
-                            
                             {!checkInNow && (
                                 <div className="pt-2">
                                     <Controller
                                         control={form.control}
                                         name="checkInDate"
-                                        render={({ field, fieldState }) => (
+                                        render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fecha y Hora de Ingreso</FormLabel>
+                                                <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Fecha y Hora de Entrada</FormLabel>
                                                 <DateTimePicker date={field.value} setDate={field.onChange} />
-                                                <FormMessage>{fieldState.error?.message}</FormMessage>
                                             </FormItem>
                                         )}
                                     />
@@ -515,20 +487,17 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                         </div>
 
                         {calculatedCheckOut && (
-                            <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-primary/10 p-2 rounded-lg"><Clock className="h-5 w-5 text-primary" /></div>
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Salida Estimada</p>
-                                        <p className="font-bold text-sm">{format(calculatedCheckOut, "eeee dd 'de' MMMM, h:mm a", { locale: es })}</p>
-                                    </div>
+                            <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-3">
+                                <Clock className="h-5 w-5 text-primary" />
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Salida Estimada</p>
+                                    <p className="font-bold text-sm">{format(calculatedCheckOut, "eeee dd 'de' MMMM, h:mm a", { locale: es })}</p>
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Paso 3: Pago y Confirmación */}
                 {currentStep === 3 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                         <FormField
@@ -538,9 +507,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/10">
                                 <div className="space-y-0.5">
                                 <FormLabel className="font-bold text-sm">Manejar como Cuenta Abierta</FormLabel>
-                                <p className="text-xs text-muted-foreground">
-                                    Se acumula el saldo y se liquida al salir.
-                                </p>
+                                <p className="text-xs text-muted-foreground">Se liquida el saldo total al salir.</p>
                                 </div>
                                 <FormControl>
                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -550,7 +517,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                         />
 
                         {!isOpenAccount && (
-                            <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm">
+                            <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm border-primary/20">
                                 <FormField
                                     control={form.control}
                                     name="paymentMethod"
@@ -558,11 +525,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         <FormItem>
                                             <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger className="h-11">
-                                                        <SelectValue placeholder="Seleccione método" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                                <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Efectivo">Efectivo</SelectItem>
                                                     <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
@@ -574,32 +537,24 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                     )}
                                 />
                                 {paymentMethod === 'Sinpe Movil' && (
-                                    <div className='space-y-4 pt-4 border-t'>
-                                        {isLoadingSinpe ? (
-                                            <p className="text-xs text-center animate-pulse">Buscando cuenta...</p>
-                                        ) : targetSinpeAccount ? (
-                                            <div className="space-y-3">
-                                                <div className='p-4 bg-muted/50 rounded-xl text-center border-2 border-dashed border-primary/20'>
-                                                    <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Transferir {formatCurrency(selectedPlan?.price || 0)} a:</p>
-                                                    <p className='text-2xl font-black font-mono tracking-tighter text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                    <p className='text-[10px] font-black uppercase text-muted-foreground mt-1'>{targetSinpeAccount.accountHolder}</p>
-                                                </div>
+                                    <div className='pt-4 border-t space-y-3'>
+                                        {targetSinpeAccount ? (
+                                            <div className='p-4 bg-primary/5 rounded-xl text-center border-2 border-dashed border-primary/20'>
+                                                <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Enviar {formatCurrency(selectedPlan?.price || 0)} a:</p>
+                                                <p className='text-2xl font-black font-mono text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                <p className='text-[10px] font-black uppercase text-muted-foreground'>{targetSinpeAccount.accountHolder}</p>
                                                 <FormField
                                                     control={form.control}
                                                     name="paymentConfirmed"
                                                     render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3 bg-background shadow-sm">
+                                                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
                                                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                                            <div className="space-y-1 leading-none"><FormLabel className="text-xs font-bold">Pago verificado y recibido</FormLabel></div>
+                                                            <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
                                                         </FormItem>
                                                     )}
                                                 />
                                             </div>
-                                        ) : (
-                                            <div className='p-3 bg-destructive/5 text-destructive rounded-lg text-[10px] font-black text-center border border-destructive/20'>
-                                                SIN CUENTAS DISPONIBLES CON SALDO SUFICIENTE
-                                            </div>
-                                        )}
+                                        ) : <div className='p-3 bg-destructive/5 text-destructive rounded-lg text-xs font-bold text-center border uppercase'>Límite excedido</div>}
                                     </div>
                                 )}
                                 {paymentMethod === 'Tarjeta' && (
@@ -607,51 +562,28 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         control={form.control}
                                         name="voucherNumber"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold">Número de Voucher</FormLabel>
-                                                <FormControl><Input placeholder="Ej: 982341" {...field} className="h-11 font-mono" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
+                                            <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} className="h-11 font-mono" /></FormControl><FormMessage /></FormItem>
                                         )}
                                     />
                                 )}
                                 {paymentMethod === 'Efectivo' && (
-                                    <div className="space-y-4 pt-4 border-t">
-                                        <div className='grid grid-cols-2 gap-4'>
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold">Pago con</FormLabel>
-                                                <FormControl>
-                                                    <Input type="text" inputMode="numeric" placeholder="₡0.00" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11 font-bold" />
-                                                </FormControl>
-                                            </FormItem>
-                                            {numericCashTendered >= (selectedPlan?.price || 0) && (
-                                                <div className="flex flex-col justify-end text-right">
-                                                    <span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span>
-                                                    <span className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</span>
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                                        <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" /></FormControl></FormItem>
+                                        {numericCashTendered >= (selectedPlan?.price || 0) && (
+                                            <div className="text-right"><span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span><p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</p></div>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         )}
                         
-                        <div className="p-4 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/5">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Resumen de la Operación</h4>
+                        <div className="p-4 rounded-xl border border-dashed bg-muted/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Resumen Final</h4>
                             <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Habitación:</span>
-                                    <span className="font-bold">{selectedRoom?.number} ({selectedRoom?.roomTypeName})</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Huésped:</span>
-                                    <span className="font-bold truncate max-w-[150px]">{guestNameValue}</span>
-                                </div>
+                                <div className="flex justify-between"><span>Habitación:</span><span className="font-bold">{selectedRoom?.number} ({selectedRoom?.roomTypeName})</span></div>
+                                <div className="flex justify-between"><span>Huésped:</span><span className="font-bold">{guestNameValue}</span></div>
                                 <Separator className="my-2" />
-                                <div className="flex justify-between items-center text-lg font-black">
-                                    <span>Total</span>
-                                    <span className="text-primary">{formatCurrency(selectedPlan?.price || 0)}</span>
-                                </div>
+                                <div className="flex justify-between items-center text-lg font-black"><span>Total Estancia</span><span className="text-primary">{formatCurrency(selectedPlan?.price || 0)}</span></div>
                             </div>
                         </div>
                     </div>
@@ -668,13 +600,13 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
               </div>
               <div className='flex items-center gap-2 flex-1 sm:flex-none'>
                   {currentStep < 3 ? (
-                      <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg">
+                      <Button type="button" onClick={handleNext} disabled={isPending} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg">
                           Siguiente <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                   ) : (
                       <Button 
                         type="button" 
-                        disabled={isPending || isLoading} 
+                        disabled={isPending || isLoading || !canFinalize} 
                         onClick={() => form.handleSubmit(onSubmit)()}
                         className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl"
                       >
@@ -692,11 +624,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         </Form>
       </DialogContent>
     </Dialog>
-    <InvoiceSuccessDialog
-        open={successModalOpen}
-        onOpenChange={setSuccessModalOpen}
-        invoiceId={invoiceId}
-    />
+    <InvoiceSuccessDialog open={successModalOpen} onOpenChange={setSuccessModalOpen} invoiceId={invoiceId} />
     </>
   );
 }
