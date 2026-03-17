@@ -284,18 +284,28 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       return true;
   }
 
-  const handleNext = async () => {
+  const handleNext = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       const isValid = await validateStep();
       if (isValid) {
           setCurrentStep(prev => prev + 1);
       }
   }
 
-  const handleBack = () => {
+  const handleBack = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       setCurrentStep(prev => prev - 1);
   }
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
+    // CRITICAL: Prevent submission if we are not on the final step
+    if (currentStep < 3) {
+        console.warn("Prevented premature submission at step", currentStep);
+        return;
+    }
+
     if (!calculatedCheckOut) {
         toast({ title: "Error", description: "Fecha de salida no válida.", variant: "destructive" });
         return;
@@ -349,7 +359,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         <Stepper currentStep={currentStep} />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }}>
+          <form onSubmit={e => e.preventDefault()} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }}>
             <div className="min-h-[320px] flex flex-col justify-center">
                 {/* Paso 1: Huésped y Habitación */}
                 {currentStep === 1 && (
@@ -662,7 +672,12 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                           Siguiente <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                   ) : (
-                      <Button type="submit" disabled={isPending || isLoading} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl">
+                      <Button 
+                        type="button" 
+                        disabled={isPending || isLoading} 
+                        onClick={() => form.handleSubmit(onSubmit)()}
+                        className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl"
+                      >
                           {isPending ? 'Procesando...' : (
                               <>
                                 <CheckCircle className="mr-2 h-5 w-5" /> 
