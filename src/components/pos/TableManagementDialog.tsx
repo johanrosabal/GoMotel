@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo, useRef } from 'react';
@@ -45,24 +44,19 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
     const [isExporting, setIsExporting] = useState(false);
     const qrReportRef = useRef<HTMLDivElement>(null);
 
-    // Determinar el tipo que se está visualizando/gestionando actualmente
     const activeType = useMemo(() => isAddingCustomType ? customType : newType, [isAddingCustomType, customType, newType]);
 
-    // Filtrar las tablas mostradas en la lista según el tipo seleccionado
     const filteredTablesForList = useMemo(() => {
         if (!activeType && isAddingCustomType) return [];
-        
         return tables.filter(t => t.type === activeType).sort((a,b) => 
             a.number.localeCompare(b.number, undefined, { numeric: true })
         );
     }, [tables, activeType, isAddingCustomType]);
 
-    // Calcular el siguiente número automáticamente basado en las existentes del mismo tipo
     const nextNumber = useMemo(() => {
         const numbers = filteredTablesForList
             .map(t => parseInt(t.number, 10))
             .filter(n => !isNaN(n));
-        
         const max = numbers.length > 0 ? Math.max(...numbers) : 0;
         return String(max + 1).padStart(2, '0');
     }, [filteredTablesForList]);
@@ -108,6 +102,13 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
         setIsExporting(true);
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pages = input.querySelectorAll('.qr-pdf-page');
+        const baseUrl = window.location.origin;
+
+        // Sort tables for logical link assignment
+        const sortedTables = [...tables].sort((a, b) => {
+            if (a.type !== b.type) return a.type.localeCompare(b.type);
+            return a.number.localeCompare(b.number, undefined, { numeric: true });
+        });
 
         try {
             for (let i = 0; i < pages.length; i++) {
@@ -121,9 +122,29 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                 const imgData = canvas.toDataURL('image/png');
                 if (i > 0) pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+
+                // ASIGNACIÓN DE VÍNCULOS CLICKABLES (Lógica 2x2 en A4)
+                const tablesInThisPage = sortedTables.slice(i * 4, (i + 1) * 4);
+                tablesInThisPage.forEach((table, idx) => {
+                    const orderUrl = `${baseUrl}/public/order?tableId=${table.id}`;
+                    
+                    // Calcular cuadrante (x, y en mm)
+                    const col = idx % 2; // 0 o 1
+                    const row = Math.floor(idx / 2); // 0 o 1
+                    
+                    const x = col * 105;
+                    const y = row * 148.5;
+
+                    // Añadir link sobre toda el área del cuadrante (más robusto)
+                    // pdf.link(x + 10, y + 10, 85, 128, { url: orderUrl });
+                    
+                    // Añadir link específico sobre el área del código QR y URL text
+                    // Aproximadamente el centro del cuadrante
+                    pdf.link(x + 25, y + 40, 55, 70, { url: orderUrl });
+                });
             }
             pdf.save(`QR-UBICACIONES-${new Date().getTime()}.pdf`);
-            toast({ title: '¡Éxito!', description: 'El PDF de códigos QR ha sido generado.' });
+            toast({ title: '¡Éxito!', description: 'El PDF con vínculos funcionales ha sido generado.' });
         } catch (error) {
             console.error("Error al exportar QRs:", error);
             toast({ title: 'Error', description: 'No se pudo generar el PDF.', variant: 'destructive' });
@@ -286,12 +307,11 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                         disabled={isExporting || tables.length === 0}
                     >
                         <QrCode className="h-4 w-4" />
-                        {isExporting ? 'Generando...' : 'Exportar QRs para Impresión'}
+                        {isExporting ? 'Generando...' : 'Exportar QRs con Hipervínculos'}
                     </Button>
                     <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold">Cerrar</Button>
                 </DialogFooter>
 
-                {/* Hidden QR Report for PDF generation */}
                 <div className="absolute -left-[9999px] top-0 pointer-events-none">
                     <LocationQrReport tables={tables} ref={qrReportRef} />
                 </div>
