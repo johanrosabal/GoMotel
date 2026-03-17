@@ -266,22 +266,26 @@ export default function RoomDetailsPage() {
                     <Card className={cn(isOverdue && 'animate-overdue-pulse')}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                     <CardTitle className="text-3xl font-bold">Habitación {room.number}</CardTitle>
-                                    <div className="flex items-center gap-2">
-                                        <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
-                                        {stay && (
+                                    {stay && (
+                                        <div className="flex">
                                             <Badge 
                                                 variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
                                                 className={cn(
-                                                    "text-[10px] font-black uppercase tracking-tighter px-2 h-5",
-                                                    stay.paymentStatus === 'Pagado' ? "bg-green-600 text-white border-green-700" : "text-amber-600 border-amber-500 bg-amber-50"
+                                                    "text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1 h-auto rounded-md shadow-sm border-2",
+                                                    stay.paymentStatus === 'Pagado' 
+                                                        ? "bg-green-600 text-white border-green-700" 
+                                                        : "text-amber-700 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"
                                                 )}
                                             >
                                                 {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
                                             </Badge>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
+                                    <CardDescription className="text-sm font-medium">
+                                        Tarifa: {formatCurrency(room.ratePerHour)} / hora
+                                    </CardDescription>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <StatusBadge status={room.status} isOverdue={isOverdue} />
