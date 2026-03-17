@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown } from 'lucide-react'
+import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
@@ -28,15 +28,18 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from '@/components/ui/badge'
 
 
-function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined, icon: React.ElementType }) {
+function InfoRow({ label, value, icon: Icon, children }: { label: string; value?: string | null | undefined, icon: React.ElementType, children?: React.ReactNode }) {
     return (
         <div className="flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                  <Icon className="h-5 w-5" />
             </div>
-            <div>
+            <div className="flex-1">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
-                <p className="text-sm font-bold">{value || 'N/D'}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold">{value || 'N/D'}</p>
+                    {children}
+                </div>
             </div>
         </div>
     )
@@ -288,7 +291,29 @@ export default function RoomDetailsPage() {
                                 <>
                                     <Separator />
                                     <div className="grid gap-4">
-                                        <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
+                                        <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User}>
+                                            <Badge 
+                                                variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
+                                                className={cn(
+                                                    "text-[10px] font-black uppercase tracking-tighter ml-1",
+                                                    stay.paymentStatus === 'Pagado' ? "bg-green-600 text-white border-green-700" : "text-amber-600 border-amber-500 bg-amber-50"
+                                                )}
+                                            >
+                                                {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
+                                            </Badge>
+                                        </InfoRow>
+
+                                        {stay.paymentStatus === 'Pagado' && (
+                                            <div className="flex items-center gap-2 ml-14 -mt-2">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase">
+                                                    {stay.paymentMethod === 'Efectivo' && <Wallet className="h-3 w-3" />}
+                                                    {stay.paymentMethod === 'Sinpe Movil' && <Smartphone className="h-3 w-3" />}
+                                                    {stay.paymentMethod === 'Tarjeta' && <CreditCard className="h-3 w-3" />}
+                                                    <span>{stay.paymentMethod}</span>
+                                                    {stay.voucherNumber && <span className="opacity-60">— {stay.voucherNumber}</span>}
+                                                </div>
+                                            </div>
+                                        )}
                                         
                                         {stay?.extensionHistory && stay.extensionHistory.length > 0 && (
                                             <Collapsible>
