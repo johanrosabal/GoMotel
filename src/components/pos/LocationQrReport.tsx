@@ -61,7 +61,7 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                         return (
                             <div 
                                 key={table.id} 
-                                className="w-full h-full flex flex-col items-center justify-between py-6 px-4 border-[2px] border-gray-200 rounded-[2rem] bg-white shadow-sm"
+                                className="w-full h-full flex flex-col items-center justify-center gap-6 py-6 px-4 border-[2px] border-gray-200 rounded-[2rem] bg-white shadow-sm"
                             >
                                 {/* Header Branding */}
                                 <div className="text-center space-y-1">
@@ -83,9 +83,14 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                                     </div>
                                     <div className="text-center max-w-full px-2">
                                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Enlace Directo:</p>
-                                        <p className="text-[9px] font-mono font-medium text-primary/60 break-all border border-primary/5 rounded-md px-2 py-1 bg-primary/[0.01] leading-tight">
+                                        <a 
+                                            href={orderUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-[9px] font-mono font-medium text-primary/60 break-all border border-primary/5 rounded-md px-2 py-1 bg-primary/[0.01] leading-tight hover:underline block"
+                                        >
                                             {orderUrl}
-                                        </p>
+                                        </a>
                                     </div>
                                 </div>
 
