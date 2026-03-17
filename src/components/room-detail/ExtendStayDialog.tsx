@@ -21,13 +21,13 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
-import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 
 interface ExtendStayDialogProps {
   children: ReactNode;
   stay?: Stay | null;
   room: Room;
   isOverdue?: boolean;
+  onExtensionSuccess?: (invoiceId: string) => void;
 }
 
 const extendStaySchema = z.object({
@@ -60,16 +60,13 @@ const extendStaySchema = z.object({
     path: ["voucherNumber"],
 });
 
-export default function ExtendStayDialog({ children, stay, room, isOverdue }: ExtendStayDialogProps) {
+export default function ExtendStayDialog({ children, stay, room, isOverdue, onExtensionSuccess }: ExtendStayDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [cashTendered, setCashTendered] = useState('');
   
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
-
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore || !room) return null;
     return query(collection(firestore, 'roomTypes'), where('__name__', '==', room.roomTypeId));
@@ -164,13 +161,11 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
-        if (result.invoiceId) {
-            setInvoiceId(result.invoiceId);
-            setOpen(false);
-            setSuccessModalOpen(true);
+        setOpen(false);
+        if (result.invoiceId && onExtensionSuccess) {
+            onExtensionSuccess(result.invoiceId);
         } else {
             toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
-            setOpen(false);
         }
       }
     });
@@ -180,7 +175,6 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
     if (open) {
       form.reset({ newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined });
       setCashTendered('');
-      setInvoiceId(null);
     }
   }, [open, form]);
 
@@ -198,7 +192,6 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   const submitButtonText = payNow ? 'Pagar y Extender' : 'Extender (Pendiente)';
 
   return (
-    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       {stay && (
@@ -373,7 +366,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
                         {isPending ? 'Guardando...' : submitButtonText}
                     </Button>
                     {isOverdue && (
-                      <CheckoutDialog stay={stay} room={room} orders={orders || []}>
+                      <CheckoutDialog stay={stay} room={room} orders={orders || []} onCheckoutSuccess={onExtensionSuccess}>
                           <Button type="button" variant="destructive" className="flex-1">
                               Realizar Check-Out
                           </Button>
@@ -385,11 +378,5 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
         </DialogContent>
       )}
     </Dialog>
-    <InvoiceSuccessDialog
-        open={successModalOpen}
-        onOpenChange={setSuccessModalOpen}
-        invoiceId={invoiceId}
-    />
-    </>
   );
 }

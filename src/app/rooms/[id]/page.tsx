@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect, useTransition, useMemo } from 'react'
@@ -27,6 +26,7 @@ import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
 import { Progress } from '@/components/ui/progress'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from '@/components/ui/badge'
+import InvoiceSuccessDialog from '@/components/reservations/InvoiceSuccessDialog'
 
 
 function InfoRow({ label, value, icon: Icon, children }: { label: string; value?: string | null | undefined, icon: React.ElementType, children?: React.ReactNode }) {
@@ -57,6 +57,15 @@ export default function RoomDetailsPage() {
     const [isOverdue, setIsOverdue] = useState(false);
     const [progress, setProgress] = useState(0);
     const [isCancelling, startCancelTransition] = useTransition();
+
+    // Facturación global para evitar desmonte por cambio de estado
+    const [successInvoiceId, setSuccessInvoiceId] = useState<string | null>(null);
+    const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+
+    const handleInvoiceSuccess = (id: string) => {
+        setSuccessInvoiceId(id);
+        setIsSuccessOpen(true);
+    };
 
     const { firestore } = useFirebase();
 
@@ -213,21 +222,21 @@ export default function RoomDetailsPage() {
             case 'Occupied':
                 return (
                     <div className="space-y-2">
-                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
+                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
                             <Button className="w-full h-12 text-base sm:text-sm">
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
 
                         {isOverdue && stay && (
-                           <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue}>
+                           <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
                                <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse">
                                    <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
                                </Button>
                            </ExtendStayDialog>
                         )}
                         
-                        <CheckoutDialog stay={stay} room={room} orders={activeOrders || []}>
+                        <CheckoutDialog stay={stay} room={room} orders={activeOrders || []} onCheckoutSuccess={handleInvoiceSuccess}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
@@ -275,8 +284,8 @@ export default function RoomDetailsPage() {
                                                 className={cn(
                                                     "text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1 h-auto rounded-md shadow-sm border-2",
                                                     stay.paymentStatus === 'Pagado' 
-                                                        ? "bg-green-600 text-white border-green-700" 
-                                                        : "text-amber-700 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"
+                                                        ? "bg-green-600 text-white border-green-700 shadow-sm" 
+                                                        : "text-amber-700 border-amber-500 bg-amber-50 dark:bg-amber-950/20 shadow-sm"
                                                 )}
                                             >
                                                 {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
@@ -355,7 +364,7 @@ export default function RoomDetailsPage() {
                                         )}
 
                                         <div className="space-y-2">
-                                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Línea de Tiempo de Estancia</p>
+                                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Línea de Timeline de Estancia</p>
                                             <Progress value={progress} className="h-3" />
                                             <div className="flex justify-between text-xs text-muted-foreground font-semibold">
                                                 <div>
@@ -419,7 +428,7 @@ export default function RoomDetailsPage() {
                                     <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed p-6">
                                         <ConciergeBell className="mx-auto h-12 w-12" />
                                         <p className="mt-4 mb-6">Aún no se han pedido servicios para esta estancia.</p>
-                                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices}>
+                                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
                                             <Button>
                                                 <PlusCircle className="mr-2 h-4 w-4" />
                                                 Añadir Pedido
@@ -437,6 +446,8 @@ export default function RoomDetailsPage() {
                     </Card>
                 </div>
             </div>
+            {/* Modal de Factura Global para persistir después del check-out */}
+            <InvoiceSuccessDialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen} invoiceId={successInvoiceId} />
         </div>
     )
 }

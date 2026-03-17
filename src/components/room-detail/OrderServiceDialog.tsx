@@ -28,7 +28,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 import { Separator } from '../ui/separator';
 import { Label } from '../ui/label';
@@ -71,6 +70,7 @@ interface OrderServiceDialogProps {
   children: ReactNode;
   stayId?: string;
   availableServices: Service[];
+  onOrderSuccess?: (invoiceId: string) => void;
 }
 
 type CartItem = {
@@ -104,7 +104,7 @@ const orderPaymentSchema = z.object({
     path: ["voucherNumber"],
 });
 
-export default function OrderServiceDialog({ children, stayId, availableServices }: OrderServiceDialogProps) {
+export default function OrderServiceDialog({ children, stayId, availableServices, onOrderSuccess }: OrderServiceDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -112,8 +112,6 @@ export default function OrderServiceDialog({ children, stayId, availableServices
   const { firestore } = useFirebase();
 
   const [step, setStep] = useState(1);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [cashTendered, setCashTendered] = useState('');
 
   // Kitchen Notes state
@@ -184,7 +182,6 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         setStep(1);
         setCart([]);
         form.reset();
-        setInvoiceId(null);
         setCashTendered('');
     }
   }, [open, form]);
@@ -274,11 +271,9 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       if (result.error) {
         toast({ title: 'Pedido Fallido', description: result.error, variant: 'destructive' });
       } else {
-        if (result.invoiceId) {
-          setInvoiceId(result.invoiceId);
-          // If paid now, show success dialog immediately
-          setOpen(false);
-          setSuccessModalOpen(true);
+        setOpen(false);
+        if (result.invoiceId && onOrderSuccess) {
+          onOrderSuccess(result.invoiceId);
         } else {
           setStep(3);
         }
@@ -655,12 +650,6 @@ export default function OrderServiceDialog({ children, stayId, availableServices
               </DialogFooter>
           </DialogContent>
       </Dialog>
-
-      <InvoiceSuccessDialog
-          open={successModalOpen}
-          onOpenChange={setSuccessModalOpen}
-          invoiceId={invoiceId}
-      />
     </>
   );
 }
