@@ -70,11 +70,14 @@ export default function RoomDetailsPage() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!firestore || !stay?.id) return null;
-        // Fetch all recent orders and filter client-side. This avoids potential indexing issues with the 'where' clause.
         return query(collection(firestore, 'orders'), where('stayId', '==', stay.id), orderBy('createdAt', 'desc'));
     }, [firestore, stay?.id]);
     
-    const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+    const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+
+    const activeOrders = useMemo(() => {
+        return allOrders?.filter(o => o.status !== 'Cancelado') || [];
+    }, [allOrders]);
 
     const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
 
@@ -162,7 +165,7 @@ export default function RoomDetailsPage() {
             if (result.error) {
                 toast({ title: 'Error al cancelar', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Pedido Cancelado', description: 'El pedido ha sido cancelado y el stock ha sido revertido.' });
+                toast({ title: 'Pedido Cancelado', description: 'El pedido ha sido removido de la cuenta.' });
             }
         });
     };
@@ -220,7 +223,7 @@ export default function RoomDetailsPage() {
                            </ExtendStayDialog>
                         )}
                         
-                        <CheckoutDialog stay={stay} room={room} orders={orders || []}>
+                        <CheckoutDialog stay={stay} room={room} orders={activeOrders || []}>
                             <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
@@ -348,31 +351,34 @@ export default function RoomDetailsPage() {
                         <CardContent className="flex-grow">
                              {room.status === 'Occupied' && stay ? (
                                 <>
-                                {orders && orders.length > 0 ? (
+                                {activeOrders && activeOrders.length > 0 ? (
                                     <ul className="space-y-4">
-                                        {orders.map(order => (
-                                            <li key={order.id} className={cn("p-3 border rounded-lg bg-muted/50", order.status === 'Cancelado' && 'opacity-60 bg-red-500/5')}>
+                                        {activeOrders.map(order => (
+                                            <li key={order.id} className="p-3 border rounded-lg bg-muted/50">
                                                 <div className="flex justify-between items-center mb-2">
                                                     <div className='flex items-center gap-2'>
                                                         <History className="w-4 h-4 text-muted-foreground" />
                                                         <p className="text-sm font-medium">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
-                                                        <Badge variant={order.status === 'Cancelado' ? 'destructive' : 'secondary'}>{order.status}</Badge>
+                                                        <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'}>{order.status}</Badge>
                                                     </div>
-                                                    {order.status !== 'Cancelado' && (
-                                                        <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling}>
-                                                            {isCancelling ? 'Cancelando...' : 'Cancelar'}
-                                                        </Button>
-                                                    )}
+                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                        {isCancelling ? 'Cancelando...' : 'Remover'}
+                                                    </Button>
                                                 </div>
                                                 <ul className="pl-6 space-y-1 text-sm">
                                                     {order.items.map(item => (
-                                                        <li key={item.serviceId} className="flex justify-between">
-                                                            <span>{item.quantity}x {item.name}</span>
-                                                            <span>{formatCurrency(item.price * item.quantity)}</span>
+                                                        <li key={item.serviceId} className="flex justify-between items-center group">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold">{item.quantity}x</span>
+                                                                <span className="uppercase">{item.name}</span>
+                                                                {item.category === 'Food' && <Badge variant="outline" className="text-[9px] h-4 uppercase">{order.kitchenStatus}</Badge>}
+                                                                {item.category === 'Beverage' && <Badge variant="outline" className="text-[9px] h-4 uppercase">{order.barStatus}</Badge>}
+                                                            </div>
+                                                            <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
-                                                <div className={cn("text-right font-semibold mt-2 pt-2 border-t", order.status === 'Cancelado' && 'line-through text-muted-foreground')}>Total: {formatCurrency(order.total)}</div>
+                                                <div className="text-right font-bold mt-2 pt-2 border-t text-primary">Total: {formatCurrency(order.total)}</div>
                                             </li>
                                         ))}
                                     </ul>

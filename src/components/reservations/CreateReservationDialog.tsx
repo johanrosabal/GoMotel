@@ -276,12 +276,10 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
 
   const validateStep = async () => {
       if (currentStep === 1) {
-          const result = await form.trigger(['guestName', 'roomId']);
-          return result;
+          return await form.trigger(['guestName', 'roomId']);
       }
       if (currentStep === 2) {
-          const result = await form.trigger(['pricePlanName', 'checkInDate']);
-          return result;
+          return await form.trigger(['pricePlanName', 'checkInDate']);
       }
       return true;
   }
@@ -351,7 +349,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         <Stepper currentStep={currentStep} />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }}>
             <div className="min-h-[320px] flex flex-col justify-center">
                 {/* Paso 1: Huésped y Habitación */}
                 {currentStep === 1 && (
@@ -448,7 +446,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Plan de Estancia</FormLabel>
-                                <Select onValueChange={(value) => { field.onChange(value); form.trigger('checkInDate'); }} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                                <Select onValueChange={(value) => { field.onChange(value); form.trigger('pricePlanName'); }} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                                     <FormControl>
                                     <SelectTrigger className="h-12 text-lg">
                                         <SelectValue placeholder="Seleccione un plan de tiempo" />

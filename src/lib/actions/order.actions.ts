@@ -194,6 +194,12 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
         const orderRef = doc(db, 'orders', orderId);
         const updates: Record<string, any> = {};
         
+        const snap = await getDoc(orderRef);
+        if (!snap.exists()) return { error: 'El pedido no existe.' };
+        const data = snap.data() as Order;
+
+        if (data.status === 'Cancelado') return { error: 'No se puede actualizar un pedido cancelado.' };
+
         if (area === 'Kitchen') {
             updates.kitchenStatus = status;
         } else if (area === 'Bar') {
@@ -202,17 +208,13 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
             updates.status = status;
         }
 
-        const snap = await getDoc(orderRef);
-        if (snap.exists() && area) {
-            const data = snap.data() as Order;
-            const newKitchen = area === 'Kitchen' ? status : (data.kitchenStatus || 'Entregado');
-            const newBar = area === 'Bar' ? status : (data.barStatus || 'Entregado');
-            
-            if (newKitchen === 'Entregado' && newBar === 'Entregado') {
-                updates.status = 'Entregado';
-            } else if (newKitchen === 'En preparación' || newBar === 'En preparación') {
-                updates.status = 'En preparación';
-            }
+        const newKitchen = area === 'Kitchen' ? status : (data.kitchenStatus || 'Entregado');
+        const newBar = area === 'Bar' ? status : (data.barStatus || 'Entregado');
+        
+        if (newKitchen === 'Entregado' && newBar === 'Entregado') {
+            updates.status = 'Entregado';
+        } else if (newKitchen === 'En preparación' || newBar === 'En preparación') {
+            updates.status = 'En preparación';
         }
 
         await updateDoc(orderRef, updates);
@@ -267,6 +269,7 @@ export async function cancelOrder(orderId: string) {
     });
 
     revalidatePath('/inventory');
+    revalidatePath('/pos');
     return { success: true };
   } catch (error: any) {
     console.error('Failed to cancel order:', error);
