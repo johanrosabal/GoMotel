@@ -72,12 +72,12 @@ const reservationSchema = z.object({
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   checkInDate: z.date(),
-  guestId: z.string().optional().nullable(),
+  guestId: z.string().nullable().optional(),
   checkInNow: z.boolean().default(false),
   isOpenAccount: z.boolean().default(true),
-  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).nullable().optional(),
   paymentConfirmed: z.boolean().default(false),
-  voucherNumber: z.string().optional().nullable(),
+  voucherNumber: z.string().nullable().optional(),
 }).refine(data => data.isOpenAccount || !!data.paymentMethod, {
     message: "Debe seleccionar un método de pago.",
     path: ["paymentMethod"],
@@ -111,7 +111,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
   const [cashTendered, setCashTendered] = useState('');
   
-  // Cooldown to prevent double-click skip on Step 3
   const [canFinalize, setCanFinalize] = useState(false);
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -151,7 +150,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       checkInNow: isWalkIn,
       checkInDate: new Date(),
       isOpenAccount: true,
-      paymentMethod: undefined,
+      paymentMethod: null,
       paymentConfirmed: false,
       voucherNumber: null,
     },
@@ -215,7 +214,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       checkInNow: isWalkIn,
       checkInDate: new Date(),
       isOpenAccount: true,
-      paymentMethod: undefined,
+      paymentMethod: null,
       paymentConfirmed: false,
       voucherNumber: null,
     });
@@ -230,7 +229,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     if (open) resetForm();
   }, [open, resetForm]);
 
-  // Handle Step 3 Cooldown - CRITICAL FIX
   useEffect(() => {
     if (currentStep === 3) {
         const timer = setTimeout(() => setCanFinalize(true), 500);
@@ -288,7 +286,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   }
 
   const onSubmit = (values: z.infer<typeof reservationSchema>) => {
-    // SECURITY: Absolute prevention of premature submission
     if (currentStep < 3) return;
 
     if (!calculatedCheckOut) {
@@ -524,7 +521,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                 <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Efectivo">Efectivo</SelectItem>
@@ -562,7 +559,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         control={form.control}
                                         name="voucherNumber"
                                         render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} className="h-11 font-mono" /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-11 font-mono" /></FormControl><FormMessage /></FormItem>
                                         )}
                                     />
                                 )}

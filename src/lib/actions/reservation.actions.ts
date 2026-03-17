@@ -28,13 +28,13 @@ const reservationActionSchema = z.object({
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   checkOutDate: z.coerce.date(),
-  guestId: z.string().optional(),
+  guestId: z.string().nullable().optional(),
   checkInNow: z.boolean(),
   checkInDate: z.coerce.date().optional(),
   isOpenAccount: z.boolean(),
-  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).nullable().optional(),
   paymentConfirmed: z.boolean().optional(),
-  voucherNumber: z.string().optional(),
+  voucherNumber: z.string().nullable().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -64,7 +64,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
   const validatedFields = reservationActionSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    console.error(validatedFields.error.flatten().fieldErrors);
+    console.error("Zod Validation Errors:", validatedFields.error.flatten().fieldErrors);
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
@@ -219,7 +219,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
             status: 'Pagada',
             items: invoiceItems,
             subtotal: pricePlanAmount,
-            taxes: [], // Taxes logic can be added later
+            taxes: [], 
             total: pricePlanAmount,
             paymentMethod: paymentMethod,
             voucherNumber: voucherNumber || null,
@@ -269,11 +269,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     if (guestId) revalidatePath('/clients');
     if (paymentMethod === 'Sinpe Movil') revalidatePath('/settings/sinpe-accounts');
 
-    if (invoiceIdForReturn) {
-        return { success: true, invoiceId: invoiceIdForReturn };
-    }
-
-    return { success: true };
+    return { success: true, invoiceId: invoiceIdForReturn };
   } catch (error) {
     console.error("Error creating reservation/check-in: ", error);
     return { error: 'No se pudo procesar la solicitud.' };
