@@ -21,6 +21,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
+import InvoiceSuccessDialog from '../reservations/InvoiceSuccessDialog';
 
 interface ExtendStayDialogProps {
   children: ReactNode;
@@ -65,6 +66,9 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [cashTendered, setCashTendered] = useState('');
+  
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore || !room) return null;
@@ -160,8 +164,14 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
-        setOpen(false);
+        if (result.invoiceId) {
+            setInvoiceId(result.invoiceId);
+            setOpen(false);
+            setSuccessModalOpen(true);
+        } else {
+            toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
+            setOpen(false);
+        }
       }
     });
   };
@@ -170,6 +180,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
     if (open) {
       form.reset({ newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined });
       setCashTendered('');
+      setInvoiceId(null);
     }
   }, [open, form]);
 
@@ -187,6 +198,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
   const submitButtonText = payNow ? 'Pagar y Extender' : 'Extender (Pendiente)';
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       {stay && (
@@ -373,5 +385,11 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue }: Ex
         </DialogContent>
       )}
     </Dialog>
+    <InvoiceSuccessDialog
+        open={successModalOpen}
+        onOpenChange={setSuccessModalOpen}
+        invoiceId={invoiceId}
+    />
+    </>
   );
 }

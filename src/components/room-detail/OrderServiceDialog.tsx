@@ -276,8 +276,12 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       } else {
         if (result.invoiceId) {
           setInvoiceId(result.invoiceId);
+          // If paid now, show success dialog immediately
+          setOpen(false);
+          setSuccessModalOpen(true);
+        } else {
+          setStep(3);
         }
-        setStep(3);
       }
     });
   };
@@ -577,11 +581,8 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 <CheckCircle className="h-20 w-20 text-green-500 mb-4" />
                 <h3 className="text-2xl font-bold">¡Pedido Confirmado!</h3>
                 <p className="text-muted-foreground mt-2 max-w-sm">
-                    {invoiceId ? "La factura ha sido generada y el pedido está en proceso." : "El pedido ha sido añadido a la cuenta de la habitación."}
+                    El pedido ha sido añadido a la cuenta de la habitación.
                 </p>
-                {invoiceId && (
-                     <p className="text-muted-foreground text-sm mt-1">Puede descargar o compartir la factura desde el diálogo de éxito que aparecerá al cerrar.</p>
-                )}
             </div>
           )}
 
@@ -604,7 +605,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                 <Button type="button" variant="secondary" onClick={() => handleSubmit({ payNow: false })} disabled={isPending}>
                     Dejar Pendiente
                 </Button>
-                <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isPending || !payNow}>
+                <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isPending}>
                     Pagar y Confirmar
                 </Button>
                 </>
@@ -612,9 +613,6 @@ export default function OrderServiceDialog({ children, stayId, availableServices
             {step === 3 && (
                 <Button type="button" onClick={() => {
                     setOpen(false);
-                    if (invoiceId) {
-                        setSuccessModalOpen(true);
-                    }
                 }}>
                     Cerrar
                 </Button>

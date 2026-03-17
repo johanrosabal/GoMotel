@@ -426,6 +426,8 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
   
     try {
       const batch = writeBatch(db);
+      let invoiceIdForReturn: string | undefined;
+
       const stayRef = doc(db, 'stays', stayId);
       const staySnap = await getDoc(stayRef);
       if (!staySnap.exists()) {
@@ -452,7 +454,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
   
       const now = new Date();
       const currentCheckOut = stayData.expectedCheckOut.toDate();
-      const baseDate = now > currentCheckOut ? now : currentCheckOut;
+      const baseDate = isOverdue && now > currentCheckOut ? now : currentCheckOut;
   
       let newExpectedCheckOut = new Date(baseDate);
       switch (newPlan.unit) {
@@ -494,6 +496,8 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
           const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
           
           const invoiceRef = doc(collection(db, 'invoices'));
+          invoiceIdForReturn = invoiceRef.id;
+
           const invoiceItems = [{
               description: `Extensión de Estancia: ${newPlan.name} para Hab. ${roomData.number}`,
               quantity: 1,
@@ -568,7 +572,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
       revalidatePath('/settings/sinpe-accounts');
       revalidatePath('/billing/invoices');
   
-      return { success: true };
+      return { success: true, invoiceId: invoiceIdForReturn };
     } catch (error: any) {
       console.error('Error extending stay:', error);
       return { error: error.message || 'No se pudo extender la estancia.' };
