@@ -70,7 +70,7 @@ export async function getRoomById(roomId: string): Promise<Room | null> {
 
 const checkInSchema = z.object({
   guestName: z.string().min(2, 'El nombre del huésped debe tener al menos 2 caracteres.'),
-  guestId: z.string().optional(),
+  guestId: z.string().optional().nullable(),
   pricePlanName: z.string(),
   pricePlanAmount: z.coerce.number(),
   expectedCheckOut: z.coerce.date(),
@@ -390,7 +390,7 @@ const extendStaySchema = z.object({
   payNow: z.boolean(),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().optional(),
-  voucherNumber: z.string().optional(),
+  voucherNumber: z.string().optional().nullable(),
 }).refine(data => {
     if (data.payNow) return !!data.paymentMethod;
     return true;

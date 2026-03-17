@@ -72,12 +72,12 @@ const reservationSchema = z.object({
   roomId: z.string({ required_error: 'Debe seleccionar una habitación.' }),
   pricePlanName: z.string({ required_error: 'Debe seleccionar un plan de estancia.' }),
   checkInDate: z.date(),
-  guestId: z.string().optional(),
+  guestId: z.string().optional().nullable(),
   checkInNow: z.boolean().default(false),
   isOpenAccount: z.boolean().default(true),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().default(false),
-  voucherNumber: z.string().optional(),
+  voucherNumber: z.string().optional().nullable(),
 }).refine(data => data.isOpenAccount || !!data.paymentMethod, {
     message: "Debe seleccionar un método de pago.",
     path: ["paymentMethod"],
@@ -145,7 +145,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     resolver: zodResolver(reservationSchema),
     defaultValues: {
       guestName: '',
-      guestId: undefined,
+      guestId: null,
       roomId: isWalkIn ? initialRoomId : undefined,
       pricePlanName: undefined,
       checkInNow: isWalkIn,
@@ -153,7 +153,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       isOpenAccount: true,
       paymentMethod: undefined,
       paymentConfirmed: false,
-      voucherNumber: '',
+      voucherNumber: null,
     },
   });
 
@@ -209,7 +209,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   const resetForm = useCallback(() => {
     form.reset({
       guestName: '',
-      guestId: undefined,
+      guestId: null,
       roomId: isWalkIn ? initialRoomId : undefined,
       pricePlanName: undefined,
       checkInNow: isWalkIn,
@@ -217,7 +217,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       isOpenAccount: true,
       paymentMethod: undefined,
       paymentConfirmed: false,
-      voucherNumber: '',
+      voucherNumber: null,
     });
     setCurrentStep(1);
     setCalculatedCheckOut(null);
@@ -230,7 +230,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     if (open) resetForm();
   }, [open, resetForm]);
 
-  // Handle Step 3 Cooldown
+  // Handle Step 3 Cooldown - CRITICAL FIX
   useEffect(() => {
     if (currentStep === 3) {
         const timer = setTimeout(() => setCanFinalize(true), 500);
