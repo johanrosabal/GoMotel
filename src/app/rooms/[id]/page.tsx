@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, useTransition, useMemo } from 'react'
@@ -265,9 +266,22 @@ export default function RoomDetailsPage() {
                     <Card className={cn(isOverdue && 'animate-overdue-pulse')}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <CardTitle className="text-5xl font-bold">Habitación {room.number}</CardTitle>
-                                    <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
+                                <div className="space-y-1">
+                                    <CardTitle className="text-3xl font-bold">Habitación {room.number}</CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        <CardDescription>Tarifa: {formatCurrency(room.ratePerHour)}/hora</CardDescription>
+                                        {stay && (
+                                            <Badge 
+                                                variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
+                                                className={cn(
+                                                    "text-[10px] font-black uppercase tracking-tighter px-2 h-5",
+                                                    stay.paymentStatus === 'Pagado' ? "bg-green-600 text-white border-green-700" : "text-amber-600 border-amber-500 bg-amber-50"
+                                                )}
+                                            >
+                                                {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <StatusBadge status={room.status} isOverdue={isOverdue} />
@@ -291,17 +305,7 @@ export default function RoomDetailsPage() {
                                 <>
                                     <Separator />
                                     <div className="grid gap-4">
-                                        <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User}>
-                                            <Badge 
-                                                variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
-                                                className={cn(
-                                                    "text-[10px] font-black uppercase tracking-tighter ml-1",
-                                                    stay.paymentStatus === 'Pagado' ? "bg-green-600 text-white border-green-700" : "text-amber-600 border-amber-500 bg-amber-50"
-                                                )}
-                                            >
-                                                {stay.paymentStatus === 'Pagado' ? 'Hospedaje Pagado' : 'Hospedaje Pendiente'}
-                                            </Badge>
-                                        </InfoRow>
+                                        <InfoRow label="Nombre del Huésped" value={stay.guestName} icon={User} />
 
                                         {stay.paymentStatus === 'Pagado' && (
                                             <div className="flex items-center gap-2 ml-14 -mt-2">
