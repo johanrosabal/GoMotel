@@ -45,16 +45,27 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
     const [isExporting, setIsExporting] = useState(false);
     const qrReportRef = useRef<HTMLDivElement>(null);
 
+    // Determinar el tipo que se está visualizando/gestionando actualmente
+    const activeType = useMemo(() => isAddingCustomType ? customType : newType, [isAddingCustomType, customType, newType]);
+
+    // Filtrar las tablas mostradas en la lista según el tipo seleccionado
+    const filteredTablesForList = useMemo(() => {
+        if (!activeType && isAddingCustomType) return [];
+        
+        return tables.filter(t => t.type === activeType).sort((a,b) => 
+            a.number.localeCompare(b.number, undefined, { numeric: true })
+        );
+    }, [tables, activeType, isAddingCustomType]);
+
     // Calcular el siguiente número automáticamente basado en las existentes del mismo tipo
     const nextNumber = useMemo(() => {
-        const typeTables = tables.filter(t => t.type === newType);
-        const numbers = typeTables
+        const numbers = filteredTablesForList
             .map(t => parseInt(t.number, 10))
             .filter(n => !isNaN(n));
         
         const max = numbers.length > 0 ? Math.max(...numbers) : 0;
         return String(max + 1).padStart(2, '0');
-    }, [tables, newType]);
+    }, [filteredTablesForList]);
 
     const handleAdd = () => {
         const finalType = isAddingCustomType ? customType.trim() : newType;
@@ -208,20 +219,21 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
 
                     <div className="space-y-3">
                         <div className="flex items-center justify-between px-1">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mapa Actual</h4>
-                            <Badge variant="secondary" className="text-[9px] font-bold">{tables.length} Total</Badge>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                {isAddingCustomType ? 'Ubicaciones Existentes' : `Mapa de ${TYPE_LABELS[newType] || newType}`}
+                            </h4>
+                            <Badge variant="secondary" className="text-[9px] font-bold">{filteredTablesForList.length} Mostradas</Badge>
                         </div>
                         <div className="rounded-2xl border bg-background/50 backdrop-blur-sm p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {tables.length === 0 ? (
+                            {filteredTablesForList.length === 0 ? (
                                 <div className="col-span-full py-12 flex flex-col items-center justify-center text-muted-foreground/40">
                                     <MapPin className="h-10 w-10 mb-2" />
-                                    <p className="text-xs font-bold uppercase tracking-widest italic">Sin ubicaciones</p>
+                                    <p className="text-xs font-bold uppercase tracking-widest italic">
+                                        {isAddingCustomType && !customType ? 'Ingrese un tipo para filtrar' : 'Sin ubicaciones en este tipo'}
+                                    </p>
                                 </div>
                             ) : (
-                                [...tables].sort((a,b) => {
-                                    if(a.type !== b.type) return a.type.localeCompare(b.type);
-                                    return a.number.localeCompare(b.number, undefined, { numeric: true });
-                                }).map(table => {
+                                filteredTablesForList.map(table => {
                                     const Icon = getTypeIcon(table.type);
                                     const label = TYPE_LABELS[table.type] || table.type;
                                     return (
