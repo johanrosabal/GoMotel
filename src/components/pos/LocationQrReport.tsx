@@ -6,7 +6,6 @@ import { QRCodeCanvas } from 'qrcode.react';
 import type { RestaurantTable, CompanyProfile } from '@/types';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import AppLogo from '@/components/AppLogo';
 import { cn } from '@/lib/utils';
 
 interface LocationQrReportProps {
@@ -49,7 +48,7 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
             {pages.map((pageTables, pageIndex) => (
                 <div 
                     key={pageIndex}
-                    className="qr-pdf-page bg-white p-8 text-gray-900 flex flex-col items-center justify-center gap-12 mb-10" 
+                    className="qr-pdf-page bg-white p-12 text-gray-900 flex flex-col items-center justify-center gap-16 mb-10" 
                     style={{ 
                         width: '210mm', 
                         height: '297mm', 
@@ -63,59 +62,46 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                         return (
                             <div 
                                 key={table.id} 
-                                className="w-full flex flex-col items-center justify-between py-12 px-8 border-[6px] border-dashed border-gray-300 rounded-[4rem] bg-white relative"
-                                style={{ height: '125mm', width: '180mm' }}
+                                className="w-full flex flex-col items-center justify-between py-16 px-10 border-[4px] border-dashed border-gray-200 rounded-[5rem] bg-white relative"
+                                style={{ height: '120mm', width: '185mm' }}
                             >
                                 {/* Header Branding */}
-                                <div className="flex flex-col items-center gap-2">
-                                    {company?.logoUrl ? (
-                                        <img src={company.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
-                                    ) : (
-                                        <AppLogo className="h-12 w-12 text-primary" />
-                                    )}
-                                    <h1 className="text-3xl font-black uppercase tracking-tighter text-gray-800 text-center">
+                                <div className="flex flex-col items-center gap-4">
+                                    <h1 className="text-4xl font-black uppercase tracking-tighter text-gray-800 text-center">
                                         {company?.tradeName || 'Go Motel'}
                                     </h1>
-                                    <div className="h-1 w-20 bg-primary/20 rounded-full" />
+                                    <div className="h-1.5 w-32 bg-primary/30 rounded-full" />
                                 </div>
 
-                                {/* Main QR Section */}
-                                <div className="flex flex-col items-center gap-6">
-                                    <div className="p-5 bg-white border-4 border-primary rounded-3xl shadow-xl">
+                                {/* Main QR Section - No logos for maximum scan area */}
+                                <div className="flex flex-col items-center justify-center py-6">
+                                    <div className="p-8 bg-white border-[4px] border-primary rounded-[3rem] shadow-2xl">
                                         <QRCodeCanvas 
                                             value={orderUrl} 
-                                            size={280}
+                                            size={300}
                                             level="H"
                                             includeMargin={false}
-                                            imageSettings={company?.logoUrl ? {
-                                                src: company.logoUrl,
-                                                x: undefined,
-                                                y: undefined,
-                                                height: 50,
-                                                width: 50,
-                                                excavate: true,
-                                            } : undefined}
                                         />
                                     </div>
                                 </div>
 
-                                {/* Footer Info */}
-                                <div className="text-center space-y-4 w-full">
-                                    <div className="bg-primary text-primary-foreground px-12 py-3 rounded-2xl inline-block shadow-lg">
-                                        <span className="text-5xl font-black uppercase tracking-widest leading-none">{locationName}</span>
+                                {/* Footer Info - Generous spacing to avoid overlap */}
+                                <div className="text-center space-y-6 w-full">
+                                    <div className="bg-primary text-primary-foreground px-16 py-5 rounded-[2.5rem] inline-block shadow-2xl">
+                                        <span className="text-6xl font-black uppercase tracking-widest leading-none">{locationName}</span>
                                     </div>
-                                    <p className="text-xl font-bold text-gray-400 uppercase tracking-[0.3em]">Escanee para pedir</p>
+                                    <p className="text-2xl font-bold text-gray-400 uppercase tracking-[0.4em] pt-4">Escanee para pedir</p>
                                 </div>
                                 
-                                {/* Corner Decorations - Small and subtle to avoid clipping */}
-                                <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-primary/10 rounded-tl-2xl" />
-                                <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-primary/10 rounded-br-2xl" />
+                                {/* Decoration corners */}
+                                <div className="absolute top-10 left-10 w-16 h-16 border-t-8 border-l-8 border-primary/5 rounded-tl-[3rem]" />
+                                <div className="absolute bottom-10 right-10 w-16 h-16 border-b-8 border-r-8 border-primary/5 rounded-br-[3rem]" />
                             </div>
                         );
                     })}
                     
-                    <div className="mt-auto pt-4 flex justify-between w-full text-[9px] font-bold text-gray-300 uppercase tracking-widest border-t border-gray-100">
-                        <span>Documento de Configuración Operativa - Go Motel Manager</span>
+                    <div className="mt-auto pt-6 flex justify-between w-full text-[10px] font-bold text-gray-300 uppercase tracking-widest border-t border-gray-100">
+                        <span>Configuración de Ubicaciones - Go Motel Manager</span>
                         <span>Página {pageIndex + 1} de {pages.length}</span>
                     </div>
                 </div>
