@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, useCallback } from 'react';
@@ -184,6 +185,14 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
   const paymentMethod = form.watch('paymentMethod');
 
   const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
+  
+  // FILTRADO DE HABITACIONES: Mostrar solo disponibles
+  const availableRooms = useMemo(() => {
+    if (!rooms) return [];
+    // Filtramos para mostrar solo disponibles, a menos que sea la habitación inicial seleccionada (para Walk-ins)
+    return rooms.filter(room => room.status === 'Available' || room.id === initialRoomId);
+  }, [rooms, initialRoomId]);
+
   const availablePlans = useMemo(() => {
       if (!selectedRoom || !roomTypes) return [];
       const roomType = roomTypes.find(rt => rt.id === selectedRoom.roomTypeId);
@@ -249,7 +258,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         let newCheckOutDate = new Date(baseDate);
         const { duration, unit } = plan;
         if (unit === 'Minutes') newCheckOutDate = addMinutes(newCheckOutDate, duration);
-        else if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
+        else if (unit === 'Hours') newCheckCheckOutDate = addHours(newCheckOutDate, duration);
         else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
         else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
         else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
@@ -396,7 +405,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                             name="roomId"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Habitación Asignada</FormLabel>
+                                <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Habitación Asignada (Disponibles)</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
                                     <FormControl>
                                     <SelectTrigger className="h-12 text-lg">
@@ -404,14 +413,20 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                    {rooms?.map(room => (
-                                        <SelectItem key={room.id} value={room.id}>
-                                            <div className='flex items-center gap-2'>
-                                                <span className='font-black'>Hab. {room.number}</span>
-                                                <span className='text-xs opacity-60'>— {room.roomTypeName}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
+                                    {availableRooms.length > 0 ? (
+                                        availableRooms.map(room => (
+                                            <SelectItem key={room.id} value={room.id}>
+                                                <div className='flex items-center gap-2'>
+                                                    <span className='font-black'>Hab. {room.number}</span>
+                                                    <span className='text-xs opacity-60'>— {room.roomTypeName}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center text-sm text-muted-foreground">
+                                            No hay habitaciones disponibles.
+                                        </div>
+                                    )}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
