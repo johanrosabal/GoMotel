@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { createRestaurantTable, deleteRestaurantTable } from '@/lib/actions/restaurant.actions';
 import type { RestaurantTable } from '@/types';
-import { Trash2, Plus, Utensils, Beer, Sun, MapPin, ChevronLeft } from 'lucide-react';
+import { Trash2, Plus, Utensils, Beer, Sun, MapPin, ChevronLeft, QrCode, Download } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import LocationQrReport from './LocationQrReport';
 
 interface Props {
     open: boolean;
@@ -38,6 +42,8 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
     const [newType, setNewType] = useState<string>('Table');
     const [customType, setCustomType] = useState('');
     const [isAddingCustomType, setIsAddingCustomType] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const qrReportRef = useRef<HTMLDivElement>(null);
 
     // Calcular el siguiente número automáticamente basado en las existentes del mismo tipo
     const nextNumber = useMemo(() => {
@@ -84,6 +90,37 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
         });
     };
 
+    const handleExportQrPdf = async () => {
+        const input = qrReportRef.current;
+        if (!input || tables.length === 0) return;
+
+        setIsExporting(true);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pages = input.querySelectorAll('.qr-pdf-page');
+
+        try {
+            for (let i = 0; i < pages.length; i++) {
+                const canvas = await html2canvas(pages[i] as HTMLElement, { 
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+            }
+            pdf.save(`QR-UBICACIONES-${new Date().getTime()}.pdf`);
+            toast({ title: '¡Éxito!', description: 'El PDF de códigos QR ha sido generado.' });
+        } catch (error) {
+            console.error("Error al exportar QRs:", error);
+            toast({ title: 'Error', description: 'No se pudo generar el PDF.', variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const getTypeIcon = (type: string) => {
         if (type === 'Table') return Utensils;
         if (type === 'Bar') return Beer;
@@ -93,15 +130,15 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-lg max-h-[95vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-2">
                     <DialogTitle>Gestión de Ubicaciones</DialogTitle>
                     <DialogDescription>
                         Añada o elimine las zonas de servicio de su restaurante.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6 py-4">
+                <div className="flex-1 overflow-y-auto px-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-muted/20 p-5 rounded-2xl border border-dashed border-primary/20">
                         <div className="space-y-2 md:col-span-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Zona</Label>
@@ -131,7 +168,6 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                                 </div>
                                             </SelectItem>
                                         ))}
-                                        {/* Dynamic types found in data that are not default */}
                                         {Array.from(new Set(tables.map(t => t.type)))
                                             .filter(t => !DEFAULT_TYPES.some(dt => dt.value === t))
                                             .map(t => (
@@ -175,66 +211,78 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mapa Actual</h4>
                             <Badge variant="secondary" className="text-[9px] font-bold">{tables.length} Total</Badge>
                         </div>
-                        <ScrollArea className="h-64 rounded-2xl border bg-background/50 backdrop-blur-sm">
-                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {tables.length === 0 ? (
-                                    <div className="col-span-full py-12 flex flex-col items-center justify-center text-muted-foreground/40">
-                                        <MapPin className="h-10 w-10 mb-2" />
-                                        <p className="text-xs font-bold uppercase tracking-widest italic">Sin ubicaciones</p>
-                                    </div>
-                                ) : (
-                                    [...tables].sort((a,b) => {
-                                        if(a.type !== b.type) return a.type.localeCompare(b.type);
-                                        return a.number.localeCompare(b.number, undefined, { numeric: true });
-                                    }).map(table => {
-                                        const Icon = getTypeIcon(table.type);
-                                        const label = TYPE_LABELS[table.type] || table.type;
-                                        return (
-                                            <div key={table.id} className={cn(
-                                                "flex items-center justify-between p-3 rounded-xl border transition-all group",
-                                                table.status === 'Occupied' ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent hover:border-primary/30"
-                                            )}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn(
-                                                        "p-2 rounded-lg border shadow-sm",
-                                                        table.status === 'Occupied' ? "bg-primary text-primary-foreground" : "bg-background"
-                                                    )}>
-                                                        <Icon className="h-4 w-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-black text-sm tracking-tight">{label} {table.number}</p>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className={cn(
-                                                                "w-1.5 h-1.5 rounded-full",
-                                                                table.status === 'Occupied' ? "bg-blue-500 animate-pulse" : "bg-green-500"
-                                                            )} />
-                                                            <span className="text-[8px] font-black uppercase text-muted-foreground/70">
-                                                                {table.status === 'Available' ? 'Libre' : 'En uso'}
-                                                            </span>
-                                                        </div>
+                        <div className="rounded-2xl border bg-background/50 backdrop-blur-sm p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {tables.length === 0 ? (
+                                <div className="col-span-full py-12 flex flex-col items-center justify-center text-muted-foreground/40">
+                                    <MapPin className="h-10 w-10 mb-2" />
+                                    <p className="text-xs font-bold uppercase tracking-widest italic">Sin ubicaciones</p>
+                                </div>
+                            ) : (
+                                [...tables].sort((a,b) => {
+                                    if(a.type !== b.type) return a.type.localeCompare(b.type);
+                                    return a.number.localeCompare(b.number, undefined, { numeric: true });
+                                }).map(table => {
+                                    const Icon = getTypeIcon(table.type);
+                                    const label = TYPE_LABELS[table.type] || table.type;
+                                    return (
+                                        <div key={table.id} className={cn(
+                                            "flex items-center justify-between p-3 rounded-xl border transition-all group",
+                                            table.status === 'Occupied' ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent hover:border-primary/30"
+                                        )}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "p-2 rounded-lg border shadow-sm",
+                                                    table.status === 'Occupied' ? "bg-primary text-primary-foreground" : "bg-background"
+                                                )}>
+                                                    <Icon className="h-4 w-4" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-sm tracking-tight">{label} {table.number}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            table.status === 'Occupied' ? "bg-blue-500 animate-pulse" : "bg-green-500"
+                                                        )} />
+                                                        <span className="text-[8px] font-black uppercase text-muted-foreground/70">
+                                                            {table.status === 'Available' ? 'Libre' : 'En uso'}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    disabled={isPending || table.status === 'Occupied'}
-                                                    onClick={() => handleDelete(table.id)}
-                                                    className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
                                             </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </ScrollArea>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                disabled={isPending || table.status === 'Occupied'}
+                                                onClick={() => handleDelete(table.id)}
+                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <DialogFooter className="bg-muted/10 p-4 -m-6 mt-2 rounded-b-lg">
-                    <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full font-bold h-11 rounded-xl">Cerrar</Button>
+                <DialogFooter className="p-6 border-t bg-muted/5 flex flex-col sm:flex-row gap-3">
+                    <Button 
+                        variant="outline" 
+                        className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest gap-2 border-2" 
+                        onClick={handleExportQrPdf}
+                        disabled={isExporting || tables.length === 0}
+                    >
+                        <QrCode className="h-4 w-4" />
+                        {isExporting ? 'Generando...' : 'Exportar QRs para Impresión'}
+                    </Button>
+                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold">Cerrar</Button>
                 </DialogFooter>
+
+                {/* Hidden QR Report for PDF generation */}
+                <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                    <LocationQrReport tables={tables} ref={qrReportRef} />
+                </div>
             </DialogContent>
         </Dialog>
     );
