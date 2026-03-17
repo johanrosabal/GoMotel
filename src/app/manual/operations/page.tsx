@@ -3,9 +3,10 @@ import { Badge } from '@/components/ui/badge';
 import { 
     ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, 
     ConciergeBell, ShoppingCart, ArchiveX, Database, BookCopy, Truck, Users, 
-    Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard
+    Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard, GitGraph
 } from 'lucide-react';
 import Link from 'next/link';
+import { Mermaid } from '@/components/ui/mermaid';
 
 const Step = ({ icon, title, description, statuses, isLast = false }: { icon: React.ElementType, title: string, description: string, statuses: { type: string, name: string, color: string }[], isLast?: boolean }) => {
     const Icon = icon;
@@ -53,6 +54,27 @@ const SettingsStep = ({ icon, title, usage, useCase, href }: { icon: React.Eleme
     )
 }
 
+const lifecycleChart = `
+graph TD
+    A[Huésped llega / Reserva] --> B{Paso 3: Cobro}
+    B -- "Pago Adelantado" --> C[Estado: Hospedaje Pagado]
+    B -- "Cuenta Abierta" --> D[Estado: Hospedaje Pendiente]
+    C --> E[Estancia Activa]
+    D --> E
+    E --> F[Añadir Consumos / Servicios]
+    F --> G[Check-out]
+    G --> H{¿Saldo Pendiente?}
+    H -- "0.00 (Ya pagó)" --> I[Confirmación Directa]
+    H -- "> 0.00" --> J[Pantalla de Cobro]
+    J --> I
+    I --> K[Estado: Limpieza]
+    K --> L[Estado: Disponible]
+    
+    style C fill:#dcfce7,stroke:#166534
+    style D fill:#fef3c7,stroke:#92400e
+    style I fill:#10b981,stroke:#059669,color:#fff
+`;
+
 export default function ManualOperationsPage() {
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-8">
@@ -68,7 +90,22 @@ export default function ManualOperationsPage() {
 
             <Card className="border-primary/20 bg-primary/[0.01]">
                 <CardHeader>
-                    <CardTitle className="text-primary">Ciclo de Vida del Huésped (Flujo Actualizado)</CardTitle>
+                    <CardTitle className="text-primary flex items-center gap-2">
+                        <GitGraph className="h-5 w-5" />
+                        Mapa Visual del Ciclo de Vida
+                    </CardTitle>
+                    <CardDescription>
+                        Diagrama de flujo que detalla las decisiones de pago y estados de habitación.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Mermaid chart={lifecycleChart} />
+                </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-primary/[0.01]">
+                <CardHeader>
+                    <CardTitle className="text-primary">Detalle por Pasos</CardTitle>
                     <CardDescription>
                         Procesos guiados para asegurar el registro correcto y la liquidación de cuentas.
                     </CardDescription>
@@ -80,9 +117,9 @@ export default function ManualOperationsPage() {
                             title="1. Registro con Asistente de 3 Pasos"
                             description="Toda nueva estancia utiliza un asistente guiado obligatorio: 1. Datos del Huésped (con búsqueda en CRM), 2. Configuración de Estancia (Plan de precios y fechas) y 3. Definición de Pago (Cobro inmediato o Cuenta Abierta). Solo las habitaciones 'Disponibles' son elegibles."
                             statuses={[
-                                { type: 'Estado', name: 'Confirmada', color: 'bg-blue-100 text-blue-800' },
-                                { type: 'Validación', name: '3 Pasos Obligatorios', color: 'bg-green-100 text-green-800' },
-                                { type: 'Habitación', name: 'Solo Disponibles', color: 'bg-indigo-100 text-indigo-800' },
+                                { type: 'Estado', name: 'Confirmada', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+                                { type: 'Validación', name: '3 Pasos Obligatorios', color: 'bg-green-100 text-green-800 border-green-200' },
+                                { type: 'Habitación', name: 'Solo Disponibles', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
                             ]}
                         />
                         <Step
@@ -90,8 +127,8 @@ export default function ManualOperationsPage() {
                             title="2. Estancia Activa e Indicadores"
                             description="Al ingresar, la habitación muestra un distintivo de estado debajo del título: 'Hospedaje Pagado' (Verde) o 'Hospedaje Pendiente' (Ámbar). Durante este tiempo se pueden añadir pedidos que descuentan stock automáticamente."
                             statuses={[
-                                { type: 'Visual', name: 'Estado de Pago visible', color: 'bg-amber-100 text-amber-800' },
-                                { type: 'Servicios', name: 'Descuento Stock en vivo', color: 'bg-primary/10 text-primary' },
+                                { type: 'Visual', name: 'Estado de Pago visible', color: 'bg-amber-100 text-amber-800 border-amber-500' },
+                                { type: 'Servicios', name: 'Descuento Stock en vivo', color: 'bg-primary/10 text-primary border-primary/20' },
                             ]}
                         />
                          <Step
@@ -99,8 +136,8 @@ export default function ManualOperationsPage() {
                             title="3. Check-out Inteligente"
                             description="El sistema calcula el saldo en tiempo real. Si el 'Total Pendiente' es 0.00 (porque ya pagó por adelantado), el sistema salta automáticamente al comprobante final. Si hay deuda, permite seleccionar método de pago antes de liberar la habitación."
                             statuses={[
-                                { type: 'Lógica', name: 'Cobro Dinámico', color: 'bg-green-100 text-green-800' },
-                                { type: 'Comprobante', name: 'WhatsApp e Impresión', color: 'bg-primary text-white border-none' },
+                                { type: 'Lógica', name: 'Cobro Dinámico', color: 'bg-green-100 text-green-800 border-green-200' },
+                                { type: 'Comprobante', name: 'WhatsApp e Impresión', color: 'bg-primary text-white border-none shadow-sm' },
                             ]}
                         />
                         <Step
@@ -108,7 +145,7 @@ export default function ManualOperationsPage() {
                             title="4. Proceso de Limpieza"
                             description="Las habitaciones pasan automáticamente a 'Limpieza' al terminar la estancia. El personal debe marcarlas como 'Disponibles' para que vuelvan a aparecer en la lista de reservaciones."
                             statuses={[
-                                { type: 'Estado', name: 'Limpieza Requerida', color: 'bg-yellow-100 text-yellow-800' },
+                                { type: 'Estado', name: 'Limpieza Requerida', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
                             ]}
                             isLast
                         />

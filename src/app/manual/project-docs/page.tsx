@@ -2,6 +2,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { FileCode, Database, Workflow, ShieldCheck, Layers, Users, FileText, CheckCircle } from 'lucide-react';
+import { Mermaid } from '@/components/ui/mermaid';
+
+const checkoutSequence = `
+sequenceDiagram
+    participant R as Recepcionista
+    participant S as Lógica de Cobro
+    participant F as Base de Datos
+    R->>S: Inicia Check-out
+    S->>F: Consulta Stay, Orders e Invoices
+    F-->>S: Retorna montos
+    S->>S: Calcula (Habitación + Consumos) - Pagos Previos
+    alt Saldo == 0.00
+        S-->>R: Botón "Finalizar Check-out" (Directo)
+    else Saldo > 0
+        S-->>R: Botón "Pasar a Cobro" (Selección Método)
+    end
+`;
 
 export default function ProjectDocsPage() {
     return (
@@ -18,6 +35,16 @@ export default function ProjectDocsPage() {
 
             <Card>
                 <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Workflow className="h-6 w-6 text-primary" />Diagrama de Secuencia: Cobro Inteligente</CardTitle>
+                    <CardDescription>Detalle técnico de la lógica de auditoría de saldos antes del check-out.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Mermaid chart={checkoutSequence} />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Workflow className="h-6 w-6 text-primary" />Flujos de Negocio Core</CardTitle>
                     <CardDescription>Lógica de alto nivel implementada en los procesos principales.</CardDescription>
                 </CardHeader>
@@ -25,7 +52,7 @@ export default function ProjectDocsPage() {
                     <Accordion type="multiple" className="w-full">
                         <AccordionItem value="guest-assistant">
                             <AccordionTrigger>Asistente de Reservaciones (3 Pasos)</AccordionTrigger>
-                            <AccordionContent className="space-y-2">
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
                                 <p><strong>Paso 1 (Huésped):</strong> Identificación del cliente. Si existe en la colección <code>/clients</code>, se vincula para historial de visitas y estado VIP. Filtrado reactivo de habitaciones con estado 'Available'.</p>
                                 <p><strong>Paso 2 (Estancia):</strong> Selección de <code>PricePlan</code>. El sistema proyecta la <code>expectedCheckOut</code> sumando la duración del plan a la hora de entrada. Soporta 'Check-in Now' o programado.</p>
                                 <p><strong>Paso 3 (Pago):</strong> Decisión de facturación. Si es 'Cuenta Abierta', no se genera factura inicial. Si se paga por adelantado, se genera un documento en <code>/invoices</code> y se actualiza el saldo de la cuenta SINPE si aplica.</p>
@@ -33,7 +60,7 @@ export default function ProjectDocsPage() {
                         </AccordionItem>
                         <AccordionItem value="intelligent-checkout">
                             <AccordionTrigger>Lógica de Check-out Inteligente</AccordionTrigger>
-                            <AccordionContent className="space-y-2">
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
                                 <p>El sistema realiza una auditoría de saldos antes de abrir el diálogo de cobro:</p>
                                 <ul className="list-disc list-inside pl-4 space-y-1">
                                     <li>Suma de Plan de Precios de Estancia.</li>
@@ -45,7 +72,7 @@ export default function ProjectDocsPage() {
                         </AccordionItem>
                         <AccordionItem value="kds-sync">
                             <AccordionTrigger>Sincronización Cocina / Bar (KDS)</AccordionTrigger>
-                            <AccordionContent className="space-y-2">
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
                                 <p>Al crear un <code>Order</code>, los productos se clasifican por su categoría contable (Food/Beverage). Esto dispara estados independientes:</p>
                                 <ul className="list-disc list-inside pl-4 space-y-1">
                                     <li><code>kitchenStatus</code>: Controla la aparición en <code>/kitchen</code>.</li>
@@ -87,7 +114,7 @@ export default function ProjectDocsPage() {
                         <AccordionItem value="stay-extension">
                             <AccordionTrigger>Colección /stays (Historial de Tiempo)</AccordionTrigger>
                             <AccordionContent>
-                                <p>Las extensiones de estancia no sobrescriben los datos originales, se acumulan en un array <code>extensionHistory</code> dentro del documento de la estancia. Cada entrada registra:</p>
+                                <p className="text-sm mb-4">Las extensiones de estancia no sobrescriben los datos originales, se acumulan en un array <code>extensionHistory</code> dentro del documento de la estancia. Cada entrada registra:</p>
                                 <pre className="mt-2 p-3 bg-black text-green-400 rounded-lg text-xs overflow-x-auto">
 {`{
   extendedAt: Timestamp,
