@@ -256,7 +256,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             }
 
             const appliedTaxes = Array.from(taxMap.values());
-            const currentSubtotal = orderData.subtotal || orderData.total; // Fallback for older orders
+            const currentSubtotal = orderData.subtotal || orderData.total;
             const finalSubtotal = currentSubtotal + newSubtotalAddition;
             const finalTotalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
             const finalTotal = finalSubtotal + finalTotalTax;
@@ -387,7 +387,7 @@ export async function payRestaurantAccount(
                 let targetRef = null;
                 for (const d of sinpeSnap.docs) {
                     const acc = d.data();
-                    if ((acc.balance + values.total) <= (acc.limitAmount || Infinity)) {
+                    if ((acc.balance + details.total) <= (acc.limitAmount || Infinity)) {
                         targetRef = d.ref;
                         break;
                     }
@@ -477,12 +477,9 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
                     }
                 }
             } else {
-                // To keep it simple, we decrement the total by the item price. 
-                // Note: Precise tax recalculation would be better here, but this is a good approximation.
+                // Approximate new tax based on new subtotal
                 const currentSubtotal = orderData.subtotal || orderData.total;
                 const newSubtotal = Math.max(0, currentSubtotal - itemPrice);
-                
-                // Approximate new tax based on new subtotal
                 const taxRatio = orderData.total > 0 ? (orderData.total - currentSubtotal) / currentSubtotal : 0;
                 const newTotal = newSubtotal * (1 + taxRatio);
 
