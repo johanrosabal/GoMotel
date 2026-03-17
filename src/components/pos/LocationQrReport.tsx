@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -31,9 +30,9 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
         });
     }, [tables]);
 
-    // Paginate: 2 QR codes per A4 page
+    // Paginate: 4 QR codes per A4 page (2x2 grid)
     const pages = React.useMemo(() => {
-        const limit = 2;
+        const limit = 4;
         const result = [];
         for (let i = 0; i < sortedTables.length; i += limit) {
             result.push(sortedTables.slice(i, i + limit));
@@ -48,7 +47,7 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
             {pages.map((pageTables, pageIndex) => (
                 <div 
                     key={pageIndex}
-                    className="qr-pdf-page bg-white p-10 text-gray-900 flex flex-col items-center justify-around gap-8 mb-10" 
+                    className="qr-pdf-page bg-white p-8 text-gray-900 grid grid-cols-2 grid-rows-2 gap-4 mb-10" 
                     style={{ 
                         width: '210mm', 
                         height: '297mm', 
@@ -62,46 +61,47 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                         return (
                             <div 
                                 key={table.id} 
-                                className="w-[180mm] h-[130mm] flex flex-col items-center justify-between py-10 px-8 border-[3px] border-gray-200 rounded-[3rem] bg-white shadow-sm"
+                                className="w-full h-full flex flex-col items-center justify-between py-6 px-4 border-[2px] border-gray-200 rounded-[2rem] bg-white shadow-sm"
                             >
                                 {/* Header Branding */}
-                                <div className="text-center space-y-2">
-                                    <h1 className="text-4xl font-black uppercase tracking-tighter text-gray-800">
+                                <div className="text-center space-y-1">
+                                    <h1 className="text-2xl font-black uppercase tracking-tighter text-gray-800 line-clamp-1">
                                         {company?.tradeName || 'Go Motel'}
                                     </h1>
-                                    <div className="h-1 w-24 bg-primary/20 mx-auto rounded-full" />
+                                    <div className="h-0.5 w-12 bg-primary/20 mx-auto rounded-full" />
                                 </div>
 
                                 {/* QR Section */}
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="p-6 bg-white border-[2px] border-primary/10 rounded-3xl shadow-sm">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="p-4 bg-white border-[1.5px] border-primary/10 rounded-2xl shadow-sm">
                                         <QRCodeCanvas 
                                             value={orderUrl} 
-                                            size={220}
+                                            size={160}
                                             level="H"
                                             includeMargin={false}
                                         />
                                     </div>
-                                    <div className="text-center max-w-[140mm]">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Enlace Directo:</p>
-                                        <p className="text-[11px] font-mono font-medium text-primary/60 break-all border border-primary/5 rounded-lg px-4 py-1.5 bg-primary/[0.02]">
+                                    <div className="text-center max-w-full px-2">
+                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Enlace Directo:</p>
+                                        <p className="text-[9px] font-mono font-medium text-primary/60 break-all border border-primary/5 rounded-md px-2 py-1 bg-primary/[0.01] leading-tight">
                                             {orderUrl}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Footer Location Label */}
-                                <div className="text-center w-full space-y-4">
-                                    <div className="bg-primary text-primary-foreground px-12 py-4 rounded-[2rem] inline-block shadow-lg">
-                                        <span className="text-5xl font-black uppercase tracking-widest">{locationName}</span>
+                                <div className="text-center w-full space-y-2">
+                                    <div className="bg-primary text-primary-foreground px-6 py-2 rounded-[1.5rem] inline-block shadow-md">
+                                        <span className="text-3xl font-black uppercase tracking-widest">{locationName}</span>
                                     </div>
-                                    <p className="text-xl font-bold text-gray-400 uppercase tracking-[0.3em]">Escanee para pedir</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Escanee para pedir</p>
                                 </div>
                             </div>
                         );
                     })}
                     
-                    <div className="mt-auto pt-4 flex justify-between w-full text-[9px] font-bold text-gray-300 uppercase tracking-widest border-t border-gray-100">
+                    {/* Small page indicator for 4-per-page format */}
+                    <div className="absolute bottom-4 left-0 right-0 px-8 flex justify-between w-full text-[8px] font-bold text-gray-300 uppercase tracking-widest">
                         <span>Configuración de Ubicaciones - Go Motel Manager</span>
                         <span>Hoja {pageIndex + 1} de {pages.length}</span>
                     </div>
