@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
     ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, 
     ConciergeBell, ShoppingCart, ArchiveX, Database, BookCopy, Truck, Users, 
-    Percent, Smartphone, Wallet, CheckCircle
+    Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 
