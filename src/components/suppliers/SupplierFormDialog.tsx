@@ -90,7 +90,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="supplierformdialog-form-main">
             <FormField
               control={form.control}
               name="name"
@@ -98,7 +98,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                 <FormItem>
                   <FormLabel>Nombre de la Empresa</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Proveedor S.A." {...field} />
+                    <Input placeholder="Ej: Proveedor S.A." {...field} id="supplierformdialog-input-ej-proveedor-s-a" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -111,7 +111,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                 <FormItem>
                   <FormLabel>Nombre de Contacto (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Pérez" {...field} />
+                    <Input placeholder="Ej: Juan Pérez" {...field} id="supplierformdialog-input-ej-juan-p-rez" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,7 +125,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                     <FormItem>
                     <FormLabel>Email (Opcional)</FormLabel>
                     <FormControl>
-                        <Input type="email" placeholder="contacto@proveedor.com" {...field} />
+                        <Input type="email" placeholder="contacto@proveedor.com" {...field} id="supplierformdialog-input-contacto-proveedor-com" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -138,7 +138,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                     <FormItem>
                     <FormLabel>Teléfono (Opcional)</FormLabel>
                     <FormControl>
-                        <Input placeholder="(506) 2222-2222" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} />
+                        <Input placeholder="(506) 2222-2222" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="supplierformdialog-input-506-2222-2222" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -152,7 +152,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                 <FormItem>
                   <FormLabel>Dirección (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Señas de la dirección del proveedor" {...field} />
+                    <Textarea placeholder="Señas de la dirección del proveedor" {...field} id="supplierformdialog-textarea-se-as-de-la" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,7 +165,7 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                 <FormItem>
                   <FormLabel>URL de Google Maps (Opcional)</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://www.google.com/maps/..." {...field} />
+                    <Input type="url" placeholder="https://www.google.com/maps/..." {...field} id="supplierformdialog-input-https-www-google-com-maps" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -178,15 +178,15 @@ export default function SupplierFormDialog({ open, onOpenChange, supplier }: Sup
                 <FormItem>
                   <FormLabel>Notas (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Información adicional sobre el proveedor" {...field} />
+                    <Textarea placeholder="Información adicional sobre el proveedor" {...field} id="supplierformdialog-textarea-informaci-n-adicional-sobre" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="supplierformdialog-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="supplierformdialog-button-1">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

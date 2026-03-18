@@ -101,7 +101,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                     <Button 
                         className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-lg"
                         onClick={() => handleUpdateStatus('En preparación')}
-                        disabled={isUpdating}
+                        disabled={isUpdating} id="orderqueuepage-button-empezar-preparaci-n"
                     >
                         {type === 'Kitchen' ? <ChefHat className="mr-2 h-5 w-5" /> : <GlassWater className="mr-2 h-5 w-5" />}
                         Empezar Preparación
@@ -111,7 +111,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                         variant="destructive"
                         className="w-full h-14 text-sm font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 border-none shadow-lg shadow-green-500/20"
                         onClick={() => handleUpdateStatus('Entregado')}
-                        disabled={isUpdating}
+                        disabled={isUpdating} id="orderqueuepage-button-listo-para-entregar"
                     >
                         <CheckCircle className="mr-2 h-5 w-5" />
                         Listo para Entregar

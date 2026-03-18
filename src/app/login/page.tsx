@@ -90,19 +90,19 @@ export default function LoginPage() {
        <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
-            <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+            <Link href="/" className="flex items-center justify-center gap-2 mb-4" id="page-link-1">
                 <AppLogo className="h-8 w-8 text-primary" />
             </Link>
             <h1 className="text-3xl font-bold">Inicie sesión en su cuenta</h1>
             <p className="text-balance text-muted-foreground">
               O{' '}
-              <Link href="/register" className="font-medium text-primary hover:underline">
+              <Link href="/register" className="font-medium text-primary hover:underline" id="page-link-cree-una-cuenta">
                 cree una cuenta nueva
               </Link>
             </p>
           </div>
            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" id="page-form-main">
                 <FormField
                   control={form.control}
                   name="email"
@@ -113,7 +113,7 @@ export default function LoginPage() {
                         <Input
                           type="email"
                           placeholder="nombre@ejemplo.com"
-                          {...field}
+                          {...field} id="page-input-nombre-ejemplo-com"
                         />
                       </FormControl>
                       <FormMessage />
@@ -134,7 +134,7 @@ export default function LoginPage() {
                             type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
                             {...field}
-                            className="pr-10"
+                            className="pr-10" id="page-input-1"
                           />
                         </FormControl>
                         <Button
@@ -143,7 +143,7 @@ export default function LoginPage() {
                           size="icon"
                           className="absolute inset-y-0 right-0 h-full px-3 py-2 text-muted-foreground hover:bg-transparent"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} id="page-button-1"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </Button>
@@ -152,7 +152,7 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isPending}>
+                <Button type="submit" className="w-full" disabled={isPending} id="page-button-2">
                   {isPending ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </Button>
               </form>
@@ -169,7 +169,7 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-primary/60" />
          <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3" id="page-link-2">
                 <AppLogo className="h-8 w-8" />
                 <span className="text-xl font-bold">Go Motel</span>
             </Link>

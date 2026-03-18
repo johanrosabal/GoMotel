@@ -57,7 +57,7 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="subcategoryformdialog-form-main">
             <FormField
               control={form.control}
               name="name"
@@ -65,7 +65,7 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
                 <FormItem>
                   <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Gaseosas" {...field} />
+                    <Input placeholder="Ej: Gaseosas" {...field} id="subcategoryformdialog-input-ej-gaseosas" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -78,15 +78,15 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Una breve descripción de la sub-categoría." {...field} />
+                    <Textarea placeholder="Una breve descripción de la sub-categoría." {...field} id="subcategoryformdialog-textarea-una-breve-descripci-n" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="subcategoryformdialog-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="subcategoryformdialog-button-1">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

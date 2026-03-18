@@ -25,7 +25,7 @@ export default function SearchCommand() {
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
-        className="relative h-10 w-full justify-start rounded-xl bg-background text-sm font-medium text-muted-foreground shadow-sm transition-all group sm:pr-12 md:w-40 lg:w-72 border-primary/10 hover:border-primary/30"
+        className="relative h-10 w-full justify-start rounded-xl bg-background text-sm font-medium text-muted-foreground shadow-sm transition-all group sm:pr-12 md:w-40 lg:w-72 border-primary/10 hover:border-primary/30" id="searchcommand-button-1"
       >
         <Search className="mr-2 size-4 text-primary opacity-50 transition-opacity group-hover:opacity-100" />
         <span className="hidden lg:inline-flex">Buscar módulos o datos...</span>

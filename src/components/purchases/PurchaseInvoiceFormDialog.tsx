@@ -476,7 +476,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                     <FormLabel>Proveedor</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={readOnly}>
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger id="purchaseinvoiceformdialog-selecttrigger-1">
                                                     <SelectValue placeholder="Seleccione un proveedor" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -502,7 +502,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Número de Factura</FormLabel>
-                                    <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} readOnly={readOnly} /></FormControl>
+                                    <FormControl><Input placeholder="FAC-12345" {...field} maxLength={25} readOnly={readOnly} id="purchaseinvoiceformdialog-input-fac-12345" /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )}
@@ -516,7 +516,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                     <div className="grid grid-cols-3 gap-2">
                                         <Select onValueChange={setInvoiceDay} value={invoiceDay} disabled={readOnly}>
                                         <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger id="purchaseinvoiceformdialog-selecttrigger-2">
                                             <SelectValue placeholder="Día" />
                                             </SelectTrigger>
                                         </FormControl>
@@ -528,7 +528,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                         </Select>
                                         <Select onValueChange={setInvoiceMonth} value={invoiceMonth} disabled={readOnly}>
                                             <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger id="purchaseinvoiceformdialog-selecttrigger-3">
                                                 <SelectValue placeholder="Mes" />
                                             </SelectTrigger>
                                             </FormControl>
@@ -540,7 +540,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                         </Select>
                                         <Select onValueChange={setInvoiceYear} value={invoiceYear} disabled={readOnly}>
                                             <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger id="purchaseinvoiceformdialog-selecttrigger-4">
                                                 <SelectValue placeholder="Año" />
                                             </SelectTrigger>
                                             </FormControl>
@@ -562,7 +562,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 {!readOnly && (
                                     <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
                                         <PopoverTrigger asChild>
-                                            <Button type="button" variant="outline" size="sm" className="gap-2">
+                                            <Button type="button" variant="outline" size="sm" className="gap-2" id="purchaseinvoiceformdialog-button-a-adir-producto">
                                                 <PlusCircle className="h-4 w-4" />
                                                 Añadir Producto
                                             </Button>
@@ -612,7 +612,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                             }}
                                                             className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                             min="1"
-                                                            readOnly={readOnly}
+                                                            readOnly={readOnly} id="purchaseinvoiceformdialog-input-1"
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -627,7 +627,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                                 }
                                                             }}
                                                             className="text-right"
-                                                            readOnly={readOnly}
+                                                            readOnly={readOnly} id="purchaseinvoiceformdialog-input-2"
                                                         />
                                                         {form.formState.errors.items?.[index]?.costPrice && (
                                                             <p className="text-sm font-medium text-destructive pt-1">
@@ -638,7 +638,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                     <TableCell className="text-right font-medium">{formatCurrency(items[index].quantity * items[index].costPrice)}</TableCell>
                                                     {!readOnly && (
                                                         <TableCell>
-                                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
+                                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)} id="purchaseinvoiceformdialog-button-1">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
                                                         </TableCell>
@@ -668,7 +668,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                         <Switch
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
-                                            disabled={readOnly}
+                                            disabled={readOnly} id="purchaseinvoiceformdialog-switch-1"
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -691,7 +691,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                             }
                                         }} value={field.value || 'none'} disabled={readOnly}>
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger id="purchaseinvoiceformdialog-selecttrigger-5">
                                                     <SelectValue placeholder="Sin descuento" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -719,7 +719,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                                 step={discountType === 'percentage' ? '0.01' : undefined}
                                                 value={discountValueInput}
                                                 onChange={handleDiscountValueChange}
-                                                className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="purchaseinvoiceformdialog-input-0"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -740,7 +740,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                             variant="destructive"
                                             size="icon"
                                             className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => handleRemoveImage(index)}
+                                            onClick={() => handleRemoveImage(index)} id="purchaseinvoiceformdialog-button-2"
                                         >
                                             <X className="h-4 w-4" />
                                         </Button>
@@ -752,7 +752,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                     key={`placeholder-${index}`}
                                     type="button"
                                     className="flex items-center justify-center aspect-square w-full rounded-md border-2 border-dashed text-muted-foreground hover:bg-muted/50 transition-colors"
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => fileInputRef.current?.click()} id="purchaseinvoiceformdialog-button-1-1"
                                 >
                                     <Plus className="h-6 w-6" />
                                     <span className="sr-only">Añadir imagen</span>
@@ -766,7 +766,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
                                 onChange={handleFileChange}
                                 accept="image/*"
                                 multiple
-                                className="hidden"
+                                className="hidden" id="purchaseinvoiceformdialog-input-3"
                             />
                         )}
                         {form.formState.errors.imageUrls && <p className="text-sm font-medium text-destructive">{form.formState.errors.imageUrls.message}</p>}
@@ -810,14 +810,14 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
             </div>
 
             <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="purchaseinvoiceformdialog-button-3">{readOnly ? 'Cerrar' : 'Cancelar'}</Button>
                 {readOnly && purchaseInvoice ? (
-                    <Button type="button" onClick={handleDownloadPdf}>
+                    <Button type="button" onClick={handleDownloadPdf} id="purchaseinvoiceformdialog-button-exportar-a-pdf">
                         <Download className="mr-2 h-4 w-4" />
                         Exportar a PDF
                     </Button>
                 ) : (
-                    <Button type="submit" form="purchase-invoice-form" disabled={isPending || (!purchaseInvoice && isProfileLoading)}>
+                    <Button type="submit" form="purchase-invoice-form" disabled={isPending || (!purchaseInvoice && isProfileLoading)} id="purchaseinvoiceformdialog-button-4">
                         {isPending ? 'Guardando...' : (purchaseInvoice ? 'Guardar Cambios' : 'Guardar Factura de Compra')}
                     </Button>
                 )}

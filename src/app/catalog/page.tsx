@@ -17,8 +17,8 @@ export default function CatalogRootPage() {
             Administre las categorías, subcategorías y productos (servicios) que se ofrecen.
           </p>
         </div>
-        <Button asChild variant="outline" className="shadow-sm">
-          <Link href="/purchases">
+        <Button asChild variant="outline" className="shadow-sm" id="page-button-1">
+          <Link href="/purchases" id="page-link-registrar-compras">
             <ShoppingCart className="mr-2 h-4 w-4" />
             Registrar Compras
           </Link>

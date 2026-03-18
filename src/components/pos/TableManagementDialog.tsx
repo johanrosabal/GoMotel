@@ -176,7 +176,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Zona</Label>
                             {isAddingCustomType ? (
                                 <div className="flex gap-2">
-                                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => setIsAddingCustomType(false)}>
+                                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => setIsAddingCustomType(false)} id="tablemanagementdialog-button-1">
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
                                     <Input 
@@ -184,12 +184,12 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                         value={customType} 
                                         onChange={(e) => setCustomType(e.target.value)}
                                         className="h-11 font-bold rounded-xl border-2"
-                                        autoFocus
+                                        autoFocus id="tablemanagementdialog-input-ej-vip-piscina"
                                     />
                                 </div>
                             ) : (
                                 <Select value={newType} onValueChange={(v) => v === 'ADD_NEW' ? setIsAddingCustomType(true) : setNewType(v)} disabled={isPending}>
-                                    <SelectTrigger className="h-11 font-bold rounded-xl bg-background border-2">
+                                    <SelectTrigger className="h-11 font-bold rounded-xl bg-background border-2" id="tablemanagementdialog-selecttrigger-1">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -225,14 +225,14 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                             <Input 
                                 value={nextNumber} 
                                 readOnly
-                                className="h-11 font-black text-center text-xl bg-primary/5 border-2 border-primary/20 rounded-xl font-mono text-primary pointer-events-none"
+                                className="h-11 font-black text-center text-xl bg-primary/5 border-2 border-primary/20 rounded-xl font-mono text-primary pointer-events-none" id="tablemanagementdialog-input-1"
                             />
                         </div>
 
                         <Button 
                             onClick={handleAdd} 
                             disabled={isPending || (isAddingCustomType && !customType)} 
-                            className="md:col-span-3 h-11 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-primary/10"
+                            className="md:col-span-3 h-11 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-primary/10" id="tablemanagementdialog-button-agregar-ubicaci-n"
                         >
                             <Plus className="mr-1 h-4 w-4" /> Agregar Ubicación
                         </Button>
@@ -287,7 +287,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                                 size="icon" 
                                                 disabled={isPending || table.status === 'Occupied'}
                                                 onClick={() => handleDelete(table.id)}
-                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100" id="tablemanagementdialog-button-2"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -304,12 +304,12 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                         variant="outline" 
                         className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest gap-2 border-2" 
                         onClick={handleExportQrPdf}
-                        disabled={isExporting || tables.length === 0}
+                        disabled={isExporting || tables.length === 0} id="tablemanagementdialog-button-3"
                     >
                         <QrCode className="h-4 w-4" />
                         {isExporting ? 'Generando...' : 'Exportar QRs con Hipervínculos'}
                     </Button>
-                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold">Cerrar</Button>
+                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold" id="tablemanagementdialog-button-cerrar">Cerrar</Button>
                 </DialogFooter>
 
                 <div className="absolute -left-[9999px] top-0 pointer-events-none">

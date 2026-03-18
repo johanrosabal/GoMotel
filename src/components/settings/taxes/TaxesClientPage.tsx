@@ -24,7 +24,7 @@ export default function TaxesClientPage() {
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={() => setIsFormOpen(true)}>
+                <Button onClick={() => setIsFormOpen(true)} id="taxesclientpage-button-a-adir-impuesto">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Impuesto
                 </Button>

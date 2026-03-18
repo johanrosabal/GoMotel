@@ -164,7 +164,7 @@ export default function PublicOrderClient() {
                     className={cn(
                         "flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
                         activeTab === 'menu' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted"
-                    )}
+                    )} id="publicorderclient-button-men"
                 >
                     MENÚ
                 </button>
@@ -173,7 +173,7 @@ export default function PublicOrderClient() {
                     className={cn(
                         "flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all relative",
                         activeTab === 'account' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted"
-                    )}
+                    )} id="publicorderclient-button-mi-cuenta"
                 >
                     MI CUENTA
                     {activeOrder && (
@@ -196,7 +196,7 @@ export default function PublicOrderClient() {
                                     placeholder="Buscar en el menú..." 
                                     className="pl-10 h-12 bg-card rounded-2xl border-none shadow-sm focus-visible:ring-primary"
                                     value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
+                                    onChange={e => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el"
                                 />
                             </div>
                             <ScrollArea className="w-full">
@@ -206,7 +206,7 @@ export default function PublicOrderClient() {
                                         className={cn(
                                             "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
                                             selectedCategoryId === null ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"
-                                        )}
+                                        )} id="publicorderclient-button-todos"
                                     >
                                         TODOS
                                     </button>
@@ -217,7 +217,7 @@ export default function PublicOrderClient() {
                                             className={cn(
                                                 "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
                                                 selectedCategoryId === cat.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"
-                                            )}
+                                            )} id="publicorderclient-button-1"
                                         >
                                             {cat.name}
                                         </button>
@@ -249,7 +249,7 @@ export default function PublicOrderClient() {
                                             <p className="text-[9px] text-muted-foreground font-bold uppercase">{service.category === 'Food' ? 'Cocina' : 'Bar'}</p>
                                         </div>
                                         <div className="p-2 pt-0 mt-auto">
-                                            <Button variant="secondary" className="w-full h-8 rounded-xl font-black text-[9px] uppercase tracking-widest">
+                                            <Button variant="secondary" className="w-full h-8 rounded-xl font-black text-[9px] uppercase tracking-widest" id="publicorderclient-button-agregar">
                                                 AGREGAR <Plus className="ml-1 h-3 w-3" />
                                             </Button>
                                         </div>
@@ -322,7 +322,7 @@ export default function PublicOrderClient() {
                                 <p className="text-sm text-muted-foreground max-w-xs mb-8 font-medium">Realiza tu primer pedido desde la sección de Menú para iniciar tu consumo en esta mesa.</p>
                                 <Button 
                                     onClick={() => setActiveTab('menu')}
-                                    className="rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                                    className="rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20" id="publicorderclient-button-ver-el-men"
                                 >
                                     VER EL MENÚ AHORA
                                 </Button>
@@ -351,7 +351,7 @@ export default function PublicOrderClient() {
                         <Button 
                             onClick={handleSendOrder}
                             disabled={isPending}
-                            className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner"
+                            className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner" id="publicorderclient-button-1-1"
                         >
                             {isPending ? "ENVIANDO..." : "ENVIAR PEDIDO"} <ArrowRight className="h-4 w-4" />
                         </Button>

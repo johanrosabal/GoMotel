@@ -22,8 +22,8 @@ export default async function DashboardRoomsPage() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-                <Button asChild variant="outline">
-                    <Link href="/reservations">
+                <Button asChild variant="outline" id="page-button-1">
+                    <Link href="/reservations" id="page-link-ir-a-reservaciones">
                         <CalendarPlus className="mr-2 h-4 w-4" />
                         Ir a Reservaciones
                     </Link>

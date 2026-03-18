@@ -178,7 +178,7 @@ export default function RegisterPage() {
         />
         <div className="absolute inset-0 bg-primary/60" />
          <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3" id="page-link-1">
                 <AppLogo className="h-8 w-8" />
                 <span className="text-xl font-bold">Go Motel</span>
             </Link>
@@ -191,19 +191,19 @@ export default function RegisterPage() {
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-full max-w-lg gap-6 px-4">
           <div className="grid gap-2 text-center">
-             <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+             <Link href="/" className="flex items-center justify-center gap-2 mb-4" id="page-link-2">
                 <AppLogo className="h-8 w-8 text-primary" />
             </Link>
             <h1 className="text-3xl font-bold">Cree una cuenta nueva</h1>
             <p className="text-balance text-muted-foreground">
               ¿Ya tiene una cuenta?{' '}
-              <Link href="/" className="font-medium text-primary hover:underline">
+              <Link href="/" className="font-medium text-primary hover:underline" id="page-link-inicie-sesi-n">
                 Inicie sesión
               </Link>
             </p>
           </div>
           <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" id="page-form-main">
                 <div className="grid md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -212,7 +212,7 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Nombre</FormLabel>
                         <FormControl>
-                          <Input placeholder="Juan" {...field} />
+                          <Input placeholder="Juan" {...field} id="page-input-juan" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -225,7 +225,7 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Primer Apellido</FormLabel>
                         <FormControl>
-                          <Input placeholder="Pérez" {...field} />
+                          <Input placeholder="Pérez" {...field} id="page-input-p-rez" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -239,7 +239,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Segundo Apellido (Opcional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="García" {...field} />
+                        <Input placeholder="García" {...field} id="page-input-garc-a" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -255,7 +255,7 @@ export default function RegisterPage() {
                           <div className="grid grid-cols-3 gap-2">
                              <Select onValueChange={setBirthDay} value={birthDay}>
                                <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger id="page-selecttrigger-1">
                                   <SelectValue placeholder="Día" />
                                 </SelectTrigger>
                                </FormControl>
@@ -267,7 +267,7 @@ export default function RegisterPage() {
                              </Select>
                               <Select onValueChange={setBirthMonth} value={birthMonth}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger id="page-selecttrigger-2">
                                     <SelectValue placeholder="Mes" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -279,7 +279,7 @@ export default function RegisterPage() {
                               </Select>
                               <Select onValueChange={setBirthYear} value={birthYear}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger id="page-selecttrigger-3">
                                     <SelectValue placeholder="Año" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -304,7 +304,7 @@ export default function RegisterPage() {
                             <Input
                               placeholder="0-0000-0000"
                               {...field}
-                              onChange={(e) => handleIdCardChange(e, field.onChange)}
+                              onChange={(e) => handleIdCardChange(e, field.onChange)} id="page-input-0-0000-0000"
                             />
                           </FormControl>
                           <FormMessage />
@@ -323,7 +323,7 @@ export default function RegisterPage() {
                             <Input 
                               placeholder="(506) 8888-8888" 
                               {...field}
-                              onChange={(e) => handlePhoneChange(e, field.onChange)}
+                              onChange={(e) => handlePhoneChange(e, field.onChange)} id="page-input-506-8888-8888"
                             />
                           </FormControl>
                           <FormMessage />
@@ -340,7 +340,7 @@ export default function RegisterPage() {
                             <Input
                               placeholder="(506) 8888-8888"
                               {...field}
-                              onChange={(e) => handlePhoneChange(e, field.onChange)}
+                              onChange={(e) => handlePhoneChange(e, field.onChange)} id="page-input-506-8888-8888-1"
                             />
                           </FormControl>
                           <FormMessage />
@@ -358,7 +358,7 @@ export default function RegisterPage() {
                         <Input
                           type="email"
                           placeholder="nombre@ejemplo.com"
-                          {...field}
+                          {...field} id="page-input-nombre-ejemplo-com"
                         />
                       </FormControl>
                       <FormMessage />
@@ -377,7 +377,7 @@ export default function RegisterPage() {
                             type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
                             {...field}
-                            className="pr-10"
+                            className="pr-10" id="page-input-1"
                           />
                         </FormControl>
                         <Button
@@ -386,7 +386,7 @@ export default function RegisterPage() {
                           size="icon"
                           className="absolute inset-y-0 right-0 h-full px-3 py-2 text-muted-foreground hover:bg-transparent"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} id="page-button-1"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </Button>
@@ -395,7 +395,7 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isPending}>
+                <Button type="submit" className="w-full" disabled={isPending} id="page-button-2">
                   {isPending ? 'Creando cuenta...' : 'Crear Cuenta'}
                 </Button>
               </form>

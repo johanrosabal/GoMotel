@@ -319,11 +319,11 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0}>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleRemoveFromCart(service)} disabled={getCartQuantity(service.id) === 0} id="orderservicedialog-button-1">
                                         <Minus className="h-4 w-4" />
                                     </Button>
                                     <span className="w-6 text-center">{getCartQuantity(service.id)}</span>
-                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={service.source !== 'Internal' && getCartQuantity(service.id) >= service.stock}>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAddToCart(service)} disabled={service.source !== 'Internal' && getCartQuantity(service.id) >= service.stock} id="orderservicedialog-button-2">
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -359,7 +359,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                                     item.notes 
                                                                         ? "bg-primary text-primary-foreground border-primary" 
                                                                         : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                                                                )}
+                                                                )} id="orderservicedialog-button-1-1"
                                                             >
                                                                 <MessageSquare className="h-2.5 w-2.5" />
                                                                 {item.notes ? "Nota" : "+ Nota"}
@@ -449,7 +449,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                     <FormControl>
                                     <Switch
                                         checked={field.value}
-                                        onCheckedChange={field.onChange}
+                                        onCheckedChange={field.onChange} id="orderservicedialog-switch-1"
                                     />
                                     </FormControl>
                                 </FormItem>
@@ -466,7 +466,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                 <FormLabel>Método de Pago</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger>
+                                                        <SelectTrigger id="orderservicedialog-selecttrigger-1">
                                                             <SelectValue placeholder="Seleccione un método" />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -499,7 +499,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                                 <FormControl>
                                                                     <Checkbox
                                                                         checked={field.value}
-                                                                        onCheckedChange={field.onChange}
+                                                                        onCheckedChange={field.onChange} id="orderservicedialog-checkbox-1"
                                                                     />
                                                                 </FormControl>
                                                                 <div className="space-y-1 leading-none">
@@ -524,7 +524,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Número de Voucher</FormLabel>
-                                                    <FormControl><Input placeholder="Ingrese el número de voucher" {...field} /></FormControl>
+                                                    <FormControl><Input placeholder="Ingrese el número de voucher" {...field} id="orderservicedialog-input-ingrese-el-n-mero" /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -541,7 +541,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                         placeholder="Monto recibido"
                                                         value={cashTendered}
                                                         onChange={handleCashTenderedChange}
-                                                        className="text-right"
+                                                        className="text-right" id="orderservicedialog-input-monto-recibido"
                                                     />
                                                 </FormControl>
                                             </FormItem>
@@ -584,23 +584,23 @@ export default function OrderServiceDialog({ children, stayId, availableServices
           <DialogFooter className="mt-auto pt-4 border-t">
             {step === 1 && (
                 <>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} id="orderservicedialog-button-cancelar">
                     Cancelar
                 </Button>
-                <Button type="button" onClick={() => setStep(2)} disabled={cart.length === 0}>
+                <Button type="button" onClick={() => setStep(2)} disabled={cart.length === 0} id="orderservicedialog-button-siguiente">
                     Siguiente
                 </Button>
                 </>
             )}
             {step === 2 && (
                 <>
-                <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                <Button type="button" variant="outline" onClick={() => setStep(1)} id="orderservicedialog-button-atr-s">
                     Atrás
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => handleSubmit({ payNow: false })} disabled={isPending}>
+                <Button type="button" variant="secondary" onClick={() => handleSubmit({ payNow: false })} disabled={isPending} id="orderservicedialog-button-dejar-pendiente">
                     Dejar Pendiente
                 </Button>
-                <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isPending}>
+                <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isPending} id="orderservicedialog-button-pagar-y-confirmar">
                     Pagar y Confirmar
                 </Button>
                 </>
@@ -608,7 +608,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
             {step === 3 && (
                 <Button type="button" onClick={() => {
                     setOpen(false);
-                }}>
+                }} id="orderservicedialog-button-cerrar">
                     Cerrar
                 </Button>
             )}
@@ -645,8 +645,8 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                   </div>
               </div>
               <DialogFooter className="gap-2">
-                  <Button variant="outline" className="flex-1 font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
-                  <Button className="flex-1 font-bold" onClick={handleSaveNote}>Guardar Nota</Button>
+                  <Button variant="outline" className="flex-1 font-bold" onClick={() => setNoteDialogOpen(false)} id="orderservicedialog-button-cancelar-1">Cancelar</Button>
+                  <Button className="flex-1 font-bold" onClick={handleSaveNote} id="orderservicedialog-button-guardar-nota">Guardar Nota</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>

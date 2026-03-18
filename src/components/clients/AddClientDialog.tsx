@@ -177,17 +177,17 @@ export default function AddClientDialog({ children, client, open: controlledOpen
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addclientdialog-form-main">
             <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="firstName" render={({ field }) => (
-                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Juan" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Juan" {...field} id="addclientdialog-input-juan" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="lastName" render={({ field }) => (
-                    <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input placeholder="Pérez" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input placeholder="Pérez" {...field} id="addclientdialog-input-p-rez" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
             <FormField control={form.control} name="secondLastName" render={({ field }) => (
-                <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input placeholder="García" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input placeholder="García" {...field} id="addclientdialog-input-garc-a" /></FormControl><FormMessage /></FormItem>
             )} />
             <FormField
               control={form.control}
@@ -198,7 +198,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                   <div className="grid grid-cols-3 gap-2">
                      <Select onValueChange={setBirthDay} value={birthDay}>
                        <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger id="addclientdialog-selecttrigger-1">
                           <SelectValue placeholder="Día" />
                         </SelectTrigger>
                        </FormControl>
@@ -210,7 +210,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                      </Select>
                       <Select onValueChange={setBirthMonth} value={birthMonth}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger id="addclientdialog-selecttrigger-2">
                             <SelectValue placeholder="Mes" />
                           </SelectTrigger>
                         </FormControl>
@@ -222,7 +222,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                       </Select>
                       <Select onValueChange={setBirthYear} value={birthYear}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger id="addclientdialog-selecttrigger-3">
                             <SelectValue placeholder="Año" />
                           </SelectTrigger>
                         </FormControl>
@@ -238,18 +238,18 @@ export default function AddClientDialog({ children, client, open: controlledOpen
               )}
             />
             <FormField control={form.control} name="idCard" render={({ field }) => (
-                <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input placeholder="0-0000-0000" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input placeholder="0-0000-0000" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} id="addclientdialog-input-0-0000-0000" /></FormControl><FormMessage /></FormItem>
             )} />
             <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" placeholder="juan@perez.com" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" placeholder="juan@perez.com" {...field} id="addclientdialog-input-juan-perez-com" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="addclientdialog-input-506-8888-8888" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
              <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem><FormLabel>Notas Internas</FormLabel><FormControl><Textarea placeholder="Cliente frecuente, prefiere habitaciones tranquilas..." {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Notas Internas</FormLabel><FormControl><Textarea placeholder="Cliente frecuente, prefiere habitaciones tranquilas..." {...field} id="addclientdialog-textarea-cliente-frecuente-prefiere" /></FormControl><FormMessage /></FormItem>
             )} />
              <FormField
               control={form.control}
@@ -265,7 +265,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                   <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={field.onChange} id="addclientdialog-switch-1"
                     />
                   </FormControl>
                 </FormItem>
@@ -273,8 +273,8 @@ export default function AddClientDialog({ children, client, open: controlledOpen
             />
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} id="addclientdialog-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="addclientdialog-button-1">
                 {isPending ? 'Guardando...' : (client ? 'Guardar Cambios' : 'Crear Cliente')}
               </Button>
             </DialogFooter>

@@ -115,7 +115,7 @@ export default function Notifications() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" id="notifications-button-1">
           <Bell className="h-5 w-5" />
           {totalNotifications > 0 && (
             <Badge
@@ -151,7 +151,7 @@ export default function Notifications() {
                     </p>
                     <div className="space-y-1">
                       {overdueReservations.map(res => (
-                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref>
+                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref id="notifications-link-1">
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
                               Habitación <span className="font-bold">{res.roomNumber}</span>
                           </div>
@@ -168,7 +168,7 @@ export default function Notifications() {
                     </p>
                      <div className="space-y-1">
                       {cleaningRooms.map(room => (
-                        <Link key={room.id} href={`/rooms/${room.id}`} passHref>
+                        <Link key={room.id} href={`/rooms/${room.id}`} passHref id="notifications-link-2">
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
                              Habitación <span className="font-bold">{room.number}</span>
                           </div>

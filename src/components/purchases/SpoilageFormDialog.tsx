@@ -104,7 +104,7 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="spoilageformdialog-form-main">
                         <ScrollArea className="h-72 pr-3">
                             <Table>
                                 <TableHeader>
@@ -126,7 +126,7 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <Input type="number" {...field} className="text-right" min="0" max={item.originalQuantity} />
+                                                                <Input type="number" {...field} className="text-right" min="0" max={item.originalQuantity} id="spoilageformdialog-input-1" />
                                                             </FormControl>
                                                             <FormMessage />
                                                         </FormItem>
@@ -145,15 +145,15 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                                 <FormItem>
                                     <FormLabel>Notas / Motivo (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Ej: Productos dañados durante el transporte." {...field} />
+                                        <Textarea placeholder="Ej: Productos dañados durante el transporte." {...field} id="spoilageformdialog-textarea-ej-productos-da-ados" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isPending}>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="spoilageformdialog-button-cancelar">Cancelar</Button>
+                            <Button type="submit" disabled={isPending} id="spoilageformdialog-button-1">
                                 {isPending ? 'Guardando...' : 'Confirmar Merma'}
                             </Button>
                         </DialogFooter>

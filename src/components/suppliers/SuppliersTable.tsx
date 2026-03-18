@@ -24,7 +24,7 @@ function LocationButtons({ url }: { url: string }) {
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild id="supplierstable-button-1">
                             <a href={gmapsUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
                                 <Map className="h-4 w-4" />
                                 <span className="sr-only">Abrir en Google Maps</span>
@@ -37,7 +37,7 @@ function LocationButtons({ url }: { url: string }) {
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild id="supplierstable-button-2">
                             <a href={wazeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
                                 <Car className="h-4 w-4" />
                                 <span className="sr-only">Navegar con Waze</span>
@@ -67,7 +67,7 @@ function ActionsMenu({ supplier, onEdit }: { supplier: Supplier, onEdit: (suppli
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" id="supplierstable-button-3"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>

@@ -42,7 +42,7 @@ function ActionsMenu({ user }: { user: SerializedUserProfile }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={isPending}>
+                    <Button variant="ghost" size="icon" disabled={isPending} id="userstable-button-1">
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -93,10 +93,10 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
           placeholder="Buscar por nombre o correo..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm" id="userstable-input-buscar-por-nombre"
         />
         <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as any)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" id="userstable-selecttrigger-1">
             <SelectValue placeholder="Todos los Roles" />
           </SelectTrigger>
           <SelectContent>

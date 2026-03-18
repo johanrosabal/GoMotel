@@ -409,7 +409,7 @@ export default function DashboardPage() {
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {section.links.filter(link => !link.roles || link.roles.includes(userRole)).map((link) => (
-                  <Link key={link.title} href={link.href} className="group relative" target={link.href.startsWith('/public') ? "_blank" : "_self"}>
+                  <Link key={link.title} href={link.href} className="group relative" target={link.href.startsWith('/public') ? "_blank" : "_self"} id={`dashboard-link-${link.href.replaceAll('/', '-').replace(/^-/, '')}`}>
                       {link.badge === 'PASO 1' && (
                           <div className="absolute -top-2 -right-2 z-20">
                               <div className="rounded-full border transition-colors hover:bg-primary/80 bg-accent text-accent-foreground border-accent shadow-lg animate-bounce text-[8px] font-black py-0 px-1.5 h-5 flex items-center gap-1">

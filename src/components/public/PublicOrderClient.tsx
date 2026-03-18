@@ -216,7 +216,7 @@ export default function PublicOrderClient() {
                                         <button
                                             key={table.id}
                                             onClick={() => setSelectedTable(table)}
-                                            className="aspect-square rounded-2xl border-2 border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/10 transition-all group active:scale-95"
+                                            className="aspect-square rounded-2xl border-2 border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/10 transition-all group active:scale-95" id="publicorderclient-button-1"
                                         >
                                             <span className="text-xs font-black opacity-40 uppercase tracking-tighter group-hover:text-primary transition-colors">N°</span>
                                             <span className="text-4xl font-black leading-none">{table.number}</span>
@@ -235,7 +235,7 @@ export default function PublicOrderClient() {
         <div className="flex flex-col h-screen bg-muted/20 overflow-hidden font-sans">
             {/* Header Fijo */}
             <div className="bg-background border-b px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
-                <button onClick={() => setSelectedTable(null)} className="flex items-center gap-3">
+                <button onClick={() => setSelectedTable(null)} className="flex items-center gap-3" id="publicorderclient-button-2">
                     <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                         <Utensils className="h-5 w-5 text-white" />
                     </div>
@@ -248,7 +248,7 @@ export default function PublicOrderClient() {
                 <div className="flex items-center gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9 rounded-xl font-bold uppercase text-[10px] tracking-widest gap-2">
+                            <Button variant="outline" size="sm" className="h-9 rounded-xl font-bold uppercase text-[10px] tracking-widest gap-2" id="publicorderclient-button-categor-as">
                                 <ChevronDown className="h-3 w-3" /> Categorías
                             </Button>
                         </DropdownMenuTrigger>
@@ -290,7 +290,7 @@ export default function PublicOrderClient() {
                                 placeholder="Buscar en el menú..." 
                                 className="pl-10 h-11 bg-muted/50 border-none rounded-xl text-sm font-medium"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el"
                             />
                         </div>
                     </div>
@@ -314,7 +314,7 @@ export default function PublicOrderClient() {
                                         <h3 className="font-black uppercase text-[11px] leading-tight line-clamp-2 min-h-[2.4em]">{service.name}</h3>
                                         <Button 
                                             onClick={() => handleAddToCart(service)}
-                                            className="w-full h-9 rounded-2xl font-black uppercase text-[9px] tracking-widest gap-2 shadow-lg shadow-primary/10"
+                                            className="w-full h-9 rounded-2xl font-black uppercase text-[9px] tracking-widest gap-2 shadow-lg shadow-primary/10" id="publicorderclient-button-ordenar"
                                         >
                                             <Plus className="h-3 w-3" /> Ordenar
                                         </Button>
@@ -395,7 +395,7 @@ export default function PublicOrderClient() {
                             <Button 
                                 onClick={handleSendOrder} 
                                 disabled={isPending}
-                                className="h-12 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-primary/20 gap-2"
+                                className="h-12 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-primary/20 gap-2" id="publicorderclient-button-1-1"
                             >
                                 {isPending ? 'Enviando...' : activeOrderId ? 'Añadir a mi Cuenta' : 'Confirmar Pedido'}
                                 <ChevronRight className="h-4 w-4" />
@@ -409,13 +409,13 @@ export default function PublicOrderClient() {
                                         <span className="font-bold text-xs uppercase truncate max-w-[150px]">{item.service.name}</span>
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-2 bg-background rounded-lg p-1 border shadow-sm">
-                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="h-6 w-6 flex items-center justify-center hover:text-primary"><Minus className="h-3 w-3" /></button>
+                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-3"><Minus className="h-3 w-3" /></button>
                                                 <span className="text-xs font-black w-4 text-center">{item.quantity}</span>
-                                                <button onClick={() => handleAddToCart(item.service)} className="h-6 w-6 flex items-center justify-center hover:text-primary"><Plus className="h-3 w-3" /></button>
+                                                <button onClick={() => handleAddToCart(item.service)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-4"><Plus className="h-3 w-3" /></button>
                                             </div>
                                             <button 
                                                 onClick={() => setCart(prev => prev.filter(i => i.service.id !== item.service.id))}
-                                                className="h-8 w-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                                                className="h-8 w-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" id="publicorderclient-button-5"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

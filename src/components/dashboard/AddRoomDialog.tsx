@@ -172,7 +172,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addroomdialog-form-main">
             <FormField
               control={form.control}
               name="roomTypeId"
@@ -181,7 +181,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
                   <FormLabel>Tipo de Habitación</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRoomTypes}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger id="addroomdialog-selecttrigger-1">
                         <SelectValue placeholder={isLoadingRoomTypes ? "Cargando tipos..." : "Seleccione un tipo"} />
                       </SelectTrigger>
                     </FormControl>
@@ -193,8 +193,8 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
                       ) : (
                         <div className="p-4 text-center text-sm text-muted-foreground">
                           No hay tipos de habitación.
-                          <Button variant="link" asChild className="pl-1">
-                            <Link href="/settings/room-types/new">Crear uno</Link>
+                          <Button variant="link" asChild className="pl-1" id="addroomdialog-button-1">
+                            <Link href="/settings/room-types/new" id="addroomdialog-link-crear-uno">Crear uno</Link>
                           </Button>
                         </div>
                       )}
@@ -220,7 +220,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
                           const value = e.target.value.replace(/\D/g, '');
                           field.onChange(value.slice(0, 3));
                       }}
-                      className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="addroomdialog-input-000"
                     />
                   </FormControl>
                   <FormMessage className="text-center" />
@@ -264,7 +264,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
             )}
            
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending || isLoadingRoomTypes || isLoadingRooms}>
+              <Button type="submit" disabled={isPending || isLoadingRoomTypes || isLoadingRooms} id="addroomdialog-button-2">
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}
               </Button>
             </DialogFooter>

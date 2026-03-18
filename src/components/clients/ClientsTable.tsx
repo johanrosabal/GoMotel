@@ -39,7 +39,7 @@ function ActionsMenu({ client }: { client: Client }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={isPending}>
+                    <Button variant="ghost" size="icon" disabled={isPending} id="clientstable-button-1">
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -97,7 +97,7 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
           placeholder="Buscar por nombre, correo o cédula..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm" id="clientstable-input-buscar-por-nombre"
         />
       </div>
 

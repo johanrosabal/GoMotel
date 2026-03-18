@@ -232,7 +232,7 @@ export default function CompanyInfoForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} id="companyinfoform-form-main">
         <Tabs defaultValue="identity" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="identity">Identidad</TabsTrigger>
@@ -250,17 +250,17 @@ export default function CompanyInfoForm() {
                         </AvatarFallback>
                     </Avatar>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2"> Cambiar Imagen </Button>
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2" id="companyinfoform-button-cambiar-imagen"> Cambiar Imagen </Button>
                 </div>
                 <div className="lg:col-span-2 grid gap-4">
                     <div className="grid md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="tradeName" render={({ field }) => (<FormItem><FormLabel>Nombre Comercial</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="legalId" render={({ field }) => (<FormItem><FormLabel>Cédula Jurídica</FormLabel><FormControl><Input {...field} placeholder="X-XXX-XXXXXX" onChange={(e) => handleLegalIdChange(e, field.onChange)}/></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="tradeName" render={({ field }) => (<FormItem><FormLabel>Nombre Comercial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-1" /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="legalId" render={({ field }) => (<FormItem><FormLabel>Cédula Jurídica</FormLabel><FormControl><Input {...field} placeholder="X-XXX-XXXXXX" onChange={(e) => handleLegalIdChange(e, field.onChange)} id="companyinfoform-input-x-xxx-xxxxxx"/></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                    <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>País Local de Operación</FormLabel><FormControl><Input {...field} disabled /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Dirección Física</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="googleMapsUrl" render={({ field }) => (<FormItem><FormLabel>Enlace de Google Maps</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="websiteUrl" render={({ field }) => (<FormItem><FormLabel>Sitio Web Oficial</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>País Local de Operación</FormLabel><FormControl><Input {...field} disabled id="companyinfoform-input-2" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Dirección Física</FormLabel><FormControl><Textarea {...field} rows={3} id="companyinfoform-textarea-1" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="googleMapsUrl" render={({ field }) => (<FormItem><FormLabel>Enlace de Google Maps</FormLabel><FormControl><Input {...field} id="companyinfoform-input-3" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="websiteUrl" render={({ field }) => (<FormItem><FormLabel>Sitio Web Oficial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-4" /></FormControl><FormMessage /></FormItem>)} />
                 </div>
               </div>
           </TabsContent>
@@ -268,14 +268,14 @@ export default function CompanyInfoForm() {
               <div>
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-medium flex items-center gap-2"><Smartphone className="h-5 w-5" />Números de Teléfono</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendPhone({ label: '', value: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Teléfono</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendPhone({ label: '', value: '' })} id="companyinfoform-button-a-adir-tel-fono"><PlusCircle className="mr-2 h-4 w-4" />Añadir Teléfono</Button>
                   </div>
                   <div className="space-y-4">
                       {phoneFields.length > 0 ? phoneFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)}/></FormControl><FormMessage /></FormItem>)} />
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)}><Trash2 className="h-4 w-4" /></Button>
+                              <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} id="companyinfoform-input-ej-recepci-n" /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="companyinfoform-input-506-8888-8888"/></FormControl><FormMessage /></FormItem>)} />
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)} id="companyinfoform-button-1"><Trash2 className="h-4 w-4" /></Button>
                           </div>
                       )) : (
                         <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
@@ -287,14 +287,14 @@ export default function CompanyInfoForm() {
               <div>
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-medium flex items-center gap-2"><Mail className="h-5 w-5" />Correos Electrónicos</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendEmail({ label: '', value: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Correo</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendEmail({ label: '', value: '' })} id="companyinfoform-button-a-adir-correo"><PlusCircle className="mr-2 h-4 w-4" />Añadir Correo</Button>
                   </div>
                   <div className="space-y-4">
                       {emailFields.length > 0 ? emailFields.map((field, index) => (
                           <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)}><Trash2 className="h-4 w-4" /></Button>
+                              <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} id="companyinfoform-input-ej-reservaciones" /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} id="companyinfoform-input-ejemplo-correo-com" /></FormControl><FormMessage /></FormItem>)} />
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)} id="companyinfoform-button-2"><Trash2 className="h-4 w-4" /></Button>
                           </div>
                       )) : (
                         <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
@@ -308,16 +308,16 @@ export default function CompanyInfoForm() {
               <div>
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-medium flex items-center gap-2"><svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>Redes Sociales</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendSocial({ platform: 'Facebook', url: '' })}><PlusCircle className="mr-2 h-4 w-4" />Añadir Red Social</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendSocial({ platform: 'Facebook', url: '' })} id="companyinfoform-button-a-adir-red-social"><PlusCircle className="mr-2 h-4 w-4" />Añadir Red Social</Button>
                   </div>
                   <div className="space-y-4">
                       {socialFields.length > 0 ? socialFields.map((field, index) => {
                            const Icon = socialIcons[form.watch(`socialMedia.${index}.platform`)];
                            return(
                             <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                                <FormField control={form.control} name={`socialMedia.${index}.platform`} render={({ field }) => (<FormItem><FormLabel>Plataforma</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="w-[150px]"><div className="flex items-center gap-2"><Icon/> <SelectValue /></div></SelectTrigger></FormControl><SelectContent>{Object.keys(socialIcons).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name={`socialMedia.${index}.url`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>URL</FormLabel><FormControl><Input type="url" placeholder="https://..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)}><Trash2 className="h-4 w-4" /></Button>
+                                <FormField control={form.control} name={`socialMedia.${index}.platform`} render={({ field }) => (<FormItem><FormLabel>Plataforma</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="w-[150px]" id="companyinfoform-selecttrigger-1"><div className="flex items-center gap-2"><Icon/> <SelectValue /></div></SelectTrigger></FormControl><SelectContent>{Object.keys(socialIcons).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`socialMedia.${index}.url`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>URL</FormLabel><FormControl><Input type="url" placeholder="https://..." {...field} id="companyinfoform-input-https" /></FormControl><FormMessage /></FormItem>)} />
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)} id="companyinfoform-button-3"><Trash2 className="h-4 w-4" /></Button>
                             </div>
                            )
                         }) : (
@@ -330,18 +330,18 @@ export default function CompanyInfoForm() {
               <div>
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-medium flex items-center gap-2"><Banknote className="h-5 w-5" />Cuentas Bancarias</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendBank({ bankName: '', accountHolder: '', accountNumber: '', iban: ''})}><PlusCircle className="mr-2 h-4 w-4" />Añadir Cuenta</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendBank({ bankName: '', accountHolder: '', accountNumber: '', iban: ''})} id="companyinfoform-button-a-adir-cuenta"><PlusCircle className="mr-2 h-4 w-4" />Añadir Cuenta</Button>
                   </div>
                   <div className="space-y-4">
                       {bankFields.length > 0 ? bankFields.map((field, index) => (
                           <div key={field.id} className="p-4 border rounded-lg bg-muted/50 space-y-4">
-                              <div className="flex justify-end -mt-2 -mr-2"><Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBank(index)}><Trash2 className="h-4 w-4" /></Button></div>
+                              <div className="flex justify-end -mt-2 -mr-2"><Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBank(index)} id="companyinfoform-button-4"><Trash2 className="h-4 w-4" /></Button></div>
                               <div className="grid sm:grid-cols-2 gap-4">
-                                <FormField control={form.control} name={`bankAccounts.${index}.bankName`} render={({ field }) => (<FormItem><FormLabel>Nombre del Banco</FormLabel><FormControl><Input placeholder="Banco Nacional" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name={`bankAccounts.${index}.accountHolder`} render={({ field }) => (<FormItem><FormLabel>Titular</FormLabel><FormControl><Input placeholder="Nombre del titular" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`bankAccounts.${index}.bankName`} render={({ field }) => (<FormItem><FormLabel>Nombre del Banco</FormLabel><FormControl><Input placeholder="Banco Nacional" {...field} id="companyinfoform-input-banco-nacional" /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`bankAccounts.${index}.accountHolder`} render={({ field }) => (<FormItem><FormLabel>Titular</FormLabel><FormControl><Input placeholder="Nombre del titular" {...field} id="companyinfoform-input-nombre-del-titular" /></FormControl><FormMessage /></FormItem>)} />
                               </div>
-                              <FormField control={form.control} name={`bankAccounts.${index}.accountNumber`} render={({ field }) => (<FormItem><FormLabel>Número de Cuenta</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`bankAccounts.${index}.iban`} render={({ field }) => (<FormItem><FormLabel>IBAN (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`bankAccounts.${index}.accountNumber`} render={({ field }) => (<FormItem><FormLabel>Número de Cuenta</FormLabel><FormControl><Input {...field} id="companyinfoform-input-5" /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name={`bankAccounts.${index}.iban`} render={({ field }) => (<FormItem><FormLabel>IBAN (Opcional)</FormLabel><FormControl><Input {...field} id="companyinfoform-input-6" /></FormControl><FormMessage /></FormItem>)} />
                           </div>
                       )) : (
                         <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
@@ -352,7 +352,7 @@ export default function CompanyInfoForm() {
               </div>
           </TabsContent>
           <div className="flex justify-end pt-8">
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending} id="companyinfoform-button-5">
               {isPending ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </div>

@@ -93,7 +93,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
             <RoomActionsMenu room={room} />
           </div>
       )}
-      <Link href={`/rooms/${room.id}`} className="block h-full">
+      <Link href={`/rooms/${room.id}`} className="block h-full" id="roomcard-link-1">
         <Card className={cn(
           "hover:shadow-lg transition-shadow duration-200 border-l-4 flex flex-col h-full",
           isOverdue 
@@ -123,7 +123,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                       </div>
                       <Progress value={progress} className="h-2" />
                     </div>
-                    <Button variant="secondary" size="sm" className="w-full font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse">
+                    <Button variant="secondary" size="sm" className="w-full font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse" id="roomcard-button-gestionar-estancia">
                       Gestionar Estancia
                     </Button>
                 </div>

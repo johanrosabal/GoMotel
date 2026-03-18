@@ -118,18 +118,18 @@ export default function ReservationsClientPage() {
                             placeholder="Buscar por huésped, habitación o tipo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 h-12 text-lg shadow-sm"
+                            className="pl-10 h-12 text-lg shadow-sm" id="reservationsclientpage-input-buscar-por-hu-sped"
                         />
                     </div>
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <AddClientDialog>
-                            <Button variant="outline" className="flex-1 md:flex-none h-12">
+                            <Button variant="outline" className="flex-1 md:flex-none h-12" id="reservationsclientpage-button-1">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 <span className="hidden sm:inline">Nuevo Cliente</span>
                             </Button>
                         </AddClientDialog>
                         <CreateReservationDialog>
-                            <Button className="flex-1 md:flex-none h-12 shadow-md">
+                            <Button className="flex-1 md:flex-none h-12 shadow-md" id="reservationsclientpage-button-nueva-reservaci-n">
                                 <PlusCircle className="mr-2 h-5 w-5" />
                                 Nueva Reservación
                             </Button>
@@ -148,7 +148,7 @@ export default function ReservationsClientPage() {
                                     statusFilter === f.value 
                                         ? "bg-primary text-primary-foreground border-primary shadow-sm" 
                                         : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                                )}
+                                )} id="reservationsclientpage-button-1-1"
                             >
                                 {f.label}
                             </button>
@@ -160,7 +160,7 @@ export default function ReservationsClientPage() {
                             variant={view === 'grid' ? 'secondary' : 'ghost'}
                             size="sm"
                             onClick={() => setView('grid')}
-                            className="h-8 gap-2 font-bold"
+                            className="h-8 gap-2 font-bold" id="reservationsclientpage-button-tarjetas"
                         >
                             <LayoutGrid className="h-4 w-4" />
                             Tarjetas
@@ -169,7 +169,7 @@ export default function ReservationsClientPage() {
                             variant={view === 'timeline' ? 'secondary' : 'ghost'}
                             size="sm"
                             onClick={() => setView('timeline')}
-                            className="h-8 gap-2 font-bold"
+                            className="h-8 gap-2 font-bold" id="reservationsclientpage-button-agenda"
                         >
                             <CalendarDays className="h-4 w-4" />
                             Agenda
@@ -178,7 +178,7 @@ export default function ReservationsClientPage() {
                             variant={view === 'list' ? 'secondary' : 'ghost'}
                             size="sm"
                             onClick={() => setView('list')}
-                            className="h-8 gap-2 font-bold"
+                            className="h-8 gap-2 font-bold" id="reservationsclientpage-button-lista"
                         >
                             <List className="h-4 w-4" />
                             Lista

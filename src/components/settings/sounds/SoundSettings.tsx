@@ -74,7 +74,7 @@ export default function SoundSettings() {
                         e.stopPropagation();
                         previewSound(option.value);
                     }}
-                    aria-label={`Probar sonido ${option.label}`}
+                    aria-label={`Probar sonido ${option.label}`} id="soundsettings-button-1"
                 >
                     <Volume2 className="h-5 w-5" />
                 </Button>

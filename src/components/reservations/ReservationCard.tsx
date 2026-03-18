@@ -196,7 +196,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     <Button 
                         onClick={handleQuickCheckIn} 
                         disabled={isPending}
-                        className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] shadow-lg group-hover:scale-[1.02] transition-transform"
+                        className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] shadow-lg group-hover:scale-[1.02] transition-transform" id="reservationcard-button-1"
                     >
                         {isPending ? 'Procesando...' : (
                             <>
@@ -213,7 +213,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                             <Button 
                                 onClick={handleQuickCheckIn} 
                                 disabled={isPending}
-                                className="h-11 font-black text-xs uppercase tracking-tight shadow-md"
+                                className="h-11 font-black text-xs uppercase tracking-tight shadow-md" id="reservationcard-button-ingresar"
                             >
                                 Ingresar
                             </Button>
@@ -221,7 +221,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                                 variant="destructive"
                                 onClick={handleMarkAsNoShow} 
                                 disabled={isPending}
-                                className="h-11 font-black text-xs uppercase tracking-tight"
+                                className="h-11 font-black text-xs uppercase tracking-tight" id="reservationcard-button-no-lleg"
                             >
                                 <UserX className="mr-1 h-3.5 w-3.5" /> No llegó
                             </Button>
@@ -230,7 +230,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                             variant="outline"
                             onClick={(e) => { e.preventDefault(); setIsCancelAlertOpen(true); }}
                             disabled={isPending}
-                            className="w-full h-9 font-black text-[10px] uppercase tracking-widest text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                            className="w-full h-9 font-black text-[10px] uppercase tracking-widest text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20" id="reservationcard-button-cancelar-reservaci-n"
                         >
                             <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar Reservación
                         </Button>
@@ -238,15 +238,15 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 )}
 
                 {reservation.status === 'Checked-in' && !isOverdue && (
-                    <Button asChild variant="secondary" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] border border-primary/20">
-                        <Link href={`/rooms/${reservation.roomId}`}>
+                    <Button asChild variant="secondary" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] border border-primary/20" id="reservationcard-button-2">
+                        <Link href={`/rooms/${reservation.roomId}`} id="reservationcard-link-gestionar-estancia">
                             Gestionar Estancia <ChevronRight className="ml-2 h-4 w-4" />
                         </Link>
                     </Button>
                 )}
                 {isOverdue && reservation.status === 'Checked-in' && (
-                    <Button asChild variant="destructive" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] animate-pulse shadow-red-500/20 shadow-lg">
-                        <Link href={`/rooms/${reservation.roomId}`}>
+                    <Button asChild variant="destructive" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] animate-pulse shadow-red-500/20 shadow-lg" id="reservationcard-button-3">
+                        <Link href={`/rooms/${reservation.roomId}`} id="reservationcard-link-check-out-pendiente">
                             <AlertTriangle className="mr-2 h-4 w-4" />
                             Check-out Pendiente
                         </Link>

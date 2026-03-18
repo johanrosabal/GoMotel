@@ -32,7 +32,7 @@ export default function ClientsPage() {
         <div className="space-y-4">
             <div className="flex justify-end">
                 <AddClientDialog>
-                    <Button>
+                    <Button id="clientspage-button-a-adir-cliente">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Añadir Cliente
                     </Button>

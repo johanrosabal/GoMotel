@@ -20,7 +20,7 @@ export default function RoomActionsMenu({ room }: { room: Room }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleInteraction}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleInteraction} id="roomactionsmenu-button-1">
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Abrir menú de habitación</span>
                     </Button>

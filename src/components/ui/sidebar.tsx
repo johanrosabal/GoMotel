@@ -276,7 +276,7 @@ const SidebarTrigger = React.forwardRef<
         onClick?.(event)
         toggleSidebar()
       }}
-      {...props}
+      {...props} id="sidebar-button-1"
     >
       <PanelLeft />
       <span className="sr-only">Toggle Sidebar</span>
@@ -308,7 +308,7 @@ const SidebarRail = React.forwardRef<
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className
       )}
-      {...props}
+      {...props} id="sidebar-button-toggle-sidebar"
     />
   )
 })
@@ -344,7 +344,7 @@ const SidebarInput = React.forwardRef<
         "h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         className
       )}
-      {...props}
+      {...props} id="sidebar-input-1"
     />
   )
 })

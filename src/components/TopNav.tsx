@@ -30,8 +30,8 @@ export default function TopNav() {
         <div className="container flex h-16 items-center">
             <div className="flex flex-1 items-center justify-start gap-2 md:gap-4">
               {showBackButton ? (
-                  <Button variant="secondary" className="h-9 rounded-md font-bold px-3 border-primary/10 shadow-sm transition-all hover:bg-secondary/80" asChild>
-                    <Link href="/dashboard">
+                  <Button variant="secondary" className="h-9 rounded-md font-bold px-3 border-primary/10 shadow-sm transition-all hover:bg-secondary/80" asChild id="topnav-button-1">
+                    <Link href="/dashboard" id="topnav-link-dashboard">
                         <ChevronLeft className="h-4 w-4 sm:mr-1 text-primary" />
                         <span className="hidden sm:inline">Inicio</span>
                     </Link>
@@ -41,7 +41,7 @@ export default function TopNav() {
             </div>
 
             <div className="hidden sm:flex flex-none items-center justify-center mx-4">
-              <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 group">
+              <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 group" id="topnav-link-1">
                   {company?.logoUrl ? (
                       <img src={company.logoUrl} alt="Logo" className="h-8 w-8 object-contain transition-transform group-hover:scale-110" />
                   ) : null}

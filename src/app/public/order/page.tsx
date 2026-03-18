@@ -231,7 +231,7 @@ function OrderPageContent() {
                         placeholder="Buscar comida o bebida..." 
                         className="bg-neutral-800 border-none rounded-xl pl-9 text-white placeholder:text-neutral-600 h-11"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => setSearchTerm(e.target.value)} id="page-input-buscar-comida-o"
                     />
                 </div>
             </div>
@@ -257,7 +257,7 @@ function OrderPageContent() {
                                         className={cn(
                                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                             !selectedCategoryId ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                        )}
+                                        )} id="page-button-todos"
                                     >TODOS</button>
                                     {categories?.map(cat => (
                                         <button 
@@ -266,7 +266,7 @@ function OrderPageContent() {
                                             className={cn(
                                                 "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                                 selectedCategoryId === cat.id ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                            )}
+                                            )} id="page-button-1"
                                         >{cat.name}</button>
                                     ))}
                                 </div>
@@ -291,7 +291,7 @@ function OrderPageContent() {
                                                 <Button 
                                                     size="sm" 
                                                     className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                    onClick={() => handleAddToCart(service)}
+                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir"
                                                 >
                                                     AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
                                                 </Button>
@@ -367,14 +367,14 @@ function OrderPageContent() {
                         <Button 
                             variant="outline" 
                             className="bg-neutral-800 border-none h-14 w-14 rounded-2xl shrink-0"
-                            onClick={() => setCart([])}
+                            onClick={() => setCart([])} id="page-button-1-1"
                         >
                             <ShoppingCart className="h-6 w-6 text-neutral-400" />
                         </Button>
                         <Button 
                             className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
                             onClick={handleSendOrder}
-                            disabled={isPending}
+                            disabled={isPending} id="page-button-2"
                         >
                             {isPending ? "ENVIANDO..." : `PEDIR ${formatCurrency(cartTotal)}`}
                             <ChevronRight className="ml-2 h-5 w-5" />
@@ -402,12 +402,12 @@ function OrderPageContent() {
                             onChange={e => setCurrentNoteValue(e.target.value)}
                             placeholder="Escriba aquí sus indicaciones..."
                             className="bg-neutral-800 border-neutral-700 min-h-[120px] rounded-xl text-white font-bold"
-                            autoFocus
+                            autoFocus id="page-textarea-escriba-aqu-sus"
                         />
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white">CANCELAR</Button>
-                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl">GUARDAR NOTA</Button>
+                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar">CANCELAR</Button>
+                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota">GUARDAR NOTA</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

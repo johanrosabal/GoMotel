@@ -187,7 +187,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="checkindialog-form-main">
             <FormField
               control={form.control}
               name="guestName"
@@ -202,7 +202,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                           onFocus={() => setShowSuggestions(true)}
                           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                           autoComplete="off"
-                          className="pr-10"
+                          className="pr-10" id="checkindialog-input-buscar-o-escribir"
                       />
                       {showSuggestions && (
                           <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
@@ -218,7 +218,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                                           form.setValue('guestId', client.id);
                                           setShowSuggestions(false);
                                         }}
-                                        className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                        className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-1"
                                       >
                                         <div className="flex items-center gap-2">
                                           <Check
@@ -242,7 +242,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                                         setShowSuggestions(false);
                                         setAddClientOpen(true);
                                       }}
-                                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-a-adir-nuevo-cliente"
                                   >
                                       <PlusCircle className="h-4 w-4" />
                                       Añadir Nuevo Cliente
@@ -263,7 +263,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                   <FormLabel>Plan de Estancia</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger id="checkindialog-selecttrigger-1">
                         <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan"} />
                       </SelectTrigger>
                     </FormControl>
@@ -291,7 +291,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
             )}
 
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending || isLoading}>
+              <Button type="submit" disabled={isPending || isLoading} id="checkindialog-button-1-1">
                 {isPending ? 'Registrando...' : 'Confirmar Check-In'}
               </Button>
             </DialogFooter>

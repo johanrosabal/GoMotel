@@ -227,7 +227,7 @@ export default function RoomDetailsPage() {
             case 'Available':
                 return (
                     <CreateReservationDialog isWalkIn initialRoomId={room.id}>
-                        <Button className="w-full h-16 sm:h-12 text-base sm:text-sm">
+                        <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" id="page-button-registrar-hu-sped">
                             <LogIn className="mr-2 h-5 w-5" /> Registrar Huésped
                         </Button>
                     </CreateReservationDialog>
@@ -236,21 +236,21 @@ export default function RoomDetailsPage() {
                 return (
                     <div className="space-y-2">
                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
-                            <Button className="w-full h-12 text-base sm:text-sm">
+                            <Button className="w-full h-12 text-base sm:text-sm" id="page-button-pedir-servicio">
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
 
                         {isOverdue && stay && (
                            <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
-                               <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse">
+                               <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse" id="page-button-gestionar-estancia-vencida">
                                    <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
                                </Button>
                            </ExtendStayDialog>
                         )}
                         
                         <CheckoutDialog stay={stay} room={room} orders={activeOrders || []} onCheckoutSuccess={handleInvoiceSuccess}>
-                            <Button variant="destructive" className="w-full h-12 text-base sm:text-sm">
+                            <Button variant="destructive" className="w-full h-12 text-base sm:text-sm" id="page-button-realizar-check-out">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
                         </CheckoutDialog>
@@ -259,7 +259,7 @@ export default function RoomDetailsPage() {
             case 'Cleaning':
             case 'Maintenance':
                 return (
-                    <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable}>
+                    <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable} id="page-button-marcar-como-disponible">
                         <Check className="mr-2 h-5 w-5" /> Marcar como Disponible
                     </Button>
                 )
@@ -272,13 +272,13 @@ export default function RoomDetailsPage() {
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
             <div className="flex items-center justify-end gap-2">
-                <Button asChild variant="outline">
-                    <Link href="/reservations">
+                <Button asChild variant="outline" id="page-button-1">
+                    <Link href="/reservations" id="page-link-ir-a-reservaciones">
                         <CalendarPlus className="mr-2 h-4 w-4" />
                         Ir a Reservaciones
                     </Link>
                 </Button>
-                <Button variant="outline" onClick={() => router.back()}>
+                <Button variant="outline" onClick={() => router.back()} id="page-button-volver">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver
                 </Button>
@@ -350,7 +350,7 @@ export default function RoomDetailsPage() {
                                                 <div className="flex items-start justify-between">
                                                     <InfoRow label="Renovaciones" value={`${stay.extensionHistory.length} ${stay.extensionHistory.length > 1 ? 'veces' : 'vez'}`} icon={Repeat} />
                                                     <CollapsibleTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="mt-3 -mr-2">
+                                                        <Button variant="ghost" size="sm" className="mt-3 -mr-2" id="page-button-2">
                                                             <ChevronsUpDown className="h-4 w-4" />
                                                             <span className="sr-only">Mostrar/Ocultar Historial</span>
                                                         </Button>
@@ -465,7 +465,7 @@ export default function RoomDetailsPage() {
                                                         <p className="text-xs font-black uppercase tracking-widest">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
                                                         <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className="text-[10px] h-5">{order.status}</Badge>
                                                     </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] tracking-widest">
+                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] tracking-widest" id="page-button-3">
                                                         {isCancelling ? '...' : 'Remover'}
                                                     </Button>
                                                 </div>
@@ -517,7 +517,7 @@ export default function RoomDetailsPage() {
                                         <ConciergeBell className="mx-auto h-12 w-12" />
                                         <p className="mt-4 mb-6">Aún no se han pedido servicios para esta estancia.</p>
                                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
-                                            <Button>
+                                            <Button id="page-button-a-adir-pedido">
                                                 <PlusCircle className="mr-2 h-4 w-4" />
                                                 Añadir Pedido
                                             </Button>

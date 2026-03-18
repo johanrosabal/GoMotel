@@ -212,7 +212,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     className="h-12 font-black text-lg rounded-xl border-green-500/30"
                                     autoFocus
                                 />
-                                <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg">
+                                <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg" id="invoicesuccessdialog-button-1">
                                     <ChevronRight className="h-6 w-6" />
                                 </Button>
                             </div>
@@ -230,11 +230,11 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                     {!showPhoneInput && (
                         <>
                             <div className="grid grid-cols-2 gap-2 w-full">
-                                <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md">
+                                <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md" id="invoicesuccessdialog-button-imprimir-ticket">
                                     <Printer className="mr-2 h-4 w-4" />
                                     Imprimir Ticket
                                 </Button>
-                                <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2">
+                                <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2" id="invoicesuccessdialog-button-factura-full">
                                     <FileText className="mr-2 h-4 w-4" />
                                     Factura Full
                                 </Button>
@@ -246,12 +246,12 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     variant="outline" 
                                     className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2 border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white" 
                                     disabled={isLoading || !invoice} 
-                                    onClick={() => setShowPhoneInput(true)}
+                                    onClick={() => setShowPhoneInput(true)} id="invoicesuccessdialog-button-enviar-whatsapp"
                                 >
                                     <WhatsAppIcon className="mr-2 h-4 w-4 fill-current" />
                                     Enviar WhatsApp
                                 </Button>
-                                <Button type="button" variant="ghost" onClick={handleDownloadPdf} disabled={isLoading || !invoice} className="h-12 rounded-xl font-bold text-[10px] uppercase text-muted-foreground">
+                                <Button type="button" variant="ghost" onClick={handleDownloadPdf} disabled={isLoading || !invoice} className="h-12 rounded-xl font-bold text-[10px] uppercase text-muted-foreground" id="invoicesuccessdialog-button-bajar-pdf">
                                     <Download className="mr-2 h-4 w-4" />
                                     Bajar PDF
                                 </Button>
@@ -259,7 +259,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                         </>
                     )}
                     {showPhoneInput && (
-                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)} className="w-full font-bold">
+                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)} className="w-full font-bold" id="invoicesuccessdialog-button-cancelar-y-volver">
                             Cancelar y volver
                         </Button>
                     )}

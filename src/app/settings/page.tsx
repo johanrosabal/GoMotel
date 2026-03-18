@@ -17,8 +17,8 @@ export default function SettingsPage() {
                     <CardDescription>Gestione los datos legales y fiscales de su empresa.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/settings/company">
-                        <Button>Administrar</Button>
+                    <Link href="/settings/company" id="page-link-settings-company">
+                        <Button id="page-button-administrar">Administrar</Button>
                     </Link>
                 </CardContent>
             </Card>
@@ -28,8 +28,8 @@ export default function SettingsPage() {
                     <CardDescription>Gestionar los tipos de habitación disponibles (ej. Sencilla, Suite).</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/settings/room-types">
-                        <Button>Administrar</Button>
+                    <Link href="/settings/room-types" id="page-link-settings-room-types">
+                        <Button id="page-button-administrar-1">Administrar</Button>
                     </Link>
                 </CardContent>
             </Card>
@@ -39,8 +39,8 @@ export default function SettingsPage() {
                     <CardDescription>Seleccione el sonido para las notificaciones de estancias vencidas.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/settings/sounds">
-                        <Button>Seleccionar Sonido</Button>
+                    <Link href="/settings/sounds" id="page-link-settings-sounds">
+                        <Button id="page-button-seleccionar-sonido">Seleccionar Sonido</Button>
                     </Link>
                 </CardContent>
             </Card>
@@ -50,8 +50,8 @@ export default function SettingsPage() {
                     <CardDescription>Defina los impuestos aplicables a productos y servicios.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/settings/taxes">
-                        <Button>Administrar</Button>
+                    <Link href="/settings/taxes" id="page-link-settings-taxes">
+                        <Button id="page-button-administrar-2">Administrar</Button>
                     </Link>
                 </CardContent>
             </Card>
@@ -61,8 +61,8 @@ export default function SettingsPage() {
                     <CardDescription>Gestiona categorías, sub-categorías y productos.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/catalog">
-                        <Button>Administrar</Button>
+                    <Link href="/catalog" id="page-link-catalog">
+                        <Button id="page-button-administrar-3">Administrar</Button>
                     </Link>
                 </CardContent>
             </Card>

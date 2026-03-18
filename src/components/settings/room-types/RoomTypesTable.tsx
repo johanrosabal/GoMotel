@@ -38,7 +38,7 @@ function ActionsMenu({ roomType }: { roomType: RoomType }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost">
+                    <Button aria-haspopup="true" size="icon" variant="ghost" id="roomtypestable-button-1">
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Toggle menu</span>
                     </Button>
@@ -47,7 +47,7 @@ function ActionsMenu({ roomType }: { roomType: RoomType }) {
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={`/settings/room-types/edit/${roomType.id}`}>Editar</Link>
+                      <Link href={`/settings/room-types/edit/${roomType.id}`} id="roomtypestable-link-editar">Editar</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
                 </DropdownMenuContent>

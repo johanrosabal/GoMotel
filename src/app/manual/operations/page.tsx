@@ -48,7 +48,7 @@ const SettingsStep = ({ icon, title, usage, useCase, href }: { icon: React.Eleme
                 <h3 className="text-lg font-semibold">{title}</h3>
                 <div className="mt-1 text-sm text-muted-foreground space-y-2">
                     <p><b>Uso:</b> {usage}</p>
-                    <p><b>Caso de Uso Profesional:</b> {useCase} <Link href={href} className="text-primary underline font-bold">Ir a la sección.</Link></p>
+                    <p><b>Caso de Uso Profesional:</b> {useCase} <Link href={href} className="text-primary underline font-bold" id="page-link-ir-a-la">Ir a la sección.</Link></p>
                 </div>
             </div>
         </div>

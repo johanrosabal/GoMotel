@@ -324,7 +324,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                           <FormControl>
                           <Input
                               placeholder="p.ej., Suite Presidencial"
-                              {...field}
+                              {...field} id="roomtypeform-input-p-ej-suite-presidencial"
                           />
                           </FormControl>
                           <FormMessage />
@@ -338,7 +338,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       <FormItem>
                           <FormLabel>Capacidad</FormLabel>
                           <FormControl>
-                          <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                          <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="roomtypeform-input-1" />
                           </FormControl>
                           <FormMessage />
                       </FormItem>
@@ -402,7 +402,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                           <Button
                               type="button"
                               onClick={handleSavePlan}
-                              className="w-full sm:w-auto"
+                              className="w-full sm:w-auto" id="roomtypeform-button-1"
                           >
                               <Plus className="h-4 w-4 mr-2" />
                               {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
@@ -411,7 +411,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                               <Button
                                   type="button"
                                   variant="ghost"
-                                  onClick={handleCancelEdit}
+                                  onClick={handleCancelEdit} id="roomtypeform-button-cancelar"
                               >
                                   Cancelar
                               </Button>
@@ -442,7 +442,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                         onClick={() => handleEditPlan(index)}
-                                        aria-label={`Editar ${plan.name}`}
+                                        aria-label={`Editar ${plan.name}`} id="roomtypeform-button-2"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Button>
@@ -452,7 +452,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                         onClick={() => handleRemovePlan(index)}
-                                        aria-label={`Eliminar ${plan.name}`}
+                                        aria-label={`Eliminar ${plan.name}`} id="roomtypeform-button-3"
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
@@ -487,13 +487,13 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                   onChange={(e) => setNewFeature(e.target.value)}
                                   onKeyDown={handleEnterKey}
                                   onFocus={() => setShowSuggestions(true)}
-                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} id="roomtypeform-input-p-ej-wi-fi-de"
                               />
                               <Button
                                   type="button"
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleAddFeature()}
+                                  onClick={() => handleAddFeature()} id="roomtypeform-button-4"
                               >
                                   <Plus className="h-4 w-4" />
                                   <span className="sr-only">Añadir Característica</span>
@@ -537,7 +537,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                     type="button"
                                     onClick={() => handleRemoveFeature(index)}
                                     className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                                    aria-label={`Eliminar ${feature}`}
+                                    aria-label={`Eliminar ${feature}`} id="roomtypeform-button-1-1"
                                 >
                                     <X className="h-3 w-3" />
                                 </button>
@@ -556,10 +556,10 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
-              <Button asChild variant="outline" type="button">
-                <Link href="/settings/room-types">Cancelar</Link>
+              <Button asChild variant="outline" type="button" id="roomtypeform-button-5">
+                <Link href="/settings/room-types" id="roomtypeform-link-cancelar">Cancelar</Link>
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending} id="roomtypeform-button-6">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
           </CardFooter>

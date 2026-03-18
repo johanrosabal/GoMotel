@@ -59,7 +59,7 @@ function CleaningRoomCard({ room }: { room: Room }) {
                 <CardDescription>{room.roomTypeName}</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full" onClick={handleSetAvailable} disabled={isPending}>
+                <Button className="w-full" onClick={handleSetAvailable} disabled={isPending} id="cleaningqueuepage-button-1">
                     <Check className="mr-2 h-4 w-4" />
                     {isPending ? 'Actualizando...' : 'Marcar como Disponible'}
                 </Button>

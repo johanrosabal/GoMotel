@@ -51,7 +51,7 @@ export default function PublicInvoicePage({ invoiceData }: { invoiceData: Serial
                     </CardHeader>
                     <CardContent className="px-2 sm:px-4 md:px-6">
                         <div className="flex justify-center my-6">
-                            <Button onClick={handleDownloadPdf}>
+                            <Button onClick={handleDownloadPdf} id="publicinvoicepage-button-descargar-factura-en">
                                 <Download className="mr-2 h-4 w-4" />
                                 Descargar Factura en PDF
                             </Button>

@@ -485,13 +485,13 @@ export default function PosClientPage() {
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
             <div className="mx-2 sm:mx-4 lg:mx-6 mt-4 flex items-center justify-between bg-background border rounded-2xl p-1.5 shadow-sm">
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
+                <div id="pos-location-tabs" className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
                     <button 
                         className={cn(
                             "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all",
                             viewMode === 'fast' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                         )}
-                        onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
+                        onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-para-llevar"
                     >
                         <PackageCheck className="h-4 w-4" /> Para Llevar
                     </button>
@@ -504,7 +504,7 @@ export default function PosClientPage() {
                                     "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all shrink-0",
                                     viewMode === type ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground"
                                 )}
-                                onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }}
+                                onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-1"
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
                             </button>
@@ -517,7 +517,7 @@ export default function PosClientPage() {
                             <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
                                 {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
                             </Badge>
-                            <button onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors">
+                            <button onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors" id="posclientpage-button-2">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -527,7 +527,7 @@ export default function PosClientPage() {
                             variant="outline" 
                             size="icon" 
                             className="h-11 w-11 rounded-xl shadow-sm border-2"
-                            onClick={() => setManageTablesOpen(true)}
+                            onClick={() => setManageTablesOpen(true)} id="posclientpage-button-1-1"
                         >
                             <Settings2 className="h-5 w-5 text-primary" />
                         </Button>
@@ -545,7 +545,7 @@ export default function PosClientPage() {
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-2 pb-10">
+                                <div id="pos-tables-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -565,7 +565,7 @@ export default function PosClientPage() {
                                                         : hasOrders 
                                                             ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
                                                             : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
-                                                )}
+                                                )} id="posclientpage-button-3"
                                             >
                                                 <div className={cn(
                                                     "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
@@ -648,7 +648,7 @@ export default function PosClientPage() {
                                                             placeholder="Identificador de cuenta (opcional)..." 
                                                             value={newAccountLabel}
                                                             onChange={e => setNewAccountLabel(e.target.value)}
-                                                            className="h-8 w-64 pl-8 text-[11px] font-bold rounded-lg border-primary/20 bg-background transition-all focus:border-primary focus:ring-2 focus:ring-primary/5"
+                                                            className="h-8 w-64 pl-8 text-[11px] font-bold rounded-lg border-primary/20 bg-background transition-all focus:border-primary focus:ring-2 focus:ring-primary/5" id="posclientpage-input-identificador-de-cuenta"
                                                         />
                                                     </div>
                                                 </div>
@@ -667,7 +667,7 @@ export default function PosClientPage() {
                                                         ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
                                                         : "bg-background text-muted-foreground border-input hover:border-primary/30"
                                                 )}
-                                                onClick={() => { setSelectedOrderId(null); handleClearCart(); }}
+                                                onClick={() => { setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-nueva-cuenta"
                                             >
                                                 <UserPlus className="h-4 w-4" /> Nueva Cuenta
                                             </button>
@@ -681,7 +681,7 @@ export default function PosClientPage() {
                                                                 ? order.source === 'Public' ? "bg-orange-500 text-white border-orange-600 shadow-lg scale-105" : "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
                                                                 : "bg-background text-muted-foreground border-input hover:border-primary/30"
                                                         )}
-                                                        onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }}
+                                                        onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }} id="posclientpage-button-4"
                                                     >
                                                         <div className="flex flex-col items-start leading-none gap-1">
                                                             <span className="truncate max-w-[100px] flex items-center gap-1.5">
@@ -707,7 +707,7 @@ export default function PosClientPage() {
                                                             className={cn(
                                                                 "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
                                                                 selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-white/30" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                                                            )}
+                                                            )} id="posclientpage-button-5"
                                                         >
                                                             <Pencil className="h-3 w-3" />
                                                         </button>
@@ -720,7 +720,7 @@ export default function PosClientPage() {
                                                             className={cn(
                                                                 "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
                                                                 selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-red-500" : "bg-muted text-muted-foreground hover:bg-red-100 hover:text-red-600"
-                                                            )}
+                                                            )} id="posclientpage-button-6"
                                                         >
                                                             <Trash2 className="h-3 w-3" />
                                                         </button>
@@ -740,18 +740,18 @@ export default function PosClientPage() {
                                         placeholder="Buscar producto por nombre o código..." 
                                         className="pl-9 h-11 bg-background rounded-xl border-2 transition-all focus:border-primary"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={(e) => setSearchTerm(e.target.value)} id="posclientpage-input-buscar-producto-por"
                                     />
                                 </div>
 
                                 <ScrollArea className="w-full whitespace-nowrap">
-                                    <div className="flex gap-2 pb-2">
+                                    <div id="pos-categories-filter" className="flex gap-2 pb-2">
                                         <button 
                                             className={cn(
                                                 "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
                                                 selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                             )}
-                                            onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }}
+                                            onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }} id="posclientpage-button-todos"
                                         >
                                             Todos
                                         </button>
@@ -762,7 +762,7 @@ export default function PosClientPage() {
                                                     "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
                                                     selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                                 )}
-                                                onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }}
+                                                onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }} id="posclientpage-button-7"
                                             >
                                                 {cat.name}
                                             </button>
@@ -773,13 +773,13 @@ export default function PosClientPage() {
 
                                 {selectedCategoryId && subCategories && subCategories.length > 0 && (
                                     <ScrollArea className="w-full whitespace-nowrap border-t pt-2">
-                                        <div className="flex gap-2 pb-2">
+                                        <div id="pos-subcategories-filter" className="flex gap-2 pb-2">
                                             <button 
                                                 className={cn(
                                                     "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
                                                     selectedSubCategoryId === null ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
                                                 )}
-                                                onClick={() => setSelectedSubCategoryId(null)}
+                                                onClick={() => setSelectedSubCategoryId(null)} id="posclientpage-button-ver-todo"
                                             >
                                                 Ver Todo
                                             </button>
@@ -790,7 +790,7 @@ export default function PosClientPage() {
                                                         "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
                                                         selectedSubCategoryId === sub.id ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
                                                     )}
-                                                    onClick={() => setSelectedSubCategoryId(sub.id)}
+                                                    onClick={() => setSelectedSubCategoryId(sub.id)} id="posclientpage-button-8"
                                                 >
                                                     {sub.name}
                                                 </button>
@@ -802,10 +802,11 @@ export default function PosClientPage() {
                             </div>
 
                             <ScrollArea className="flex-1">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-4 lg:p-6">
+                                <div id="pos-products-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-4 lg:p-6">
                                     {filteredServices.map(service => (
                                         <button
                                             key={service.id}
+                                            id={`pos-product-${service.id}`}
                                             onClick={() => handleAddToCart(service)}
                                             disabled={service.source !== 'Internal' && (service.stock || 0) <= 0}
                                             className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all duration-300 text-left relative active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
@@ -851,7 +852,7 @@ export default function PosClientPage() {
                     )}
                 </div>
 
-                <div className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
+                <div id="pos-cart-sidebar" className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
                     
                     <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2 font-black uppercase tracking-tighter">
@@ -861,7 +862,7 @@ export default function PosClientPage() {
                         {step === 1 && (cart.length > 0 || selectedTable) && (
                             <button 
                                 onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }} 
-                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg"
+                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg" id="posclientpage-button-9"
                             >
                                 {cart.length > 0 ? 'Limpiar' : 'Salir'}
                             </button>
@@ -890,7 +891,7 @@ export default function PosClientPage() {
                                                         variant="ghost" 
                                                         size="sm" 
                                                         className="rounded-xl font-bold h-10 text-[10px] uppercase tracking-widest text-muted-foreground border border-dashed w-full hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); setNewAccountLabel(''); }}
+                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); setNewAccountLabel(''); }} id="posclientpage-button-volver-al-mapa"
                                                     >
                                                         Volver al Mapa de Mesas
                                                     </Button>
@@ -920,7 +921,7 @@ export default function PosClientPage() {
                                                             size="icon" 
                                                             className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
                                                             onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
-                                                            disabled={isPending}
+                                                            disabled={isPending} id="posclientpage-button-2-1"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -946,7 +947,7 @@ export default function PosClientPage() {
                                                                             item.notes 
                                                                                 ? "bg-primary text-primary-foreground border-primary" 
                                                                                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                                                                        )}
+                                                                        )} id="posclientpage-button-10"
                                                                     >
                                                                         <MessageSquare className="h-2.5 w-2.5" />
                                                                         {item.notes ? "Ver Nota" : "+ Instrucciones"}
@@ -955,7 +956,7 @@ export default function PosClientPage() {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
-                                                            <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)}>
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)} id="posclientpage-button-3-1">
                                                                 <Minus className="h-2.5 w-2.5" />
                                                             </Button>
                                                             <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
@@ -964,7 +965,7 @@ export default function PosClientPage() {
                                                                 variant="ghost" 
                                                                 className="h-5 w-5 rounded-full" 
                                                                 onClick={() => handleAddToCart(item.service)} 
-                                                                disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)}
+                                                                disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)} id="posclientpage-button-4-1"
                                                             >
                                                                 <Plus className="h-2.5 w-2.5" />
                                                             </Button>
@@ -983,7 +984,7 @@ export default function PosClientPage() {
                                 </div>
                             ) : (
                                 <Form {...form}>
-                                    <form className="p-4 space-y-5">
+                                    <form className="p-4 space-y-5" id="posclientpage-form-main">
                                         <FormField
                                             control={form.control}
                                             name="clientName"
@@ -993,7 +994,7 @@ export default function PosClientPage() {
                                                     <FormControl>
                                                         <div className="relative">
                                                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500" />
-                                                            <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" />
+                                                            <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" id="posclientpage-input-1" />
                                                         </div>
                                                     </FormControl>
                                                     <FormMessage className="text-[10px]" />
@@ -1009,7 +1010,7 @@ export default function PosClientPage() {
                                                     <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Método de Pago</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
-                                                            <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl">
+                                                            <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl" id="posclientpage-selecttrigger-1">
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                         </FormControl>
@@ -1034,7 +1035,7 @@ export default function PosClientPage() {
                                                         placeholder="₡0.00"
                                                         value={cashTendered}
                                                         onChange={handleCashTenderedChange}
-                                                        className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl"
+                                                        className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl" id="posclientpage-input-0-00"
                                                     />
                                                 </div>
                                                 {numericCashTendered >= grandTotal && (
@@ -1058,7 +1059,7 @@ export default function PosClientPage() {
                                                             name="paymentConfirmed"
                                                             render={({ field }) => (
                                                                 <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left">
-                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="posclientpage-checkbox-1" /></FormControl>
                                                                     <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>                                                                </FormItem>
                                                             )}
                                                         />
@@ -1079,7 +1080,7 @@ export default function PosClientPage() {
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Voucher</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" />
+                                                            <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" id="posclientpage-input-c-digo-de-voucher" />
                                                         </FormControl>
                                                         <FormMessage className="text-[10px]" />
                                                     </FormItem>
@@ -1132,7 +1133,7 @@ export default function PosClientPage() {
                                             variant="secondary"
                                             className="h-12 text-xs font-black uppercase tracking-widest rounded-xl border-primary/20"
                                             disabled={cart.length === 0 || isPending}
-                                            onClick={handleSaveOpenAccount}
+                                            onClick={handleSaveOpenAccount} id="posclientpage-button-guardar-cuenta"
                                         >
                                             GUARDAR CUENTA
                                         </Button>
@@ -1140,20 +1141,20 @@ export default function PosClientPage() {
                                     <Button 
                                         className={cn("h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", (viewMode === 'fast' || !selectedTable) ? "col-span-2" : "")}
                                         disabled={cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)}
-                                        onClick={() => setStep(2)}
+                                        onClick={() => setStep(2)} id="posclientpage-button-pagar"
                                     >
                                         PAGAR <ChevronRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
                             ) : (
                                 <div className="flex gap-2">
-                                    <Button variant="outline" className="h-12 w-12 rounded-xl" onClick={() => setStep(1)} disabled={isPending}>
+                                    <Button variant="outline" className="h-12 w-12 rounded-xl" onClick={() => setStep(1)} disabled={isPending} id="posclientpage-button-5-1">
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
                                     <Button 
                                         className="flex-1 h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg"
                                         onClick={form.handleSubmit(handleProcessSale)}
-                                        disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)}
+                                        disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)} id="posclientpage-button-6-1"
                                     >
                                         {isPending ? "PROCESANDO..." : "COMPLETAR COBRO"}
                                     </Button>
@@ -1190,8 +1191,8 @@ export default function PosClientPage() {
                         />
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending}>Cancelar</Button>
-                        <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()}>
+                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending} id="posclientpage-button-cancelar">Cancelar</Button>
+                        <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()} id="posclientpage-button-7-1">
                             {isPending ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
                     </DialogFooter>
@@ -1226,8 +1227,8 @@ export default function PosClientPage() {
                         </div>
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
-                        <Button className="flex-1 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote}>Guardar Nota</Button>
+                        <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setNoteDialogOpen(false)} id="posclientpage-button-cancelar-1">Cancelar</Button>
+                        <Button className="flex-1 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote} id="posclientpage-button-guardar-nota">Guardar Nota</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -1255,7 +1256,7 @@ export default function PosClientPage() {
                                             deletionReason === reason ? "border-primary bg-primary/5" : "border-transparent bg-muted/20"
                                         )}
                                     >
-                                        <RadioGroupItem value={reason} />
+                                        <RadioGroupItem value={reason} id="posclientpage-radiogroupitem-1" />
                                         <span className="text-sm font-bold">{reason}</span>
                                     </Label>
                                 ))}
@@ -1275,12 +1276,12 @@ export default function PosClientPage() {
                     </div>
 
                     <DialogFooter className="bg-muted/10 p-4 -m-6 mt-2 rounded-b-lg flex gap-2">
-                        <Button variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setRemoveItemDialogOpen(false)}>Cancelar</Button>
+                        <Button variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setRemoveItemDialogOpen(false)} id="posclientpage-button-cancelar-2">Cancelar</Button>
                         <Button 
                             variant="destructive" 
                             className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg"
                             disabled={!deletionReason || isPending}
-                            onClick={handleRemoveExistingItem}
+                            onClick={handleRemoveExistingItem} id="posclientpage-button-8-1"
                         >
                             {isPending ? 'PROCESANDO...' : 'CONFIRMAR ELIMINACIÓN'}
                         </Button>

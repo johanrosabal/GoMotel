@@ -39,7 +39,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href}>
+              <Link href={item.href} id="appsidebar-link-1">
                 <SidebarMenuButton
                   isActive={isSubpath(item.href)}
                   tooltip={item.label}

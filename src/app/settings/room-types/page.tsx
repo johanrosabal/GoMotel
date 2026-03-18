@@ -31,8 +31,8 @@ export default function RoomTypesPage() {
                     Añada, edite o elimine los tipos de habitación para su motel.
                     </CardDescription>
                 </div>
-                <Button asChild size="sm">
-                  <Link href="/settings/room-types/new">
+                <Button asChild size="sm" id="page-button-1">
+                  <Link href="/settings/room-types/new" id="page-link-a-adir-tipo-de">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Tipo de Habitación
                   </Link>

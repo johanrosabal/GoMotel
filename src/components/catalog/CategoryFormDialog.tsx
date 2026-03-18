@@ -55,7 +55,7 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="categoryformdialog-form-main">
             <FormField
               control={form.control}
               name="name"
@@ -63,7 +63,7 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
                 <FormItem>
                   <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Bebidas" {...field} />
+                    <Input placeholder="Ej: Bebidas" {...field} id="categoryformdialog-input-ej-bebidas" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -76,15 +76,15 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Una breve descripción de la categoría." {...field} />
+                    <Textarea placeholder="Una breve descripción de la categoría." {...field} id="categoryformdialog-textarea-una-breve-descripci-n" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="categoryformdialog-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="categoryformdialog-button-1">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

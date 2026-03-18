@@ -70,7 +70,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending} className={className}>
+                    <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending} className={className} id="reservationactionsmenu-button-1">
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Toggle menu</span>
                     </Button>
@@ -96,7 +96,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     )}
                     {reservation.status === 'Checked-in' && (
                          <DropdownMenuItem asChild>
-                            <Link href={`/rooms/${reservation.roomId}`}>
+                            <Link href={`/rooms/${reservation.roomId}`} id="reservationactionsmenu-link-1">
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Gestionar Estancia</span>
                             </Link>

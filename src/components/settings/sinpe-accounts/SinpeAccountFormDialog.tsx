@@ -97,7 +97,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="sinpeaccountformdialog-form-main">
             <FormField
               control={form.control}
               name="accountHolder"
@@ -105,7 +105,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                 <FormItem>
                   <FormLabel>Titular de la Cuenta</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Pérez" {...field} />
+                    <Input placeholder="Ej: Juan Pérez" {...field} id="sinpeaccountformdialog-input-ej-juan-p-rez" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,7 +122,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                       <Input
                         placeholder="(506) 8888-8888"
                         {...field}
-                        onChange={(e) => handlePhoneChange(e, field.onChange)}
+                        onChange={(e) => handlePhoneChange(e, field.onChange)} id="sinpeaccountformdialog-input-506-8888-8888"
                       />
                     </FormControl>
                     <FormMessage />
@@ -136,7 +136,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                   <FormItem>
                     <FormLabel>Nombre del Banco</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Banco Nacional" {...field} />
+                      <Input placeholder="Ej: Banco Nacional" {...field} id="sinpeaccountformdialog-input-ej-banco-nacional" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -155,7 +155,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                         inputMode="numeric"
                         value={limitAmountInput}
                         onChange={handleLimitAmountChange}
-                        className="text-right"
+                        className="text-right" id="sinpeaccountformdialog-input-1"
                       />
                   </FormControl>
                   <FormMessage />
@@ -176,15 +176,15 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                     <FormControl>
                         <Switch
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={field.onChange} id="sinpeaccountformdialog-switch-1"
                         />
                     </FormControl>
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="sinpeaccountformdialog-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="sinpeaccountformdialog-button-1">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

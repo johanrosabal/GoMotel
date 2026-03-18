@@ -70,7 +70,7 @@ function ActionsCell({ service, allServices }: { service: Service, allServices: 
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending}>
+                <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending} id="inventorytable-button-1">
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Toggle menu</span>
                 </Button>
@@ -163,14 +163,14 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
                         placeholder="Buscar por nombre o código..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 bg-background"
+                        className="pl-9 bg-background" id="inventorytable-input-buscar-por-nombre"
                     />
                 </div>
             </div>
             <div className="grid gap-2 w-full md:w-48">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Categoría Contable</label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="bg-background" id="inventorytable-selecttrigger-1">
                         <SelectValue placeholder="Todas" />
                     </SelectTrigger>
                     <SelectContent>
