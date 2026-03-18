@@ -1,3 +1,4 @@
+'use server';
 'use client';
 import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
@@ -95,7 +96,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
 
-  const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'services'), orderBy('name')) : null, [firestore]);
+  const servicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), orderBy('name')) : null, [firestore]);
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
   
   const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes'), orderBy('name')) : null, [firestore]);
@@ -335,7 +336,7 @@ export default function PurchaseInvoiceFormDialog({ open, onOpenChange, purchase
             numbers = '0' + numbers;
         }
         const integerPart = numbers.slice(0, numbers.length - 2);
-        const decimalPart = numbers.slice(numbers.length - 2);
+        const decimalPart = numbers.length - 2;
         const formattedInteger = new Intl.NumberFormat('en-US').format(parseInt(integerPart, 10) || 0);
         const formattedValue = `${formattedInteger}.${decimalPart}`;
         setDiscountValueInput(formattedValue);
