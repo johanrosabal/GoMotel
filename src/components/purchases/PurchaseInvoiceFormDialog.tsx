@@ -1,4 +1,3 @@
-'use server';
 'use client';
 import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
