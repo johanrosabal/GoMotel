@@ -1,5 +1,7 @@
 # Go Motel - Sistema de Gestión de Motel
 
+[Guía de Operación POS](file:///c:/ai/go-motel/docs/manual_operativo_pos.md) | [Manual de Usuario](file:///c:/ai/go-motel/README.md)
+
 Bienvenido a Go Motel, una aplicación web moderna y completa diseñada para simplificar y automatizar la gestión de las operaciones de un motel. Construida con un stack tecnológico de vanguardia, esta aplicación ofrece una solución robusta y escalable para el manejo de habitaciones, reservaciones, inventario, facturación y mucho más.
 
 ## 🚀 Arquitectura Tecnológica
@@ -19,6 +21,7 @@ La aplicación está construida sobre una base sólida de tecnologías modernas,
 - **Gestión de Estado**: Una combinación de **React Hooks (`useState`, `useContext`)** y la API de Contexto de React para un manejo de estado ligero y localizado, evitando la complejidad de librerías de estado global más pesadas.
 - **Inteligencia Artificial**: Integración con **Genkit** para capacidades de IA, como la generación de resúmenes de estado y la automatización de tareas.
 - **Despliegue**: Optimizado para **Firebase App Hosting**.
+- **Notificaciones**: Sistema de alertas visuales en el POS para nuevas órdenes y estados de preparación.
 
 ## ✨ Características Principales
 
@@ -44,9 +47,14 @@ El sistema está diseñado para cubrir todas las áreas críticas de la gestión
 - **Administración del Sistema**:
   - Configuración de tipos de habitación con planes de precios personalizables.
   - Gestión de impuestos, proveedores y cuentas de pago.
+- **Sistema de Pedidos por QR (Auto-Servicio)**:
+  - Interfaz pública optimizada para móviles para que los clientes ordenen desde su mesa.
+  - Seguimiento en tiempo real del estado de preparación de cada ítem.
+- **Cola de Cocina y Barra**: Interfaz dedicada para que el personal de servicio gestione y priorice las órdenes entrantes.
 - **Roles y Permisos**: Sistema de roles simple para controlar el acceso a diferentes funcionalidades:
   - **Administrador**: Control total del sistema, incluyendo configuración y gestión de usuarios.
   - **Recepcion**: Acceso a las operaciones diarias del motel (reservaciones, check-in, etc.).
+  - **Cocina/Barra**: Acceso exclusivo a la cola de pedidos para gestión de preparación.
 
 ## 📁 Estructura del Proyecto
 
@@ -75,6 +83,14 @@ La organización del código está diseñada para ser intuitiva y escalable:
     - Cuando un cliente realiza un `pedido` (`/rooms/[id]`), el `stock` de los productos se descuenta.
     - Se puede registrar `merma` para ajustar el inventario por pérdidas.
 
+3.  **Flujo de Pedidos por QR (Auto-Servicio)**:
+    - **Escaneo**: El cliente escanea el código QR de su mesa, accediendo a `/public/order?tableId=...`.
+    - **Selección**: Navega por el menú digital y añade productos al carrito, incluyendo notas especiales.
+    - **Envío**: Al confirmar el pedido, se crea automáticamente una cuenta de mesa (si no existe) y los productos se envían a la cola de preparación.
+    - **Preparación**: Los pedidos aparecen en la **Cola de Cocina/Barra** (`/orders/queue`). El personal marca cada ítem como "En preparación" y luego "Entregado".
+    - **Rastreo**: El cliente puede ver desde su teléfono el estado de cada producto en tiempo real (Pendiente -> Cocinando -> Entregado).
+    - **Pago**: El cajero visualiza el consumo acumulado en el POS (`/pos`) y procesa el pago final. Al completarse el pago, la cuenta se cierra y la mesa queda disponible.
+
 ## 🏁 Cómo Empezar
 
 Este es un proyecto de Firebase Studio. Para ejecutarlo localmente:
@@ -88,3 +104,7 @@ Este es un proyecto de Firebase Studio. Para ejecutarlo localmente:
     npm run dev
     ```
 La aplicación estará disponible en `http://localhost:9002`.
+
+---
+
+© 2026 Go Motel. Todos los derechos reservados. Para soporte técnico, consulte el [Manual de Operación](file:///c:/ai/go-motel/docs/manual_operativo_pos.md).

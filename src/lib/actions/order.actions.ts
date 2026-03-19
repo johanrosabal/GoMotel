@@ -117,13 +117,17 @@ export async function createOrder(
         if (detail.service.category === 'Food') hasKitchen = true;
         if (detail.service.category === 'Beverage') hasBar = true;
 
+        const itemCreatedAt = Timestamp.now();
         orderItems.push({
+          id: Math.random().toString(36).substring(2, 9),
           serviceId: detail.service.id,
           name: detail.service.name,
           quantity: detail.quantity,
           price: detail.service.price,
           category: detail.service.category,
-          notes: detail.notes || null
+          notes: detail.notes || null,
+          status: 'Pendiente',
+          createdAt: itemCreatedAt
         });
 
         // Calculate item taxes
@@ -259,6 +263,62 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
         return { success: true };
     } catch (e: any) {
         return { error: e.message || 'Error al actualizar estado del pedido.' };
+    }
+}
+
+/**
+ * Updates the status of an individual item in a stay-based order.
+ */
+export async function updateOrderItemStatus(orderId: string, itemId: string, status: PrepStatus, area: 'Kitchen' | 'Bar') {
+    try {
+        await runTransaction(db, async (transaction) => {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+            
+            const orderData = orderSnap.data() as Order;
+            const itemIndex = orderData.items.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) throw new Error("Producto no encontrado.");
+
+            const updatedItems = [...orderData.items];
+            updatedItems[itemIndex] = { ...updatedItems[itemIndex], status };
+
+            const updates: Record<string, any> = { items: updatedItems };
+
+            // Recalculate area statuses
+            const kItems = updatedItems.filter(i => i.category === 'Food');
+            const bItems = updatedItems.filter(i => i.category === 'Beverage');
+
+            const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
+                if (items.length === 0) return 'Entregado'; 
+                const allDelivered = items.every(i => i.status === 'Entregado');
+                const anyPrepping = items.some(i => i.status === 'En preparación');
+                return allDelivered ? 'Entregado' : (anyPrepping ? 'En preparación' : 'Pendiente');
+            };
+
+            const kStatus = getAreaStatus(kItems, orderData.kitchenStatus);
+            const bStatus = getAreaStatus(bItems, orderData.barStatus);
+
+            updates.kitchenStatus = kStatus;
+            updates.barStatus = bStatus;
+
+            if (kStatus === 'Entregado' && bStatus === 'Entregado') {
+                updates.status = 'Entregado';
+            } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
+                updates.status = 'En preparación';
+            } else {
+                updates.status = 'Pendiente';
+            }
+
+            transaction.update(orderRef, updates);
+        });
+
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Update item status error:", e);
+        return { error: e.message || "Error al actualizar estado del producto." };
     }
 }
 

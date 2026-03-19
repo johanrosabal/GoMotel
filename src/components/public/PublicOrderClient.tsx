@@ -348,7 +348,10 @@ export default function PublicOrderClient() {
                                                         <span className="font-black text-sm">{item.quantity}x</span>
                                                         <span className="font-bold text-sm uppercase truncate">{item.name}</span>
                                                     </div>
-                                                    <div className="mt-1">{getPrepStatusBadge(item)}</div>
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-muted-foreground opacity-60">{formatCurrency(item.price)} c/u</span>
+                                                        {getPrepStatusBadge(item)}
+                                                    </div>
                                                 </div>
                                                 <span className="font-black text-sm">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>

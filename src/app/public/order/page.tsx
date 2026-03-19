@@ -16,8 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     ShoppingCart, Plus, Minus, Search, Utensils, 
     CheckCircle, Clock, Info, ChevronRight, MessageSquare,
-    ReceiptText, PackageOpen
+    ReceiptText, PackageOpen, GlassWater
 } from 'lucide-react';
+import type { PrepStatus } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -311,14 +312,41 @@ function OrderPageContent() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between px-1">
                                         <h2 className="font-black text-xs uppercase tracking-widest text-neutral-500">Consumo Acumulado</h2>
-                                        <Badge variant="outline" className="border-green-500/30 text-green-500 text-[10px] font-black uppercase">EN PREPARACIÓN</Badge>
+                                        {currentOrder.status === 'Entregado' ? (
+                                            <Badge variant="outline" className="border-green-500/30 text-green-500 text-[10px] font-black uppercase">LISTO / ENTREGADO</Badge>
+                                        ) : currentOrder.status === 'En preparación' ? (
+                                            <Badge variant="outline" className="border-blue-500/30 text-blue-500 text-[10px] font-black uppercase animate-pulse">EN PREPARACIÓN</Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-[10px] font-black uppercase">PENDIENTE</Badge>
+                                        )}
                                     </div>
                                     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/30 overflow-hidden">
                                         {currentOrder.items.map((item, idx) => (
-                                            <div key={idx} className="p-4 border-b border-neutral-800/50 flex justify-between items-center">
-                                                <div className="flex flex-col">
-                                                    <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
-                                                    <span className="text-[10px] font-bold text-neutral-500">{item.quantity} x {formatCurrency(item.price)}</span>
+                                            <div key={item.id || idx} className="p-4 border-b border-neutral-800/50 flex justify-between items-center group hover:bg-neutral-800/10 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative">
+                                                        <div className="h-10 w-10 rounded-xl bg-neutral-800 flex items-center justify-center font-black text-primary border border-neutral-700">
+                                                            {item.quantity}
+                                                        </div>
+                                                        <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-neutral-900 rounded-full border border-neutral-800 flex items-center justify-center">
+                                                            {item.category === 'Food' ? <Utensils className="h-2 w-2 text-orange-500" /> : <GlassWater className="h-2 w-2 text-blue-500" />}
+                                                        </div>
+                                                    </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-bold text-neutral-500">{formatCurrency(item.price)} c/u</span>
+                                                                {(item.status === 'Entregado' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Entregado' : currentOrder.barStatus === 'Entregado'))) && (
+                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border-green-500/20">Entregado</Badge>
+                                                                )}
+                                                                {(item.status === 'En preparación' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'En preparación' : currentOrder.barStatus === 'En preparación'))) && (
+                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse">Cocinando</Badge>
+                                                                )}
+                                                                {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
+                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">Pendiente</Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                 </div>
                                                 <span className="font-black text-neutral-200">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>

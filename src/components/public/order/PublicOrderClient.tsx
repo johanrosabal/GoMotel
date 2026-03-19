@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { 
     Utensils, Search, ShoppingCart, Plus, Minus, 
     ArrowRight, MapPin, Clock, CheckCircle, Package,
-    ChevronLeft, Smartphone, History, Receipt, Info, Sparkles
+    ChevronLeft, Smartphone, History, Receipt, Info, Sparkles, GlassWater
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -286,18 +286,28 @@ export default function PublicOrderClient() {
                                         <h3 className="font-black text-xs uppercase tracking-widest text-muted-foreground ml-2">Detalle del Consumo</h3>
                                         <div className="bg-card rounded-3xl border shadow-sm divide-y">
                                             {activeOrder.items.map((item, idx) => (
-                                                <div key={idx} className="p-4 flex justify-between items-center group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-2xl bg-muted flex items-center justify-center font-black text-primary border">
-                                                            {item.quantity}
+                                                <div key={item.id || idx} className="p-4 flex justify-between items-center group bg-card hover:bg-muted/50 transition-colors">
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className="relative">
+                                                            <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center font-black text-primary border-2 border-primary/10 shadow-sm shrink-0">
+                                                                {item.quantity}
+                                                            </div>
+                                                            <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-background rounded-full border shadow-sm flex items-center justify-center">
+                                                                {item.category === 'Food' ? <Utensils className="h-3 w-3 text-orange-500" /> : <GlassWater className="h-3 w-3 text-blue-500" />}
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-black text-xs uppercase tracking-tight">{item.name}</p>
-                                                            <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
-                                                        </div>
+                                                            <div className="flex flex-col">
+                                                                <p className="font-black text-sm uppercase tracking-tight truncate">{item.name}</p>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
+                                                                    {item.status === 'Pendiente' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">Pendiente</Badge>}
+                                                                    {item.status === 'En preparación' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-200 animate-pulse">Cocinando</Badge>}
+                                                                    {item.status === 'Entregado' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border-green-200">Entregado</Badge>}
+                                                                </div>
+                                                            </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="font-black text-sm">{formatCurrency(item.price * item.quantity)}</p>
+                                                    <div className="text-right ml-4 shrink-0">
+                                                        <p className="font-black text-sm tabular-nums">{formatCurrency(item.price * item.quantity)}</p>
                                                     </div>
                                                 </div>
                                             ))}

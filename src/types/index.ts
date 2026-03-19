@@ -128,12 +128,15 @@ export interface Reservation {
 }
 
 export interface OrderItem {
+  id: string;
   serviceId: string;
   name: string;
   quantity: number;
   price: number;
   category?: 'Food' | 'Beverage' | 'Amenity';
   notes?: string | null;
+  status: PrepStatus;
+  createdAt: Timestamp;
 }
 
 export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';

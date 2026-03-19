@@ -4,7 +4,7 @@ import {
     ArrowDown, BookOpen, CalendarPlus, LogIn, LogOut, Sparkles, BedDouble, 
     ConciergeBell, ShoppingCart, ArchiveX, Database, BookCopy, Truck, Users, 
     Percent, Smartphone, Wallet, CheckCircle, Plus, CreditCard, GitGraph,
-    Clock, RefreshCw, AlertTriangle
+    Clock, RefreshCw, AlertTriangle, Utensils
 } from 'lucide-react';
 import Link from 'next/link';
 import { Mermaid } from '@/components/ui/mermaid';
@@ -114,6 +114,49 @@ export default function ManualOperationsPage() {
                 </CardHeader>
                 <CardContent>
                     <Mermaid chart={lifecycleChart} />
+                </CardContent>
+            </Card>
+
+            <Card className="border-indigo-200 bg-indigo-50/10">
+                <CardHeader>
+                    <CardTitle className="text-indigo-600 flex items-center gap-2">
+                        <Smartphone className="h-5 w-5" />
+                        Flujo de Pedidos por QR y POS
+                    </CardTitle>
+                    <CardDescription>
+                        Proceso de auto-servicio para clientes y gestión de barra/cocina en tiempo real.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-12 max-w-3xl mx-auto py-8">
+                        <Step
+                            icon={Smartphone}
+                            title="1. Auto-Servicio por QR"
+                            description="El cliente escanea el código en su mesa y accede al menú digital. Al confirmar su carrito, el sistema crea automáticamente una 'Cuenta de Mesa' o añade los productos a la cuenta activa, notificando instantáneamente a la Cocina o Barra."
+                            statuses={[
+                                { type: 'Acceso', name: 'Escaneo de QR', color: 'bg-indigo-100 text-indigo-800' },
+                                { type: 'Integración', name: 'Sincronización POS', color: 'bg-green-100 text-green-800' },
+                            ]}
+                        />
+                        <Step
+                            icon={Utensils}
+                            title="2. Preparación y Rastreo en Vivo"
+                            description="Cada producto aparece en la Cola de Cocina. El personal actualiza el estado (Pendiente -> Cocinando -> Entregado). El cliente ve estos cambios en su celular en tiempo real, reduciendo la ansiedad de espera y mejorando la percepción de servicio."
+                            statuses={[
+                                { type: 'Estado', name: 'Pendiente / Listo', color: 'bg-amber-100 text-amber-800' },
+                                { type: 'Feedback', name: 'Real-time Client UI', color: 'bg-blue-600 text-white border-none' },
+                            ]}
+                        />
+                        <Step
+                            icon={CreditCard}
+                            title="3. Pago Consolidado en POS"
+                            description="Al finalizar, el cajero ve el consumo acumulado en el POS. Puede procesar el pago mediante Efectivo, Tarjeta o SINPE Móvil. Al facturar, el sistema libera la ubicación para el siguiente cliente y guarda el histórico de mermas e inventario automáticamente."
+                            statuses={[
+                                { type: 'Cierre', name: 'Facturación Final', color: 'bg-green-600 text-white' },
+                            ]}
+                            isLast
+                        />
+                    </div>
                 </CardContent>
             </Card>
 

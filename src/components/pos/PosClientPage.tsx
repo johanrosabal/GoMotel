@@ -497,16 +497,23 @@ export default function PosClientPage() {
                     </button>
                     {locationTypes.map(type => {
                         const Icon = getTypeIcon(type);
+                        const hasActiveOrdersType = allTables?.some(t => t.type === type && activeOrders?.some(o => o.locationId === t.id));
                         return (
                             <button 
                                 key={type}
                                 className={cn(
-                                    "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all shrink-0",
+                                    "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all shrink-0 relative",
                                     viewMode === type ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground"
                                 )}
                                 onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-1"
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
+                                {hasActiveOrdersType && (
+                                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                    </span>
+                                )}
                             </button>
                         );
                     })}
@@ -820,7 +827,7 @@ export default function PosClientPage() {
                                                 </Avatar>
                                                 
                                                 <div className="absolute top-2 right-2 z-10">
-                                                    <Badge className="font-black bg-background/90 text-primary border-primary/20 shadow-sm backdrop-blur-sm">
+                                                    <Badge className="font-black bg-background/90 text-primary dark:text-indigo-300 border-primary/20 shadow-sm backdrop-blur-sm">
                                                         {formatCurrency(service.price)}
                                                     </Badge>
                                                 </div>
@@ -904,11 +911,17 @@ export default function PosClientPage() {
                                                 <div key={`existing-${idx}`} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <div className="flex-1 min-w-0">
+                                                            <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
                                                             <div className="flex items-center gap-2">
-                                                                <CheckCircle className="h-3 w-3 text-primary" />
-                                                                <p className="font-black text-[11px] truncate uppercase tracking-tight">{item.name}</p>
+                                                                <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.price)}</p>
+                                                                {(() => {
+                                                                    const status = item.status || (item.category === 'Food' ? currentOrder.kitchenStatus : currentOrder.barStatus);
+                                                                    
+                                                                    if (status === 'Entregado') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-green-500/30 text-green-500 bg-green-500/5">ENTREGADO</Badge>;
+                                                                    if (status === 'En preparación') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-blue-500/30 text-blue-500 bg-blue-500/5 animate-pulse">COCINANDO</Badge>;
+                                                                    return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-amber-500/30 text-amber-500 bg-amber-500/5">PENDIENTE</Badge>;
+                                                                })()}
                                                             </div>
-                                                            <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.price)}</p>
                                                         </div>
                                                         <div className="flex items-center gap-2 px-3">
                                                             <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>

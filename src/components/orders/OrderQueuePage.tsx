@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, CheckCircle, Flame, ChefHat, GlassWater, Bell, MapPin } from 'lucide-react';
-import { updateOrderStatus } from '@/lib/actions/order.actions';
+import { updateOrderStatus, updateOrderItemStatus } from '@/lib/actions/order.actions';
+import { updateOrderItemStatus as updateRestaurantOrderItemStatus } from '@/lib/actions/restaurant.actions';
 import { useToast } from '@/hooks/use-toast';
 import { playNotificationSound } from '@/lib/sound';
 import { cn } from '@/lib/utils';
@@ -34,9 +35,15 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
     const minutes = Math.floor(elapsedTime / 60000);
     const isLate = minutes >= 15;
 
-    const handleUpdateStatus = async (newStatus: PrepStatus) => {
+    const handleUpdateItemStatus = async (itemId: string, newStatus: PrepStatus) => {
         setIsUpdating(true);
-        const result = await updateOrderStatus(order.id, newStatus, type);
+        // Use the appropriate action based on location
+        let result;
+        if (order.locationType === 'Stay') {
+            result = await updateOrderItemStatus(order.id, itemId, newStatus, type);
+        } else {
+            result = await updateRestaurantOrderItemStatus(order.id, itemId, newStatus, type);
+        }
         setIsUpdating(false);
         if (result.error) {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -81,43 +88,51 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                 <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4">
                         {items.map((item, idx) => (
-                            <div key={idx} className="space-y-1.5">
-                                <div className="flex justify-between items-start gap-4">
-                                    <span className="font-black text-2xl leading-none">{item.quantity}</span>
-                                    <span className="flex-1 font-bold text-lg leading-tight uppercase">{item.name}</span>
-                                </div>
-                                {item.notes && (
-                                    <div className="ml-8 p-2 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded text-xs font-bold text-amber-700 dark:text-amber-400 italic shadow-sm">
-                                        "{item.notes}"
+                            <div key={item.id || idx} className={cn(
+                                "space-y-2 p-3 rounded-2xl border-2 transition-all",
+                                item.status === 'En preparación' ? "border-primary/30 bg-primary/5" : "border-transparent bg-muted/20"
+                            )}>
+                                <div className="flex justify-between items-center gap-4">
+                                    <div className="flex items-center gap-4 flex-1">
+                                        <span className="font-black text-3xl leading-none">{item.quantity}</span>
+                                        <div className="flex-1">
+                                            <span className="block font-bold text-lg leading-tight uppercase">{item.name}</span>
+                                            {item.notes && (
+                                                <div className="mt-1 p-2 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded text-[10px] font-bold text-amber-700 dark:text-amber-400 italic shadow-sm">
+                                                    "{item.notes}"
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+                                    
+                                    <div className="flex gap-2 shrink-0">
+                                        {item.status === 'Pendiente' ? (
+                                            <Button 
+                                                size="sm"
+                                                className="h-10 px-4 font-black text-[10px] uppercase tracking-widest"
+                                                onClick={() => handleUpdateItemStatus(item.id, 'En preparación')}
+                                                disabled={isUpdating}
+                                            >
+                                                Empezar
+                                            </Button>
+                                        ) : (
+                                            <Button 
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-10 px-4 font-black text-[10px] uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none"
+                                                onClick={() => handleUpdateItemStatus(item.id, 'Entregado')}
+                                                disabled={isUpdating}
+                                            >
+                                                <CheckCircle className="mr-1 h-3.5 w-3.5" /> Listo
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="p-4 border-t bg-muted/10 gap-2">
-                {currentAreaStatus === 'Pendiente' ? (
-                    <Button 
-                        className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-lg"
-                        onClick={() => handleUpdateStatus('En preparación')}
-                        disabled={isUpdating} id="orderqueuepage-button-empezar-preparaci-n"
-                    >
-                        {type === 'Kitchen' ? <ChefHat className="mr-2 h-5 w-5" /> : <GlassWater className="mr-2 h-5 w-5" />}
-                        Empezar Preparación
-                    </Button>
-                ) : (
-                    <Button 
-                        variant="destructive"
-                        className="w-full h-14 text-sm font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 border-none shadow-lg shadow-green-500/20"
-                        onClick={() => handleUpdateStatus('Entregado')}
-                        disabled={isUpdating} id="orderqueuepage-button-listo-para-entregar"
-                    >
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        Listo para Entregar
-                    </Button>
-                )}
-            </CardFooter>
         </Card>
     );
 }
@@ -140,10 +155,13 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     const { data: allOrders, isLoading } = useCollection<Order>(ordersQuery);
 
     const filteredOrders = (allOrders || []).map(order => {
-        const relevantItems = order.items.filter(item => {
-            if (type === 'Kitchen') return item.category === 'Food';
-            if (type === 'Bar') return item.category === 'Beverage';
-            return false;
+        const relevantItems = (order.items || []).filter(item => {
+            // Filter by category
+            const matchesCategory = (type === 'Kitchen' && item.category === 'Food') || 
+                                  (type === 'Bar' && item.category === 'Beverage');
+                                  
+            // IMPORTANT: Only show items that are not 'Entregado' in the queue
+            return matchesCategory && item.status !== 'Entregado';
         });
         return { order, items: relevantItems };
     }).filter(o => o.items.length > 0);
