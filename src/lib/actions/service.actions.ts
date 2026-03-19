@@ -41,6 +41,7 @@ const toServiceObject = (doc: any): Service => {
     supplierId: data.supplierId,
     supplierName: data.supplierName,
     source: data.source,
+    isPublic: data.isPublic || false,
   };
 };
 
@@ -82,6 +83,7 @@ const serviceSchema = z.object({
   supplierId: z.string().optional(),
   supplierName: z.string().optional(),
   source: z.enum(['Purchased', 'Internal']).optional(),
+  isPublic: z.boolean().optional().default(false),
 });
 
 export async function saveService(values: z.infer<typeof serviceSchema>) {
@@ -112,6 +114,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     supplierId: data.supplierId ?? null,
     supplierName: data.supplierName ?? null,
     source: data.source ?? 'Purchased',
+    isPublic: data.isPublic ?? false,
   };
 
   try {

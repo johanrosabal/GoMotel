@@ -18,6 +18,7 @@ const clientSchema = z.object({
   address: z.string().optional(),
   notes: z.string().optional(),
   isVip: z.boolean().optional(),
+  isValidated: z.boolean().default(false),
 });
 
 
@@ -42,6 +43,7 @@ export async function saveClient(values: z.infer<typeof clientSchema>) {
           ...clientData,
           birthDate: clientData.birthDate ? Timestamp.fromDate(clientData.birthDate) : null,
           isVip: clientData.isVip || false,
+          isValidated: clientData.isValidated || false,
           createdAt: Timestamp.now(),
           visitCount: 0,
       });

@@ -76,6 +76,7 @@ const serviceSchema = z.object({
   supplierId: z.string().optional(),
   supplierName: z.string().optional(),
   source: z.enum(['Purchased', 'Internal']).default('Purchased'),
+  isPublic: z.boolean().optional().default(false),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -125,6 +126,7 @@ export default function EditServiceDialog({ children, service, allServices, open
       supplierId: '',
       supplierName: '',
       source: 'Purchased',
+      isPublic: false,
     },
   });
 
@@ -209,6 +211,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         supplierId: service.supplierId || '',
         supplierName: service.supplierName || '',
         source: service.source || 'Purchased',
+        isPublic: !!service.isPublic,
       } : {
         name: '',
         code: '',
@@ -227,6 +230,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         supplierId: '',
         supplierName: '',
         source: 'Purchased' as const,
+        isPublic: false,
       };
       form.reset(defaultValues);
       setPriceInput(numberToString(defaultValues.price));
@@ -530,6 +534,26 @@ export default function EditServiceDialog({ children, service, allServices, open
                               <Switch
                                   checked={field.value}
                                   onCheckedChange={field.onChange} id="editservicedialog-switch-1"
+                              />
+                          </FormControl>
+                      </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isPublic"
+                  render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-primary/5">
+                          <div className="space-y-0.5">
+                              <FormLabel className="text-primary font-bold">Mostrar en Pantalllas Públicas</FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                  Habilite para mostrar este producto en la pantalla publicitaria o menú externo.
+                              </p>
+                          </div>
+                          <FormControl>
+                              <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange} id="editservicedialog-switch-is-public"
                               />
                           </FormControl>
                       </FormItem>

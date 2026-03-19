@@ -73,6 +73,7 @@ export interface Service {
   supplierId?: string;
   supplierName?: string;
   source?: 'Purchased' | 'Internal';
+  isPublic?: boolean;
 }
 
 export interface StayExtension {
@@ -198,6 +199,7 @@ export interface Client {
   address?: string;
   notes?: string;
   isVip?: boolean;
+  isValidated?: boolean;
   visitCount?: number;
   createdAt: Timestamp;
 }

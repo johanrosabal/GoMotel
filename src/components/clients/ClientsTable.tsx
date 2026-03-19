@@ -5,11 +5,12 @@ import type { Client } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Edit, Trash2, Star } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Star, ShieldCheck, ShieldX } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddClientDialog from './AddClientDialog';
 import { deleteClient } from '@/lib/actions/client.actions';
 import { useToast } from '@/hooks/use-toast';
@@ -138,7 +139,23 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                             <p className="font-mono">{client.idCard}</p>
                         </div>
                         <div>
-                            <p className="font-semibold text-muted-foreground">Miembro Desde</p>
+                            <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Estado</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                {client.isValidated ? (
+                                    <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-2 py-0.5 rounded-full border border-green-200/50">
+                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                        <span className="text-xs font-medium">Verificado</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 dark:bg-slate-900/30 px-2 py-0.5 rounded-full border border-slate-200/50">
+                                        <ShieldX className="h-3.5 w-3.5" />
+                                        <span className="text-xs font-medium">No Verificado</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Miembro Desde</p>
                             <p>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</p>
                         </div>
                         <div>
@@ -157,7 +174,8 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                     <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Contacto</TableHead>
-                    <TableHead>Cédula</TableHead>
+                     <TableHead>Cédula</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead>Miembro Desde</TableHead>
                     <TableHead>Visitas</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -183,6 +201,24 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
                         <TableCell>{client.phoneNumber}</TableCell>
                         <TableCell>
                         <div className="font-mono text-sm">{client.idCard}</div>
+                        </TableCell>
+                        <TableCell>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="inline-flex items-center justify-center">
+                                            {client.isValidated ? (
+                                                <ShieldCheck className="h-5 w-5 text-green-500 hover:text-green-600 transition-colors cursor-help drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
+                                            ) : (
+                                                <ShieldX className="h-5 w-5 text-slate-300 dark:text-slate-600 hover:text-slate-400 transition-colors cursor-help" />
+                                            )}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        <p>{client.isValidated ? 'Cédula verificada con el Registro Civil' : 'Cédula pendiente de verificación'}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </TableCell>
                         <TableCell>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
                         <TableCell>{client.visitCount || 0}</TableCell>

@@ -14,6 +14,8 @@ import { saveClient } from '@/lib/actions/client.actions';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { Loader2 } from 'lucide-react';
 
 interface AddClientDialogProps {
   children?: ReactNode;
@@ -35,6 +37,7 @@ const clientSchema = z.object({
   address: z.string().optional(),
   notes: z.string().optional(),
   isVip: z.boolean().default(false),
+  isValidated: z.boolean().default(false),
 });
 
 export default function AddClientDialog({ children, client, open: controlledOpen, onOpenChange: setControlledOpen }: AddClientDialogProps) {
@@ -45,6 +48,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
@@ -66,6 +70,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
       address: '',
       notes: '',
       isVip: false,
+      isValidated: false,
     },
   });
   
@@ -111,6 +116,15 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         form.clearErrors('birthDate');
     }
   }, [birthDay, birthMonth, birthYear, form]);
+
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'idCard') {
+        form.setValue('isValidated', false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - 18 - i);
@@ -165,11 +179,67 @@ export default function AddClientDialog({ children, client, open: controlledOpen
     }
     fieldOnChange(maskedValue);
   };
+  
+  const toTitleCase = (str: string) => {
+    return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+  };
+  
+  const handleVerify = async () => {
+    const idCard = form.getValues('idCard');
+    const cleanId = idCard.replace(/\D/g, '');
+    
+    if (cleanId.length < 9) {
+      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 9 dígitos de la cédula.', variant: 'destructive' });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const response = await fetch(`https://api-krdy3op4ma-uc.a.run.app/verify?cedula=${cleanId}`);
+      const data = await response.json();
+
+      if (data['person-found']) {
+        // Splitting name: JOHAN MANUEL ROSABAL  BRENES
+        const parts = data.name.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 3) {
+          const secondLastName = parts.pop() || '';
+          const lastName = parts.pop() || '';
+          const firstName = parts.join(' ');
+          form.setValue('firstName', toTitleCase(firstName));
+          form.setValue('lastName', toTitleCase(lastName));
+          form.setValue('secondLastName', toTitleCase(secondLastName));
+        } else if (parts.length === 2) {
+          form.setValue('firstName', toTitleCase(parts[0]));
+          form.setValue('lastName', toTitleCase(parts[1]));
+        } else {
+          form.setValue('firstName', toTitleCase(parts[0]));
+        }
+
+        // Parse birth-date: 12/11/1982
+        if (data['birth-date']) {
+          const [d, m, y] = data['birth-date'].split('/');
+          setBirthDay(String(parseInt(d, 10)));
+          setBirthMonth(String(parseInt(m, 10)));
+          setBirthYear(y);
+        }
+
+        form.setValue('isValidated', true);
+        toast({ title: 'Persona Encontrada', description: `¡Hola ${data.name}! La información ha sido cargada.` });
+      } else {
+        form.setValue('isValidated', false);
+        toast({ title: 'No encontrado', description: 'No se encontró información para esta cédula.', variant: 'destructive' });
+      }
+    } catch (error) {
+       toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{client ? 'Editar Cliente' : 'Añadir Nuevo Cliente'}</DialogTitle>
           <DialogDescription>
@@ -178,12 +248,38 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addclientdialog-form-main">
+            <FormField control={form.control} name="idCard" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    Cédula
+                    {form.watch('isValidated') && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Verificada</span>}
+                  </FormLabel>
+                  <FormControl>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input placeholder="9-9999-9999" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} id="addclientdialog-input-0-0000-0000" />
+                        <Button 
+                          type="button" 
+                          variant="secondary" 
+                          onClick={handleVerify} 
+                          disabled={isVerifying}
+                          className="shrink-0"
+                        >
+                          {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verificar'}
+                        </Button>
+                      </div>
+                      {isVerifying && <Progress value={100} className="h-1 animate-pulse" />}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+            )} />
             <div className="grid md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="firstName" render={({ field }) => (
-                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Juan" {...field} id="addclientdialog-input-juan" /></FormControl><FormMessage /></FormItem>
-                )} />
                 <FormField control={form.control} name="lastName" render={({ field }) => (
                     <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input placeholder="Pérez" {...field} id="addclientdialog-input-p-rez" /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="firstName" render={({ field }) => (
+                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Juan" {...field} id="addclientdialog-input-juan" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
             <FormField control={form.control} name="secondLastName" render={({ field }) => (
@@ -237,9 +333,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                 </FormItem>
               )}
             />
-            <FormField control={form.control} name="idCard" render={({ field }) => (
-                <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input placeholder="0-0000-0000" {...field} onChange={(e) => handleIdCardChange(e, field.onChange)} id="addclientdialog-input-0-0000-0000" /></FormControl><FormMessage /></FormItem>
-            )} />
+
             <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="email" render={({ field }) => (
                     <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" placeholder="juan@perez.com" {...field} id="addclientdialog-input-juan-perez-com" /></FormControl><FormMessage /></FormItem>
