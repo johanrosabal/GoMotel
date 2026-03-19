@@ -325,3 +325,8 @@ export interface CompanyProfile {
   socialMedia?: CompanySocial[];
   bankAccounts?: CompanyBankAccount[];
 }
+
+export interface SystemSettings {
+  id: 'system';
+  verificationApiDomain: string;
+}

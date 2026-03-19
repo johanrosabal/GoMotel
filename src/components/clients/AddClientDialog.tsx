@@ -15,7 +15,10 @@ import { Textarea } from '../ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { getSystemSettings } from '@/lib/actions/system.actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 interface AddClientDialogProps {
   children?: ReactNode;
@@ -49,6 +52,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = setControlledOpen !== undefined ? setControlledOpen : setInternalOpen;
@@ -108,8 +112,18 @@ export default function AddClientDialog({ children, client, open: controlledOpen
       if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
         form.setValue('birthDate', date, { shouldValidate: true });
         form.clearErrors('birthDate');
+
+        // Calculate age
+        const today = new Date();
+        let age = today.getFullYear() - date.getFullYear();
+        const m = today.getMonth() - date.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < date.getDate())) {
+          age--;
+        }
+        setCalculatedAge(age);
       } else {
         form.setError('birthDate', { type: 'manual', message: 'Fecha no válida.' });
+        setCalculatedAge(null);
       }
     } else if (!birthDay && !birthMonth && !birthYear) {
         form.setValue('birthDate', undefined, { shouldValidate: true });
@@ -195,7 +209,9 @@ export default function AddClientDialog({ children, client, open: controlledOpen
 
     setIsVerifying(true);
     try {
-      const response = await fetch(`https://api-krdy3op4ma-uc.a.run.app/verify?cedula=${cleanId}`);
+      const settings = await getSystemSettings();
+      const domain = settings.verificationApiDomain || 'api-krdy3op4ma-uc.a.run.app';
+      const response = await fetch(`https://${domain}/verify?cedula=${cleanId}`);
       const data = await response.json();
 
       if (data['person-found']) {
@@ -218,9 +234,23 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         // Parse birth-date: 12/11/1982
         if (data['birth-date']) {
           const [d, m, y] = data['birth-date'].split('/');
-          setBirthDay(String(parseInt(d, 10)));
-          setBirthMonth(String(parseInt(m, 10)));
-          setBirthYear(y);
+          const birthDayNum = parseInt(d, 10);
+          const birthMonthNum = parseInt(m, 10);
+          const birthYearNum = parseInt(y, 10);
+          
+          setBirthDay(String(birthDayNum));
+          setBirthMonth(String(birthMonthNum));
+          setBirthYear(String(birthYearNum));
+
+          // Calculate age
+          const birthDate = new Date(birthYearNum, birthMonthNum - 1, birthDayNum);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          setCalculatedAge(age);
         }
 
         form.setValue('isValidated', true);
@@ -290,20 +320,40 @@ export default function AddClientDialog({ children, client, open: controlledOpen
               name="birthDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Fecha de Nacimiento (Opcional)</FormLabel>
-                  <div className="grid grid-cols-3 gap-2">
-                     <Select onValueChange={setBirthDay} value={birthDay}>
-                       <FormControl>
-                        <SelectTrigger id="addclientdialog-selecttrigger-1">
-                          <SelectValue placeholder="Día" />
-                        </SelectTrigger>
-                       </FormControl>
-                       <SelectContent>
-                        {days.map((d) => (
-                          <SelectItem key={d} value={d}>{d}</SelectItem>
-                        ))}
-                       </SelectContent>
-                     </Select>
+                  <FormLabel className="flex justify-between items-center">
+                    <span>Fecha de Nacimiento (Opcional)</span>
+                    {calculatedAge !== null && (
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider", 
+                        calculatedAge < 18 ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-primary/10 text-primary border border-primary/20"
+                      )}>
+                        {calculatedAge} años {calculatedAge < 18 && "• MENOR"}
+                      </span>
+                    )}
+                  </FormLabel>
+                  <div className="space-y-4">
+                    {calculatedAge !== null && calculatedAge < 18 && (
+                      <Alert variant="destructive" className="py-2 px-3 animate-in fade-in slide-in-from-top-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle className="text-sm font-black">ADVERTENCIA: MENOR DE EDAD</AlertTitle>
+                        <AlertDescription className="text-xs">
+                          Este cliente tiene {calculatedAge} años. Por favor, asegúrese de cumplir con las regulaciones para menores de edad.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Select onValueChange={setBirthDay} value={birthDay}>
+                        <FormControl>
+                          <SelectTrigger id="addclientdialog-selecttrigger-1">
+                            <SelectValue placeholder="Día" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {days.map((d) => (
+                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Select onValueChange={setBirthMonth} value={birthMonth}>
                         <FormControl>
                           <SelectTrigger id="addclientdialog-selecttrigger-2">
@@ -328,6 +378,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
                   </div>
                   <FormMessage />
                 </FormItem>

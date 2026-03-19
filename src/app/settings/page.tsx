@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble, Bell, Percent, BookCopy, Building } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, ShieldCheck } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -58,11 +58,22 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl"><BookCopy /> Catálogo de Productos</CardTitle>
-                    <CardDescription>Gestiona categorías, sub-categorías y productos.</CardDescription>
+                    <CardDescription>Gestiona categorías, sub-categoría y productos.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Link href="/catalog" id="page-link-catalog">
                         <Button id="page-button-administrar-3">Administrar</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Verificación de Cédula</CardTitle>
+                    <CardDescription>Configure el dominio del API de verificación del Registro Civil.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/verification" id="page-link-settings-verification">
+                        <Button id="page-button-configurar">Configurar</Button>
                     </Link>
                 </CardContent>
             </Card>
