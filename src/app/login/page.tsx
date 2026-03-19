@@ -7,8 +7,9 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, ChevronLeft } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,7 +23,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { login } from '@/lib/actions/auth.actions';
-import AppLogo from '@/components/AppLogo';
 import { useFirebase } from '@/firebase';
 
 const loginSchema = z.object({
@@ -56,7 +56,6 @@ export default function LoginPage() {
         });
       } else {
         try {
-          // Also sign in on client to establish session
           await signInWithEmailAndPassword(auth, values.email, values.password);
           toast({
             title: '¡Bienvenido!',
@@ -86,98 +85,140 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-       <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <Link href="/" className="flex items-center justify-center gap-2 mb-4" id="page-link-1">
-                <AppLogo className="h-8 w-8 text-primary" />
-            </Link>
-            <h1 className="text-3xl font-bold">Inicie sesión en su cuenta</h1>
-            <p className="text-balance text-muted-foreground">
-              O{' '}
-              <Link href="/register" className="font-medium text-primary hover:underline" id="page-link-cree-una-cuenta">
-                cree una cuenta nueva
-              </Link>
-            </p>
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden bg-[#050505]">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/motel_exterior_night_1773958134736.png"
+          alt="Background"
+          fill
+          className="object-cover opacity-30 blur-sm scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#050505] via-transparent to-[#050505] opacity-80" />
+      </div>
+
+      <div className="container relative z-10 px-6 py-12 flex flex-col items-center">
+        {/* Header/Logo */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 flex items-center gap-4"
+        >
+          <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all">
+            <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
+            <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Inicio</span>
+          </Link>
+        </motion.div>
+
+        {/* Login Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-[480px] bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-10 md:p-14 shadow-2xl shadow-black/50"
+        >
+          <div className="mb-10 text-center">
+             <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                  <Lock className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Personal Autorizado</h2>
+             </div>
+             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic mb-4">
+                Bienvenido de <span className="text-primary italic">Vuelta</span>
+             </h1>
+             <p className="text-white/40 text-sm font-medium">Ingrese sus credenciales para acceder al sistema.</p>
           </div>
-           <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" id="page-form-main">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Correo Electrónico</FormLabel>
-                      <FormControl>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Correo Electrónico</FormLabel>
+                    <FormControl>
+                      <div className="relative group">
                         <Input
-                          type="email"
-                          placeholder="nombre@ejemplo.com"
-                          {...field} id="page-input-nombre-ejemplo-com"
+                          placeholder="admin@gomotel.com"
+                          {...field}
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                       <div className="flex items-center">
-                        <FormLabel>Contraseña</FormLabel>
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            {...field}
-                            className="pr-10" id="page-input-1"
-                          />
-                        </FormControl>
+                    </FormControl>
+                    <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                     <div className="flex items-center justify-between ml-1">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Contraseña</FormLabel>
+                        <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors">¿Olvidó su contraseña?</Link>
+                     </div>
+                    <FormControl>
+                      <div className="relative group">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          {...field}
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                        />
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="absolute inset-y-0 right-0 h-full px-3 py-2 text-muted-foreground hover:bg-transparent"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} id="page-button-1"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </Button>
                       </div>
-                      <FormMessage />
-                    </FormItem>
+                    </FormControl>
+                    <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                  </FormItem>
+                )}
+              />
+
+              <Button 
+                type="submit" 
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative" 
+                disabled={isPending}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isPending ? 'Validando...' : (
+                    <>
+                      Iniciar Sesión <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
                   )}
-                />
-                <Button type="submit" className="w-full" disabled={isPending} id="page-button-2">
-                  {isPending ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                </Button>
-              </form>
-            </Form>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:block relative">
-        <Image
-            src="https://picsum.photos/seed/login/1200/1800"
-            alt="Vestíbulo de hotel"
-            data-ai-hint="hotel lobby"
-            fill
-            className="object-cover"
-        />
-        <div className="absolute inset-0 bg-primary/60" />
-         <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
-            <Link href="/" className="flex items-center gap-3" id="page-link-2">
-                <AppLogo className="h-8 w-8" />
-                <span className="text-xl font-bold">Go Motel</span>
+                </span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              </Button>
+            </form>
+          </Form>
+
+          <div className="mt-12 text-center pt-8 border-t border-white/5">
+            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿No tiene una cuenta?</p>
+            <Link href="/register">
+              <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Solicitar Registro</span>
             </Link>
-            <div className="text-lg">
-                <p className="font-semibold">"La mejor herramienta para gestionar nuestro motel. ¡Intuitiva, rápida y siempre confiable!"</p>
-                <footer className="mt-4 text-base font-normal">- Gerente de Motel Satisfecho</footer>
-            </div>
-        </div>
+          </div>
+        </motion.div>
+
+        {/* Branding Footer */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mt-12 text-center"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">&copy; {new Date().getFullYear()} Motel Tres Hermanos - Sistema de Gestión</p>
+        </motion.div>
       </div>
     </div>
   );

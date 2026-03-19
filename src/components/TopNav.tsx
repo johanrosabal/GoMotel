@@ -20,7 +20,13 @@ export default function TopNav() {
   const { data: company } = useDoc<CompanyProfile>(companyRef);
 
   // Ocultar el TopNav en las rutas públicas (TV y Móvil Cliente) para permitir experiencia a pantalla completa
-  const isPublicRoute = pathname?.includes('/public/') || pathname?.startsWith('/invoices/');
+  const isPublicRoute = 
+    pathname === '/' || 
+    pathname === '/login' || 
+    pathname === '/register' || 
+    pathname?.includes('/public/') || 
+    pathname?.startsWith('/invoices/');
+  
   if (isPublicRoute) return null;
 
   const showBackButton = user && pathname !== '/dashboard' && pathname !== '/';

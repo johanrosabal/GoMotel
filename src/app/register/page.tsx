@@ -7,9 +7,9 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Eye, EyeOff } from 'lucide-react';
-import { es } from 'date-fns/locale';
+import { Eye, EyeOff, User, Mail, Lock, Phone, CreditCard, Calendar, ChevronLeft, ArrowRight, Smartphone } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +23,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { register } from '@/lib/actions/auth.actions';
-import AppLogo from '@/components/AppLogo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
-
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.').max(25, 'El nombre no debe exceder los 25 caracteres.'),
@@ -49,7 +47,6 @@ const registerSchema = z.object({
     message: 'Formato de WhatsApp inválido. Use (506) XXXX-XXXX.',
     path: ['whatsappNumber'],
 });
-
 
 export default function RegisterPage() {
   const [isPending, startTransition] = useTransition();
@@ -79,7 +76,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (birthDay && birthMonth && birthYear) {
       const day = parseInt(birthDay, 10);
-      const month = parseInt(birthMonth, 10) - 1; // JS months are 0-indexed
+      const month = parseInt(birthMonth, 10) - 1; 
       const year = parseInt(birthYear, 10);
       const date = new Date(year, month, day);
 
@@ -112,30 +109,21 @@ export default function RegisterPage() {
     } else {
       maskedValue = value;
     }
-
     fieldOnChange(maskedValue);
   };
   
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
     let numbers = e.target.value.replace(/\D/g, '');
-    
-    if (numbers.startsWith('506')) {
-      numbers = numbers.substring(3);
-    }
-
+    if (numbers.startsWith('506')) numbers = numbers.substring(3);
     const value = numbers.slice(0, 8);
 
     let maskedValue = '';
     if (value.length > 0) {
       maskedValue = `(506) ${value.slice(0, 4)}`;
-      if (value.length > 4) {
-        maskedValue += `-${value.slice(4)}`;
-      }
+      if (value.length > 4) maskedValue += `-${value.slice(4)}`;
     }
-
     fieldOnChange(maskedValue);
   };
-
 
   const onSubmit = (values: z.infer<typeof registerSchema>) => {
     startTransition(async () => {
@@ -148,7 +136,6 @@ export default function RegisterPage() {
         });
       } else {
         try {
-          // Also sign in on client to establish session
           await signInWithEmailAndPassword(auth, values.email, values.password);
           toast({
             title: '¡Registro Exitoso!',
@@ -167,201 +154,227 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-muted lg:block relative">
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-x-hidden bg-[#050505] py-20">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
         <Image
-            src="https://picsum.photos/seed/register/1200/1800"
-            alt="Recepción del hotel"
-            data-ai-hint="hotel reception"
-            fill
-            className="object-cover"
+          src="/motel_exterior_night_1773958134736.png"
+          alt="Background"
+          fill
+          className="object-cover opacity-30 blur-sm scale-105"
         />
-        <div className="absolute inset-0 bg-primary/60" />
-         <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
-            <Link href="/" className="flex items-center gap-3" id="page-link-1">
-                <AppLogo className="h-8 w-8" />
-                <span className="text-xl font-bold">Go Motel</span>
-            </Link>
-            <div className="text-lg">
-                <p className="font-semibold">"Desde que usamos Go Motel, nuestra eficiencia ha aumentado en un 40%. ¡No podríamos estar más contentos!"</p>
-                <footer className="mt-4 text-base font-normal">- Dueño de Cadena Hotelera</footer>
-            </div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#050505] via-transparent to-[#050505] opacity-80" />
       </div>
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-full max-w-lg gap-6 px-4">
-          <div className="grid gap-2 text-center">
-             <Link href="/" className="flex items-center justify-center gap-2 mb-4" id="page-link-2">
-                <AppLogo className="h-8 w-8 text-primary" />
-            </Link>
-            <h1 className="text-3xl font-bold">Cree una cuenta nueva</h1>
-            <p className="text-balance text-muted-foreground">
-              ¿Ya tiene una cuenta?{' '}
-              <Link href="/" className="font-medium text-primary hover:underline" id="page-link-inicie-sesi-n">
-                Inicie sesión
-              </Link>
-            </p>
-          </div>
-          <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" id="page-form-main">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Juan" {...field} id="page-input-juan" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Primer Apellido</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Pérez" {...field} id="page-input-p-rez" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+      <div className="container relative z-10 px-6 flex flex-col items-center">
+        {/* Header/Logo */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 flex items-center gap-4"
+        >
+          <Link href="/login" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all">
+            <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
+            <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Login</span>
+          </Link>
+        </motion.div>
+
+        {/* Register Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-[800px] bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-black/50"
+        >
+          <div className="mb-12 text-center">
+             <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                  <User className="h-6 w-6 text-primary" />
                 </div>
-                 <FormField
+                <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Nueva Cuenta</h2>
+             </div>
+             <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic mb-4">
+                Únete a la <span className="text-primary italic">Elite</span>
+             </h1>
+             <p className="text-white/40 text-sm font-medium">Complete el formulario para formar parte de nuestro equipo.</p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* Name Section */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
                   control={form.control}
-                  name="secondLastName"
+                  name="firstName"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Segundo Apellido (Opcional)</FormLabel>
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Nombre</FormLabel>
                       <FormControl>
-                        <Input placeholder="García" {...field} id="page-input-garc-a" />
+                        <div className="relative group">
+                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
                     </FormItem>
                   )}
                 />
-                 <div className="grid md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="birthDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fecha de Nacimiento</FormLabel>
-                          <div className="grid grid-cols-3 gap-2">
-                             <Select onValueChange={setBirthDay} value={birthDay}>
-                               <FormControl>
-                                <SelectTrigger id="page-selecttrigger-1">
-                                  <SelectValue placeholder="Día" />
-                                </SelectTrigger>
-                               </FormControl>
-                               <SelectContent>
-                                {days.map((d) => (
-                                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                                ))}
-                               </SelectContent>
-                             </Select>
-                              <Select onValueChange={setBirthMonth} value={birthMonth}>
-                                <FormControl>
-                                  <SelectTrigger id="page-selecttrigger-2">
-                                    <SelectValue placeholder="Mes" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {months.map((m) => (
-                                    <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Select onValueChange={setBirthYear} value={birthYear}>
-                                <FormControl>
-                                  <SelectTrigger id="page-selecttrigger-3">
-                                    <SelectValue placeholder="Año" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {years.map((y) => (
-                                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="idCard"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cédula de Identidad</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="0-0000-0000"
-                              {...field}
-                              onChange={(e) => handleIdCardChange(e, field.onChange)} id="page-input-0-0000-0000"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                 </div>
-                 <div className="grid md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="phoneNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Número de Teléfono</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="(506) 8888-8888" 
-                              {...field}
-                              onChange={(e) => handlePhoneChange(e, field.onChange)} id="page-input-506-8888-8888"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="whatsappNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>WhatsApp (Opcional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="(506) 8888-8888"
-                              {...field}
-                              onChange={(e) => handlePhoneChange(e, field.onChange)} id="page-input-506-8888-8888-1"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                 </div>
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Primer Apellido</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="secondLastName"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Segundo Apellido (Opcional)</FormLabel>
+                    <FormControl>
+                      <div className="relative group">
+                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                  </FormItem>
+                )}
+              />
+
+              {/* ID and Birthdate Section */}
+              <div className="grid md:grid-cols-2 gap-6 items-start">
+                <FormField
+                  control={form.control}
+                  name="idCard"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Cédula de Identidad</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Input 
+                            placeholder="0-0000-0000" 
+                            {...field} 
+                            onChange={(e) => handleIdCardChange(e, field.onChange)} 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                          />
+                          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                    </FormItem>
+                  )}
+                />
+                <FormItem className="space-y-2">
+                  <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Fecha de Nacimiento</FormLabel>
+                  <div className="flex gap-2">
+                    <Select onValueChange={setBirthDay} value={birthDay}>
+                      <FormControl>
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                          <SelectValue placeholder="Día" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                        {days.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select onValueChange={setBirthMonth} value={birthMonth}>
+                      <FormControl>
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                          <SelectValue placeholder="Mes" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                        {months.map((m) => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select onValueChange={setBirthYear} value={birthYear}>
+                      <FormControl>
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                          <SelectValue placeholder="Año" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                        {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                </FormItem>
+              </div>
+
+              {/* Contact Section */}
+              <div className="grid md:grid-cols-2 gap-6">
+                 <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Teléfono</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Input 
+                            placeholder="(506) 8888-8888" 
+                            {...field} 
+                            onChange={(e) => handlePhoneChange(e, field.onChange)} 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                          />
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="whatsappNumber"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">WhatsApp (Opcional)</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Input 
+                            placeholder="(506) 8888-8888" 
+                            {...field} 
+                            onChange={(e) => handlePhoneChange(e, field.onChange)} 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                          />
+                          <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Email and Password */}
+              <div className="grid md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Correo Electrónico</FormLabel>
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Correo Electrónico</FormLabel>
                       <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="nombre@ejemplo.com"
-                          {...field} id="page-input-nombre-ejemplo-com"
-                        />
+                        <div className="relative group">
+                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
                     </FormItem>
                   )}
                 />
@@ -369,38 +382,68 @@ export default function RegisterPage() {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            {...field}
-                            className="pr-10" id="page-input-1"
+                    <FormItem className="space-y-2">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Contraseña</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Input 
+                            type={showPassword ? 'text' : 'password'} 
+                            placeholder="••••••••" 
+                            {...field} 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" 
                           />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute inset-y-0 right-0 h-full px-3 py-2 text-muted-foreground hover:bg-transparent"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} id="page-button-1"
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isPending} id="page-button-2">
-                  {isPending ? 'Creando cuenta...' : 'Crear Cuenta'}
-                </Button>
-              </form>
-            </Form>
-        </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative mt-8" 
+                disabled={isPending}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isPending ? 'Procesando...' : (
+                    <>
+                      Crear Cuenta <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              </Button>
+            </form>
+          </Form>
+
+          <div className="mt-12 text-center pt-8 border-t border-white/5">
+            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿Ya tiene una cuenta?</p>
+            <Link href="/login">
+              <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Iniciar Sesión</span>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Branding Footer */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mt-12 text-center"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">&copy; {new Date().getFullYear()} Motel Tres Hermanos - Sistema de Gestión</p>
+        </motion.div>
       </div>
     </div>
   );
