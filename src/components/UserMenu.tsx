@@ -91,7 +91,7 @@ export default function UserMenu() {
             <div className="hidden text-left text-xs md:block">
                 <p className="font-bold leading-none">{fullName}</p>
                 {userProfile?.role && (
-                    <p className="mt-1 text-[10px] font-semibold uppercase text-primary/70">{userProfile.role}</p>
+                    <p className="mt-1 text-[10px] font-bold uppercase text-primary/95 tracking-wider">{userProfile.role}</p>
                 )}
             </div>
         </button>

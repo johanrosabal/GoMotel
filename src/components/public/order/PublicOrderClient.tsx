@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
-import type { RestaurantTable, Order, Service, ProductCategory, ProductSubCategory } from '@/types';
-import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
+import { RestaurantTable, Order, Service, ProductCategory, ProductSubCategory } from '@/types';
+import { openTableAccount, addToTableAccount, requestBill } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { 
     Utensils, Search, ShoppingCart, Plus, Minus, 
     ArrowRight, MapPin, Clock, CheckCircle, Package,
-    ChevronLeft, Smartphone, History, Receipt, Info, Sparkles, GlassWater
+    ChevronLeft, Smartphone, History, Receipt, Info, Sparkles, GlassWater, MessageSquare
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -88,6 +88,12 @@ export default function PublicOrderClient() {
             return prev.filter(i => i.service.id !== serviceId);
         });
     };
+    
+    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+
+    const handleUpdateNote = (serviceId: string, note: string) => {
+        setCart(prev => prev.map(i => i.service.id === serviceId ? { ...i, notes: note } : i));
+    };
 
     const cartTotal = useMemo(() => cart.reduce((sum, i) => sum + i.service.price * i.quantity, 0), [cart]);
 
@@ -110,7 +116,23 @@ export default function PublicOrderClient() {
                     description: "En un momento lo llevaremos a tu mesa.",
                 });
                 setCart([]);
+                setEditingNoteId(null);
                 setActiveTab('account');
+            }
+        });
+    };
+
+    const handleRequestBill = () => {
+        if (!activeOrder) return;
+        startTransition(async () => {
+            const result = await requestBill(activeOrder.id);
+            if (result.error) {
+                toast({ title: "Error", description: result.error, variant: 'destructive' });
+            } else {
+                toast({ 
+                    title: "Cuenta Solicitada", 
+                    description: "El personal vendrá a tu mesa en breve.",
+                });
             }
         });
     };
@@ -301,9 +323,18 @@ export default function PublicOrderClient() {
                                                                 <div className="flex items-center gap-2 mt-0.5">
                                                                     <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
                                                                     {item.status === 'Pendiente' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">Pendiente</Badge>}
-                                                                    {item.status === 'En preparación' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-200 animate-pulse">Cocinando</Badge>}
+                                                                    {item.status === 'En preparación' && (
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-200 animate-pulse">
+                                                                            {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
+                                                                        </Badge>
+                                                                    )}
                                                                     {item.status === 'Entregado' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border-green-200">Entregado</Badge>}
                                                                 </div>
+                                                                {item.notes && (
+                                                                    <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
+                                                                        "{item.notes}"
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                     </div>
                                                     <div className="text-right ml-4 shrink-0">
@@ -321,6 +352,21 @@ export default function PublicOrderClient() {
                                             <p className="text-xs font-bold leading-relaxed">Puedes seguir pidiendo del menú. Al finalizar tu estancia, el total se liquidará en recepción.</p>
                                         </div>
                                     </div>
+
+                                    {!activeOrder.billRequested && (
+                                        <Button 
+                                            onClick={handleRequestBill}
+                                            disabled={isPending}
+                                            className="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20"
+                                        >
+                                            SOLICITAR CUENTA
+                                        </Button>
+                                    )}
+                                    {activeOrder.billRequested && (
+                                        <div className="p-4 bg-orange-500/10 border-2 border-orange-500/20 rounded-2xl text-center">
+                                            <p className="font-black text-orange-600 text-[10px] uppercase tracking-widest animate-pulse">Cuenta Solicitada - Personal en camino</p>
+                                        </div>
+                                    )}
                                 </div>
                             </ScrollArea>
                         ) : (
@@ -345,26 +391,54 @@ export default function PublicOrderClient() {
             {/* Float Cart (Visible when activeTab is menu and cart has items) */}
             {activeTab === 'menu' && cart.length > 0 && (
                 <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-background via-background to-transparent z-40">
-                    <div className="bg-primary p-4 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-primary/40 border-2 border-white/10 animate-in slide-in-from-bottom-10 duration-500">
-                        <div className="flex items-center gap-4 ml-2">
-                            <div className="relative">
-                                <ShoppingCart className="h-6 w-6 text-primary-foreground" />
-                                <span className="absolute -top-3 -right-3 h-6 w-6 bg-accent text-white font-black text-xs flex items-center justify-center rounded-full border-2 border-primary">
-                                    {cart.reduce((s, i) => s + i.quantity, 0)}
-                                </span>
+                    <div className="flex flex-col gap-2">
+                        {cart.map(item => (
+                            editingNoteId === item.service.id && (
+                                <div key={item.service.id} className="bg-card border-2 border-primary/20 rounded-2xl p-3 animate-in slide-in-from-bottom-5 duration-300">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-black uppercase text-primary">Instrucciones: {item.service.name}</span>
+                                        <button onClick={() => setEditingNoteId(null)} className="text-[10px] font-bold text-muted-foreground uppercase h-6 px-2">Cerrar</button>
+                                    </div>
+                                    <Input 
+                                        placeholder="Ej: Sin sal, término medio..." 
+                                        className="h-10 text-xs bg-muted/30 border-none font-bold"
+                                        value={item.notes || ''}
+                                        onChange={(e) => handleUpdateNote(item.service.id, e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                            )
+                        ))}
+                        
+                        <div className="bg-primary p-4 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-primary/40 border-2 border-white/10 animate-in slide-in-from-bottom-10 duration-500">
+                            <div className="flex items-center gap-4 ml-2">
+                                <div className="relative">
+                                    <ShoppingCart className="h-6 w-6 text-primary-foreground" />
+                                    <span className="absolute -top-3 -right-3 h-6 w-6 bg-accent text-white font-black text-xs flex items-center justify-center rounded-full border-2 border-primary">
+                                        {cart.reduce((s, i) => s + i.quantity, 0)}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black uppercase text-white/60 leading-none">Total Pedido</span>
+                                    <span className="text-lg font-black text-white leading-none tracking-tight">{formatCurrency(cartTotal)}</span>
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-[9px] font-black uppercase text-white/60 leading-none">Total Pedido</span>
-                                <span className="text-lg font-black text-white leading-none tracking-tight">{formatCurrency(cartTotal)}</span>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setEditingNoteId(editingNoteId ? null : cart[0].service.id)}
+                                    className="bg-white/10 text-white hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+                                >
+                                    <MessageSquare className="h-4 w-4" />
+                                </button>
+                                <Button 
+                                    onClick={handleSendOrder}
+                                    disabled={isPending}
+                                    className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner" id="publicorderclient-button-1-1"
+                                >
+                                    {isPending ? "ENVIANDO..." : "ENVIAR PEDIDO"} <ArrowRight className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-                        <Button 
-                            onClick={handleSendOrder}
-                            disabled={isPending}
-                            className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner" id="publicorderclient-button-1-1"
-                        >
-                            {isPending ? "ENVIANDO..." : "ENVIAR PEDIDO"} <ArrowRight className="h-4 w-4" />
-                        </Button>
                     </div>
                 </div>
             )}

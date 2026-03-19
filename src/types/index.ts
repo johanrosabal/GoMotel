@@ -69,6 +69,7 @@ export interface Service {
   subCategoryId?: string;
   isActive?: boolean;
   taxIds?: string[];
+  taxIncluded?: boolean;
   supplierId?: string;
   supplierName?: string;
   source?: 'Purchased' | 'Internal';
@@ -161,6 +162,8 @@ export interface Order {
   voucherNumber?: string | null;
   stayId?: string; // For compatibility with older code
   source?: 'POS' | 'Public';
+  billRequested?: boolean;
+  billRequestedAt?: Timestamp;
 }
 
 export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador';

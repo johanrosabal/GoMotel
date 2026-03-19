@@ -101,7 +101,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                     </style>
                 </head>
                 <body>
-                    ${input.innerHTML}
+                    ${input.outerHTML}
                     <script>
                         window.onload = () => {
                             setTimeout(() => {
@@ -147,7 +147,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                     </style>
                 </head>
                 <body>
-                    ${input.innerHTML}
+                    ${input.outerHTML}
                     <script>
                         window.onload = () => {
                             setTimeout(() => {
@@ -226,41 +226,44 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                     </div>
                 </>
                 )}
-                <DialogFooter className="flex-col sm:flex-col gap-3">
+                <DialogFooter className="flex flex-col gap-3 mt-4">
                     {!showPhoneInput && (
-                        <>
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                                <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md" id="invoicesuccessdialog-button-imprimir-ticket">
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Imprimir Ticket
-                                </Button>
-                                <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2" id="invoicesuccessdialog-button-factura-full">
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Factura Full
-                                </Button>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest border-2 border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white" 
-                                    disabled={isLoading || !invoice} 
-                                    onClick={() => setShowPhoneInput(true)} id="invoicesuccessdialog-button-enviar-whatsapp"
-                                >
-                                    <WhatsAppIcon className="mr-2 h-4 w-4 fill-current" />
-                                    Enviar WhatsApp
-                                </Button>
-                                <Button type="button" variant="ghost" onClick={handleDownloadPdf} disabled={isLoading || !invoice} className="h-12 rounded-xl font-bold text-[10px] uppercase text-muted-foreground" id="invoicesuccessdialog-button-bajar-pdf">
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Bajar PDF
-                                </Button>
-                            </div>
-                        </>
+                        <div className="grid grid-cols-2 gap-3 w-full">
+                            <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl bg-primary text-primary-foreground hover:-translate-y-1 transition-all active:scale-95 group" id="invoicesuccessdialog-button-imprimir-ticket">
+                                <Printer className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                                Ticket
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 shadow-sm hover:bg-muted active:scale-95 group" id="invoicesuccessdialog-button-factura-full">
+                                <FileText className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                                Factura
+                            </Button>
+
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white shadow-sm active:scale-95 group" 
+                                disabled={isLoading || !invoice} 
+                                onClick={() => setShowPhoneInput(true)} id="invoicesuccessdialog-button-enviar-whatsapp"
+                            >
+                                <WhatsAppIcon className="mr-2 h-5 w-5 fill-current transition-transform group-hover:scale-110" />
+                                WhatsApp
+                            </Button>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={handleDownloadPdf} 
+                                disabled={isLoading || !invoice} 
+                                className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 shadow-sm hover:bg-muted active:scale-95 group" 
+                                id="invoicesuccessdialog-button-bajar-pdf"
+                            >
+                                <Download className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                                PDF
+                            </Button>
+                        </div>
                     )}
                     {showPhoneInput && (
-                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)} className="w-full font-bold" id="invoicesuccessdialog-button-cancelar-y-volver">
-                            Cancelar y volver
+                        <Button variant="ghost" size="sm" onClick={() => setShowPhoneInput(false)} className="w-full font-black uppercase text-[10px] tracking-widest text-muted-foreground" id="invoicesuccessdialog-button-cancelar-y-volver">
+                            Volver
                         </Button>
                     )}
                 </DialogFooter>

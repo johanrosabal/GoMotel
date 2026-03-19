@@ -38,11 +38,14 @@ import type { Service, ProductCategory, ProductSubCategory, Tax, Supplier } from
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
+import { formatCurrency } from '@/lib/utils';
+import { useMemo } from 'react';
 
 interface EditServiceDialogProps {
   children?: ReactNode;
@@ -69,6 +72,7 @@ const serviceSchema = z.object({
   subCategoryId: z.string().optional(),
   isActive: z.boolean().optional().default(true),
   taxIds: z.array(z.string()).optional(),
+  taxIncluded: z.boolean().optional().default(false),
   supplierId: z.string().optional(),
   supplierName: z.string().optional(),
   source: z.enum(['Purchased', 'Internal']).default('Purchased'),
@@ -117,6 +121,7 @@ export default function EditServiceDialog({ children, service, allServices, open
       subCategoryId: preselectedSubCategoryId,
       isActive: true,
       taxIds: [],
+      taxIncluded: false,
       supplierId: '',
       supplierName: '',
       source: 'Purchased',
@@ -147,6 +152,48 @@ export default function EditServiceDialog({ children, service, allServices, open
   const suppliersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'suppliers'), orderBy('name')) : null, [firestore]);
   const { data: suppliers, isLoading: isLoadingSuppliers } = useCollection<Supplier>(suppliersQuery);
 
+  const watchPrice = form.watch('price');
+  const watchCostPrice = form.watch('costPrice');
+  const watchTaxIds = form.watch('taxIds');
+  const watchTaxIncluded = form.watch('taxIncluded');
+
+  const priceBreakdown = useMemo(() => {
+    if (!taxes) return null;
+    
+    const selectedTaxes = taxes.filter(t => watchTaxIds?.includes(t.id));
+    const cumulativeTaxPercentage = selectedTaxes.reduce((sum, t) => sum + t.percentage, 0);
+    
+    let subtotal = 0;
+    let totalTaxAmount = 0;
+    let finalPrice = 0;
+    
+    if (watchTaxIncluded) {
+        finalPrice = watchPrice || 0;
+        subtotal = finalPrice / (1 + cumulativeTaxPercentage / 100);
+        totalTaxAmount = finalPrice - subtotal;
+    } else {
+        subtotal = watchPrice || 0;
+        totalTaxAmount = subtotal * (cumulativeTaxPercentage / 100);
+        finalPrice = subtotal + totalTaxAmount;
+    }
+    
+    const profit = subtotal - (watchCostPrice || 0);
+    const profitMargin = subtotal > 0 ? (profit / subtotal) * 100 : 0;
+    
+    return {
+        subtotal,
+        totalTaxAmount,
+        finalPrice,
+        profit,
+        profitMargin,
+        taxBreakdown: selectedTaxes.map(t => ({
+            name: t.name,
+            percentage: t.percentage,
+            amount: subtotal * (t.percentage / 100)
+        }))
+    };
+  }, [watchPrice, watchCostPrice, watchTaxIds, watchTaxIncluded, taxes]);
+
   useEffect(() => {
     if (open) {
       const defaultValues = service ? {
@@ -158,6 +205,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         minStock: service.minStock ?? 10,
         isActive: service.isActive !== false,
         taxIds: service.taxIds || [],
+        taxIncluded: service.taxIncluded || false,
         supplierId: service.supplierId || '',
         supplierName: service.supplierName || '',
         source: service.source || 'Purchased',
@@ -175,6 +223,7 @@ export default function EditServiceDialog({ children, service, allServices, open
         subCategoryId: preselectedSubCategoryId,
         isActive: true,
         taxIds: [],
+        taxIncluded: false,
         supplierId: '',
         supplierName: '',
         source: 'Purchased' as const,
@@ -559,8 +608,25 @@ export default function EditServiceDialog({ children, service, allServices, open
                 name="taxIds"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Impuestos Aplicables</FormLabel>
-                    <div className="space-y-3 rounded-md border p-4 max-h-40 overflow-y-auto">
+                    <div className="flex flex-row items-center justify-between mb-2">
+                        <FormLabel>Impuestos Aplicables</FormLabel>
+                        <FormField
+                            control={form.control}
+                            name="taxIncluded"
+                            render={({ field: taxIncludedField }) => (
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Impuesto incluido en precio</FormLabel>
+                                    <FormControl>
+                                        <Switch
+                                            checked={taxIncludedField.value}
+                                            onCheckedChange={taxIncludedField.onChange} id="editservicedialog-switch-tax-included"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div className="space-y-3 rounded-md border p-4 max-h-40 overflow-y-auto bg-muted/30">
                         {isLoadingTaxes ? (
                         <p className="text-sm text-muted-foreground">Cargando impuestos...</p>
                         ) : taxes && taxes.length > 0 ? (
@@ -597,6 +663,67 @@ export default function EditServiceDialog({ children, service, allServices, open
                     </FormItem>
                 )}
                 />
+
+                {/* Price Breakdown Display */}
+                {priceBreakdown && (
+                    <div className="rounded-xl border bg-primary/5 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
+                                <DollarSign className="h-3 w-3" />
+                                Resumen de Cálculo
+                            </h4>
+                            {priceBreakdown.profitMargin > 0 ? (
+                                <span className="text-[10px] font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <TrendingUp className="h-2.5 w-2.5" />
+                                    +{priceBreakdown.profitMargin.toFixed(1)}% margen
+                                </span>
+                            ) : (
+                                <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <TrendingDown className="h-2.5 w-2.5" />
+                                    {priceBreakdown.profitMargin.toFixed(1)}% margen
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Base (Neto)</p>
+                                <p className="text-sm font-mono font-bold">{formatCurrency(priceBreakdown.subtotal)}</p>
+                            </div>
+                            <div className="space-y-1 text-right">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Impuestos</p>
+                                <p className="text-sm font-mono font-bold text-primary">+{formatCurrency(priceBreakdown.totalTaxAmount)}</p>
+                            </div>
+                        </div>
+
+                        <Separator className="opacity-50" />
+
+                        <div className="space-y-2">
+                            {priceBreakdown.taxBreakdown.length > 0 && (
+                                <div className="space-y-1">
+                                    {priceBreakdown.taxBreakdown.map((t, idx) => (
+                                        <div key={idx} className="flex justify-between text-[10px]">
+                                            <span className="text-muted-foreground">{t.name} ({t.percentage}%):</span>
+                                            <span className="font-mono">{formatCurrency(t.amount)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            <div className="flex justify-between items-center py-2 px-3 bg-primary/10 rounded-lg">
+                                <p className="text-xs font-black uppercase">Total Venta:</p>
+                                <p className="text-lg font-black font-mono">{formatCurrency(priceBreakdown.finalPrice)}</p>
+                            </div>
+
+                            <div className="flex justify-between items-center px-3">
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase">Utilidad Estimada:</p>
+                                <p className={`text-sm font-black font-mono ${priceBreakdown.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                    {formatCurrency(priceBreakdown.profit)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </form>
           </Form>
         </div>

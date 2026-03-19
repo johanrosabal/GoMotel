@@ -16,7 +16,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -125,7 +125,7 @@ export default function PosClientPage() {
 
     const form = useForm<z.infer<typeof posPaymentSchema>>({
         resolver: zodResolver(posPaymentSchema),
-        defaultValues: { clientName: 'Cliente de Contado', paymentMethod: 'Efectivo', paymentConfirmed: false, voucherNumber: '' },
+        defaultValues: { clientName: 'Cliente General', paymentMethod: 'Efectivo', paymentConfirmed: false, voucherNumber: '' },
     });
 
     const paymentMethod = form.watch('paymentMethod');
@@ -207,7 +207,8 @@ export default function PosClientPage() {
         const newItems = cart.map(i => ({
             price: i.service.price,
             quantity: i.quantity,
-            taxIds: i.service.taxIds || []
+            taxIds: i.service.taxIds || [],
+            taxIncluded: i.service.taxIncluded || false
         }));
 
         const existingItems = (currentOrder?.items || []).map(i => {
@@ -215,61 +216,87 @@ export default function PosClientPage() {
             return {
                 price: i.price,
                 quantity: i.quantity,
-                taxIds: service?.taxIds || []
+                taxIds: service?.taxIds || [],
+                taxIncluded: service?.taxIncluded || false,
+                isExisting: true
             };
         });
 
         const allItems = [...newItems, ...existingItems];
         
-        const sub = allItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const orderSub = existingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        
+        let totalSub = 0;
+        let totalOrderSub = 0;
         let taxTotal = 0;
+        let totalGrand = 0;
         const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
-        if (allTaxes) {
-            const serviceTax = allTaxes.find(t => 
-                t.name.toLowerCase().includes('servicio') || 
-                t.name.toLowerCase().includes('service')
-            );
+        const serviceTax = allTaxes?.find(t => 
+            t.name.toLowerCase().includes('servicio') || 
+            t.name.toLowerCase().includes('service')
+        );
 
-            allItems.forEach(item => {
-                const itemTotal = item.price * item.quantity;
-                const effectiveTaxIds = new Set(item.taxIds || []);
-                
-                if (viewMode !== 'fast' && serviceTax) {
-                    effectiveTaxIds.add(serviceTax.id);
-                }
+        allItems.forEach(item => {
+            const itemQuantityPrice = item.price * item.quantity;
+            const effectiveTaxIds = new Set(item.taxIds || []);
+            
+            if (viewMode !== 'fast' && serviceTax) {
+                effectiveTaxIds.add(serviceTax.id);
+            }
 
+            let cumulativePercentage = 0;
+            const matchingTaxes: Tax[] = [];
+
+            if (allTaxes) {
                 effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
                     if (taxInfo) {
                         if (taxInfo.id === serviceTax?.id && viewMode === 'fast') return;
-
-                        const taxAmount = itemTotal * (taxInfo.percentage / 100);
-                        taxTotal += taxAmount;
-                        
-                        const existingTax = taxMap.get(taxId);
-                        if (existingTax) {
-                            existingTax.amount += taxAmount;
-                        } else {
-                            taxMap.set(taxId, {
-                                taxId,
-                                name: taxInfo.name,
-                                percentage: taxInfo.percentage,
-                                amount: taxAmount
-                            });
-                        }
+                        cumulativePercentage += taxInfo.percentage;
+                        matchingTaxes.push(taxInfo);
                     }
                 });
+            }
+
+            let itemSubtotal = 0;
+            let itemTotalWithTax = 0;
+
+            if (item.taxIncluded) {
+                itemTotalWithTax = itemQuantityPrice;
+                itemSubtotal = itemTotalWithTax / (1 + cumulativePercentage / 100);
+            } else {
+                itemSubtotal = itemQuantityPrice;
+                itemTotalWithTax = itemSubtotal * (1 + cumulativePercentage / 100);
+            }
+
+            totalSub += itemSubtotal;
+            if ((item as any).isExisting) {
+                totalOrderSub += itemSubtotal;
+            }
+            totalGrand += itemTotalWithTax;
+
+            matchingTaxes.forEach(taxInfo => {
+                const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                taxTotal += taxAmount;
+                
+                const existingTax = taxMap.get(taxInfo.id);
+                if (existingTax) {
+                    existingTax.amount += taxAmount;
+                } else {
+                    taxMap.set(taxInfo.id, {
+                        taxId: taxInfo.id,
+                        name: taxInfo.name,
+                        percentage: taxInfo.percentage,
+                        amount: taxAmount
+                    });
+                }
             });
-        }
+        });
 
         return {
-            subtotal: sub,
-            currentOrderSubtotal: orderSub,
+            subtotal: totalSub,
+            currentOrderSubtotal: totalOrderSub,
             totalTax: taxTotal,
-            grandTotal: sub + taxTotal,
+            grandTotal: totalGrand,
             appliedTaxes: Array.from(taxMap.values())
         };
     }, [cart, currentOrder, allTaxes, availableServices, viewMode]);
@@ -484,11 +511,11 @@ export default function PosClientPage() {
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
-            <div className="mx-2 sm:mx-4 lg:mx-6 mt-4 flex items-center justify-between bg-background border rounded-2xl p-1.5 shadow-sm">
-                <div id="pos-location-tabs" className="flex gap-1.5 overflow-x-auto no-scrollbar max-w-full">
+            <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 flex flex-col md:flex-row items-center justify-between bg-background border rounded-2xl p-1 md:p-1.5 shadow-sm gap-2">
+                <div id="pos-location-tabs" className="flex gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar w-full md:w-auto">
                     <button 
                         className={cn(
-                            "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all",
+                            "rounded-xl h-9 sm:h-11 px-3 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest gap-1.5 sm:gap-2 flex items-center transition-all shrink-0",
                             viewMode === 'fast' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                         )}
                         onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-para-llevar"
@@ -497,23 +524,30 @@ export default function PosClientPage() {
                     </button>
                     {locationTypes.map(type => {
                         const Icon = getTypeIcon(type);
-                        const hasActiveOrdersType = allTables?.some(t => t.type === type && activeOrders?.some(o => o.locationId === t.id));
+                        const typeTables = allTables?.filter(t => t.type === type) || [];
+                        const hasActiveOrdersType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id));
+                        const hasBillRequestType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id && o.billRequested));
+                        
                         return (
                             <button 
                                 key={type}
                                 className={cn(
-                                    "rounded-xl h-11 px-4 font-black text-xs uppercase tracking-widest gap-2 flex items-center transition-all shrink-0 relative",
+                                    "rounded-xl h-9 sm:h-11 px-3 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest gap-1.5 sm:gap-2 flex items-center transition-all shrink-0 relative",
                                     viewMode === type ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground"
                                 )}
                                 onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-1"
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
-                                {hasActiveOrdersType && (
-                                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                                {hasBillRequestType ? (
+                                    <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-600"></span>
                                     </span>
-                                )}
+                                ) : hasActiveOrdersType ? (
+                                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500/40"></span>
+                                    </span>
+                                ) : null}
                             </button>
                         );
                     })}
@@ -533,10 +567,10 @@ export default function PosClientPage() {
                         <Button 
                             variant="outline" 
                             size="icon" 
-                            className="h-11 w-11 rounded-xl shadow-sm border-2"
+                            className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl shadow-sm border-2 shrink-0"
                             onClick={() => setManageTablesOpen(true)} id="posclientpage-button-1-1"
                         >
-                            <Settings2 className="h-5 w-5 text-primary" />
+                            <Settings2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         </Button>
                     )}
                 </div>
@@ -546,13 +580,13 @@ export default function PosClientPage() {
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
                     
                     {viewMode !== 'fast' && !selectedTable ? (
-                        <div className="flex-1 flex flex-col p-6 lg:p-10 animate-in fade-in duration-300">
-                            <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
-                                <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30">{filteredTables.length} Unidades</Badge>
+                        <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
+                                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
+                                <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30 w-fit">{filteredTables.length} Unidades</Badge>
                             </div>
                             <ScrollArea className="flex-1">
-                                <div id="pos-tables-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-2 pb-10">
+                                <div id="pos-tables-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2 pb-10">
                                     {filteredTables.map(table => {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
@@ -566,7 +600,7 @@ export default function PosClientPage() {
                                                 key={table.id}
                                                 onClick={() => handleSelectTable(table)}
                                                 className={cn(
-                                                    "group relative flex flex-col items-center justify-between min-h-[220px] rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
+                                                    "group relative flex flex-col items-center justify-between min-h-[180px] sm:min-h-[220px] rounded-xl sm:rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     isPublicOrder
                                                         ? "bg-orange-500/10 border-orange-500 shadow-xl shadow-orange-500/10 ring-4 ring-orange-500/5"
                                                         : hasOrders 
@@ -587,12 +621,18 @@ export default function PosClientPage() {
                                                 
                                                 <div className="flex-1 flex flex-col items-center justify-center py-2 relative w-full">
                                                     <span className={cn(
-                                                        "font-black text-5xl tracking-tighter transition-colors",
+                                                        "font-black text-4xl sm:text-5xl tracking-tighter transition-colors",
                                                         isPublicOrder ? "text-orange-600" : hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
                                                     
                                                     {hasOrders && (
                                                         <div className="flex flex-col items-center gap-1 mt-1 animate-in fade-in zoom-in-95 duration-500">
+                                                            {tableOrders.some(o => o.billRequested) && (
+                                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-600 text-white rounded-full shadow-lg shadow-orange-600/20 animate-bounce mb-1">
+                                                                    <Receipt className="h-3 w-3" />
+                                                                    <span className="text-[10px] font-black uppercase tracking-tight">Solicita Cuenta</span>
+                                                                </div>
+                                                            )}
                                                             <div className={cn(
                                                                 "flex items-center gap-1 text-[9px] font-black uppercase px-3 py-1 rounded-full border backdrop-blur-sm",
                                                                 isPublicOrder 
@@ -645,7 +685,7 @@ export default function PosClientPage() {
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
                                     <div className="flex items-center justify-between px-1">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                            <span className="text-xs font-black uppercase tracking-widest text-primary/70">Cuentas en esta Mesa</span>
+                                            <span className="text-xs font-black uppercase tracking-widest text-primary">Cuentas en esta Mesa</span>
                                             {selectedOrderId === null && (
                                                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                                                     <Separator orientation="vertical" className="h-4 hidden sm:block bg-primary/20" />
@@ -661,7 +701,7 @@ export default function PosClientPage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <Badge variant="outline" className="h-6 font-bold border-primary/20 text-primary uppercase text-[10px]">
+                                        <Badge variant="outline" className="h-6 font-bold border-primary/40 text-primary-foreground bg-primary/20 uppercase text-[10px] shadow-sm shadow-primary/10">
                                             {activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0} Abiertas
                                         </Badge>
                                     </div>
@@ -1134,8 +1174,8 @@ export default function PosClientPage() {
                                 ))}
                                 <Separator className="my-1.5" />
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-neutral-500">Total General</span>
-                                    <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(grandTotal)}</span>
+                                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-neutral-500">Total General</span>
+                                    <span className="text-3xl sm:text-4xl font-black tracking-tighter text-primary drop-shadow-sm">{formatCurrency(grandTotal)}</span>
                                 </div>
                             </div>
 
@@ -1144,7 +1184,7 @@ export default function PosClientPage() {
                                     {selectedTable && (
                                         <Button 
                                             variant="secondary"
-                                            className="h-12 text-xs font-black uppercase tracking-widest rounded-xl border-primary/20"
+                                            className="h-12 sm:h-14 text-xs font-black uppercase tracking-widest rounded-xl border-primary/20 bg-muted/30 hover:bg-muted/50 transition-all active:scale-95"
                                             disabled={cart.length === 0 || isPending}
                                             onClick={handleSaveOpenAccount} id="posclientpage-button-guardar-cuenta"
                                         >
@@ -1152,24 +1192,37 @@ export default function PosClientPage() {
                                         </Button>
                                     )}
                                     <Button 
-                                        className={cn("h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", (viewMode === 'fast' || !selectedTable) ? "col-span-2" : "")}
-                                        disabled={cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)}
+                                        className={cn(
+                                            "h-12 sm:h-14 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95",
+                                            (viewMode === 'fast' || !selectedTable) ? "col-span-2" : "",
+                                            (cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
+                                        )}
+                                        disabled={(cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)) || isPending}
                                         onClick={() => setStep(2)} id="posclientpage-button-pagar"
                                     >
-                                        PAGAR <ChevronRight className="ml-2 h-4 w-4" />
+                                        <span>PAGAR</span>
+                                        <ChevronRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="flex gap-2">
-                                    <Button variant="outline" className="h-12 w-12 rounded-xl" onClick={() => setStep(1)} disabled={isPending} id="posclientpage-button-5-1">
-                                        <ChevronLeft className="h-4 w-4" />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Button 
+                                        variant="outline"
+                                        className="h-12 sm:h-14 font-black text-xs uppercase tracking-widest rounded-xl border-2 transition-all active:scale-95"
+                                        disabled={isPending}
+                                        onClick={() => setStep(1)} id="posclientpage-button-volver"
+                                    >
+                                        ATRÁS
                                     </Button>
                                     <Button 
-                                        className="flex-1 h-12 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg"
-                                        onClick={form.handleSubmit(handleProcessSale)}
-                                        disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)} id="posclientpage-button-6-1"
+                                        className={cn(
+                                            "h-12 sm:h-14 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95",
+                                            isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
+                                        )}
+                                        disabled={isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending}
+                                        onClick={form.handleSubmit(handleProcessSale)} id="posclientpage-button-confirmar-pago"
                                     >
-                                        {isPending ? "PROCESANDO..." : "COMPLETAR COBRO"}
+                                        CONFIRMAR
                                     </Button>
                                 </div>
                             )}
@@ -1177,6 +1230,25 @@ export default function PosClientPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Cart Summary Floating Bar */}
+            {!isCartEmpty && step === 1 && (
+                <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md animate-in slide-in-from-bottom-10 fade-in duration-500 z-50">
+                    <div 
+                        className="bg-primary text-primary-foreground p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-white/20 backdrop-blur-md cursor-pointer group active:scale-95 transition-all"
+                        onClick={() => setStep(2)}
+                    >
+                        <div className="flex flex-col pl-2">
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">Total del Pedido</span>
+                            <span className="text-xl font-black">{formatCurrency(grandTotal)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl group-hover:bg-white/30 transition-colors">
+                            <span className="text-[10px] font-black uppercase tracking-widest">VER / PAGAR</span>
+                            <ChevronRight className="h-4 w-4" />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <InvoiceSuccessDialog 
                 open={successModalOpen}

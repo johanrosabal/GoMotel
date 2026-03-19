@@ -99,6 +99,8 @@ export async function getDashboardStats(days: number = 7) {
                 id: inv.id,
                 invoiceNumber: inv.invoiceNumber,
                 clientName: inv.clientName,
+                subtotal: inv.subtotal,
+                taxes: inv.taxes,
                 total: inv.total,
                 paymentMethod: inv.paymentMethod,
                 createdAt: inv.createdAt.toDate().toISOString()

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import type { RestaurantTable, Service, Order, ProductCategory, ProductSubCategory, Tax } from '@/types';
-import { openTableAccount, addToTableAccount } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, requestBill, cancelOrderItem } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     ShoppingCart, Plus, Minus, Search, Utensils, 
     CheckCircle, Clock, Info, ChevronRight, MessageSquare,
-    ReceiptText, PackageOpen, GlassWater
+    ReceiptText, PackageOpen, GlassWater, Trash2
 } from 'lucide-react';
 import type { PrepStatus } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -181,7 +181,40 @@ function OrderPageContent() {
             } else {
                 toast({ title: "¡Pedido Enviado!", description: "Su orden está en preparación." });
                 setCart([]);
+                setEditingNoteIndex(null);
                 setActiveTab('account');
+            }
+        });
+    };
+
+    const handleRequestBill = () => {
+        if (!currentOrder) return;
+        startTransition(async () => {
+            const result = await requestBill(currentOrder.id);
+            if (result.error) {
+                toast({ title: "Error", description: result.error, variant: 'destructive' });
+            } else {
+                toast({ 
+                    title: "Cuenta Solicitada", 
+                    description: "El personal vendrá a tu mesa en breve.",
+                });
+            }
+        });
+    };
+
+    const handleCancelItem = (itemId: string) => {
+        if (!currentOrder) return;
+        if (!confirm("¿Seguro que desea cancelar este producto?")) return;
+
+        startTransition(async () => {
+            const result = await cancelOrderItem(currentOrder.id, itemId);
+            if (result.error) {
+                toast({ title: "Error", description: result.error, variant: 'destructive' });
+            } else {
+                toast({ 
+                    title: "Producto Cancelado", 
+                    description: "El producto ha sido eliminado de su cuenta.",
+                });
             }
         });
     };
@@ -289,13 +322,25 @@ function OrderPageContent() {
                                             </div>
                                             <div className="flex justify-between items-center mt-2">
                                                 <span className="font-black text-primary text-base">{formatCurrency(service.price)}</span>
-                                                <Button 
-                                                    size="sm" 
-                                                    className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir"
-                                                >
-                                                    AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    {cart.some(i => i.service.id === service.id) && (
+                                                        <Button 
+                                                            size="icon" 
+                                                            variant="ghost"
+                                                            onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
+                                                            className="h-8 w-8 text-primary hover:bg-primary/10"
+                                                        >
+                                                            <MessageSquare className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
+                                                        onClick={() => handleAddToCart(service)} id="page-button-a-adir"
+                                                    >
+                                                        AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -332,26 +377,47 @@ function OrderPageContent() {
                                                             {item.category === 'Food' ? <Utensils className="h-2 w-2 text-orange-500" /> : <GlassWater className="h-2 w-2 text-blue-500" />}
                                                         </div>
                                                     </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
-                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                <span className="text-[10px] font-bold text-neutral-500">{formatCurrency(item.price)} c/u</span>
-                                                                {(item.status === 'Entregado' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Entregado' : currentOrder.barStatus === 'Entregado'))) && (
-                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border-green-500/20">Entregado</Badge>
-                                                                )}
-                                                                {(item.status === 'En preparación' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'En preparación' : currentOrder.barStatus === 'En preparación'))) && (
-                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse">Cocinando</Badge>
-                                                                )}
-                                                                {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
-                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">Pendiente</Badge>
-                                                                )}
-                                                            </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[10px] font-bold text-neutral-500">{formatCurrency(item.price)} c/u</span>
+                                                            {(item.status === 'Entregado' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Entregado' : currentOrder.barStatus === 'Entregado'))) && (
+                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border-green-500/20">Entregado</Badge>
+                                                            )}
+                                                            {(item.status === 'En preparación' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'En preparación' : currentOrder.barStatus === 'En preparación'))) && (
+                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse">
+                                                                    {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
+                                                                </Badge>
+                                                            )}
+                                                            {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
+                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">Pendiente</Badge>
+                                                            )}
                                                         </div>
+                                                        {item.notes && (
+                                                            <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
+                                                                "{item.notes}"
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className="font-black text-neutral-200">{formatCurrency(item.price * item.quantity)}</span>
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
+                                                        <button 
+                                                            key={item.id}
+                                                            onClick={() => handleCancelItem(item.id)}
+                                                            disabled={isPending}
+                                                            className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    <div className="text-right">
+                                                        <span className="font-black text-neutral-200 block">{formatCurrency(item.price * item.quantity)}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
-                                        
+
                                         {/* Financial Summary */}
                                         <div className="p-4 bg-neutral-900/50 space-y-2">
                                             <div className="flex justify-between text-xs font-bold text-neutral-500 uppercase tracking-wider">
@@ -370,11 +436,27 @@ function OrderPageContent() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex gap-3 items-start">
-                                        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                                        <p className="text-[11px] text-primary/80 font-bold leading-tight">
-                                            Para pagar su cuenta o solicitar factura electrónica, por favor llame a un salonero o diríjase a la caja.
-                                        </p>
+                                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col gap-4">
+                                        <div className="flex gap-3 items-start">
+                                            <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                            <p className="text-[11px] text-primary/80 font-bold leading-tight">
+                                                Puede seguir pidiendo del menú. El personal vendrá a su mesa periódicamente para retirar platos vacíos.
+                                            </p>
+                                        </div>
+
+                                        {!currentOrder.billRequested ? (
+                                            <Button 
+                                                onClick={handleRequestBill}
+                                                disabled={isPending}
+                                                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20"
+                                            >
+                                                SOLICITAR CUENTA
+                                            </Button>
+                                        ) : (
+                                            <div className="w-full p-3 bg-orange-600/10 border border-orange-600/20 rounded-xl text-center">
+                                                <p className="font-black text-orange-600 text-[10px] uppercase tracking-widest animate-pulse">Cuenta Solicitada - Personal en camino</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

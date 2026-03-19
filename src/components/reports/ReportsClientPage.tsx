@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useTransition, useRef, useMemo } from 'react';
 import { getDashboardStats } from '@/lib/actions/report.actions';
-import { analyzePerformance } from '@/ai/flows/performance-analysis';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
-    TrendingUp, Users, AlertTriangle, Sparkles, BrainCircuit, 
+    TrendingUp, Users, AlertTriangle, 
     Download, ArrowRight, DollarSign, PieChart as PieIcon,
     Receipt, PackageSearch
 } from 'lucide-react';
@@ -38,8 +37,6 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 export default function ReportsClientPage() {
     const [data, setData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isAnalyzing, startAnalysis] = useTransition();
-    const [aiAnalysis, setAiAnalysis] = useState<any>(null);
     const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const stockReportRef = useRef<HTMLDivElement>(null);
@@ -52,11 +49,17 @@ export default function ReportsClientPage() {
     }, []);
 
     const handleAiAnalysis = () => {
-        startAnalysis(async () => {
-            const result = await analyzePerformance(data.rawForAI);
-            setAiAnalysis(result);
-        });
+        // AI Analysis removed per user request
     };
+
+    const taxTypes = useMemo(() => {
+        if (!data?.detailedInvoices) return [];
+        const types = new Set<string>();
+        data.detailedInvoices.forEach((inv: any) => {
+            inv.taxes?.forEach((t: any) => types.add(t.name));
+        });
+        return Array.from(types).sort();
+    }, [data?.detailedInvoices]);
 
     // Lógica de Paginación para Stock Bajo: 35 filas por página
     const stockPages = useMemo(() => {
@@ -174,45 +177,69 @@ export default function ReportsClientPage() {
                 </Card>
             </div>
 
-            <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
-                <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-primary/10">
-                            <BrainCircuit className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg">Análisis de Rendimiento con IA</h3>
-                            <p className="text-sm text-muted-foreground">Obtén un resumen ejecutivo y sugerencias basadas en tus datos actuales.</p>
+
+            <Card className="border-primary/20 bg-muted/5 shadow-sm">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary uppercase tracking-tight text-lg">
+                        <Receipt className="h-5 w-5 text-primary" />
+                        Desglose de Impuestos por Factura
+                    </CardTitle>
+                    <CardDescription>Detalle de montos por cada impuesto aplicado en las ventas recientes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-xl border bg-background overflow-hidden shadow-inner">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader className="bg-muted/80">
+                                    <TableRow>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest py-3">Factura</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Subtotal</TableHead>
+                                        {taxTypes.map(taxName => (
+                                            <TableHead key={taxName} className="text-[10px] font-black uppercase tracking-widest text-right text-primary">
+                                                {taxName}
+                                            </TableHead>
+                                        ))}
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-right bg-primary/5">Total</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.detailedInvoices && data.detailedInvoices.length > 0 ? (
+                                        data.detailedInvoices.map((inv: any) => (
+                                            <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors border-b last:border-0">
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-mono text-xs font-black text-primary">{inv.invoiceNumber}</span>
+                                                        <span className="text-[9px] text-muted-foreground uppercase">{inv.clientName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono text-xs">
+                                                    {formatCurrency(inv.subtotal || 0)}
+                                                </TableCell>
+                                                {taxTypes.map(taxName => {
+                                                    const taxAmount = inv.taxes?.find((t: any) => t.name === taxName)?.amount || 0;
+                                                    return (
+                                                        <TableCell key={taxName} className="text-right font-mono text-xs text-primary/80">
+                                                            {taxAmount > 0 ? formatCurrency(taxAmount) : '-'}
+                                                        </TableCell>
+                                                    );
+                                                })}
+                                                <TableCell className="text-right font-mono text-xs font-black bg-primary/5">
+                                                    {formatCurrency(inv.total)}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={taxTypes.length + 3} className="h-32 text-center text-muted-foreground italic">
+                                                No hay datos impositivos registrados.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
                         </div>
                     </div>
-                    <Button onClick={handleAiAnalysis} disabled={isAnalyzing} className="font-bold" id="reportsclientpage-button-2">
-                        {isAnalyzing ? "Analizando..." : "Generar Informe IA"}
-                        <Sparkles className="ml-2 h-4 w-4" />
-                    </Button>
                 </CardContent>
-                {aiAnalysis && (
-                    <CardFooter className="flex-col items-start bg-muted/30 p-6 border-t animate-in fade-in duration-500">
-                        <div className="space-y-4 w-full">
-                            <div>
-                                <h4 className="font-black text-xs uppercase tracking-[0.2em] text-primary mb-2">Resumen Ejecutivo</h4>
-                                <p className="text-sm leading-relaxed">{aiAnalysis.summary}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-black text-xs uppercase tracking-[0.2em] text-primary mb-2">Sugerencias Estratégicas</h4>
-                                <ul className="space-y-2">
-                                    {aiAnalysis.suggestions.map((s: string, i: number) => (
-                                        <li key={i} className="flex items-start gap-2 text-sm">
-                                            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                                                <span className="text-[10px] font-bold text-primary">{i+1}</span>
-                                            </div>
-                                            {s}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    </CardFooter>
-                )}
             </Card>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

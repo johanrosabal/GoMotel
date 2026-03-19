@@ -622,3 +622,122 @@ export async function cancelRestaurantOrder(orderId: string) {
         return { error: e.message || "Error al cancelar la cuenta." };
     }
 }
+
+/**
+ * Marks an order as bill requested.
+ */
+export async function requestBill(orderId: string) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, { 
+            billRequested: true,
+            billRequestedAt: Timestamp.now()
+        });
+        revalidatePath('/pos');
+        revalidatePath('/public/order');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Request bill error:", e);
+        return { error: e.message || "Error al solicitar la cuenta." };
+    }
+}
+
+/**
+ * Cancels a specific item from an order, only if it's still 'Pendiente'.
+ */
+export async function cancelOrderItem(orderId: string, itemId: string) {
+    try {
+        const taxesSnap = await getDocs(collection(db, 'taxes'));
+        const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
+        
+        const serviceTaxInfo = allTaxes.find(t => 
+            t.name.toLowerCase().includes('servicio') || 
+            t.name.toLowerCase().includes('service')
+        );
+
+        await runTransaction(db, async (transaction) => {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+            
+            const orderData = orderSnap.data() as Order;
+            const items = orderData.items || [];
+            const itemIndex = items.findIndex(i => i.id === itemId);
+            
+            if (itemIndex === -1) throw new Error("Producto no encontrado en la orden.");
+            const itemToCancel = items[itemIndex];
+            
+            if (itemToCancel.status !== 'Pendiente') {
+                throw new Error("No se puede cancelar un producto que ya está en preparación o entregado.");
+            }
+
+            // Restore stock if applicable
+            if (itemToCancel.serviceId) {
+                const sRef = doc(db, 'products', itemToCancel.serviceId);
+                const sSnap = await transaction.get(sRef);
+                if (sSnap.exists() && sSnap.data().source !== 'Internal') {
+                    transaction.update(sRef, { stock: increment(itemToCancel.quantity) });
+                }
+            }
+
+            // Remove item
+            const newItems = items.filter(i => i.id !== itemId);
+            
+            // Recalculate totals
+            let newSubtotal = 0;
+            const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+            let hasKitchen = false;
+            let hasBar = false;
+
+            for (const item of newItems) {
+                const itemSubtotal = item.price * item.quantity;
+                newSubtotal += itemSubtotal;
+                
+                if (item.category === 'Food') hasKitchen = true;
+                if (item.category === 'Beverage') hasBar = true;
+
+                // We need the service to know its taxes. 
+                // Since fetching all services in a loop is bad, let's fetch only those needed or assume standard taxes if not found.
+                // However, we can fetch all services first.
+                const sRef = doc(db, 'products', item.serviceId);
+                const sSnap = await transaction.get(sRef);
+                const serviceData = sSnap.data() as Service;
+
+                const effectiveTaxIds = new Set(serviceData?.taxIds || []);
+                if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                effectiveTaxIds.forEach(taxId => {
+                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                    if (taxInfo) {
+                        const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                        const existing = taxMap.get(taxId);
+                        if (existing) existing.amount += taxAmount;
+                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                    }
+                });
+            }
+
+            const appliedTaxes = Array.from(taxMap.values());
+            const totalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+            const newTotal = newSubtotal + totalTax;
+
+            transaction.update(orderRef, {
+                items: newItems,
+                subtotal: newSubtotal,
+                taxes: appliedTaxes,
+                total: newTotal,
+                kitchenStatus: hasKitchen ? orderData.kitchenStatus : 'Entregado',
+                barStatus: hasBar ? orderData.barStatus : 'Entregado'
+            });
+        });
+
+        revalidatePath('/pos');
+        revalidatePath('/public/order');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Cancel order item error:", e);
+        return { error: e.message || "Error al cancelar producto." };
+    }
+}

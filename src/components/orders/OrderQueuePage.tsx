@@ -53,7 +53,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
     return (
         <Card className={cn(
             "flex flex-col h-full border-2 transition-all duration-300",
-            isLate && currentAreaStatus !== 'Entregado' ? "border-destructive animate-pulse shadow-destructive/20" : "border-border shadow-md",
+            isLate && currentAreaStatus !== 'Entregado' ? "border-destructive shadow-destructive/20" : "border-border shadow-md",
             currentAreaStatus === 'En preparación' && "border-primary bg-primary/[0.02]"
         )}>
             <CardHeader className={cn(
@@ -92,38 +92,36 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                                 "space-y-2 p-3 rounded-2xl border-2 transition-all",
                                 item.status === 'En preparación' ? "border-primary/30 bg-primary/5" : "border-transparent bg-muted/20"
                             )}>
-                                <div className="flex justify-between items-center gap-4">
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <span className="font-black text-3xl leading-none">{item.quantity}</span>
-                                        <div className="flex-1">
-                                            <span className="block font-bold text-lg leading-tight uppercase">{item.name}</span>
-                                            {item.notes && (
-                                                <div className="mt-1 p-2 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded text-[10px] font-bold text-amber-700 dark:text-amber-400 italic shadow-sm">
-                                                    "{item.notes}"
-                                                </div>
-                                            )}
-                                        </div>
+                                <div className="flex flex-col gap-3 w-full">
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-black text-3xl text-primary leading-none shrink-0">{item.quantity}</span>
+                                        <span className="font-bold text-lg leading-tight uppercase tracking-tight">{item.name}</span>
                                     </div>
                                     
-                                    <div className="flex gap-2 shrink-0">
+                                    {item.notes && (
+                                        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 border-l-4 border-amber-500 rounded-xl text-base font-black text-amber-950 dark:text-amber-100 shadow-md">
+                                            <span className="text-[10px] block opacity-50 mb-1 uppercase tracking-tighter">Instrucciones:</span>
+                                            {item.notes}
+                                        </div>
+                                    )}
+
+                                    <div className="pt-2">
                                         {item.status === 'Pendiente' ? (
                                             <Button 
-                                                size="sm"
-                                                className="h-10 px-4 font-black text-[10px] uppercase tracking-widest"
+                                                className="w-full h-12 font-black text-xs uppercase tracking-widest shadow-lg"
                                                 onClick={() => handleUpdateItemStatus(item.id, 'En preparación')}
                                                 disabled={isUpdating}
                                             >
-                                                Empezar
+                                                Empezar Preparación
                                             </Button>
                                         ) : (
                                             <Button 
-                                                size="sm"
                                                 variant="outline"
-                                                className="h-10 px-4 font-black text-[10px] uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none"
+                                                className="w-full h-12 font-black text-xs uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none shadow-lg"
                                                 onClick={() => handleUpdateItemStatus(item.id, 'Entregado')}
                                                 disabled={isUpdating}
                                             >
-                                                <CheckCircle className="mr-1 h-3.5 w-3.5" /> Listo
+                                                <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Listo
                                             </Button>
                                         )}
                                     </div>
@@ -174,7 +172,7 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     }, [filteredOrders.length]);
 
     if (isLoading) {
-        return <div className="flex h-[80vh] items-center justify-center font-black text-2xl uppercase animate-pulse">Cargando Pedidos...</div>;
+        return <div className="flex h-[80vh] items-center justify-center font-black text-2xl uppercase">Cargando Pedidos...</div>;
     }
 
     return (
@@ -193,7 +191,7 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
                             Cola de {type === 'Kitchen' ? 'Cocina' : 'Bar'}
                         </h1>
                         <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2 mt-1">
-                            <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="flex h-2 w-2 rounded-full bg-green-500" />
                             Sistema en Línea - {filteredOrders.length} Pendientes
                         </p>
                     </div>

@@ -15,8 +15,8 @@ const PosTicketTemplate = React.forwardRef<HTMLDivElement, { invoice: Invoice }>
     return (
         <div 
             ref={ref} 
-            className="bg-white text-black p-6 font-mono text-[14px] leading-tight mx-auto" 
-            style={{ width: '80mm', minHeight: '100mm' }}
+            className="bg-white text-black font-mono text-[14px] leading-tight mx-auto" 
+            style={{ width: '80mm', minHeight: '100mm', padding: '6mm', boxSizing: 'border-box' }}
         >
             {/* Header */}
             <div className="text-center space-y-1.5 mb-6">
