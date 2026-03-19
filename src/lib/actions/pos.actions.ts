@@ -55,13 +55,35 @@ export async function createDirectSale(values: DirectSaleInput) {
         }
         const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
 
+        // 2. Find SINPE account if needed (Outside transaction to avoid nested reads/writes confusion)
+        let targetSinpeRef = null;
+        if (values.paymentMethod === 'Sinpe Movil') {
+            const sinpeRef = collection(db, 'sinpeAccounts');
+            const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
+            const sinpeSnap = await getDocs(sinpeQ);
+            
+            for (const d of sinpeSnap.docs) {
+                const acc = d.data();
+                if ((acc.balance + values.total) <= (acc.limitAmount || Infinity)) {
+                    targetSinpeRef = d.ref;
+                    break;
+                }
+            }
+        }
+
         let invoiceIdForReturn: string | undefined;
 
         await runTransaction(db, async (transaction) => {
-            // 2. Validate Stock and update
+            // 3. ALL READS FIRST
+            const itemSnapshots = [];
             for (const item of values.items) {
                 const serviceRef = doc(db, 'products', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
+                itemSnapshots.push({ item, serviceRef, serviceSnap });
+            }
+
+            // 4. VALIDATION AND WRITES
+            for (const { item, serviceRef, serviceSnap } of itemSnapshots) {
                 if (!serviceSnap.exists()) throw new Error(`Producto "${item.name}" no encontrado.`);
                 
                 const serviceData = serviceSnap.data() as Service;
@@ -74,7 +96,7 @@ export async function createDirectSale(values: DirectSaleInput) {
                 }
             }
 
-            // 3. Create Invoice
+            // Create Invoice
             const invoiceRef = doc(collection(db, 'invoices'));
             invoiceIdForReturn = invoiceRef.id;
 
@@ -120,21 +142,9 @@ export async function createDirectSale(values: DirectSaleInput) {
                 source: 'POS'
             });
 
-            // 4. Update SINPE if applies
-            if (values.paymentMethod === 'Sinpe Movil') {
-                const sinpeRef = collection(db, 'sinpeAccounts');
-                const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
-                const sinpeSnap = await getDocs(sinpeQ);
-                
-                let targetRef = null;
-                for (const d of sinpeSnap.docs) {
-                    const acc = d.data();
-                    if ((acc.balance + values.total) <= (acc.limitAmount || Infinity)) {
-                        targetRef = d.ref;
-                        break;
-                    }
-                }
-                if (targetRef) transaction.update(targetRef, { balance: increment(values.total) });
+            // Update SINPE if applies
+            if (targetSinpeRef) {
+                transaction.update(targetSinpeRef, { balance: increment(values.total) });
             }
         });
 

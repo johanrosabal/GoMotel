@@ -14,8 +14,8 @@ import { doc, setDoc, getDocs, collection, Timestamp } from 'firebase/firestore'
 // However, for this prototyping environment, we'll use the client SDK on the server.
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
+  email: z.string().email('Correo electrónico inválido.'),
+  password: z.string().min(1, 'La contraseña es requerida.'),
 });
 
 export async function login(values: z.infer<typeof loginSchema>) {
@@ -43,8 +43,8 @@ export async function login(values: z.infer<typeof loginSchema>) {
 }
 
 const registerSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
+    email: z.string().email('Correo electrónico inválido.'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
     firstName: z.string().min(1, 'El nombre es requerido.').max(25, 'El nombre no debe exceder los 25 caracteres.'),
     lastName: z.string().min(1, 'El primer apellido es requerido.').max(25, 'El primer apellido no debe exceder los 25 caracteres.'),
     secondLastName: z.string().max(25, 'El segundo apellido no debe exceder los 25 caracteres.').optional(),

@@ -7,9 +7,9 @@ import { revalidatePath } from 'next/cache';
 
 const clientSchema = z.object({
   id: z.string().optional(),
-  firstName: z.string().min(1, 'El nombre es requerido.').max(50),
-  lastName: z.string().min(1, 'El apellido es requerido.').max(50),
-  secondLastName: z.string().max(50).optional(),
+  firstName: z.string().min(1, 'El nombre es requerido.').max(50, 'El nombre no debe exceder los 50 caracteres.'),
+  lastName: z.string().min(1, 'El apellido es requerido.').max(50, 'El apellido no debe exceder los 50 caracteres.'),
+  secondLastName: z.string().max(50, 'El segundo apellido no debe exceder los 50 caracteres.').optional(),
   idCard: z.string().min(1, 'La cédula es requerida.'),
   email: z.string().email('Correo electrónico inválido.'),
   phoneNumber: z.string().min(1, 'El teléfono es requerido.'),
