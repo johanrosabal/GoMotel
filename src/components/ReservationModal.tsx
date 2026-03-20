@@ -49,7 +49,7 @@ export function ReservationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] border-white/10 bg-[#0a0a0a]/95 backdrop-blur-2xl p-0 overflow-hidden rounded-[2.5rem]">
+      <DialogContent className="sm:max-w-[500px] border-border dark:border-white/10 bg-background dark:bg-[#0a0a0a]/95 backdrop-blur-2xl p-0 overflow-hidden rounded-[2.5rem]">
         <div className="relative p-8 md:p-12">
           {/* Decorative Background */}
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
@@ -58,11 +58,11 @@ export function ReservationModal({
             <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20">
               <Calendar className="h-7 w-7 text-primary" />
             </div>
-            <DialogTitle className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter leading-tight">
+            <DialogTitle className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter leading-tight text-foreground dark:text-white">
               Reserve su <br />
               <span className="text-primary">Momento Elite</span>
             </DialogTitle>
-            <DialogDescription className="text-white/40 text-sm font-medium pt-4">
+            <DialogDescription className="text-muted-foreground dark:text-white/70 text-sm font-medium pt-4">
               Para garantizar su privacidad y el mejor servicio, nuestras reservaciones se gestionan directamente vía telefónica o WhatsApp.
             </DialogDescription>
           </DialogHeader>
@@ -74,15 +74,15 @@ export function ReservationModal({
               whileTap={{ scale: 0.98 }}
             >
               <a href={`tel:${phoneNumber}`} className="block">
-                <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-black rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative">
+                <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative">
                   <div className="flex flex-col items-start relative z-10 text-left">
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Llamada Directa</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/80">Llamada Directa</span>
                     <span className="text-xl font-black tracking-tight italic">¡{formatPhoneNumber(phoneNumber)}!</span>
                   </div>
-                  <div className="w-12 h-12 bg-black/10 rounded-xl flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 bg-primary-foreground/10 rounded-xl flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
                     <Phone className="h-6 w-6" />
                   </div>
-                  <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-primary-foreground/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 </Button>
               </a>
             </motion.div>
@@ -93,13 +93,13 @@ export function ReservationModal({
               whileTap={{ scale: 0.98 }}
             >
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block">
-                <Button variant="outline" className="w-full h-20 bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-green-500/50 text-white rounded-2xl flex items-center justify-between px-8 group transition-all">
+                <Button variant="outline" className="w-full h-20 bg-foreground/5 dark:bg-white/[0.03] border-border dark:border-white/5 hover:bg-accent dark:hover:bg-white/[0.08] hover:border-green-500/50 text-foreground dark:text-white rounded-2xl flex items-center justify-between px-8 group transition-all">
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Reserva Express</span>
-                    <span className="text-xl font-black tracking-tight italic text-green-400 leading-tight">WHATSAPP</span>
-                    <span className="text-[10px] font-black tracking-widest text-green-400/60">{formatPhoneNumber(whatsappNumber)}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/60">Reserva Express</span>
+                    <span className="text-xl font-black tracking-tight italic text-green-600 dark:text-green-400 leading-tight">WHATSAPP</span>
+                    <span className="text-[10px] font-black tracking-widest text-green-600/90 dark:text-green-400/90">{formatPhoneNumber(whatsappNumber)}</span>
                   </div>
-                  <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500 group-hover:text-black transition-all">
+                  <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500 group-hover:text-primary-foreground transition-all">
                     <MessageCircle className="h-6 w-6" />
                   </div>
                 </Button>
@@ -108,19 +108,19 @@ export function ReservationModal({
 
             {/* Badges/Info */}
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/30">
+              <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/50">
                 <Clock className="h-4 w-4 text-primary" />
                 Atención 24/7
               </div>
-              <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/30">
+              <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/50">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 100% Discreto
               </div>
             </div>
           </div>
 
-          <div className="mt-10 pt-4 text-center border-t border-white/5 relative z-10">
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Motel Tres Hermanos - Exclusividad Sin Límites</p>
+          <div className="mt-10 pt-4 text-center border-t border-border dark:border-white/5 relative z-10">
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground dark:text-white/40">Motel Tres Hermanos - Exclusividad Sin Límites</p>
           </div>
         </div>
       </DialogContent>

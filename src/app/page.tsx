@@ -33,6 +33,7 @@ import {
 import AppLogo from '@/components/AppLogo';
 import { Button } from '@/components/ui/button';
 import { ReservationModal } from '@/components/ReservationModal';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDoc, useFirebase, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, query, collection, orderBy, where } from 'firebase/firestore';
 import type { LandingPageContent, RoomType } from '@/types';
@@ -80,6 +81,15 @@ export default function LandingPage() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [activeAmenityIndex, setActiveAmenityIndex] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!api) return;
@@ -195,29 +205,32 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-primary/30 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground dark:bg-[#0a0a0a] dark:text-white selection:bg-primary/30 selection:text-white overflow-x-hidden transition-colors duration-300">
       {/* Navbar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/5">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-background/80 backdrop-blur-xl py-4 border-b border-border shadow-lg' : 'bg-transparent py-8'}`}>
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group" id="landing-logo">
-            <div className="bg-primary/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-              <AppLogo className="h-7 w-7 text-primary" />
+            <div className="relative">
+              <AppLogo className="h-10 w-10 text-primary transition-transform group-hover:scale-110" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform" />
             </div>
-            <span className="text-xl font-black tracking-tighter uppercase italic">Motel Tres Hermanos</span>
+            <span className={`text-2xl font-black tracking-tighter uppercase italic transition-colors ${isScrolled ? 'text-foreground' : 'text-white shadow-sm'}`}>Motel Tres Hermanos</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-sm font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors" id="landing-nav-features">Características</Link>
-            <Link href="#pricing" className="text-sm font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors" id="landing-nav-pricing">Tarifas</Link>
-            <Link href="#gallery" className="text-sm font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors" id="landing-nav-gallery">Galería</Link>
-            <Link href="#contact" className="text-sm font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors" id="landing-nav-contact">Contacto</Link>
+            <Link href="#features" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-features">Características</Link>
+            <Link href="#pricing" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-pricing">Tarifas</Link>
+            <Link href="#gallery" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-gallery">Galería</Link>
+            <Link href="#contact" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-contact">Contacto</Link>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <Link href={user ? "/dashboard" : "/login"} id="landing-hero-auth-personal">
-              <Button variant="ghost" className="text-sm font-black uppercase tracking-widest text-white/90 hover:text-white hover:bg-white/5 h-12 px-6 rounded-2xl border border-white/5">
-                {user ? "Dashboard" : "Acceso Personal"}
-              </Button>
+          <div className="flex items-center gap-8">
+            <ThemeToggle className={isScrolled ? 'text-foreground' : 'text-white hover:bg-white/10'} />
+            <Link 
+              href="/dashboard" 
+              className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-foreground/60 hover:text-foreground' : 'text-white/80 hover:text-white'}`}
+            >
+              Dashboard
             </Link>
           </div>
         </div>
@@ -226,44 +239,38 @@ export default function LandingPage() {
       <main>
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
-          <div className="absolute inset-0 z-0 scale-110">
+          <div className="absolute inset-0 z-0 scale-110 bg-[#0a0a0a]">
             <Image
               src="/motel_exterior_night_1773958134736.png"
               alt="Motel Exterior"
               fill
-              className="object-cover opacity-40 brightness-75"
+              className="object-cover opacity-80 brightness-90 transition-opacity duration-1000"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-[#0a0a0a]/80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
           </div>
 
           <div className="container mx-auto px-6 relative z-10 text-center">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1 }}
-              className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full mb-8 backdrop-blur-sm"
-            >
-              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em]">El Estándar del Placer y Privacidad</span>
-            </motion.div>
-
-            <motion.h1
-              {...fadeInUp}
-              className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9] italic uppercase overflow-visible"
-            >
-              Exclusividad <br />
-              <span className="inline-block pr-8 text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-primary">Sin Límites</span>
-            </motion.h1>
-
-            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-              className="max-w-2xl mx-auto text-white/60 text-lg md:text-xl font-medium mb-12"
+              transition={{ duration: 0.8 }}
+              className="max-w-4xl mx-auto"
             >
-              Experimente la discreción absoluta y el confort premium en el motel más sofisticado de la región. Diseñado para quienes no aceptan menos que la perfección.
-            </motion.p>
+              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-8">
+                <Star className="h-4 w-4 text-primary fill-primary" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">El Estándar del Placer y Privacidad</span>
+              </div>
+              
+              <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase mb-6 leading-[0.9] text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                Exclusividad <br />
+                <span className="text-primary italic">Sin Límites</span>
+              </h1>
+              
+              <p className="text-lg md:text-xl text-white/90 font-medium max-w-2xl mx-auto mb-10 leading-relaxed balance drop-shadow-md">
+                Experimente la discreción absoluta y el confort premium en el motel más sofisticado de la región. Diseñado para quienes no aceptan menos que la perfección.
+              </p>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -280,7 +287,7 @@ export default function LandingPage() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
               <Link href="#gallery" id="landing-hero-btn-gallery">
-                <Button size="lg" variant="outline" className="bg-white/[0.03] border-white/10 hover:bg-white/[0.08] text-white text-xs font-black uppercase tracking-widest h-16 px-12 rounded-[2rem] backdrop-blur-md">
+                <Button size="lg" variant="outline" className="bg-accent/50 dark:bg-white/[0.03] border-input dark:border-white/10 hover:bg-accent dark:hover:bg-white/[0.08] text-foreground dark:text-white text-xs font-black uppercase tracking-widest h-16 px-12 rounded-[2rem] backdrop-blur-md">
                   Ver Galería
                 </Button>
               </Link>
@@ -294,7 +301,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features section */}
-        <section id="features" className="py-16 bg-[#0c0c0c] relative">
+        <section id="features" className="py-16 bg-muted/30 dark:bg-[#0c0c0c] relative">
           <div className="container mx-auto px-6">
             <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-8">
               <div className="max-w-2xl">
@@ -303,7 +310,7 @@ export default function LandingPage() {
                   <span className="text-primary italic">{featuresTitle2}</span>
                 </h2>
                 <div className="max-w-xl">
-                  <p className="text-white/50 text-xl font-medium leading-relaxed">
+                  <p className="text-muted-foreground dark:text-white/50 text-xl font-medium leading-relaxed">
                     {featuresDesc}
                   </p>
                 </div>
@@ -324,13 +331,13 @@ export default function LandingPage() {
                   <motion.div
                     key={feature.id || i}
                     variants={fadeInUp}
-                    className="p-10 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:border-primary/30 hover:bg-white/[0.05] transition-all group"
+                    className="p-10 rounded-[2rem] bg-card dark:bg-white/[0.03] border border-border dark:border-white/5 hover:border-primary/30 hover:bg-accent dark:hover:bg-white/[0.05] transition-all group shadow-sm hover:shadow-xl dark:shadow-none"
                   >
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
                       <Icon className="h-8 w-8 text-primary" />
                     </div>
                     <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-4">{feature.title}</h3>
-                    <p className="text-white/40 leading-relaxed font-medium">{feature.description}</p>
+                    <p className="text-muted-foreground dark:text-white/40 leading-relaxed font-medium">{feature.description}</p>
                   </motion.div>
                 );
               })}
@@ -339,11 +346,11 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing/Room Plans Section */}
-        <section id="pricing" className="py-16 bg-[#0c0c0c] relative">
+        <section id="pricing" className="py-16 bg-muted/30 dark:bg-[#0c0c0c] relative">
           <div className="container mx-auto px-6">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase mb-6">Nuestras <span className="text-primary">Tarifas</span></h2>
-              <p className="text-white/50 text-xl max-w-2xl mx-auto">Planes flexibles diseñados para su comodidad y privacidad. Elija la opción que mejor se adapte a su momento.</p>
+              <p className="text-muted-foreground dark:text-white/50 text-xl max-w-2xl mx-auto">Planes flexibles diseñados para su comodidad y privacidad. Elija la opción que mejor se adapte a su momento.</p>
             </div>
 
             <div className="max-w-6xl mx-auto px-4">
@@ -370,7 +377,7 @@ export default function LandingPage() {
                           className={`relative w-full p-8 md:p-10 rounded-[2.5rem] border transition-all duration-500 flex flex-col ${
                             isHighlighted 
                               ? 'border-primary bg-primary/[0.07] shadow-[0_0_50px_-12px_rgba(179,153,255,0.3)] scale-105 z-10' 
-                              : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] opacity-80 scale-95'
+                              : 'border-border dark:border-white/5 bg-card dark:bg-white/[0.02] hover:bg-accent dark:hover:bg-white/[0.04] scale-95 shadow-sm dark:shadow-none'
                           }`}
                         >
                           {isHighlighted && (
@@ -383,25 +390,25 @@ export default function LandingPage() {
                           
                           <div className="flex flex-col gap-1 mb-8">
                             <span className="text-4xl md:text-5xl font-black">{tier.price}</span>
-                            <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-white/5 py-1 px-3 rounded-md w-fit border border-white/5">
+                            <span className="text-muted-foreground dark:text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-foreground/5 dark:bg-white/5 py-1 px-3 rounded-md w-fit border border-border dark:border-white/5">
                               {tier.period}
                             </span>
                           </div>
 
                           <div className="space-y-4 mb-10 flex-grow">
                             {tier.features.map((feat, j) => (
-                              <div key={j} className="flex items-center gap-3 text-white/60 text-sm font-medium">
+                              <div key={j} className="flex items-center gap-3 text-muted-foreground dark:text-white/60 text-sm font-medium">
                                 <Star className="h-3 w-3 text-primary fill-primary" />
                                 {feat}
                                 </div>
                             ))}
                           </div>
 
-                          <div className="space-y-3 pt-8 border-t border-white/5 mt-auto">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 block mb-2">Planes Disponibles</span>
+                          <div className="space-y-3 pt-8 border-t border-border dark:border-white/5 mt-auto">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/30 block mb-2">Planes Disponibles</span>
                             {(tier.plans || []).map((plan, k) => (
-                              <div key={k} className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/5 group hover:border-primary/50 transition-colors">
-                                <span className="text-xs font-bold text-white/80">{plan.label}</span>
+                              <div key={k} className="flex justify-between items-center bg-foreground/5 dark:bg-white/[0.03] p-3 rounded-xl border border-border dark:border-white/5 group hover:border-primary/50 transition-colors">
+                                <span className="text-xs font-bold text-foreground/80 dark:text-white/80">{plan.label}</span>
                                 <span className="text-xs font-black text-primary">{plan.price}</span>
                               </div>
                             ))}
@@ -411,8 +418,8 @@ export default function LandingPage() {
                             onClick={() => setIsReservationModalOpen(true)}
                             className={`w-full mt-10 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] ${
                               isHighlighted 
-                                ? 'bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20' 
-                                : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
+                                ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20' 
+                                : 'bg-background hover:bg-accent text-foreground border border-border dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10'
                             }`}
                           >
                             Consultar Disponibilidad
@@ -494,8 +501,8 @@ export default function LandingPage() {
                     onMouseEnter={() => setActiveAmenityIndex(i)}
                   >
                     <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-2xl font-black border border-primary/10 transition-all duration-300 ${activeAmenityIndex === i ? 'bg-primary text-black scale-110' : 'bg-primary/20 text-primary group-hover:bg-primary/30'}`}>0{i + 1}</span>
-                    <h5 className={`text-xl font-bold uppercase tracking-tight transition-colors ${activeAmenityIndex === i ? 'text-primary' : 'text-white'}`}>{amenity.title}</h5>
-                    <p className={`text-sm transition-colors ${activeAmenityIndex === i ? 'text-white/80' : 'text-white/50'}`}>{amenity.description}</p>
+                    <h5 className={`text-xl font-bold uppercase tracking-tight transition-colors ${activeAmenityIndex === i ? 'text-primary' : 'text-foreground dark:text-white'}`}>{amenity.title}</h5>
+                    <p className={`text-sm transition-colors ${activeAmenityIndex === i ? 'text-foreground/80 dark:text-white/80' : 'text-muted-foreground dark:text-white/50'}`}>{amenity.description}</p>
                   </div>
                 ))}
               </div>
@@ -504,7 +511,7 @@ export default function LandingPage() {
         </section>
 
         {/* Gallery section Placeholder */}
-        <section id="gallery" className="py-16 bg-[#080808]">
+        <section id="gallery" className="py-16 bg-background dark:bg-[#080808]">
           <div className="container mx-auto px-6">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase mb-6">{galleryTitle1} <span className="text-primary">{galleryTitle2}</span></h2>
@@ -554,7 +561,7 @@ export default function LandingPage() {
         <section className="py-16 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary opacity-5 mix-blend-overlay" />
           <div className="container mx-auto px-6 relative z-10">
-            <div className="bg-gradient-to-br from-white/10 to-transparent border border-white/10 p-12 md:p-24 rounded-[4rem] text-center backdrop-blur-xl">
+            <div className="bg-gradient-to-br from-foreground/5 dark:from-white/10 to-transparent border border-border dark:border-white/10 p-12 md:p-24 rounded-[4rem] text-center backdrop-blur-xl">
               <h2 className="text-4xl md:text-7xl font-black tracking-tighter italic uppercase mb-10 leading-none">
                 ¿Listo para una <br /> <span className="text-primary">Experiencia Inolvidable?</span>
               </h2>
@@ -562,9 +569,9 @@ export default function LandingPage() {
                 <Button
                   onClick={() => setIsReservationModalOpen(true)}
                   size="lg"
-                  className="h-16 px-12 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/40 group text-black"
+                  className="h-16 px-12 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/40 group text-primary-foreground"
                 >
-                  Hacer mi Reserva <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform text-black" />
+                  Hacer mi Reserva <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <div className="flex items-center gap-4">
                   <div className="flex -space-x-4">
@@ -576,7 +583,7 @@ export default function LandingPage() {
                   </div>
                   <div className="text-left">
                     <div className="font-bold text-sm">Más de 5,000 visitas</div>
-                    <div className="text-[10px] text-white/40 font-black uppercase tracking-widest flex items-center gap-1">
+                    <div className="text-[10px] text-foreground/60 dark:text-white/40 font-black uppercase tracking-widest flex items-center gap-1">
                       Privacidad Garantizada <ShieldCheck className="h-3 w-3 text-green-500" />
                     </div>
                   </div>
@@ -588,14 +595,14 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer id="contact" className="py-20 border-t border-white/5 bg-black">
+      <footer id="contact" className="py-20 border-t border-border dark:border-white/5 bg-background dark:bg-black transition-colors">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.5fr_0.8fr_1.5fr] gap-16 md:gap-24">
           <div className="space-y-8">
             <Link href="/" className="flex items-center gap-3">
               <AppLogo className="h-8 w-8 text-primary" />
               <span className="text-xl font-black tracking-tighter uppercase italic">Motel Tres Hermanos</span>
             </Link>
-            <p className="text-white/40 font-medium leading-relaxed max-w-sm">
+            <p className="text-muted-foreground dark:text-white/40 font-medium leading-relaxed max-w-sm">
               {footerDescription}
             </p>
             <div className="flex gap-4">
@@ -606,9 +613,9 @@ export default function LandingPage() {
                     key={index} 
                     href={social.url} 
                     target="_blank"
-                    className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg group"
+                    className="w-12 h-12 rounded-full border border-border dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg group"
                   >
-                    <Icon className="h-5 w-5 group-hover:text-black transition-colors" />
+                    <Icon className="h-5 w-5 text-foreground group-hover:text-primary-foreground transition-colors dark:text-white dark:group-hover:text-black" />
                   </Link>
                 );
               })}
@@ -616,22 +623,22 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white/30">Navegación</h4>
+            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground dark:text-white/30">Navegación</h4>
             <ul className="space-y-4">
-              <li><Link href="/" className="text-white/60 hover:text-white transition-colors">Inicio</Link></li>
-              <li><Link href="#features" className="text-white/60 hover:text-white transition-colors">Habitaciones</Link></li>
-              <li><Link href="#gallery" className="text-white/60 hover:text-white transition-colors">Galería</Link></li>
-              <li><Link href={user ? "/dashboard" : "/login"} className="text-white/60 hover:text-white transition-colors">{user ? "Dashboard" : "Personal"}</Link></li>
+              <li><Link href="/" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Inicio</Link></li>
+              <li><Link href="#features" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Habitaciones</Link></li>
+              <li><Link href="#gallery" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Galería</Link></li>
+              <li><Link href={user ? "/dashboard" : "/login"} className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">{user ? "Dashboard" : "Personal"}</Link></li>
             </ul>
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white/30">Ubicación</h4>
-            <p className="text-white/60 flex items-start gap-4">
+            <h4 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground dark:text-white/30">Ubicación</h4>
+            <p className="text-muted-foreground dark:text-white/60 flex items-start gap-4">
               <MapPin className="h-5 w-5 text-primary shrink-0" />
               {footerAddress}
             </p>
-            <a href={`tel:${footerPhone.replace(/\s+/g, '')}`} className="text-white/60 flex items-center gap-4 hover:text-primary transition-colors group">
+            <a href={`tel:${footerPhone.replace(/\s+/g, '')}`} className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-primary transition-colors group">
               <Phone className="h-5 w-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
               {formatPhoneNumber(footerPhone)}
             </a>
@@ -640,7 +647,7 @@ export default function LandingPage() {
                 href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-white/60 flex items-center gap-4 hover:text-green-500 transition-colors group"
+                className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-green-500 transition-colors group"
               >
                 <div className="w-5 h-5 flex items-center justify-center shrink-0">
                   <MessageCircle className="h-5 w-5 text-green-500 group-hover:scale-110 transition-transform" />
@@ -650,13 +657,13 @@ export default function LandingPage() {
             )}
             
             <div className="pt-4 flex flex-col gap-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Cómo llegar:</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/30 mb-1">Cómo llegar:</p>
               <div className="flex gap-3">
                 <a 
                   href={googleMapsUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex-1 h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-white/20 transition-all group backdrop-blur-sm"
+                  className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm"
                 >
                   <MapIcon className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" /> Google Maps
                 </a>
@@ -665,7 +672,7 @@ export default function LandingPage() {
                     href={wazeUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex-1 h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-white/20 transition-all group backdrop-blur-sm"
+                    className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm"
                   >
                     <Navigation className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" /> Waze
                   </a>
@@ -674,7 +681,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="mt-20 pt-10 border-t border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-white/20">
+        <div className="mt-20 pt-10 border-t border-border dark:border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground dark:text-white/20">
           © 2026 Motel Tres Hermanos - Todos los derechos reservados.
         </div>
       </footer>
