@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BedDouble, Bell, Percent, BookCopy, Building, ShieldCheck } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, ShieldCheck, Layout } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -74,6 +74,17 @@ export default function SettingsPage() {
                 <CardContent>
                     <Link href="/settings/verification" id="page-link-settings-verification">
                         <Button id="page-button-configurar">Configurar</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl"><Layout /> Administración de Contenido</CardTitle>
+                    <CardDescription>Gestione los textos e información de la Página de Inicio.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/landing-page" id="page-link-settings-landing-page">
+                        <Button id="page-button-gestionar-cms">Gestionar</Button>
                     </Link>
                 </CardContent>
             </Card>

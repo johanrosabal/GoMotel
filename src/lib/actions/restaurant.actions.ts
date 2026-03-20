@@ -741,3 +741,21 @@ export async function cancelOrderItem(orderId: string, itemId: string) {
         return { error: e.message || "Error al cancelar producto." };
     }
 }
+
+/**
+ * Marks a paid takeout order as handed over to the client.
+ */
+export async function completeTakeoutOrder(orderId: string) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, { 
+            status: 'Completado',
+            completedAt: Timestamp.now()
+        });
+        revalidatePath('/pos');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Complete takeout order error:", e);
+        return { error: e.message || "Error al completar pedido." };
+    }
+}

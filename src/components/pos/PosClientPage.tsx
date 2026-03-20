@@ -3,10 +3,10 @@
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, onSnapshot, or, and } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder, completeTakeoutOrder } from '@/lib/actions/restaurant.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
     Search, ShoppingCart, Plus, Minus, 
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -152,7 +152,16 @@ export default function PosClientPage() {
 
     // FIX: Active orders query should be reactive and listen to ALL location changes
     const unpaidOrdersQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'orders'), where('paymentStatus', '==', 'Pendiente')) : null, 
+        firestore ? query(
+            collection(firestore, 'orders'), 
+            or(
+                where('paymentStatus', '==', 'Pendiente'),
+                and(
+                    where('locationType', '==', 'Takeout'),
+                    where('status', 'in', ['Pendiente', 'En preparación', 'Entregado'])
+                )
+            )
+        ) : null, 
         [firestore]
     );
     const { data: activeOrders } = useCollection<Order>(unpaidOrdersQuery);
@@ -493,6 +502,17 @@ export default function PosClientPage() {
         });
     };
 
+    const handleCompleteTakeout = (orderId: string) => {
+        startTransition(async () => {
+            const result = await completeTakeoutOrder(orderId);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Pedido entregado', description: 'El pedido ha sido completado con éxito.' });
+            }
+        });
+    };
+
     const getTypeIcon = (type: string) => {
         if (type === 'Table') return Utensils;
         if (type === 'Bar') return Beer;
@@ -777,6 +797,71 @@ export default function PosClientPage() {
                                         </div>
                                         <ScrollBar orientation="horizontal" />
                                     </ScrollArea>
+                                </div>
+                            )}
+
+                            {viewMode === 'fast' && activeOrders && activeOrders.some(o => o.locationType === 'Takeout' && o.status !== 'Completado' && o.status !== 'Cancelado') && (
+                                <div className="px-4 pt-4 shrink-0 animate-in fade-in slide-in-from-top-2 duration-500">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3 flex items-center gap-2">
+                                        <Package className="h-3.5 w-3.5" /> Pedidos para Llevar en Proceso
+                                    </h3>
+                                    <ScrollArea className="w-full whitespace-nowrap pb-2">
+                                        <div className="flex gap-3 px-1">
+                                            {activeOrders
+                                                .filter(o => o.locationType === 'Takeout' && o.status !== 'Completado' && o.status !== 'Cancelado')
+                                                .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+                                                .map(order => (
+                                                    <div key={order.id} className="min-w-[280px] bg-background border-2 shadow-sm rounded-2xl overflow-hidden shrink-0 transition-all hover:border-primary/30">
+                                                        <div className="p-3 bg-muted/30 border-b flex items-center justify-between">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[11px] font-black uppercase truncate max-w-[150px]">{order.label}</span>
+                                                                <span className="text-[9px] font-bold text-muted-foreground uppercase">Ticket: {order.id.slice(-5).toUpperCase()}</span>
+                                                            </div>
+                                                            <Badge 
+                                                                className={cn(
+                                                                    "text-[9px] font-black uppercase px-2 h-5 border-none",
+                                                                    order.status === 'Entregado' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-primary/20 text-primary"
+                                                                )}
+                                                            >
+                                                                {order.status === 'Entregado' ? 'LISTO' : order.status}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="p-3 space-y-3">
+                                                            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tighter">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", order.kitchenStatus === 'Entregado' ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
+                                                                    <span className="text-muted-foreground/60">Cocina:</span>
+                                                                    <span className={order.kitchenStatus === 'Entregado' ? "text-green-600" : "text-orange-600"}>{order.kitchenStatus || 'N/A'}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", order.barStatus === 'Entregado' ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
+                                                                    <span className="text-muted-foreground/60">Bar:</span>
+                                                                    <span className={order.barStatus === 'Entregado' ? "text-green-600" : "text-orange-600"}>{order.barStatus || 'N/A'}</span>
+                                                                </div>
+                                                            </div>
+                                                            {order.status === 'Entregado' ? (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-[10px] uppercase h-9 rounded-xl shadow-lg shadow-green-600/20 animate-in zoom-in-95"
+                                                                    onClick={() => handleCompleteTakeout(order.id)}
+                                                                    disabled={isPending}
+                                                                >
+                                                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Entregar al Cliente
+                                                                </Button>
+                                                            ) : (
+                                                                <div className="h-9 flex items-center justify-center bg-primary/5 rounded-xl border border-primary/10">
+                                                                    <Clock className="h-3.5 w-3.5 mr-2 text-primary animate-pulse" />
+                                                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Preparando...</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                        <ScrollBar orientation="horizontal" />
+                                    </ScrollArea>
+                                    <Separator className="mt-4" />
                                 </div>
                             )}
 

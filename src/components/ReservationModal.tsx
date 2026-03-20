@@ -22,13 +22,30 @@ import { motion } from 'framer-motion';
 interface ReservationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  phoneNumber?: string;
+  whatsappNumber?: string;
 }
 
-export function ReservationModal({ isOpen, onOpenChange }: ReservationModalProps) {
-  const phoneNumber = "+506 2222-2222";
-  const whatsappNumber = "50622222222"; // Strip formatting for link
+export function ReservationModal({ 
+  isOpen, 
+  onOpenChange,
+  phoneNumber = "+506 2222-2222",
+  whatsappNumber = "+506 8888-8888"
+}: ReservationModalProps) {
+  const whatsappClean = whatsappNumber.replace(/[^0-9]/g, '');
   const whatsappMessage = encodeURIComponent("Hola, me gustaría consultar disponibilidad para una habitación.");
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+  const whatsappLink = `https://wa.me/${whatsappClean}?text=${whatsappMessage}`;
+
+  const formatPhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 8) {
+      return `+ (506) ${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
+    }
+    if (cleaned.length === 11 && cleaned.startsWith('506')) {
+      return `+ (506) ${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
+    }
+    return phone;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -58,9 +75,9 @@ export function ReservationModal({ isOpen, onOpenChange }: ReservationModalProps
             >
               <a href={`tel:${phoneNumber}`} className="block">
                 <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-black rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative">
-                  <div className="flex flex-col items-start relative z-10">
+                  <div className="flex flex-col items-start relative z-10 text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Llamada Directa</span>
-                    <span className="text-xl font-black tracking-tight italic">¡LLAMA AHORA!</span>
+                    <span className="text-xl font-black tracking-tight italic">¡{formatPhoneNumber(phoneNumber)}!</span>
                   </div>
                   <div className="w-12 h-12 bg-black/10 rounded-xl flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
                     <Phone className="h-6 w-6" />
@@ -77,9 +94,10 @@ export function ReservationModal({ isOpen, onOpenChange }: ReservationModalProps
             >
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="outline" className="w-full h-20 bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-green-500/50 text-white rounded-2xl flex items-center justify-between px-8 group transition-all">
-                  <div className="flex flex-col items-start">
+                  <div className="flex flex-col items-start text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Reserva Express</span>
-                    <span className="text-xl font-black tracking-tight italic text-green-400">WHATSAPP</span>
+                    <span className="text-xl font-black tracking-tight italic text-green-400 leading-tight">WHATSAPP</span>
+                    <span className="text-[10px] font-black tracking-widest text-green-400/60">{formatPhoneNumber(whatsappNumber)}</span>
                   </div>
                   <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500 group-hover:text-black transition-all">
                     <MessageCircle className="h-6 w-6" />

@@ -154,7 +154,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center overflow-x-hidden bg-[#050505] py-20">
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-x-hidden bg-[#050505] py-20 dark">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -192,8 +192,8 @@ export default function RegisterPage() {
                 </div>
                 <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Nueva Cuenta</h2>
              </div>
-             <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic mb-4">
-                Únete a la <span className="text-primary italic">Elite</span>
+             <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic mb-4 text-white">
+                Únete a la <span className="text-primary italic border-b-2 border-primary/30">Elite</span>
              </h1>
              <p className="text-white/40 text-sm font-medium">Complete el formulario para formar parte de nuestro equipo.</p>
           </div>
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Nombre</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Primer Apellido</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -244,7 +244,7 @@ export default function RegisterPage() {
                     <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Segundo Apellido (Opcional)</FormLabel>
                     <FormControl>
                       <div className="relative group">
-                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
                     </FormControl>
@@ -267,7 +267,7 @@ export default function RegisterPage() {
                             placeholder="0-0000-0000" 
                             {...field} 
                             onChange={(e) => handleIdCardChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
                           />
                           <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
@@ -370,7 +370,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Correo Electrónico</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" />
+                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -390,7 +390,7 @@ export default function RegisterPage() {
                             type={showPassword ? 'text' : 'password'} 
                             placeholder="••••••••" 
                             {...field} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" 
                           />
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                           <Button

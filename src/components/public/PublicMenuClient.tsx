@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Service, CompanyProfile } from '@/types';
@@ -9,20 +9,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Utensils, Beer, Star, Clock } from 'lucide-react';
+import { Utensils, Beer, Star, Clock, QrCode } from 'lucide-react';
+import AppLogo from '@/components/AppLogo';
 
 export default function PublicMenuClient() {
     const { firestore } = useFirebase();
-    const [currentIndex, setCurrentTypeIndex] = useState(0);
+    const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
-    const categories = ['Food', 'Beverage'];
+    const [origin, setOrigin] = useState('');
+
+    useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
 
     const servicesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'services'), where('isActive', '==', true));
+        return query(
+            collection(firestore, 'products'), 
+            where('isActive', '==', true),
+            where('isPublic', '==', true)
+        );
     }, [firestore]);
 
     const { data: allServices } = useCollection<Service>(servicesQuery);
+
+    const availableCategories = useMemo(() => {
+        if (!allServices) return [];
+        const cats = Array.from(new Set(allServices.map(s => s.category)));
+        return cats.sort((a, b) => {
+            if (a === 'Food') return -1;
+            if (b === 'Food') return 1;
+            return a.localeCompare(b);
+        });
+    }, [allServices]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -30,147 +49,233 @@ export default function PublicMenuClient() {
     }, []);
 
     useEffect(() => {
-        if (!allServices || allServices.length === 0) return;
+        if (availableCategories.length <= 1) return;
         const interval = setInterval(() => {
-            setCurrentTypeIndex((prev) => (prev + 1) % categories.length);
-        }, 8000); // Rotación cada 8 segundos
+            setCurrentCategoryIndex((prev) => (prev + 1) % availableCategories.length);
+        }, 15000); // 15 seconds per category for a relaxed look
         return () => clearInterval(interval);
-    }, [allServices]);
+    }, [availableCategories]);
 
-    const currentType = categories[currentIndex];
-    const filteredServices = allServices?.filter(s => s.category === currentType).slice(0, 6) || [];
-    const highlightedProduct = filteredServices[0];
+    const currentType = availableCategories[currentCategoryIndex] || 'Food';
+    const filteredServices = allServices?.filter(s => s.category === currentType) || [];
+    const featuredProduct = filteredServices.find(s => s.imageUrl) || filteredServices[0];
+    const listServices = filteredServices.filter(s => s.id !== featuredProduct?.id).slice(0, 7);
 
-    if (!allServices) return <div className="h-screen bg-black flex items-center justify-center text-white font-black text-4xl animate-pulse uppercase tracking-[0.3em]">Cargando Menú...</div>;
-
-    return (
-        <div className="h-screen w-full bg-[#0a0a0a] text-white overflow-hidden flex flex-col font-sans select-none">
-            {/* Header Publicitario */}
-            <div className="h-24 bg-gradient-to-b from-primary/20 to-transparent border-b border-white/5 flex items-center justify-between px-12 shrink-0">
-                <div className="flex items-center gap-6">
-                    <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-                        <Utensils className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-4xl font-black uppercase tracking-tighter leading-none italic">
-                            Delicias <span className="text-primary">Gourmet</span>
-                        </h1>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em] mt-1">Experiencia Gastronómica Exclusiva</p>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-8">
-                    <div className="text-right">
-                        <p className="text-3xl font-black tabular-nums tracking-tighter">{format(currentTime, 'HH:mm')}</p>
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{format(currentTime, 'EEEE dd MMMM', { locale: es })}</p>
+    if (!allServices) {
+        return (
+            <div className="h-screen bg-black flex items-center justify-center">
+                <div className="relative">
+                    <motion.div 
+                        animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="h-32 w-32 border-2 border-primary/30 rounded-full blur-md"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <AppLogo className="h-10 w-10 text-primary animate-pulse" />
                     </div>
                 </div>
             </div>
+        );
+    }
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden relative">
-                <AnimatePresence mode="wait">
-                    <motion.div 
-                        key={currentType}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.8, ease: "circOut" }}
-                        className="w-full flex h-full p-12 gap-12"
-                    >
-                        {/* Left: Featured Product (Cinematic Look) */}
-                        <div className="w-[45%] h-full relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 group">
-                            {highlightedProduct?.imageUrl ? (
-                                <motion.img 
-                                    key={highlightedProduct.id}
-                                    initial={{ scale: 1.2 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 10 }}
-                                    src={highlightedProduct.imageUrl} 
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <div className="h-full w-full bg-gradient-to-br from-primary/40 to-black flex items-center justify-center">
-                                    <Utensils className="h-32 w-32 opacity-10" />
-                                </div>
+    const categoryNames = {
+        'Food': 'Gastronomía',
+        'Beverage': 'Bebidas & Coctelería',
+        'Amenity': 'Servicios Especiales'
+    };
+
+    return (
+        <div className="h-screen w-full bg-slate-50 text-slate-900 overflow-hidden flex font-sans select-none relative">
+            {/* Background Layer: Fullscreen Ken Burns Image */}
+            <AnimatePresence mode="wait">
+                <motion.div 
+                    key={featuredProduct?.id || currentType}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 2 }}
+                    className="absolute inset-0 z-0"
+                >
+                    {featuredProduct?.imageUrl ? (
+                        <motion.img 
+                            initial={{ scale: 1, x: 0 }}
+                            animate={{ scale: 1.15, x: -20, y: -10 }}
+                            transition={{ duration: 20, ease: "linear" }}
+                            src={featuredProduct.imageUrl} 
+                            className="h-full w-full object-cover opacity-60"
+                            alt=""
+                        />
+                    ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-primary/20 via-slate-100 to-primary/5" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 via-transparent to-white/10" />
+                </motion.div>
+            </AnimatePresence>
+
+            {/* Content Layer */}
+            <div className="relative z-10 w-full h-full flex items-stretch">
+                {/* Left: Featured Product Info */}
+                <div className={cn(
+                    "flex flex-col justify-end p-24 pb-32 transition-all duration-1000 ease-in-out",
+                    listServices.length > 0 ? "w-[60%]" : "w-full items-center text-center"
+                )}>
+                    <AnimatePresence mode="wait">
+                        <motion.div 
+                            key={featuredProduct?.id}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                            className={cn(
+                                "w-full h-full flex flex-col transition-all duration-1000",
+                                listServices.length === 0 ? "justify-between max-w-none" : "justify-end max-w-3xl"
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                            <div className="absolute bottom-12 left-12 right-12 space-y-4">
-                                <Badge className="bg-primary text-white font-black px-4 py-1 text-xs uppercase tracking-widest mb-2">Recomendado</Badge>
-                                <h2 className="text-6xl font-black uppercase tracking-tighter leading-[0.9] drop-shadow-2xl">
-                                    {highlightedProduct?.name}
+                        >
+                            <div className={cn(
+                                "flex items-center gap-4 transition-all duration-1000",
+                                listServices.length === 0 ? "justify-center mt-8" : "mb-8"
+                            )}>
+                                <div className="h-1 w-12 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" />
+                                <span className={cn(
+                                    "font-black uppercase tracking-[0.5em] text-primary transition-all duration-1000",
+                                    listServices.length === 0 ? "text-2xl" : "text-sm"
+                                )}>
+                                    DESTACADO DEL DÍA
+                                </span>
+                                <div className={cn("h-1 w-12 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]", listServices.length > 0 && "hidden")} />
+                            </div>
+
+                            <div className={cn(
+                                "flex flex-col transition-all duration-1000 px-12 overflow-visible",
+                                listServices.length === 0 ? "flex-1 justify-center" : ""
+                            )}>
+                                <h2 className={cn(
+                                    "font-black leading-[0.9] tracking-tighter uppercase italic text-slate-900 transition-all duration-1000",
+                                    listServices.length > 0 
+                                        ? "text-8xl mb-8" 
+                                        : "text-[8vw] whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-primary via-slate-900 to-primary drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] py-4"
+                                )}>
+                                    {featuredProduct?.name}
                                 </h2>
-                                <p className="text-xl text-white/70 font-medium line-clamp-2 max-w-md">
-                                    {highlightedProduct?.description || "Preparado con ingredientes frescos del día para su deleite."}
+                            </div>
+
+                            <div className={cn(
+                                "flex flex-col transition-all duration-1000",
+                                listServices.length === 0 ? "mb-12" : ""
+                            )}>
+                                <p className={cn(
+                                    "text-xl font-medium text-slate-600 leading-relaxed mb-12 max-w-2xl transition-all duration-1000",
+                                    listServices.length > 0 ? "border-l-4 border-primary/40 pl-8" : "mx-auto text-2xl"
+                                )}>
+                                    {featuredProduct?.description || "Una selección excepcional creada para deleitar sus sentidos con los mejores ingredientes."}
                                 </p>
-                                <div className="text-5xl font-black text-primary tracking-tighter mt-4">
-                                    {formatCurrency(highlightedProduct?.price || 0)}
+                                <div className={cn("flex", listServices.length === 0 ? "justify-center" : "")}>
+                                    <div className="inline-flex items-center gap-8 bg-white/40 backdrop-blur-md border border-black/5 p-2 rounded-[2.5rem] pr-12 shadow-xl shadow-black/5">
+                                        <div className="bg-primary text-white px-10 py-6 rounded-[2rem] text-5xl font-black italic tracking-tighter shadow-lg shadow-primary/20">
+                                            {formatCurrency(featuredProduct?.price || 0)}
+                                        </div>
+                                        <div className="flex flex-col text-left">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Precio Final</span>
+                                            <span className="text-sm font-bold text-primary italic uppercase tracking-widest">Incluye Impuestos</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
 
-                        {/* Right: Menu List */}
-                        <div className="flex-1 flex flex-col justify-center space-y-10 pl-6">
-                            <div className="flex items-center gap-4 mb-4">
-                                {currentType === 'Food' ? <Utensils className="h-10 w-10 text-primary" /> : <Beer className="h-10 w-10 text-primary" />}
-                                <h3 className="text-5xl font-black uppercase tracking-tighter">
-                                    {currentType === 'Food' ? 'Nuestra Cocina' : 'Bar & Bebidas'}
+                {/* Right: Floating Menu Panel */}
+                <AnimatePresence>
+                    {listServices.length > 0 && (
+                        <div className="w-[40%] h-full p-12 pr-16 flex flex-col justify-center">
+                            <motion.div 
+                                initial={{ x: 100, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: 100, opacity: 0 }}
+                                transition={{ duration: 1.2, ease: "circOut" }}
+                                className="bg-white/80 backdrop-blur-[40px] border border-black/5 rounded-[4rem] h-full flex flex-col overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.05)]"
+                            >
+                        {/* Panel Header */}
+                        <div className="p-16 pb-8 flex items-center justify-between border-b border-black/5">
+                            <div>
+                                <div className="text-[10px] font-black text-primary uppercase tracking-[0.6em] mb-2 italic">Menú Gourmet</div>
+                                <h3 className="text-4xl font-black uppercase tracking-tighter italic text-slate-900">
+                                    {categoryNames[currentType as keyof typeof categoryNames] || currentType}
                                 </h3>
                             </div>
+                            <AppLogo className="h-10 w-10 text-primary opacity-20" />
+                        </div>
 
-                            <div className="space-y-8">
-                                {filteredServices.map((s, idx) => (
-                                    <motion.div 
-                                        key={s.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.1 }}
-                                        className="flex justify-between items-end border-b border-white/10 pb-4 group"
-                                    >
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-2xl font-black uppercase tracking-tight group-hover:text-primary transition-colors">{s.name}</span>
-                                                {idx === 0 && <Star className="h-4 w-4 fill-primary text-primary animate-pulse" />}
-                                            </div>
-                                            <p className="text-sm text-white/40 uppercase font-bold tracking-widest">{s.description || 'Especialidad de la casa'}</p>
+                        {/* List Items */}
+                        <div className="flex-1 p-16 space-y-12 overflow-hidden">
+                            <AnimatePresence mode="wait">
+                                <motion.div 
+                                    key={currentType}
+                                    className="space-y-10"
+                                >
+                                    {listServices.length > 0 ? (
+                                        listServices.map((s: Service, idx: number) => (
+                                            <motion.div 
+                                                key={s.id}
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: 0.1 * idx, duration: 0.8 }}
+                                                className="flex justify-between items-start group"
+                                            >
+                                                <div className="space-y-1">
+                                                    <span className="text-2xl font-black uppercase tracking-tight text-slate-800 group-hover:text-primary transition-colors duration-300 block italic">{s.name}</span>
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block">{s.description || "Especialidad"}</span>
+                                                </div>
+                                                <div className="text-2xl font-black tabular-nums tracking-tighter text-slate-600 group-hover:text-primary transition-colors">
+                                                    {formatCurrency(s.price)}
+                                                </div>
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center pt-8 opacity-10">
+                                            <Star className="h-24 w-24 text-primary" />
                                         </div>
-                                        <div className="text-3xl font-black tabular-nums tracking-tighter text-primary/90">
-                                            {formatCurrency(s.price)}
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
 
-                            <div className="pt-12">
-                                <div className="bg-white/5 rounded-3xl p-8 border border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-6">
-                                        <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                                            <Clock className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">Servicio a la habitación</p>
-                                            <p className="text-xl font-bold uppercase">Disponible 24/7</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">Marque a extensión</p>
-                                        <p className="text-3xl font-black tracking-tighter">100</p>
-                                    </div>
+                        {/* Panel Footer - LIGHT THEME */}
+                        <div className="p-16 pt-8 border-t border-black/5 bg-slate-50/50">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <Clock className="h-5 w-5 text-primary" />
+                                    <span className="text-sm font-black uppercase tracking-widest text-slate-400">Disponible 24/7</span>
+                                </div>
+                                <div className="text-right leading-none">
+                                    <div className="text-[32px] font-black tabular-nums tracking-tighter text-slate-900">{format(currentTime, 'HH:mm')}</div>
+                                    <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">{format(currentTime, 'EEEE dd', { locale: es })}</div>
                                 </div>
                             </div>
+                            <div className="flex items-center justify-between p-8 bg-primary rounded-[2.5rem] text-white shadow-xl shadow-primary/20 border-t border-white/20">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none text-white/60 mb-1">Pedido Directo</span>
+                                    <span className="text-xl font-black uppercase italic leading-none">Llamar Habitación</span>
+                                </div>
+                                <div className="text-4xl font-black italic tracking-tighter">Ext. 100</div>
+                            </div>
                         </div>
-                    </motion.div>
+                            </motion.div>
+                        </div>
+                    )}
                 </AnimatePresence>
             </div>
 
-            {/* Footer / Progress Bar */}
-            <div className="h-2 bg-white/5 w-full">
+            {/* Bottom Global Progress Bar */}
+            <div className="absolute bottom-0 left-0 w-full h-2 bg-slate-200 z-50">
                 <motion.div 
                     key={currentType}
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
-                    transition={{ duration: 8, ease: "linear" }}
-                    className="h-full bg-primary"
+                    transition={{ duration: 15, ease: "linear" }}
+                    className="h-full bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]"
                 />
             </div>
         </div>
@@ -179,7 +284,7 @@ export default function PublicMenuClient() {
 
 function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
     return (
-        <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors", className)}>
+        <span className={cn("inline-flex items-center rounded-full px-4 py-1.5 text-xs font-black transition-colors", className)}>
             {children}
         </span>
     );

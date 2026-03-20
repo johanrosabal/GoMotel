@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Tag } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, MoreHorizontal, Tag, Globe, EyeOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,7 @@ import type { RoomType } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface RoomTypesTableProps {
   roomTypes: RoomType[];
@@ -58,6 +58,62 @@ function ActionsMenu({ roomType }: { roomType: RoomType }) {
 }
 
 export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof RoomType | 'featuresCount' | 'pricePlansCount';
+    direction: 'asc' | 'desc';
+  } | null>({ key: 'code', direction: 'asc' });
+
+  const sortedRoomTypes = useMemo(() => {
+    let sortableItems = [...roomTypes];
+    if (sortConfig !== null) {
+      sortableItems.sort((a: any, b: any) => {
+        let aValue: any;
+        let bValue: any;
+
+        if (sortConfig.key === 'featuresCount') {
+          aValue = a.features?.length || 0;
+          bValue = b.features?.length || 0;
+        } else if (sortConfig.key === 'pricePlansCount') {
+          aValue = a.pricePlans?.length || 0;
+          bValue = b.pricePlans?.length || 0;
+        } else {
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
+        }
+
+        if (aValue === undefined || aValue === null) aValue = '';
+        if (bValue === undefined || bValue === null) bValue = '';
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortConfig.direction === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [roomTypes, sortConfig]);
+
+  const requestSort = (key: keyof RoomType | 'featuresCount' | 'pricePlansCount') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === 'asc'
+    ) {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   if (roomTypes.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">
@@ -70,12 +126,17 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
     <>
         {/* Mobile & Tablet View: Card List */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:hidden">
-            {roomTypes.map((roomType) => (
+            {sortedRoomTypes.map((roomType) => (
                 <Card key={roomType.id} className="flex flex-col">
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div className="space-y-1.5">
-                                <CardTitle>{roomType.name}</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    {roomType.name}
+                                    {roomType.showOnLandingPage && (
+                                        <Globe className="h-3.5 w-3.5 text-emerald-500" title="Visible en Landing Page" />
+                                    )}
+                                </CardTitle>
                                 <CardDescription>Código: {roomType.code}</CardDescription>
                             </div>
                             <ActionsMenu roomType={roomType} />
@@ -129,17 +190,68 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px]">Código</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Características</TableHead>
-                <TableHead>Planes de Precios</TableHead>
+                <TableHead 
+                    className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => requestSort('code')}
+                >
+                    <div className="flex items-center gap-2">
+                        Código
+                        {sortConfig?.key === 'code' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />}
+                    </div>
+                </TableHead>
+                <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => requestSort('name')}
+                >
+                    <div className="flex items-center gap-2">
+                        Nombre
+                        {sortConfig?.key === 'name' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />}
+                    </div>
+                </TableHead>
+                <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => requestSort('featuresCount')}
+                >
+                    <div className="flex items-center gap-2">
+                        Características
+                        {sortConfig?.key === 'featuresCount' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />}
+                    </div>
+                </TableHead>
+                <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => requestSort('pricePlansCount')}
+                >
+                    <div className="flex items-center gap-2">
+                        Planes de Precios
+                        {sortConfig?.key === 'pricePlansCount' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />}
+                    </div>
+                </TableHead>
+                <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => requestSort('showOnLandingPage')}
+                >
+                    <div className="flex items-center gap-2">
+                        Landing Page
+                        {sortConfig?.key === 'showOnLandingPage' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/30" />}
+                    </div>
+                </TableHead>
                 <TableHead className="text-right w-[50px]">
                     <span className="sr-only">Acciones</span>
                 </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {roomTypes.map((roomType) => (
+                {sortedRoomTypes.map((roomType) => (
                 <TableRow key={roomType.id}>
                     <TableCell className="align-top"><Badge variant="outline">{roomType.code}</Badge></TableCell>
                     <TableCell className="font-medium align-top">{roomType.name}</TableCell>
@@ -169,6 +281,19 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                             </div>
                         ) : (
                             <div className="text-xs text-muted-foreground">N/A</div>
+                        )}
+                    </TableCell>
+                    <TableCell className="align-top">
+                        {roomType.showOnLandingPage ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20 gap-1.5 py-1">
+                                <Globe className="h-3 w-3" />
+                                Visible
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="text-muted-foreground gap-1.5 py-1 opacity-60">
+                                <EyeOff className="h-3 w-3" />
+                                Oculto
+                            </Badge>
                         )}
                     </TableCell>
                     <TableCell className="text-right align-top">

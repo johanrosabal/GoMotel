@@ -17,6 +17,7 @@ export interface RoomType {
   capacity: number;
   features?: string[];
   pricePlans?: PricePlan[];
+  showOnLandingPage?: boolean;
 }
 
 export interface Room {
@@ -141,7 +142,7 @@ export interface OrderItem {
   createdAt: Timestamp;
 }
 
-export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado';
+export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado' | 'Completado';
 
 export interface Order {
   id: string;
@@ -329,4 +330,51 @@ export interface CompanyProfile {
 export interface SystemSettings {
   id: 'system';
   verificationApiDomain: string;
+}
+
+export interface LandingPageFeature {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface LandingPageContent {
+  id: string; // 'main'
+  featuresSection: {
+    title1: string;
+    title2: string;
+    description: string;
+    features: LandingPageFeature[];
+  };
+  amenitiesSection?: {
+    title1: string;
+    title2: string;
+    amenities: {
+      id: string;
+      title: string;
+      description: string;
+      imageUrl?: string;
+    }[];
+  };
+  gallerySection?: {
+    title1: string;
+    title2: string;
+    images: {
+      id: string;
+      url: string;
+      alt?: string;
+    }[];
+  };
+  footerSection?: {
+    description: string;
+    address: string;
+    phone: string;
+    whatsapp?: string;
+    googleMapsUrl?: string;
+    socialMedia: {
+      platform: 'Facebook' | 'Instagram' | 'Twitter' | 'TikTok' | 'LinkedIn';
+      url: string;
+    }[];
+  };
 }

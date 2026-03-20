@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
@@ -47,6 +48,7 @@ const roomTypeSchema = z.object({
   capacity: z.coerce.number().int().min(1, 'La capacidad debe ser al menos 1.'),
   features: z.array(z.string()).optional(),
   pricePlans: z.array(pricePlanSchema).min(1, 'Debe agregar al menos un plan de precios.'),
+  showOnLandingPage: z.boolean().default(true),
 });
 
 const stringToNumber = (numString: string): number => {
@@ -92,6 +94,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
       capacity: 1,
       features: [],
       pricePlans: [],
+      showOnLandingPage: true,
     },
   });
 
@@ -265,6 +268,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
           capacity: values.capacity,
           features: values.features || [],
           pricePlans: values.pricePlans || [],
+          showOnLandingPage: values.showOnLandingPage,
         };
 
         if (roomType?.id) {
@@ -345,6 +349,27 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       )}
                   />
                   </div>
+
+                  <FormField
+                      control={form.control}
+                      name="showOnLandingPage"
+                      render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-primary/5 border-primary/20">
+                          <div className="space-y-0.5">
+                          <FormLabel className="text-base">Mostrar en Landing Page</FormLabel>
+                          <div className="text-sm text-muted-foreground italic">
+                              Habilita esta opción para que el tipo de habitación aparezca en el sitio público.
+                          </div>
+                          </div>
+                          <FormControl>
+                          <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange} id="roomtypeform-switch-1"
+                          />
+                          </FormControl>
+                      </FormItem>
+                      )}
+                  />
 
                   <Separator />
 

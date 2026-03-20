@@ -122,20 +122,38 @@ export async function createDirectSale(values: DirectSaleInput) {
 
             // Create Order for KDS
             const orderRef = doc(collection(db, 'orders'));
+            
+            let hasKitchen = false;
+            let hasBar = false;
+            for (const item of values.items) {
+                if (item.category === 'Food') hasKitchen = true;
+                if (item.category === 'Beverage') hasBar = true;
+            }
+
+            const needsPrep = hasKitchen || hasBar;
+
             transaction.set(orderRef, {
                 locationType: 'Takeout',
+                locationLabel: 'PARA LLEVAR',
                 label: values.clientName || 'Venta POS',
                 items: values.items.map(i => ({
+                    id: Math.random().toString(36).substring(2, 9),
                     serviceId: i.serviceId,
                     name: i.name,
                     quantity: i.quantity,
                     price: i.price,
                     category: i.category,
-                    notes: i.notes || null
+                    notes: i.notes || null,
+                    status: (i.category === 'Food' || i.category === 'Beverage') ? 'Pendiente' : 'Entregado',
+                    createdAt: Timestamp.now()
                 })),
+                subtotal: values.subtotal,
+                taxes: values.taxes,
                 total: values.total,
                 createdAt: Timestamp.now(),
-                status: 'Entregado',
+                status: needsPrep ? 'Pendiente' : 'Entregado',
+                kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+                barStatus: hasBar ? 'Pendiente' : 'Entregado',
                 paymentStatus: 'Pagado',
                 paymentMethod: values.paymentMethod,
                 invoiceId: invoiceIdForReturn,

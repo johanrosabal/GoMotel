@@ -85,7 +85,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden bg-[#050505]">
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden bg-[#050505] dark">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -123,8 +123,8 @@ export default function LoginPage() {
                 </div>
                 <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Personal Autorizado</h2>
              </div>
-             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic mb-4">
-                Bienvenido de <span className="text-primary italic">Vuelta</span>
+             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic mb-4 text-white">
+                Bienvenido de <span className="text-primary italic border-b-2 border-primary/30">Vuelta</span>
              </h1>
              <p className="text-white/40 text-sm font-medium">Ingrese sus credenciales para acceder al sistema.</p>
           </div>
@@ -142,7 +142,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="admin@gomotel.com"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
                         />
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
@@ -166,7 +166,7 @@ export default function LoginPage() {
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
                         />
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         <Button
