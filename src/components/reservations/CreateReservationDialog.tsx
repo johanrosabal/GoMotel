@@ -258,7 +258,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         let newCheckOutDate = new Date(baseDate);
         const { duration, unit } = plan;
         if (unit === 'Minutes') newCheckOutDate = addMinutes(newCheckOutDate, duration);
-        else if (unit === 'Hours') newCheckCheckOutDate = addHours(newCheckOutDate, duration);
+        else if (unit === 'Hours') newCheckOutDate = addHours(newCheckOutDate, duration);
         else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
         else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
         else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
