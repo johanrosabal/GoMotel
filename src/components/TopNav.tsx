@@ -24,6 +24,7 @@ export default function TopNav() {
     pathname === '/' || 
     pathname === '/login' || 
     pathname === '/register' || 
+    pathname === '/quienes-somos' || 
     pathname?.includes('/public/') || 
     pathname?.startsWith('/invoices/');
   

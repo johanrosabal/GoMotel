@@ -32,7 +32,8 @@ import {
   MessageCircle,
   X,
   Bell,
-  Eye
+  Eye,
+  Play
 } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
 import { Button } from '@/components/ui/button';
@@ -200,6 +201,12 @@ export default function LandingPage() {
 
   const galleryTitle1 = cmsContent?.gallerySection?.title1 || "EXPLORE";
   const galleryTitle2 = cmsContent?.gallerySection?.title2 || "LUJO";
+
+  const aboutPillText = cmsContent?.aboutSection?.pillText || "Nuestra Historia";
+  const aboutTitle1 = cmsContent?.aboutSection?.title1 || "MÁS DE 15 AÑOS DE";
+  const aboutTitle2 = cmsContent?.aboutSection?.title2 || "EXCELENCIA";
+  const aboutDesc = cmsContent?.aboutSection?.description || "Descubra por qué Hotel Du Manolo es el referente de privacidad y lujo en Costa Rica. Una historia construida sobre la pasión por los detalles y la discreción absoluta.";
+  const aboutBtnText = cmsContent?.aboutSection?.buttonText || "Conozca Quiénes Somos";
 
   const footerDescription = cmsContent?.footerSection?.description || "El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.";
   const footerAddress = cmsContent?.footerSection?.address || "San José, Costa Rica. Del cruce de Escazú 2km Sur.";
@@ -479,9 +486,11 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce opacity-70 z-20">
-            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white">Scroll</span>
-            <div className="w-[1px] h-6 bg-gradient-to-b from-white to-transparent" />
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20 pointer-events-none">
+            <div className="flex flex-col items-center gap-1 animate-bounce opacity-70">
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] pl-[0.4em] text-white">Scroll</span>
+              <div className="w-[1px] h-6 bg-gradient-to-b from-white to-transparent" />
+            </div>
           </div>
         </section>
 
@@ -819,6 +828,33 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </motion.div>
+          </div>
+        </section>
+        {/* Quiénes Somos Mini Hero Section */}
+        <section className="py-24 relative overflow-hidden bg-muted/20 dark:bg-[#0c0c0c]/80 border-t border-b border-border dark:border-white/5">
+          <div className="absolute inset-0 bg-[url('/hotel_du_manolo_hero.jpg')] bg-cover bg-center opacity-5 dark:opacity-10 mix-blend-luminosity pointer-events-none" />
+          <div className="container mx-auto px-6 relative z-10 text-center">
+            <div className="max-w-3xl mx-auto space-y-8">
+              <div className="inline-block px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{aboutPillText}</span>
+              </div>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-none">
+                {aboutTitle1} <br /> <span className="text-primary italic">{aboutTitle2}</span>
+              </h2>
+              <p className="text-muted-foreground dark:text-white/60 text-lg md:text-xl font-medium leading-relaxed">
+                {aboutDesc}
+              </p>
+              <div className="pt-4">
+                <Link href="/quienes-somos">
+                  <Button 
+                    size="lg" 
+                    className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-primary-foreground group"
+                  >
+                    {aboutBtnText} <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 

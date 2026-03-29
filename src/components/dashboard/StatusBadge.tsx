@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import type { RoomStatus } from '@/types';
 import { cn } from '@/lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Circle } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: RoomStatus;
@@ -10,10 +10,10 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<RoomStatus, string> = {
-  Available: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50',
-  Occupied: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50',
-  Cleaning: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50',
-  Maintenance: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50',
+  Available: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]',
+  Occupied: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.1)]',
+  Cleaning: 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]',
+  Maintenance: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20 shadow-[0_0_10px_rgba(232,121,249,0.1)]',
 };
 
 const statusMap: Record<RoomStatus, string> = {
@@ -27,8 +27,12 @@ export default function StatusBadge({ status, className, isOverdue = false }: St
   if (isOverdue) {
       return (
           <Badge
-            variant="destructive"
-            className={cn('font-semibold', className)}
+            variant="outline"
+            className={cn(
+              'font-black uppercase tracking-widest text-[9px] px-3 py-1 rounded-full',
+              'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse shadow-[0_0_15px_rgba(251,113,133,0.3)]',
+              className
+            )}
           >
             <AlertTriangle className="h-3 w-3 mr-1.5" />
             Vencida
@@ -39,8 +43,13 @@ export default function StatusBadge({ status, className, isOverdue = false }: St
   return (
     <Badge
       variant="outline"
-      className={cn('font-semibold', statusStyles[status], className)}
+      className={cn(
+        'font-black uppercase tracking-widest text-[9px] px-3 py-1 rounded-full items-center gap-1.5',
+        statusStyles[status],
+        className
+      )}
     >
+      <Circle className="h-1.5 w-1.5 fill-current animate-pulse" />
       {statusMap[status] || status}
     </Badge>
   );

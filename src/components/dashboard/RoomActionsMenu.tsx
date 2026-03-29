@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import type { Room } from '@/types';
-import { MoreHorizontal, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AddRoomDialog from './AddRoomDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function RoomActionsMenu({ room }: { room: Room }) {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -18,22 +18,28 @@ export default function RoomActionsMenu({ room }: { room: Room }) {
 
     return (
         <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleInteraction} id="roomactionsmenu-button-1">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menú de habitación</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={handleInteraction}>
-                    <DropdownMenuLabel>Acciones de Habitación</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
-                        <Edit className="mr-2 h-4 w-4" />
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-xl hover:bg-primary/20 hover:border-primary/50 text-white transition-all group" 
+                            onClick={(e) => {
+                                handleInteraction(e);
+                                setIsEditDialogOpen(true);
+                            }} 
+                            id="roomcard-edit-button"
+                        >
+                            <Edit className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+                            <span className="sr-only">Editar habitación</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-slate-900 border-white/10 text-white font-bold uppercase tracking-widest text-[10px]">
                         Editar Habitación
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
 
             <AddRoomDialog room={room} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
         </>

@@ -75,6 +75,13 @@ const landingPageContentSchema = z.object({
       thumbnailUrl: z.string().optional(),
     })).optional(),
   }).optional(),
+  aboutSection: z.object({
+    pillText: z.string({ required_error: 'Requerido.' }).min(1, 'Requerido.'),
+    title1: z.string({ required_error: 'Requerido.' }).min(1, 'Requerido.'),
+    title2: z.string({ required_error: 'Requerido.' }).min(1, 'Requerido.'),
+    description: z.string({ required_error: 'Requerido.' }).min(1, 'Requerido.'),
+    buttonText: z.string({ required_error: 'Requerido.' }).min(1, 'Requerido.'),
+  }).optional(),
   footerSection: z.object({
     description: z.string({ required_error: 'La descripción es requerida.', invalid_type_error: 'La descripción es requerida.' }).min(1, 'La descripción es requerida.'),
     address: z.string({ required_error: 'La dirección es requerida.', invalid_type_error: 'La dirección es requerida.' }).min(1, 'La dirección es requerida.'),
@@ -142,6 +149,13 @@ export default function LandingPageForm() {
       ],
       videos: [],
     },
+    aboutSection: {
+      pillText: 'Nuestra Historia',
+      title1: 'MÁS DE 15 AÑOS DE',
+      title2: 'EXCELENCIA',
+      description: 'Descubra por qué Hotel Du Manolo es el referente de privacidad y lujo en Costa Rica. Una historia construida sobre la pasión por los detalles y la discreción absoluta.',
+      buttonText: 'Conozca Quiénes Somos',
+    },
     footerSection: {
       description: 'El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.',
       address: 'San José, Costa Rica. Del cruce de Escazú 2km Sur.',
@@ -207,6 +221,10 @@ export default function LandingPageForm() {
         gallerySection: {
           ...defaultValues.gallerySection,
           ...(content.gallerySection || {}),
+        },
+        aboutSection: {
+          ...defaultValues.aboutSection,
+          ...(content.aboutSection || {}),
         },
         footerSection: {
           ...defaultValues.footerSection,
@@ -808,6 +826,88 @@ export default function LandingPageForm() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Layout className="h-5 w-5" /> Sección: Resumen Quiénes Somos
+            </CardTitle>
+            <CardDescription>
+              Gestione el título y descripción que invita a los usuarios a conocer la historia del motel.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="aboutSection.title1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título Línea 1 (Blanco)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: MÁS DE 15 AÑOS DE" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="aboutSection.title2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: EXCELENCIA" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="aboutSection.pillText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Texto Etiqueta (Pastilla pequeña)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: Nuestra Historia" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="aboutSection.buttonText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Texto del Botón</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: Conozca Quiénes Somos" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="aboutSection.description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción de la sección</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} placeholder="Ingrese la historia resumida..." />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

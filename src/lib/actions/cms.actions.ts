@@ -84,3 +84,28 @@ export async function saveLandingPageContent(values: z.infer<typeof landingPageC
     return { error: 'No se pudo guardar el contenido de la página de inicio.' };
   }
 }
+
+const aboutPageContentSchema = z.object({
+  content: z.string({ required_error: 'El contenido es requerido.' }).min(1, 'El contenido no puede estar vacío.'),
+  heroImageUrl: z.string().optional(),
+});
+
+export async function saveAboutPageContent(values: z.infer<typeof aboutPageContentSchema>) {
+  const validatedFields = aboutPageContentSchema.safeParse(values);
+
+  if (!validatedFields.success) {
+    console.error('Validation error:', validatedFields.error.flatten());
+    return { error: 'Datos inválidos.' };
+  }
+
+  try {
+    const contentRef = doc(db, 'publicPages', 'about');
+    await setDoc(contentRef, validatedFields.data, { merge: true });
+    
+    revalidatePath('/quienes-somos');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving about page content:', error);
+    return { error: 'No se pudo guardar el contenido de la página.' };
+  }
+}

@@ -399,6 +399,13 @@ export interface LandingPageContent {
       thumbnailUrl?: string;
     }[];
   };
+  aboutSection?: {
+    pillText: string;
+    title1: string;
+    title2: string;
+    description: string;
+    buttonText: string;
+  };
   footerSection?: {
     description: string;
     address: string;
@@ -410,4 +417,9 @@ export interface LandingPageContent {
       url: string;
     }[];
   };
+}
+
+export interface AboutPageContent {
+  content: string;
+  heroImageUrl?: string;
 }

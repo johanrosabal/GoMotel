@@ -13,8 +13,18 @@ import { ToastStateProvider } from '@/components/ToastProvider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Administrador de Go Motel',
-  description: 'Administre su motel con facilidad.',
+  title: {
+    template: '%s | Hotel Du Manolo',
+    default: 'Hotel Du Manolo - Privacidad y Lujo en Costa Rica',
+  },
+  description: 'Descubra la máxima discreción y confort en Hotel Du Manolo. Habitaciones premium, servicio de lujo y experiencias exclusivas en Costa Rica.',
+  keywords: ['motel', 'hotel', 'costa rica', 'habitaciones parejas', 'privacidad', 'jacuzzi', 'escapada romantica', 'motel de lujo'],
+  openGraph: {
+    title: 'Hotel Du Manolo - Privacidad y Lujo',
+    description: 'Descubra la máxima discreción y confort en Hotel Du Manolo.',
+    type: 'website',
+    locale: 'es_CR',
+  },
 };
 
 export default function RootLayout({

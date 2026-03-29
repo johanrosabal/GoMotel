@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight, FileText } from 'lucide-react';
 
 const SETTINGS_MODULES = [
     {
@@ -36,13 +36,21 @@ const SETTINGS_MODULES = [
         title: "Administración de Inicio",
         description: "Gestione los textos e información de la página pública.",
         icon: Layout,
-        href: "/settings/landing-page"
+        href: "/settings/landing-page",
+        badge: "LIVE Site Contenido"
     },
     {
         title: "Centro de Notificaciones",
         description: "Gestione avisos públicos para clientes y mensajes internos para el personal.",
         icon: Bell,
         href: "/settings/notifications"
+    },
+    {
+        title: "Página Quiénes Somos",
+        description: "Gestione la historia y misión del motel para la página pública.",
+        icon: FileText,
+        href: "/settings/quienes-somos",
+        badge: "LIVE Site Contenido"
     },
     {
         title: "Sistema General",
@@ -70,16 +78,23 @@ export default function SettingsPage() {
                 <Link 
                     key={module.href} 
                     href={module.href}
-                    className="group relative flex flex-col p-6 rounded-2xl bg-white dark:bg-neutral-900/40 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-800/80 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm"
+                    className={`group relative flex flex-col p-6 rounded-2xl hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm ${module.badge ? 'bg-primary/5 dark:bg-primary/[0.02] border-primary/30 dark:border-primary/30 shadow-[0_0_15px_-3px_var(--tw-shadow-color)]' : 'bg-white dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800/80'}`}
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     
                     <div className="relative flex items-start justify-between mb-5">
                         <div className="p-3.5 bg-neutral-100 dark:bg-neutral-950/50 rounded-xl group-hover:bg-primary/10 dark:group-hover:bg-primary/20 transition-colors duration-500 ring-1 ring-black/5 dark:ring-white/5 shadow-inner">
-                            <module.icon className="h-6 w-6 text-neutral-600 dark:text-neutral-400 group-hover:text-primary dark:group-hover:text-primary transition-colors duration-500" />
+                            <module.icon className={`h-6 w-6 transition-colors duration-500 ${module.badge ? 'text-primary' : 'text-neutral-600 dark:text-neutral-400 group-hover:text-primary dark:group-hover:text-primary'}`} />
                         </div>
-                        <div className="bg-neutral-100 dark:bg-neutral-900/80 p-1.5 rounded-full ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-primary/50 group-hover:bg-primary/10 transition-all duration-300">
-                            <ChevronRight className="h-4 w-4 text-neutral-500 group-hover:text-primary group-hover:translate-x-0.5 transition-transform duration-300" />
+                        <div className="flex items-center gap-3">
+                            {module.badge && (
+                                <span className="px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 text-[9px] font-black uppercase tracking-widest animate-[pulse_3s_ease-in-out_infinite]">
+                                    {module.badge}
+                                </span>
+                            )}
+                            <div className="bg-neutral-100 dark:bg-neutral-900/80 p-1.5 rounded-full ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-primary/50 group-hover:bg-primary/10 transition-all duration-300">
+                                <ChevronRight className="h-4 w-4 text-neutral-500 group-hover:text-primary group-hover:translate-x-0.5 transition-transform duration-300" />
+                            </div>
                         </div>
                     </div>
                     
