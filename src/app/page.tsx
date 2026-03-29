@@ -64,6 +64,8 @@ const featureIcons = {
   Info
 };
 
+
+
 export default function LandingPage() {
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
 
@@ -91,7 +93,7 @@ export default function LandingPage() {
   const [activeNotifications, setActiveNotifications] = useState<AppNotification[]>([]);
   const [showSplash, setShowSplash] = useState(true);
   const [showAllGallery, setShowAllGallery] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<{url: string, type: 'image' | 'video', alt?: string} | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{ url: string, type: 'image' | 'video', alt?: string } | null>(null);
   const galleryImages = cmsContent?.gallerySection?.images || [
     { id: '1', url: "/motel_exterior_night_1773958134736.png", alt: 'Exterior' },
     { id: '2', url: "/motel_premium_room_1773958120043.png", alt: 'Room' },
@@ -263,7 +265,7 @@ export default function LandingPage() {
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ 
+            exit={{
               opacity: 0,
               scale: 1.1,
               filter: "blur(20px)",
@@ -272,13 +274,13 @@ export default function LandingPage() {
             className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 overflow-hidden"
           >
             {/* Ambient Background Glow */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 0.3, scale: 1.2 }}
               transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
               className="absolute w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px]"
             />
-            
+
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -296,7 +298,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <motion.h1 
+                <motion.h1
                   initial={{ opacity: 0, letterSpacing: '0.4em' }}
                   animate={{ opacity: 1, letterSpacing: '0.2em' }}
                   transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
@@ -316,11 +318,11 @@ export default function LandingPage() {
 
               {/* Progress Bar Container */}
               <div className="mt-8 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
-                <motion.div 
+                <motion.div
                   initial={{ x: "-100%" }}
                   animate={{ x: "0%" }}
-                  transition={{ 
-                    duration: 2.5, 
+                  transition={{
+                    duration: 2.5,
                     ease: "easeInOut"
                   }}
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
@@ -329,7 +331,7 @@ export default function LandingPage() {
             </motion.div>
 
             {/* Bottom Status */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5, duration: 1 }}
@@ -346,22 +348,22 @@ export default function LandingPage() {
 
       <AnimatePresence>
         {activeNotifications.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className={cn(
               "fixed top-0 left-0 right-0 z-[60] py-2 px-4 text-center text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 transition-colors",
               activeNotifications[0].priority === 'High' ? "bg-red-600 text-white" :
-              activeNotifications[0].priority === 'Medium' ? "bg-amber-500 text-black" :
-              "bg-primary text-primary-foreground"
+                activeNotifications[0].priority === 'Medium' ? "bg-amber-500 text-black" :
+                  "bg-primary text-primary-foreground"
             )}
           >
             <div className="flex-1 flex items-center justify-center gap-2">
               <Bell className="h-3 w-3 animate-bounce" />
               <span>{activeNotifications[0].title}: {activeNotifications[0].message}</span>
             </div>
-            <button 
+            <button
               onClick={() => setActiveNotifications([])}
               className="p-1 hover:bg-black/10 rounded-full transition-colors"
             >
@@ -766,7 +768,7 @@ export default function LandingPage() {
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
                     className={cn(
-                      colSpan, 
+                      colSpan,
                       "relative rounded-[2rem] overflow-hidden group border border-white/5 bg-neutral-900/50 cursor-pointer"
                     )}
                     onClick={() => setSelectedMedia({ url: item.url, type: item.type, alt: item.alt })}
@@ -781,8 +783,8 @@ export default function LandingPage() {
                       />
                     ) : (
                       <div className="relative w-full h-full bg-slate-900 pointer-events-none">
-                        <video 
-                          src={`${item.url}#t=0.1`} 
+                        <video
+                          src={`${item.url}#t=0.1`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           muted
                           playsInline
@@ -795,9 +797,9 @@ export default function LandingPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors pointer-events-none" />
-                    
+
                     {item.alt && (
                       <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">{item.type === 'video' ? 'VIDEO' : 'EXPLORE'}</p>
@@ -809,14 +811,14 @@ export default function LandingPage() {
               })}
             </div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="mt-16 flex justify-center"
             >
               <Link href="/gallery">
-                <Button 
+                <Button
                   variant="outline"
                   size="lg"
                   className="h-14 px-10 rounded-full font-black uppercase tracking-[0.2em] text-[10px] border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary transition-all duration-300 group shadow-lg"
@@ -846,8 +848,8 @@ export default function LandingPage() {
               </p>
               <div className="pt-4">
                 <Link href="/quienes-somos">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-primary-foreground group"
                   >
                     {aboutBtnText} <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -1031,14 +1033,14 @@ export default function LandingPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center px-4 md:px-6"
           >
-            <button 
+            <button
               onClick={() => setSelectedMedia(null)}
               className="absolute top-4 md:top-8 right-4 md:right-8 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[210]"
             >
               <X className="h-6 w-6 text-white" />
             </button>
 
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -1061,16 +1063,16 @@ export default function LandingPage() {
                       allowFullScreen
                     />
                   ) : (
-                    <video 
-                      src={selectedMedia.url} 
-                      controls 
-                      autoPlay 
+                    <video
+                      src={selectedMedia.url}
+                      controls
+                      autoPlay
                       className="w-full h-full"
                     />
                   )}
                 </div>
               )}
-              
+
               <div className="absolute bottom-4 left-4 md:bottom-10 md:left-10 p-4 md:p-6 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl md:rounded-2xl hidden md:block">
                 <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary mb-1">
                   {selectedMedia.type === 'image' ? 'Captura Real' : 'Experiencia Visual'}
