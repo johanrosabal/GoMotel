@@ -77,7 +77,7 @@ export function ReservationModal({
                 <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative">
                   <div className="flex flex-col items-start relative z-10 text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/80">Llamada Directa</span>
-                    <span className="text-xl font-black tracking-tight italic">¡{formatPhoneNumber(phoneNumber)}!</span>
+                    <span className="text-xl font-black tracking-tight italic">{formatPhoneNumber(phoneNumber)}</span>
                   </div>
                   <div className="w-12 h-12 bg-primary-foreground/10 rounded-xl flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
                     <Phone className="h-6 w-6" />
@@ -95,9 +95,9 @@ export function ReservationModal({
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="outline" className="w-full h-20 bg-foreground/5 dark:bg-white/[0.03] border-border dark:border-white/5 hover:bg-accent dark:hover:bg-white/[0.08] hover:border-green-500/50 text-foreground dark:text-white rounded-2xl flex items-center justify-between px-8 group transition-all">
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/60">Reserva Express</span>
-                    <span className="text-xl font-black tracking-tight italic text-green-600 dark:text-green-400 leading-tight">WHATSAPP</span>
-                    <span className="text-[10px] font-black tracking-widest text-green-600/90 dark:text-green-400/90">{formatPhoneNumber(whatsappNumber)}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/60 group-hover:text-white/80 transition-colors">Reserva Express</span>
+                    <span className="text-xl font-black tracking-tight italic text-green-600 dark:text-green-400 leading-tight group-hover:text-white transition-colors">WHATSAPP</span>
+                    <span className="text-[10px] font-black tracking-widest text-green-600/90 dark:text-green-400/90 group-hover:text-white/90 transition-colors">{formatPhoneNumber(whatsappNumber)}</span>
                   </div>
                   <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center group-hover:bg-green-500 group-hover:text-primary-foreground transition-all">
                     <MessageCircle className="h-6 w-6" />
@@ -120,7 +120,7 @@ export function ReservationModal({
           </div>
 
           <div className="mt-10 pt-4 text-center border-t border-border dark:border-white/5 relative z-10">
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground dark:text-white/40">Motel Tres Hermanos - Exclusividad Sin Límites</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground dark:text-white/40">Hotel Du Manolo - Exclusividad Sin Límites</p>
           </div>
         </div>
       </DialogContent>

@@ -38,6 +38,7 @@ import {
   QrCode,
   Flame,
   GlassWater,
+  Globe,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -226,6 +227,13 @@ export default function DashboardPage() {
           title: 'Auto-Pedido (Móvil)',
           description: 'Interfaz para que el cliente pida desde su mesa vía QR.',
           icon: QrCode,
+          badge: 'PÚBLICO',
+        },
+        {
+          href: '/',
+          title: 'Sitio Web Público',
+          description: 'Vista previa de la página de aterrizaje y reservaciones externa.',
+          icon: Globe,
           badge: 'PÚBLICO',
         },
       ],

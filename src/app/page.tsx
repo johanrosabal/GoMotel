@@ -15,6 +15,7 @@ import {
   Star,
   ChevronRight,
   ArrowRight,
+  ArrowLeft,
   Wifi,
   Coffee,
   Tv,
@@ -70,7 +71,7 @@ export default function LandingPage() {
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-      collection(firestore, 'roomTypes'), 
+      collection(firestore, 'roomTypes'),
       where('showOnLandingPage', '==', true),
       orderBy('code', 'asc')
     );
@@ -101,13 +102,13 @@ export default function LandingPage() {
 
   const tiers = useMemo(() => {
     if (!roomTypesData || roomTypesData.length === 0) return [];
-    
+
     return roomTypesData.map((rt) => {
       const mainPlan = rt.pricePlans?.[0];
       return {
         name: rt.name,
         price: mainPlan ? formatCurrency(mainPlan.price) : 'N/A',
-        period: mainPlan ? `DESDE ${mainPlan.name}` : '', 
+        period: mainPlan ? `DESDE ${mainPlan.name}` : '',
         features: rt.features || [],
         plans: (rt.pricePlans || []).map(p => ({
           label: p.name,
@@ -124,7 +125,7 @@ export default function LandingPage() {
   const featuresList = cmsContent?.featuresSection?.features || [
     { id: '3', icon: 'Zap', title: 'CONFORT PREMIUM', description: 'Habitaciones equipadas con tecnología de punta, climatización inteligente y sistemas de sonido de alta fidelidad.' },
   ];
-  
+
   const amenitiesTitle1 = cmsContent?.amenitiesSection?.title1 || "DISEÑO QUE";
   const amenitiesTitle2 = cmsContent?.amenitiesSection?.title2 || "INSPIRA";
   const amenitiesList = cmsContent?.amenitiesSection?.amenities || [
@@ -161,7 +162,7 @@ export default function LandingPage() {
   const footerPhone = cmsContent?.footerSection?.phone || "+506 2222-2222";
   const whatsappNumber = cmsContent?.footerSection?.whatsapp || "+506 8888-8888";
   const googleMapsUrl = cmsContent?.footerSection?.googleMapsUrl || "https://www.google.com/maps/place/Hotel+Dumanolo/@9.9940155,-84.1208675,17z/data=!3m1!4b1!4m6!3m5!1s0x8fa0fadcbd8621e1:0xb7a02eafc5c90ebf!8m2!3d9.9940102!4d-84.1182926!16s%2Fg%2F11cm6fkg8p?entry=ttu&g_ep=EgoyMDI2MDMxNy4wIKXMDSoASAFQAw%3D%3D";
-  
+
   const socialLinks = cmsContent?.footerSection?.socialMedia || [
     { platform: 'Instagram', url: '#' },
     { platform: 'Facebook', url: '#' },
@@ -206,97 +207,110 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark:bg-[#0a0a0a] dark:text-white selection:bg-primary/30 selection:text-white overflow-x-hidden transition-colors duration-300">
-      {/* Navbar */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-background/80 backdrop-blur-xl py-4 border-b border-border shadow-lg' : 'bg-transparent py-8'}`}>
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group" id="landing-logo">
-            <div className="relative">
-              <AppLogo className="h-10 w-10 text-primary transition-transform group-hover:scale-110" />
-              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform" />
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-background/80 backdrop-blur-xl py-2 border-b border-border shadow-lg' : 'bg-transparent py-4'}`}>
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
+          {/* Logo Central en Mobile, Izquierda en Desktop */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
+            id="landing-logo"
+          >
+            <div className="relative w-8 h-8 md:w-12 md:h-12 transition-transform group-hover:scale-110">
+              <Image
+                src="/logo_manolo.png"
+                alt="Hotel Du Manolo Logo"
+                fill
+                className="object-contain"
+              />
             </div>
-            <span className={`text-2xl font-black tracking-tighter uppercase italic transition-colors ${isScrolled ? 'text-foreground' : 'text-white shadow-sm'}`}>Motel Tres Hermanos</span>
+            <span className={`text-sm md:text-2xl font-black tracking-tighter uppercase italic transition-colors ${isScrolled ? 'text-foreground' : 'text-white shadow-sm'}`}>Hotel Du Manolo</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-features">Características</Link>
-            <Link href="#pricing" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-pricing">Tarifas</Link>
-            <Link href="#gallery" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-gallery">Galería</Link>
-            <Link href="#contact" className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/80 hover:text-white'}`} id="landing-nav-contact">Contacto</Link>
+          <nav className="hidden md:flex items-center gap-8 ml-auto mr-12">
+            <Link href="#features" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white">Características</Link>
+            <Link href="#pricing" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white">Tarifas</Link>
+            <Link href="#gallery" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white">Galería</Link>
+            <Link href="#contact" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white">Contacto</Link>
           </nav>
 
-          <div className="flex items-center gap-8">
-            <ThemeToggle className={isScrolled ? 'text-foreground' : 'text-white hover:bg-white/10'} />
-            <Link 
-              href="/dashboard" 
-              className={`text-sm font-bold uppercase tracking-widest transition-colors ${isScrolled ? 'text-foreground/60 hover:text-foreground' : 'text-white/80 hover:text-white'}`}
-            >
-              Dashboard
-            </Link>
+          <div className="flex items-center gap-4 ml-auto md:ml-0">
+            <ThemeToggle className={isScrolled ? 'text-foreground hover:bg-black/5' : 'text-white'} />
+            <Link href="/dashboard" className="hidden sm:block text-[10px] md:text-sm font-black uppercase tracking-widest text-white/80 hover:text-white">Dashboard</Link>
           </div>
         </div>
       </header>
 
       <main>
         {/* Hero Section */}
-        <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
-          <div className="absolute inset-0 z-0 scale-110 bg-[#0a0a0a]">
+        <section className="relative h-[100dvh] min-h-[100dvh] bg-black overflow-hidden flex flex-col items-center">
+          <div className="absolute inset-0 z-0 flex items-center justify-center">
             <Image
-              src="/motel_exterior_night_1773958134736.png"
-              alt="Motel Exterior"
+              src="/hero_bg_mural.png"
+              alt="Hotel Du Manolo Hero"
               fill
-              className="object-cover opacity-80 brightness-90 transition-opacity duration-1000"
+              className="object-contain opacity-70 brightness-[0.5]"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+            {/* Logo a un lado (Desktop only) */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="hidden md:block absolute top-40 right-12 w-28 h-28 z-20 pointer-events-none"
+            >
+              <Image
+                src="/logo_manolo.png"
+                alt="Hotel Du Manolo Logo"
+                fill
+                className="object-contain drop-shadow-2xl opacity-80"
+              />
+            </motion.div>
           </div>
 
-          <div className="container mx-auto px-6 relative z-10 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="max-w-4xl mx-auto"
-            >
-              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-8">
-                <Star className="h-4 w-4 text-primary fill-primary" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">El Estándar del Placer y Privacidad</span>
-              </div>
-              
-              <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase mb-6 leading-[0.9] text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
-                Exclusividad <br />
-                <span className="text-primary italic">Sin Límites</span>
-              </h1>
-              
-              <p className="text-lg md:text-xl text-white/90 font-medium max-w-2xl mx-auto mb-10 leading-relaxed balance drop-shadow-md">
-                Experimente la discreción absoluta y el confort premium en el motel más sofisticado de la región. Diseñado para quienes no aceptan menos que la perfección.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-16 scale-110"
-            >
-              <Button
-                onClick={() => setIsReservationModalOpen(true)}
-                size="lg"
-                className="bg-[#b399ff] hover:bg-[#a080ff] text-black text-xs font-black uppercase tracking-widest h-16 px-12 rounded-[2rem] shadow-2xl shadow-purple-500/40 flex items-center gap-3 group"
+          {/* Contenido Hero - Bottom Aligned on Mobile */}
+          <div className="absolute bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 left-0 w-full z-10">
+            <div className="container mx-auto px-6 text-center md:text-left">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="max-w-xl md:max-w-2xl mx-auto md:mx-0 mb-6 md:mb-10"
               >
-                Reservar Ahora
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Link href="#gallery" id="landing-hero-btn-gallery">
-                <Button size="lg" variant="outline" className="bg-accent/50 dark:bg-white/[0.03] border-input dark:border-white/10 hover:bg-accent dark:hover:bg-white/[0.08] text-foreground dark:text-white text-xs font-black uppercase tracking-widest h-16 px-12 rounded-[2rem] backdrop-blur-md">
-                  Ver Galería
+                <h1 className="text-2xl md:text-6xl font-black tracking-tighter italic uppercase mb-2 md:mb-6 leading-[0.9] text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                  Exclusividad <br />
+                  <span className="text-primary italic">Sin Límites</span>
+                </h1>
+                <p className="hidden md:block text-md text-white/90 font-medium leading-relaxed balance drop-shadow-md">
+                  Discreción absoluta y confort premium.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 md:gap-6 scale-90 md:scale-100"
+              >
+                <Button
+                  onClick={() => setIsReservationModalOpen(true)}
+                  size="lg"
+                  className="bg-[#b399ff] hover:bg-[#a080ff] text-primary text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full shadow-2xl shadow-purple-500/30 flex items-center gap-3 transition-all duration-300 group"
+                >
+                  Reservar Ahora
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
-              </Link>
-            </motion.div>
+                <Link href="#gallery">
+                  <Button size="lg" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full backdrop-blur-md transition-all duration-300">
+                    Ver Galería
+                  </Button>
+                </Link>
+              </motion.div>
+            </div>
           </div>
 
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-40">
-            <span className="text-[9px] font-black uppercase tracking-[0.4em]">Scroll</span>
-            <div className="w-[1px] h-10 bg-gradient-to-b from-white to-transparent" />
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce opacity-70 z-20">
+            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white">Scroll</span>
+            <div className="w-[1px] h-6 bg-gradient-to-b from-white to-transparent" />
           </div>
         </section>
 
@@ -336,8 +350,8 @@ export default function LandingPage() {
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
                       <Icon className="h-8 w-8 text-primary" />
                     </div>
-                    <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-4">{feature.title}</h3>
-                    <p className="text-muted-foreground dark:text-white/40 leading-relaxed font-medium">{feature.description}</p>
+                    <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-4 group-hover:text-white transition-colors">{feature.title}</h3>
+                    <p className="text-muted-foreground dark:text-white/40 leading-relaxed font-medium group-hover:text-white/90 transition-colors">{feature.description}</p>
                   </motion.div>
                 );
               })}
@@ -366,42 +380,55 @@ export default function LandingPage() {
                   {tiers.map((tier, i) => {
                     // Highlight the middle item if 3 are visible
                     const isHighlighted = i === current + 1;
-                    
+
                     return (
-                      <CarouselItem key={i} className="pl-4 md:basis-1/2 lg:basis-1/3 flex stretch">
+                      <CarouselItem key={i} className="pl-4 md:basis-1/2 lg:basis-1/3">
                         <motion.div
                           initial={{ opacity: 0, y: 30 }}
                           whileInView={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.1, duration: 0.5 }}
                           viewport={{ once: true }}
-                          className={`relative w-full p-8 md:p-10 rounded-[2.5rem] border transition-all duration-500 flex flex-col ${
-                            isHighlighted 
-                              ? 'border-primary bg-primary/[0.07] shadow-[0_0_50px_-12px_rgba(179,153,255,0.3)] scale-105 z-10' 
-                              : 'border-border dark:border-white/5 bg-card dark:bg-white/[0.02] hover:bg-accent dark:hover:bg-white/[0.04] scale-95 shadow-sm dark:shadow-none'
-                          }`}
+                          className={`relative w-full pl-10 pr-6 py-8 md:p-10 rounded-[2.5rem] border transition-all duration-500 flex flex-col group ${isHighlighted
+                            ? 'border-primary bg-primary/[0.07] shadow-[0_0_50px_-12px_rgba(179,153,255,0.3)] scale-105 z-10'
+                            : 'border-border dark:border-white/5 bg-card dark:bg-white/[0.02] hover:bg-accent dark:hover:bg-white/[0.04] scale-95 shadow-sm dark:shadow-none'
+                            }`}
                         >
                           {isHighlighted && (
-                            <div className="absolute top-0 right-10 -translate-y-1/2 bg-primary text-black text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-primary/20">
+                            <div className="absolute top-0 right-10 -translate-y-1/2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-primary/20">
                               Más Popular
                             </div>
                           )}
 
-                          <h3 className="text-3xl font-black uppercase italic tracking-tighter mb-4">{tier.name}</h3>
-                          
+                          <h3 className="text-xl sm:text-3xl font-black uppercase italic tracking-tighter mb-4 leading-tight">{tier.name}</h3>
                           <div className="flex flex-col gap-1 mb-8">
-                            <span className="text-4xl md:text-5xl font-black">{tier.price}</span>
-                            <span className="text-muted-foreground dark:text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-foreground/5 dark:bg-white/5 py-1 px-3 rounded-md w-fit border border-border dark:border-white/5">
+                            <span className="text-2xl sm:text-4xl md:text-5xl font-black leading-none whitespace-nowrap">{tier.price}</span>
+                            <span className="text-muted-foreground dark:text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-gray-200 dark:bg-white/5 py-1 px-3 rounded-md w-fit border border-border dark:border-white/5">
                               {tier.period}
                             </span>
                           </div>
-
                           <div className="space-y-4 mb-10 flex-grow">
-                            {tier.features.map((feat, j) => (
-                              <div key={j} className="flex items-center gap-3 text-muted-foreground dark:text-white/60 text-sm font-medium">
-                                <Star className="h-3 w-3 text-primary fill-primary" />
-                                {feat}
+                            {tier.features.map((feat, j) => {
+                              const f = feat.toLowerCase();
+                              let Icon = Star;
+                              if (f.includes('wifi') || f.includes('wi-fi')) Icon = Wifi;
+                              if (f.includes('tv') || f.includes('cable') || f.includes('netflix')) Icon = Tv;
+                              if (f.includes('cama')) Icon = Users;
+                              if (f.includes('baño') || f.includes('privado')) Icon = ShieldCheck;
+
+                              return (
+                                <div key={j} className={`flex items-center gap-3 transition-colors text-sm font-medium ${isHighlighted ? 'text-primary' : 'text-muted-foreground dark:text-white/60 group-hover:text-white'}`}>
+                                  <div className="relative">
+                                    <Icon className={`h-4 w-4 ${isHighlighted ? 'text-primary' : 'text-primary'}`} />
+                                    {(f.includes('netflix') || f.includes('tv')) && (
+                                      <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-black rounded-full flex items-center justify-center border-[0.5px] border-white/20">
+                                        <span className="text-[5px] font-black text-[#E50914]">N</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {feat.replace('Preimium', 'Premium')}
                                 </div>
-                            ))}
+                              );
+                            })}
                           </div>
 
                           <div className="space-y-3 pt-8 border-t border-border dark:border-white/5 mt-auto">
@@ -416,11 +443,10 @@ export default function LandingPage() {
 
                           <Button
                             onClick={() => setIsReservationModalOpen(true)}
-                            className={`w-full mt-10 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] ${
-                              isHighlighted 
-                                ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20' 
-                                : 'bg-background hover:bg-accent text-foreground border border-border dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10'
-                            }`}
+                            className={`w-full mt-10 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] ${isHighlighted
+                              ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
+                              : 'bg-background hover:bg-accent text-foreground border border-border dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10'
+                              }`}
                           >
                             Consultar Disponibilidad
                           </Button>
@@ -429,13 +455,27 @@ export default function LandingPage() {
                     );
                   })}
                 </CarouselContent>
-                
-                {tiers.length > 3 && (
+
+                {tiers.length > 1 && (
                   <>
-                    <div className="flex justify-center gap-4 mt-12 md:hidden">
-                       <CarouselPrevious className="static translate-y-0" />
-                       <CarouselNext className="static translate-y-0" />
+                    {/* Mobile Navigation Arrows (Side Overlay) */}
+                    <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 pointer-events-none z-50 md:hidden">
+                      <button
+                        onClick={() => api?.scrollPrev()}
+                        className={`w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center transition-all active:scale-95 shadow-2xl pointer-events-auto ${api ? (api.canScrollPrev() ? 'bg-primary text-white' : 'bg-black/60 text-white/20 border-white/5 cursor-not-allowed') : 'bg-primary/20 text-white'}`}
+                        aria-label="Anterior"
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => api?.scrollNext()}
+                        className={`w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center transition-all active:scale-95 shadow-2xl pointer-events-auto ${api ? (api.canScrollNext() ? 'bg-primary text-white' : 'bg-black/60 text-white/20 border-white/5 cursor-not-allowed') : 'bg-primary/20 text-white'}`}
+                        aria-label="Siguiente"
+                      >
+                        <ArrowRight className="h-5 w-5" />
+                      </button>
                     </div>
+
                     <CarouselPrevious className="-left-16 hidden md:flex border-white/10 hover:bg-white/10 text-white" />
                     <CarouselNext className="-right-16 hidden md:flex border-white/10 hover:bg-white/10 text-white" />
                   </>
@@ -453,7 +493,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 1 }}
-              className="relative rounded-[3rem] overflow-hidden aspect-square shadow-2xl bg-black"
+              className="hidden lg:block relative rounded-[3rem] overflow-hidden aspect-square shadow-2xl bg-black"
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -479,7 +519,7 @@ export default function LandingPage() {
                   <Coffee className="h-5 w-5 text-primary" />
                   <Tv className="h-5 w-5 text-primary" />
                 </div>
-                <h4 className="text-3xl font-black uppercase italic tracking-tighter">
+                <h4 className="text-3xl font-black uppercase italic tracking-tighter text-white">
                   {amenitiesList[activeAmenityIndex]?.title || "Habitaciones Suite"}
                 </h4>
               </div>
@@ -490,16 +530,25 @@ export default function LandingPage() {
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Nuestras Amenidades</span>
               </div>
               <h2 className="text-5xl md:text-7xl font-black tracking-tighter italic uppercase leading-none">
-                {amenitiesTitle1} <br /> 
+                {amenitiesTitle1} <br />
                 <span className="inline-block mt-2 px-4 py-1 bg-primary/20 text-primary italic rounded-2xl border border-primary/10">{amenitiesTitle2}</span>
               </h2>
               <div className="grid sm:grid-cols-2 gap-8">
                 {amenitiesList.map((amenity, i) => (
-                  <div 
-                    key={amenity.id || i} 
+                  <div
+                    key={amenity.id || i}
                     className={`space-y-4 border-l-2 pl-6 group cursor-pointer transition-all duration-300 ${activeAmenityIndex === i ? 'border-primary bg-primary/5 py-4 -ml-4 pl-10 rounded-r-2xl' : 'border-primary/10 hover:border-primary/40'}`}
                     onMouseEnter={() => setActiveAmenityIndex(i)}
                   >
+                    <div className="lg:hidden relative w-full aspect-video rounded-2xl overflow-hidden mb-6 border border-white/10 shadow-xl">
+                      <Image
+                        src={amenity.imageUrl || amenityPlaceholders[i % amenityPlaceholders.length]}
+                        alt={amenity.title || "Amenity"}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    </div>
                     <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-2xl font-black border border-primary/10 transition-all duration-300 ${activeAmenityIndex === i ? 'bg-primary text-black scale-110' : 'bg-primary/20 text-primary group-hover:bg-primary/30'}`}>0{i + 1}</span>
                     <h5 className={`text-xl font-bold uppercase tracking-tight transition-colors ${activeAmenityIndex === i ? 'text-primary' : 'text-foreground dark:text-white'}`}>{amenity.title}</h5>
                     <p className={`text-sm transition-colors ${activeAmenityIndex === i ? 'text-foreground/80 dark:text-white/80' : 'text-muted-foreground dark:text-white/50'}`}>{amenity.description}</p>
@@ -525,12 +574,12 @@ export default function LandingPage() {
                 // Row 2: Span 1, Span 2
                 const isPairStart = index % 2 === 0;
                 const isEvenRow = Math.floor(index / 2) % 2 === 0;
-                const colSpan = isEvenRow 
+                const colSpan = isEvenRow
                   ? (isPairStart ? 'lg:col-span-2' : 'lg:col-span-1')
                   : (isPairStart ? 'lg:col-span-1' : 'lg:col-span-2');
 
                 return (
-                  <motion.div 
+                  <motion.div
                     key={image.id || index}
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
@@ -538,17 +587,17 @@ export default function LandingPage() {
                     transition={{ delay: index * 0.1 }}
                     className={`${colSpan} relative rounded-[2rem] overflow-hidden group border border-white/5`}
                   >
-                    <Image 
-                      src={image.url} 
-                      alt={image.alt || `Gallery image ${index + 1}`} 
-                      fill 
-                      className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                    <Image
+                      src={image.url}
+                      alt={image.alt || `Gallery image ${index + 1}`}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                     {image.alt && (
-                       <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                         <p className="text-xs font-black uppercase tracking-widest">{image.alt}</p>
-                       </div>
+                      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-xs font-black uppercase tracking-widest">{image.alt}</p>
+                      </div>
                     )}
                   </motion.div>
                 );
@@ -596,11 +645,18 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer id="contact" className="py-20 border-t border-border dark:border-white/5 bg-background dark:bg-black transition-colors">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.5fr_0.8fr_1.5fr] gap-16 md:gap-24">
-          <div className="space-y-8">
-            <Link href="/" className="flex items-center gap-3">
-              <AppLogo className="h-8 w-8 text-primary" />
-              <span className="text-xl font-black tracking-tighter uppercase italic">Motel Tres Hermanos</span>
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.5fr_0.8fr_1.5fr] gap-16 md:gap-24 text-center md:text-left">
+          <div className="space-y-8 flex flex-col items-center md:items-start">
+            <Link href="/" className="flex items-center gap-4 group">
+              <div className="relative w-10 h-10 transition-transform group-hover:scale-110">
+                <Image
+                  src="/logo_manolo.png"
+                  alt="Hotel Du Manolo Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <span className="text-xl font-black tracking-tighter uppercase italic">Hotel Du Manolo</span>
             </Link>
             <p className="text-muted-foreground dark:text-white/40 font-medium leading-relaxed max-w-sm">
               {footerDescription}
@@ -609,9 +665,9 @@ export default function LandingPage() {
               {socialLinks.map((social, index) => {
                 const Icon = socialIcons[social.platform as keyof typeof socialIcons] || Instagram;
                 return (
-                  <Link 
-                    key={index} 
-                    href={social.url} 
+                  <Link
+                    key={index}
+                    href={social.url}
                     target="_blank"
                     className="w-12 h-12 rounded-full border border-border dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg group"
                   >
@@ -622,9 +678,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col items-center md:items-start">
             <h4 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground dark:text-white/30">Navegación</h4>
-            <ul className="space-y-4">
+            <ul className="space-y-4 text-center md:text-left">
               <li><Link href="/" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Inicio</Link></li>
               <li><Link href="#features" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Habitaciones</Link></li>
               <li><Link href="#gallery" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Galería</Link></li>
@@ -632,9 +688,9 @@ export default function LandingPage() {
             </ul>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col items-center md:items-start">
             <h4 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground dark:text-white/30">Ubicación</h4>
-            <p className="text-muted-foreground dark:text-white/60 flex items-start gap-4">
+            <p className="text-muted-foreground dark:text-white/60 flex items-start gap-4 text-center md:text-left">
               <MapPin className="h-5 w-5 text-primary shrink-0" />
               {footerAddress}
             </p>
@@ -643,9 +699,9 @@ export default function LandingPage() {
               {formatPhoneNumber(footerPhone)}
             </a>
             {whatsappNumber && (
-              <a 
-                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`} 
-                target="_blank" 
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-green-500 transition-colors group"
               >
@@ -655,22 +711,22 @@ export default function LandingPage() {
                 {formatPhoneNumber(whatsappNumber)}
               </a>
             )}
-            
-            <div className="pt-4 flex flex-col gap-3">
+
+            <div className="pt-4 flex flex-col gap-3 items-center md:items-start w-full">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/30 mb-1">Cómo llegar:</p>
-              <div className="flex gap-3">
-                <a 
-                  href={googleMapsUrl} 
-                  target="_blank" 
+              <div className="flex gap-3 w-full">
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm"
                 >
                   <MapIcon className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" /> Google Maps
                 </a>
                 {wazeUrl && (
-                  <a 
-                    href={wazeUrl} 
-                    target="_blank" 
+                  <a
+                    href={wazeUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm"
                   >
@@ -681,8 +737,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="mt-20 pt-10 border-t border-border dark:border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground dark:text-white/20">
-          © 2026 Motel Tres Hermanos - Todos los derechos reservados.
+        <div className="mt-20 pt-10 pb-32 md:pb-10 border-t border-border dark:border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground dark:text-white/20">
+          <div className="max-w-[250px] md:max-w-none mx-auto leading-loose md:leading-normal">
+            © 2026 Hotel Du Manolo - Todos los derechos reservados.
+          </div>
         </div>
       </footer>
 
@@ -703,7 +761,7 @@ export default function LandingPage() {
           animate={{ scale: 1, opacity: 1 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-green-500 rounded-full shadow-2xl shadow-green-500/40 flex items-center justify-center hover:bg-green-600 transition-colors group"
+          className="fixed bottom-4 md:bottom-8 right-8 z-[100] w-16 h-16 bg-green-500 rounded-full shadow-2xl shadow-green-500/40 flex items-center justify-center hover:bg-green-600 transition-colors group"
         >
           <MessageCircle className="h-8 w-8 text-white group-hover:scale-110 transition-transform" />
           <span className="absolute right-full mr-4 bg-black/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10">
