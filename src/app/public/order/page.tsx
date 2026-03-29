@@ -21,6 +21,7 @@ import {
 import type { PrepStatus } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -55,10 +56,14 @@ function OrderPageContent() {
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
+    const [selectedLocationType, setSelectedLocationType] = useState<string>('Table');
 
     // 1. Fetch Table Data
     const tableRef = useMemoFirebase(() => tableId ? doc(firestore!, 'restaurantTables', tableId) : null, [firestore, tableId]);
     const { data: table, isLoading: isLoadingTable } = useDoc<RestaurantTable>(tableRef);
+
+    const allTablesQuery = useMemoFirebase(() => !tableId && firestore ? query(collection(firestore, 'restaurantTables')) : null, [firestore, tableId]);
+    const { data: allTables } = useCollection<RestaurantTable>(allTablesQuery);
 
     // 2. Fetch Active Order for this table
     const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -219,16 +224,67 @@ function OrderPageContent() {
         });
     };
 
-    if (isLoadingTable) {
+    if (isLoadingTable && tableId) {
         return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white font-bold animate-pulse">CARGANDO MENÚ...</div>;
     }
 
     if (!table) {
+        const uniqueTypes = Array.from(new Set((allTables || []).map(t => t.type))).sort();
+        const filteredTabs = (allTables || []).filter(t => t.type === selectedLocationType);
+        
+        // Auto-select first available type if current is empty or not in the set
+        if (uniqueTypes.length > 0 && !uniqueTypes.includes(selectedLocationType)) {
+            setSelectedLocationType(uniqueTypes[0]);
+        }
+
         return (
             <div className="min-h-screen bg-neutral-950 p-6 flex flex-col items-center justify-center text-center">
-                <PackageOpen className="h-16 w-16 text-primary mb-4" />
-                <h1 className="text-white text-2xl font-black uppercase tracking-tighter">Ubicación No Válida</h1>
-                <p className="text-neutral-400 mt-2">Por favor escanee el código QR de su mesa nuevamente.</p>
+                <div className="relative w-32 h-32 mb-6">
+                    <Image src="/logo_manolo.png" alt="Hotel Du Manolo" fill className="object-contain" priority />
+                </div>
+                <h1 className="text-white text-3xl font-black uppercase tracking-[0.2em] italic mb-2">Hotel Du Manolo</h1>
+                <p className="text-neutral-400 text-xs font-bold tracking-widest uppercase mb-8">Seleccione su ubicación</p>
+                
+                <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mb-8 flex gap-2 flex-wrap justify-center">
+                    {uniqueTypes.map(type => (
+                        <Button
+                            key={type}
+                            variant="outline"
+                            onClick={() => setSelectedLocationType(type)}
+                            className={cn(
+                                "flex-1 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                                selectedLocationType === type ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
+                            )}
+                        >
+                            {TYPE_LABELS[type] || type}
+                        </Button>
+                    ))}
+                </div>
+
+                <div className="w-full max-w-md sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl h-px bg-gradient-to-r from-transparent via-neutral-800 to-transparent mb-8" />
+
+                <div className="w-full max-w-md sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto pb-12 px-4 pt-2 pr-4 lg:pr-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-800 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    {[...filteredTabs].sort((a,b) => a.number.localeCompare(b.number, undefined, {numeric: true})).map(t => (
+                        <Button 
+                            key={t.id}
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 bg-neutral-900/50 backdrop-blur-sm border border-neutral-800/80 hover:border-primary/60 hover:bg-primary/10 hover:shadow-primary/10 hover:scale-[1.02] transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 group cursor-pointer"
+                            onClick={() => window.location.href = `/public/order?tableId=${t.id}`}
+                        >
+                            <div className="bg-neutral-800/80 text-neutral-400 group-hover:bg-primary group-hover:text-white p-3.5 rounded-full transition-colors duration-300 shadow-inner">
+                                {t.type === 'Table' ? <Utensils className="h-6 w-6" /> : <PackageOpen className="h-6 w-6" />}
+                            </div>
+                            <span className="font-black text-sm uppercase tracking-widest text-neutral-300 group-hover:text-white transition-colors duration-300">
+                                {TYPE_LABELS[t.type] || t.type} {t.number}
+                            </span>
+                        </Button>
+                    ))}
+                    {filteredTabs.length === 0 && (
+                        <div className="col-span-full text-center py-12">
+                            <p className="text-neutral-500 italic text-sm">No hay ubicaciones registradas en esta categoría.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }
@@ -316,31 +372,30 @@ function OrderPageContent() {
                                             <AvatarFallback className="bg-neutral-800 text-neutral-600"><Utensils className="h-8 w-8" /></AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 flex flex-col justify-between py-1">
-                                            <div>
+                                            <div className="flex flex-col gap-0.5">
                                                 <h3 className="font-black text-sm uppercase tracking-tight line-clamp-1">{service.name}</h3>
-                                                <p className="text-[10px] text-neutral-500 line-clamp-2 mt-1 leading-tight">{service.description || 'Sin descripción disponible.'}</p>
+                                                <p className="text-[10px] text-neutral-500 line-clamp-2 leading-tight">{service.description || 'Sin descripción disponible.'}</p>
+                                                {cart.some(i => i.service.id === service.id) && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost"
+                                                        onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
+                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg"
+                                                    >
+                                                        <MessageSquare className="h-3.5 w-3.5" />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">Instrucciones</span>
+                                                    </Button>
+                                                )}
                                             </div>
                                             <div className="flex justify-between items-center mt-2">
                                                 <span className="font-black text-primary text-base">{formatCurrency(service.price)}</span>
-                                                <div className="flex items-center gap-2">
-                                                    {cart.some(i => i.service.id === service.id) && (
-                                                        <Button 
-                                                            size="icon" 
-                                                            variant="ghost"
-                                                            onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
-                                                            className="h-8 w-8 text-primary hover:bg-primary/10"
-                                                        >
-                                                            <MessageSquare className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                    <Button 
-                                                        size="sm" 
-                                                        className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                        onClick={() => handleAddToCart(service)} id="page-button-a-adir"
-                                                    >
-                                                        AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
+                                                <Button 
+                                                    size="sm" 
+                                                    className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
+                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir"
+                                                >
+                                                    AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>

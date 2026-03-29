@@ -11,8 +11,9 @@ import { es } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Utensils, Beer, Star, Clock, QrCode } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
+import Image from 'next/image';
 
-export default function PublicMenuClient() {
+export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: boolean }) {
     const { firestore } = useFirebase();
     const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -85,7 +86,7 @@ export default function PublicMenuClient() {
     };
 
     return (
-        <div className="h-screen w-full bg-slate-50 text-slate-900 overflow-hidden flex font-sans select-none relative">
+        <div className={cn("h-screen w-full overflow-hidden flex font-sans select-none relative transition-colors duration-1000", isDarkMode ? "bg-slate-950 text-slate-50" : "bg-slate-50 text-slate-900")}>
             {/* Background Layer: Fullscreen Ken Burns Image */}
             <AnimatePresence mode="wait">
                 <motion.div 
@@ -94,31 +95,59 @@ export default function PublicMenuClient() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 2 }}
-                    className="absolute inset-0 z-0"
+                    className={cn("absolute top-0 bottom-0 left-0 z-0 transition-all duration-1000", listServices.length > 0 ? "w-[45%]" : "w-[50%]")}
                 >
                     {featuredProduct?.imageUrl ? (
-                        <motion.img 
-                            initial={{ scale: 1, x: 0 }}
-                            animate={{ scale: 1.15, x: -20, y: -10 }}
-                            transition={{ duration: 20, ease: "linear" }}
-                            src={featuredProduct.imageUrl} 
-                            className="h-full w-full object-cover opacity-60"
-                            alt=""
-                        />
+                        <>
+                            <motion.img 
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                src={featuredProduct.imageUrl} 
+                                className="h-full w-full object-contain opacity-100 py-32 px-16"
+                                alt=""
+                            />
+                            <div className="absolute inset-0 pointer-events-none">
+                                <div className={cn("absolute top-0 left-0 right-0 h-64", isDarkMode ? "bg-gradient-to-b from-slate-950 via-slate-950/90 to-transparent" : "bg-gradient-to-b from-slate-50 via-slate-50/90 to-transparent")} />
+                                <div className={cn("absolute bottom-0 left-0 right-0 h-48", isDarkMode ? "bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent" : "bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent")} />
+                                <div className={cn("absolute left-0 top-0 bottom-0 w-48", isDarkMode ? "bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" : "bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent")} />
+                                <div className={cn("absolute right-0 top-0 bottom-0 w-48", isDarkMode ? "bg-gradient-to-l from-slate-950 via-slate-950/80 to-transparent" : "bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent")} />
+                            </div>
+                        </>
                     ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-primary/20 via-slate-100 to-primary/5" />
+                        <div className={cn("h-full w-full", isDarkMode ? "bg-gradient-to-br from-primary/20 via-slate-900 to-primary/5" : "bg-gradient-to-br from-primary/20 via-slate-100 to-primary/5")} />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 via-transparent to-white/10" />
                 </motion.div>
             </AnimatePresence>
 
+            {/* Top Bar: Name and Logos */}
+            <div className="absolute top-12 left-0 right-0 z-50 px-24 flex justify-between items-center pointer-events-none">
+                <div className="pointer-events-auto">
+                    <div className="relative h-20 w-20">
+                        <Image src="/logo_manolo.png" alt="Hotel Du Manolo Logo" fill className="object-contain drop-shadow-xl" />
+                    </div>
+                </div>
+                <div className="pointer-events-auto">
+                    <h1 className={cn("text-5xl font-black uppercase tracking-[0.3em] italic leading-none drop-shadow-xl transition-colors duration-1000", isDarkMode ? "text-slate-50" : "text-slate-900")}>
+                        Hotel Du Manolo
+                    </h1>
+                </div>
+                <div className="pointer-events-auto">
+                    <div className="relative h-20 w-20">
+                        <Image src="/logo_manolo.png" alt="Hotel Du Manolo Logo" fill className="object-contain drop-shadow-xl" />
+                    </div>
+                </div>
+            </div>
+
             {/* Content Layer */}
-            <div className="relative z-10 w-full h-full flex items-stretch">
-                {/* Left: Featured Product Info */}
+            <div className="relative z-10 w-full h-full flex items-stretch pt-20">
+                {/* Left empty spacer to reveal the background image */}
+                <div className={cn("shrink-0 pointer-events-none transition-all duration-1000", listServices.length > 0 ? "w-[40%]" : "w-[50%]")} />
+
+                {/* Text Info */}
                 <div className={cn(
-                    "flex flex-col justify-end p-24 pb-32 transition-all duration-1000 ease-in-out",
-                    listServices.length > 0 ? "w-[60%]" : "w-full items-center text-center"
+                    "flex-1 flex flex-col justify-center p-8 transition-all duration-1000 ease-in-out",
+                    listServices.length > 0 ? "max-w-[30%]" : "pr-24"
                 )}>
                     <AnimatePresence mode="wait">
                         <motion.div 
@@ -127,51 +156,39 @@ export default function PublicMenuClient() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 1, delay: 0.5 }}
-                            className={cn(
-                                "w-full h-full flex flex-col transition-all duration-1000",
-                                listServices.length === 0 ? "justify-between max-w-none" : "justify-end max-w-3xl"
-                            )}
+                            className="w-full h-full flex flex-col justify-center max-w-4xl"
                         >
-                            <div className={cn(
-                                "flex items-center gap-4 transition-all duration-1000",
-                                listServices.length === 0 ? "justify-center mt-8" : "mb-8"
-                            )}>
+                            <div className="flex items-center gap-4 transition-all duration-1000 mb-8 mt-12">
                                 <div className="h-1 w-12 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" />
                                 <span className={cn(
                                     "font-black uppercase tracking-[0.5em] text-primary transition-all duration-1000",
-                                    listServices.length === 0 ? "text-2xl" : "text-sm"
+                                    listServices.length === 0 ? "text-xl" : "text-sm"
                                 )}>
                                     DESTACADO DEL DÍA
                                 </span>
-                                <div className={cn("h-1 w-12 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]", listServices.length > 0 && "hidden")} />
                             </div>
 
-                            <div className={cn(
-                                "flex flex-col transition-all duration-1000 px-12 overflow-visible",
-                                listServices.length === 0 ? "flex-1 justify-center" : ""
-                            )}>
+                            <div className="flex flex-col transition-all duration-1000 px-0 overflow-visible">
                                 <h2 className={cn(
-                                    "font-black leading-[0.9] tracking-tighter uppercase italic text-slate-900 transition-all duration-1000",
+                                    "font-black leading-[0.95] tracking-tighter uppercase italic transition-all duration-1000 mb-8",
                                     listServices.length > 0 
-                                        ? "text-8xl mb-8" 
-                                        : "text-[8vw] whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-primary via-slate-900 to-primary drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] py-4"
+                                        ? cn(isDarkMode ? "drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" : "text-slate-900 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]", "text-7xl") 
+                                        : cn(isDarkMode ? "drop-shadow-[0_0_20px_rgba(0,0,0,0.9)]" : "drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]", "text-[5vw] leading-[0.9] text-primary")
                                 )}>
                                     {featuredProduct?.name}
                                 </h2>
                             </div>
 
-                            <div className={cn(
-                                "flex flex-col transition-all duration-1000",
-                                listServices.length === 0 ? "mb-12" : ""
-                            )}>
+                            <div className="flex flex-col transition-all duration-1000">
                                 <p className={cn(
-                                    "text-xl font-medium text-slate-600 leading-relaxed mb-12 max-w-2xl transition-all duration-1000",
-                                    listServices.length > 0 ? "border-l-4 border-primary/40 pl-8" : "mx-auto text-2xl"
+                                    "font-bold leading-relaxed max-w-2xl transition-all duration-1000 border-l-4 border-primary/40 pl-8 mb-12",
+                                    listServices.length > 0 ? "text-lg" : "text-xl",
+                                    isDarkMode ? "text-slate-300 drop-shadow-[0_0_10px_rgba(0,0,0,1)]" : "text-slate-700 drop-shadow-[0_0_10px_rgba(255,255,255,1)]"
                                 )}>
                                     {featuredProduct?.description || "Una selección excepcional creada para deleitar sus sentidos con los mejores ingredientes."}
                                 </p>
-                                <div className={cn("flex", listServices.length === 0 ? "justify-center" : "")}>
-                                    <div className="inline-flex items-center gap-8 bg-white/40 backdrop-blur-md border border-black/5 p-2 rounded-[2.5rem] pr-12 shadow-xl shadow-black/5">
+                                <div className="flex">
+                                    <div className={cn("inline-flex items-center gap-8 backdrop-blur-md p-2 rounded-[2.5rem] pr-12 shadow-xl transition-colors duration-1000", isDarkMode ? "bg-black/40 border border-white/5 shadow-black/40" : "bg-white/40 border border-black/5 shadow-black/5")}>
                                         <div className="bg-primary text-white px-10 py-6 rounded-[2rem] text-5xl font-black italic tracking-tighter shadow-lg shadow-primary/20">
                                             {formatCurrency(featuredProduct?.price || 0)}
                                         </div>
@@ -189,19 +206,19 @@ export default function PublicMenuClient() {
                 {/* Right: Floating Menu Panel */}
                 <AnimatePresence>
                     {listServices.length > 0 && (
-                        <div className="w-[40%] h-full p-12 pr-16 flex flex-col justify-center">
+                        <div className="w-[30%] shrink-0 h-full py-12 pr-12 flex flex-col justify-center">
                             <motion.div 
                                 initial={{ x: 100, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 exit={{ x: 100, opacity: 0 }}
                                 transition={{ duration: 1.2, ease: "circOut" }}
-                                className="bg-white/80 backdrop-blur-[40px] border border-black/5 rounded-[4rem] h-full flex flex-col overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.05)]"
+                                className={cn("backdrop-blur-[40px] border rounded-[4rem] h-full flex flex-col overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.05)] transition-colors duration-1000", isDarkMode ? "bg-slate-900/80 border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.3)]" : "bg-white/80 border-black/5 shadow-[0_30px_60px_rgba(0,0,0,0.05)]")}
                             >
                         {/* Panel Header */}
-                        <div className="p-16 pb-8 flex items-center justify-between border-b border-black/5">
+                        <div className={cn("p-16 pb-8 flex items-center justify-between border-b transition-colors duration-1000", isDarkMode ? "border-white/5" : "border-black/5")}>
                             <div>
                                 <div className="text-[10px] font-black text-primary uppercase tracking-[0.6em] mb-2 italic">Menú Gourmet</div>
-                                <h3 className="text-4xl font-black uppercase tracking-tighter italic text-slate-900">
+                                <h3 className={cn("text-4xl font-black uppercase tracking-tighter italic transition-colors duration-1000", isDarkMode ? "text-slate-50" : "text-slate-900")}>
                                     {categoryNames[currentType as keyof typeof categoryNames] || currentType}
                                 </h3>
                             </div>
@@ -225,10 +242,10 @@ export default function PublicMenuClient() {
                                                 className="flex justify-between items-start group"
                                             >
                                                 <div className="space-y-1">
-                                                    <span className="text-2xl font-black uppercase tracking-tight text-slate-800 group-hover:text-primary transition-colors duration-300 block italic">{s.name}</span>
-                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block">{s.description || "Especialidad"}</span>
+                                                    <span className={cn("text-2xl font-black uppercase tracking-tight group-hover:text-primary transition-colors duration-300 block italic", isDarkMode ? "text-slate-100" : "text-slate-800")}>{s.name}</span>
+                                                    <span className={cn("text-xs font-bold uppercase tracking-[0.2em] block", isDarkMode ? "text-slate-500" : "text-slate-400")}>{s.description || "Especialidad"}</span>
                                                 </div>
-                                                <div className="text-2xl font-black tabular-nums tracking-tighter text-slate-600 group-hover:text-primary transition-colors">
+                                                <div className={cn("text-2xl font-black tabular-nums tracking-tighter group-hover:text-primary transition-colors duration-300", isDarkMode ? "text-slate-300" : "text-slate-600")}>
                                                     {formatCurrency(s.price)}
                                                 </div>
                                             </motion.div>

@@ -13,6 +13,14 @@ const landingPageFeatureSchema = z.object({
 });
 
 const landingPageContentSchema = z.object({
+  heroSection: z.object({
+    title1: z.string({ required_error: 'La línea 1 del título es requerida.', invalid_type_error: 'La línea 1 del título es requerida.' }).min(1, 'La línea 1 del título es requerida.').optional(),
+    title2: z.string({ required_error: 'La línea 2 del título es requerida.', invalid_type_error: 'La línea 2 del título es requerida.' }).min(1, 'La línea 2 del título es requerida.').optional(),
+    desktopSubtitle: z.string({ required_error: 'El subtítulo de escritorio es requerido.', invalid_type_error: 'El subtítulo de escritorio es requerido.' }).min(1, 'El subtítulo de escritorio es requerido.').optional(),
+    mobileSubtitle: z.string({ required_error: 'El subtítulo móvil es requerido.', invalid_type_error: 'El subtítulo móvil es requerido.' }).min(1, 'El subtítulo móvil es requerido.').optional(),
+    mobileImageUrl: z.string({ required_error: 'La imagen móvil es requerida.', invalid_type_error: 'La imagen móvil es requerida.' }).min(1, 'La imagen móvil es requerida.'),
+    desktopImageUrl: z.string({ required_error: 'La imagen de escritorio es requerida.', invalid_type_error: 'La imagen de escritorio es requerida.' }).min(1, 'La imagen de escritorio es requerida.'),
+  }).optional(),
   featuresSection: z.object({
     title1: z.string({ required_error: 'La línea 1 del título es requerida.', invalid_type_error: 'La línea 1 del título es requerida.' }).min(1, 'La línea 1 del título es requerida.'),
     title2: z.string({ required_error: 'La línea 2 del título es requerida.', invalid_type_error: 'La línea 2 del título es requerida.' }).min(1, 'La línea 2 del título es requerida.'),
@@ -37,6 +45,12 @@ const landingPageContentSchema = z.object({
       url: z.string({ required_error: 'La URL es requerida.', invalid_type_error: 'La URL es requerida.' }).min(1, 'La URL es requerida.'),
       alt: z.string().optional(),
     })).min(1, 'Debe haber al menos una imagen en la galería.'),
+    videos: z.array(z.object({
+      id: z.string(),
+      url: z.string({ required_error: 'La URL del video es requerida.' }).min(1, 'La URL es requerida.'),
+      alt: z.string().optional(),
+      thumbnailUrl: z.string().optional(),
+    })).optional(),
   }).optional(),
   footerSection: z.object({
     description: z.string({ required_error: 'La descripción es requerida.', invalid_type_error: 'La descripción es requerida.' }).min(1, 'La descripción es requerida.'),

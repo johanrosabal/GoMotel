@@ -1,93 +1,96 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { BedDouble, Bell, Percent, BookCopy, Building, ShieldCheck, Layout } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight } from 'lucide-react';
+
+const SETTINGS_MODULES = [
+    {
+        title: "Información Comercial",
+        description: "Gestione los datos legales y fiscales de su empresa.",
+        icon: Building,
+        href: "/settings/company"
+    },
+    {
+        title: "Tipos de Habitación",
+        description: "Gestionar los tipos de habitación disponibles.",
+        icon: BedDouble,
+        href: "/settings/room-types"
+    },
+    {
+        title: "Sonido de Alarma",
+        description: "Seleccione el sonido para las notificaciones de estancias vencidas.",
+        icon: Bell,
+        href: "/settings/sounds"
+    },
+    {
+        title: "Gestión de Impuestos",
+        description: "Defina los impuestos aplicables a productos y servicios.",
+        icon: Percent,
+        href: "/settings/taxes"
+    },
+    {
+        title: "Catálogo de Productos",
+        description: "Gestiona categorías, sub-categorías y productos.",
+        icon: BookCopy,
+        href: "/catalog"
+    },
+    {
+        title: "Administración de Inicio",
+        description: "Gestione los textos e información de la página pública.",
+        icon: Layout,
+        href: "/settings/landing-page"
+    },
+    {
+        title: "Centro de Notificaciones",
+        description: "Gestione avisos públicos para clientes y mensajes internos para el personal.",
+        icon: Bell,
+        href: "/settings/notifications"
+    },
+    {
+        title: "Sistema General",
+        description: "Configure opciones del sistema y del Menú de TV.",
+        icon: SettingsIcon,
+        href: "/settings/system"
+    }
+];
 
 export default function SettingsPage() {
   return (
-    <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
-        <div className='space-y-1.5'>
-            <CardTitle>Ajustes del Sistema</CardTitle>
-            <CardDescription>Administre las configuraciones de su motel.</CardDescription>
+    <div className="container max-w-7xl py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className='space-y-2 mb-10'>
+            <h1 className="text-3xl font-black tracking-tight text-neutral-900 dark:text-white flex items-center gap-3">
+                <SettingsIcon className="h-8 w-8 text-primary" />
+                Ajustes del Sistema
+            </h1>
+            <p className="text-neutral-500 dark:text-neutral-400 text-sm max-w-2xl">
+                Panel de control avanzado. Administre las configuraciones de su plataforma seleccionando el módulo que desea gestionar.
+            </p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><Building /> Información Comercial</CardTitle>
-                    <CardDescription>Gestione los datos legales y fiscales de su empresa.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/company" id="page-link-settings-company">
-                        <Button id="page-button-administrar">Administrar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><BedDouble /> Tipos de Habitación</CardTitle>
-                    <CardDescription>Gestionar los tipos de habitación disponibles (ej. Sencilla, Suite).</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/room-types" id="page-link-settings-room-types">
-                        <Button id="page-button-administrar-1">Administrar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><Bell /> Sonido de Alarma</CardTitle>
-                    <CardDescription>Seleccione el sonido para las notificaciones de estancias vencidas.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/sounds" id="page-link-settings-sounds">
-                        <Button id="page-button-seleccionar-sonido">Seleccionar Sonido</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><Percent /> Gestión de Impuestos</CardTitle>
-                    <CardDescription>Defina los impuestos aplicables a productos y servicios.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/taxes" id="page-link-settings-taxes">
-                        <Button id="page-button-administrar-2">Administrar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><BookCopy /> Catálogo de Productos</CardTitle>
-                    <CardDescription>Gestiona categorías, sub-categoría y productos.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/catalog" id="page-link-catalog">
-                        <Button id="page-button-administrar-3">Administrar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><ShieldCheck /> Verificación de Cédula</CardTitle>
-                    <CardDescription>Configure el dominio del API de verificación del Registro Civil.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/verification" id="page-link-settings-verification">
-                        <Button id="page-button-configurar">Configurar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl"><Layout /> Administración de Contenido</CardTitle>
-                    <CardDescription>Gestione los textos e información de la Página de Inicio.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/settings/landing-page" id="page-link-settings-landing-page">
-                        <Button id="page-button-gestionar-cms">Gestionar</Button>
-                    </Link>
-                </CardContent>
-            </Card>
+        
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {SETTINGS_MODULES.map((module) => (
+                <Link 
+                    key={module.href} 
+                    href={module.href}
+                    className="group relative flex flex-col p-6 rounded-2xl bg-white dark:bg-neutral-900/40 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-800/80 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    
+                    <div className="relative flex items-start justify-between mb-5">
+                        <div className="p-3.5 bg-neutral-100 dark:bg-neutral-950/50 rounded-xl group-hover:bg-primary/10 dark:group-hover:bg-primary/20 transition-colors duration-500 ring-1 ring-black/5 dark:ring-white/5 shadow-inner">
+                            <module.icon className="h-6 w-6 text-neutral-600 dark:text-neutral-400 group-hover:text-primary dark:group-hover:text-primary transition-colors duration-500" />
+                        </div>
+                        <div className="bg-neutral-100 dark:bg-neutral-900/80 p-1.5 rounded-full ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-primary/50 group-hover:bg-primary/10 transition-all duration-300">
+                            <ChevronRight className="h-4 w-4 text-neutral-500 group-hover:text-primary group-hover:translate-x-0.5 transition-transform duration-300" />
+                        </div>
+                    </div>
+                    
+                    <div className="relative flex-1 flex flex-col justify-end">
+                        <h3 className="text-lg font-black text-neutral-900 dark:text-neutral-200 group-hover:text-primary dark:group-hover:text-white mb-2 tracking-tight transition-colors duration-300">{module.title}</h3>
+                        <p className="text-[13px] text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-400 leading-relaxed transition-colors duration-300">
+                            {module.description}
+                        </p>
+                    </div>
+                </Link>
+            ))}
         </div>
     </div>
   );

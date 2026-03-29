@@ -19,6 +19,12 @@ import {
   ShoppingBasket,
   MonitorPlay,
   QrCode,
+  Building,
+  BedDouble,
+  Bell,
+  BookCopy,
+  Layout,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -125,23 +131,49 @@ export function CommandMenu({ open, setOpen }: Props) {
           )}
 
           {role === 'Administrador' && (
-            <>
+            <CommandGroup heading="Ajustes y Configuración">
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings'))}>
+                    <SettingsIcon className="mr-2 h-4 w-4" />
+                    <span>Panel de Ajustes</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings/company'))}>
+                    <Building className="mr-2 h-4 w-4" />
+                    <span>Información Comercial</span>
+                </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/settings/room-types'))}>
-                    <Cog className="mr-2 h-4 w-4" />
+                    <BedDouble className="mr-2 h-4 w-4" />
                     <span>Tipos de Habitación</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings/sounds'))}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>Sonido de Alarma</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/catalog'))}>
+                    <BookCopy className="mr-2 h-4 w-4" />
+                    <span>Catálogo de Productos</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings/landing-page'))}>
+                    <Layout className="mr-2 h-4 w-4" />
+                    <span>Administración de Inicio</span>
+                </CommandItem>
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings/system'))}>
+                    <Cog className="mr-2 h-4 w-4" />
+                    <span>Sistema General</span>
                 </CommandItem>
                 <CommandItem onSelect={() => runCommand(() => router.push('/users'))}>
                     <Users className="mr-2 h-4 w-4" />
                     <span>Gestión de Usuarios</span>
                 </CommandItem>
-            </>
+            </CommandGroup>
           )}
 
           {(role === 'Administrador' || role === 'Contador') && (
-            <CommandItem onSelect={() => runCommand(() => router.push('/settings/taxes'))}>
-                <Percent className="mr-2 h-4 w-4" />
-                <span>Gestión de Impuestos</span>
-            </CommandItem>
+            <CommandGroup heading="Finanzas">
+                <CommandItem onSelect={() => runCommand(() => router.push('/settings/taxes'))}>
+                    <Percent className="mr-2 h-4 w-4" />
+                    <span>Gestión de Impuestos</span>
+                </CommandItem>
+            </CommandGroup>
           )}
         </CommandGroup>
         <CommandSeparator />

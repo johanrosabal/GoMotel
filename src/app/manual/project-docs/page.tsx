@@ -81,6 +81,30 @@ export default function ProjectDocsPage() {
                                 <p>El estado global del pedido solo pasa a 'Entregado' cuando ambas áreas han marcado sus respectivos ítems como listos.</p>
                             </AccordionContent>
                         </AccordionItem>
+                        <AccordionItem value="centralized-settings">
+                            <AccordionTrigger>Arquitectura: Panel de Ajustes Centralizado</AccordionTrigger>
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
+                                <p>Para reducir la carga cognitiva en el <code>Dashboard</code> principal, toda la configuración de "setup inicial" migró a <code>/settings</code>. Esto incluye la <em>Información Comercial</em>, el modelo flexible de <em>Tipos de Habitación</em>, la configuración del <em>Home Público (CMS)</em>, las reglas globales de <em>Impuestos</em> y el manejo del <em>Catálogo</em>.</p>
+                                <p><strong>Motor de Estilos (Glassmorphism):</strong> El contenedor de ajustes utiliza utilidades reactivas al tema de la aplicación combinadas con fondos semi-transparentes (<code>bg-neutral-900/40</code>) y desenfoque de fondo para forzar un diseño premium.</p>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="public-qr-ui">
+                            <AccordionTrigger>Auto-Pedido: Lógica Pública (QR & Desktop)</AccordionTrigger>
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
+                                <p>El flujo del catálogo al cliente (<code>/public/order</code>) determina dinámicamente el dispositivo:</p>
+                                <ul className="list-disc list-inside pl-4 space-y-1">
+                                    <li><strong>Dispositivo Ancho / Genérico:</strong> Despliega un modal selector de ubicación, obligando al usuario a indicar de qué mesa o habitación está haciendo la solicitud.</li>
+                                    <li><strong>Escaneo Dirigido (QR Móvil):</strong> La URL trae incrustada la mesa (parámetro de ruta local), omitiendo interrupciones y asimilando los productos al carrito.</li>
+                                </ul>
+                                <p>La jerarquía visual (ej. el botón de Instrucciones para modificar platillos) asegura el contraste de colores y legibilidad extrema en modo oscuro obligando <code>hover</code> de alto contraste de forma nativa.</p>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="pos-integration">
+                            <AccordionTrigger>Integración POS - Venta Directa Libre</AccordionTrigger>
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
+                                <p>El Punto de Venta (<code>/pos</code>) permite cargar artículos y crear una orden genérica sin atarse al documento de una habitación. Envía a la Cola de Producción automáticamente los artículos que apliquen, y el cierre de la orden reduce del esquema <code>Products -&gt; Stock</code> en Firestore mediante transacción única.</p>
+                            </AccordionContent>
+                        </AccordionItem>
                     </Accordion>
                 </CardContent>
             </Card>

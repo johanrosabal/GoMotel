@@ -16,9 +16,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Layout, ShieldCheck, Clock, Zap, Star, Heart, CheckCircle, Info } from 'lucide-react';
+import { Layout, ShieldCheck, Clock, Zap, Star, Heart, CheckCircle, Info, Play, Video, PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { MediaUpload } from '@/components/ui/media-upload';
+import { ref, deleteObject } from 'firebase/storage';
 
 const featureIcons = {
   ShieldCheck: ShieldCheck,
@@ -38,6 +40,10 @@ const landingPageFeatureSchema = z.object({
 });
 
 const landingPageContentSchema = z.object({
+  heroSection: z.object({
+    mobileImageUrl: z.string({ required_error: 'La imagen móvil es requerida.', invalid_type_error: 'La imagen móvil es requerida.' }).min(1, 'La imagen móvil es requerida.'),
+    desktopImageUrl: z.string({ required_error: 'La imagen de escritorio es requerida.', invalid_type_error: 'La imagen de escritorio es requerida.' }).min(1, 'La imagen de escritorio es requerida.'),
+  }).optional(),
   featuresSection: z.object({
     title1: z.string({ required_error: 'La línea 1 del título es requerida.', invalid_type_error: 'La línea 1 del título es requerida.' }).min(1, 'La línea 1 del título es requerida.'),
     title2: z.string({ required_error: 'La línea 2 del título es requerida.', invalid_type_error: 'La línea 2 del título es requerida.' }).min(1, 'La línea 2 del título es requerida.'),
@@ -62,6 +68,12 @@ const landingPageContentSchema = z.object({
       url: z.string({ required_error: 'La URL es requerida.', invalid_type_error: 'La URL es requerida.' }).min(1, 'La URL es requerida.'),
       alt: z.string().optional(),
     })).min(1, 'Debe haber al menos una imagen en la galería.'),
+    videos: z.array(z.object({
+      id: z.string(),
+      url: z.string({ required_error: 'La URL del video es requerida.' }).min(1, 'La URL es requerida.'),
+      alt: z.string().optional(),
+      thumbnailUrl: z.string().optional(),
+    })).optional(),
   }).optional(),
   footerSection: z.object({
     description: z.string({ required_error: 'La descripción es requerida.', invalid_type_error: 'La descripción es requerida.' }).min(1, 'La descripción es requerida.'),
@@ -81,7 +93,7 @@ type FormData = z.infer<typeof landingPageContentSchema>;
 export default function LandingPageForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { user, firestore, storage } = useFirebase();
   
   const contentRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -91,6 +103,14 @@ export default function LandingPageForm() {
   const { data: content, isLoading } = useDoc<LandingPageContent>(contentRef);
 
   const defaultValues: FormData = {
+    heroSection: {
+      title1: 'EXCLUSIVIDAD',
+      title2: 'SIN LÍMITES',
+      desktopSubtitle: 'Discreción absoluta y confort premium.',
+      mobileSubtitle: 'Confort premium.',
+      mobileImageUrl: '/hero_bg_mural.png',
+      desktopImageUrl: '/hotel_du_manolo_hero.jpg',
+    },
     featuresSection: {
       title1: 'POR QUÉ SOMOS',
       title2: 'DIFERENTES',
@@ -120,6 +140,7 @@ export default function LandingPageForm() {
         { id: '3', url: '/motel_amenities_sparkling_pool_1773958148851.png', alt: 'Pool' },
         { id: '4', url: 'https://picsum.photos/seed/luxury4/1200/800', alt: 'Mood' },
       ],
+      videos: [],
     },
     footerSection: {
       description: 'El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.',
@@ -133,6 +154,7 @@ export default function LandingPageForm() {
       ],
     },
   };
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(landingPageContentSchema),
@@ -154,6 +176,11 @@ export default function LandingPageForm() {
     name: 'gallerySection.images',
   });
 
+  const { fields: videoFields, append: appendVideo, remove: removeVideo } = useFieldArray({
+    control: form.control,
+    name: 'gallerySection.videos',
+  });
+
   const { fields: socialFields, append: appendSocial, remove: removeSocial } = useFieldArray({
     control: form.control,
     name: 'footerSection.socialMedia',
@@ -165,6 +192,10 @@ export default function LandingPageForm() {
       const mergedContent = {
         ...defaultValues,
         ...content,
+        heroSection: {
+          ...defaultValues.heroSection,
+          ...(content.heroSection || {}),
+        },
         featuresSection: {
           ...defaultValues.featuresSection,
           ...(content.featuresSection || {}),
@@ -197,6 +228,20 @@ export default function LandingPageForm() {
     });
   };
 
+  const handleRemoveMedia = async (index: number, type: 'images' | 'videos') => {
+    const item = form.getValues(`gallerySection.${type}`)?.[index];
+    if (item?.url && item.url.includes('firebasestorage.googleapis.com') && storage) {
+      try {
+        const storageRef = ref(storage, item.url);
+        await deleteObject(storageRef);
+      } catch (error) {
+        console.error('Error deleting media from storage:', error);
+      }
+    }
+    if (type === 'images') removeGallery(index);
+    else removeVideo(index);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -208,6 +253,113 @@ export default function LandingPageForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Layout className="h-5 w-5" /> Sección: Hero (Principal)
+            </CardTitle>
+            <CardDescription>
+              Gestione las imágenes principales para computadora y dispositivos móviles.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="heroSection.title1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título Línea 1 (Blanco)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: EXCLUSIVIDAD" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="heroSection.title2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ej: SIN LÍMITES" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="heroSection.desktopSubtitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subtítulo (Desktop)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={2} placeholder="Descripción larga..." />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="heroSection.mobileSubtitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subtítulo (Mobile, menos letras)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={2} placeholder="Descripción corta..." />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border">
+              <FormField
+                control={form.control}
+                name="heroSection.desktopImageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagen Desktop</FormLabel>
+                    <FormControl>
+                      <MediaUpload 
+                        value={field.value || ''} 
+                        onChange={field.onChange} 
+                        path="hero" 
+                        type="image"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="heroSection.mobileImageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagen Móvil</FormLabel>
+                    <FormControl>
+                      <MediaUpload 
+                        value={field.value || ''} 
+                        onChange={field.onChange} 
+                        path="hero" 
+                        type="image"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -455,10 +607,11 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Imagen de la Amenidad</FormLabel>
                             <FormControl>
-                              <ImageUpload 
+                              <MediaUpload 
                                 value={field.value || ''} 
                                 onChange={field.onChange} 
                                 path="amenities" 
+                                type="image"
                               />
                             </FormControl>
                             <FormMessage />
@@ -534,7 +687,7 @@ export default function LandingPageForm() {
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 text-destructive hover:text-destructive/80"
-                        onClick={() => removeGallery(index)}
+                        onClick={() => handleRemoveMedia(index, 'images')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -546,10 +699,11 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Archivo de Imagen</FormLabel>
                             <FormControl>
-                              <ImageUpload 
+                              <MediaUpload 
                                 value={field.value || ''} 
                                 onChange={field.onChange} 
                                 path="gallery" 
+                                type="image"
                               />
                             </FormControl>
                             <FormMessage />
@@ -577,6 +731,80 @@ export default function LandingPageForm() {
               {galleryFields.length === 0 && (
                 <div className="text-center py-10 border-2 border-dashed border-muted rounded-2xl">
                   <p className="text-muted-foreground text-sm">No hay imágenes en la galería. Añade una para comenzar.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 pt-8 border-t border-border">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Videos de la Galería</h3>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendVideo({ id: Date.now().toString(), url: '', alt: '' })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> Añadir Video
+                </Button>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {videoFields.map((field, index) => (
+                  <Card key={field.id} className="border-primary/5 bg-primary/[0.02]">
+                    <CardContent className="pt-6 space-y-4 relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 text-destructive hover:text-destructive/80"
+                        onClick={() => handleRemoveMedia(index, 'videos')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      
+                      <FormField
+                        control={form.control}
+                        name={`gallerySection.videos.${index}.url`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Archivo de Video</FormLabel>
+                            <FormControl>
+                              <MediaUpload 
+                                value={field.value || ''} 
+                                onChange={field.onChange} 
+                                path="gallery" 
+                                type="video"
+                                maxSizeMB={100}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`gallerySection.videos.${index}.alt`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Título del Video</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9 px-3" placeholder="Ej: Recorrido por Suite" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {videoFields.length === 0 && (
+                <div className="text-center py-6 border-2 border-dashed border-muted rounded-2xl">
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest">No hay videos configurados.</p>
                 </div>
               )}
             </div>

@@ -39,6 +39,9 @@ import {
   Flame,
   GlassWater,
   Globe,
+  Bell,
+  AlertCircle,
+  Info as InfoIcon
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -47,6 +50,9 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase'
 import { collection, doc, query } from 'firebase/firestore';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getActiveNotifications } from '@/lib/actions/notification.actions';
+import { useState, useEffect } from 'react';
+import type { AppNotification } from '@/types';
 
 // Define a type for navigation sections
 type NavSection = {
@@ -76,6 +82,16 @@ export default function DashboardPage() {
 
   const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
   const { data: company } = useDoc<CompanyProfile>(companyRef);
+
+  const [activeNotifications, setActiveNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    async function fetchNotifs() {
+      const notifs = await getActiveNotifications('Internal');
+      setActiveNotifications(notifs);
+    }
+    fetchNotifs();
+  }, []);
 
   if (isProfileLoading || isLoadingRooms || isLoadingServices) {
     return (
@@ -186,6 +202,13 @@ export default function DashboardPage() {
           roles: ['Administrador', 'Recepcion'],
         },
         {
+          href: '/dashboard/rooms',
+          title: 'Panel de Habitaciones',
+          description: 'Vista y estado interactivo de todas las unidades.',
+          icon: LayoutGrid,
+          badge: 'SECUNDARIA',
+        },
+        {
           href: '/cleaning',
           title: 'Cola de Limpieza',
           description: 'Gestione las habitaciones que requieren limpieza.',
@@ -267,11 +290,11 @@ export default function DashboardPage() {
           roles: ['Administrador', 'Contador'],
         },
         {
-          href: '/settings/taxes',
-          title: 'Gestión de Impuestos',
-          description: 'Define y gestiona los impuestos aplicables.',
-          icon: Percent,
-          roles: ['Administrador', 'Contador'],
+            href: '/reports/stays',
+            title: 'Registro de Estancias',
+            description: 'Consulta el historial de estancias activas y pasadas.',
+            icon: FileText,
+            roles: ['Administrador', 'Contador', 'Recepcion'],
         },
         {
             href: '/settings/sinpe-accounts',
@@ -290,53 +313,24 @@ export default function DashboardPage() {
       ],
     },
     {
-      title: 'Administración y Parámetros',
-      scope: 'Configuración global y seguridad.',
-      description: 'Ajustes del sistema y gestión de usuarios.',
+      title: 'Administración y Seguridad',
+      scope: 'Configuración de seguridad y operación global.',
+      description: 'Panel general de ajustes y gestión de usuarios.',
       roles: ['Administrador'],
       links: [
         {
-          href: '/dashboard/rooms',
-          title: 'Panel de Habitaciones',
-          description: 'Vista y gestión de todas las habitaciones.',
-          icon: LayoutGrid,
-        },
-        {
-          href: '/catalog',
-          title: 'Catálogo de Productos',
-          description: 'Gestiona categorías, sub-categorías y productos.',
-          icon: BookCopy,
-        },
-        {
-            href: '/settings/company',
-            title: 'Información Comercial',
-            description: 'Gestiona los datos legales y fiscales de tu empresa.',
-            icon: Building,
-        },
-        {
           href: '/settings',
           title: 'Ajustes del Sistema',
-          description: 'Configura tipos de habitación, sonidos de alerta y otros parámetros.',
+          description: 'Configura tipos de habitación, sonidos, catálogo, CMS y otros parámetros maestros de Hotel Du Manolo.',
           icon: Cog,
-        },
-        {
-          href: '/settings/room-types',
-          title: 'Tipos de Habitación',
-          description: 'Configure tarifas y características de habitaciones.',
-          icon: BedDouble,
+          badge: 'MAESTRO',
         },
         {
           href: '/users',
           title: 'Gestión de Usuarios',
-          description: 'Administra los roles y accesos del personal.',
+          description: 'Administra los roles, pines y accesos del personal.',
           icon: Users,
         },
-        {
-            href: '/reports/stays',
-            title: 'Registro de Estancias',
-            description: 'Consulta el historial de estancias activas y pasadas.',
-            icon: FileText,
-        }
       ],
     },
      {
@@ -370,8 +364,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:py-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 text-center md:text-left">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           Bienvenido a {company?.tradeName || 'Go Motel'}
         </h1>
@@ -379,6 +372,38 @@ export default function DashboardPage() {
           Resumen ejecutivo de métricas clave, estado de habitaciones y accesos directos a los procesos críticos del motel.
         </p>
       </div>
+
+      {activeNotifications.length > 0 && (
+        <div className="space-y-3">
+          {activeNotifications.map((notif) => (
+            <div 
+              key={notif.id} 
+              className={cn(
+                "p-4 rounded-xl border flex items-start gap-4 animate-in fade-in slide-in-from-top-2 duration-500",
+                notif.priority === 'High' ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50 text-red-900 dark:text-red-200" :
+                notif.priority === 'Medium' ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50 text-amber-900 dark:text-amber-200" :
+                "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/50 text-blue-900 dark:text-blue-200"
+              )}
+            >
+              <div className={cn(
+                "p-2 rounded-lg shrink-0",
+                notif.priority === 'High' ? "bg-red-100 dark:bg-red-900/40" :
+                notif.priority === 'Medium' ? "bg-amber-100 dark:bg-amber-900/40" :
+                "bg-blue-100 dark:bg-blue-900/40"
+              )}>
+                {notif.priority === 'High' ? <AlertCircle className="h-5 w-5" /> : 
+                 notif.priority === 'Medium' ? <Bell className="h-5 w-5" /> : 
+                 <InfoIcon className="h-5 w-5" />}
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black text-sm uppercase tracking-tight">{notif.title}</h4>
+                <p className="text-sm opacity-90 leading-relaxed">{notif.message}</p>
+                <div className="text-[10px] opacity-60 font-medium">Publicado el: {new Date(typeof notif.startDate === 'number' ? notif.startDate : (notif.startDate as any).toMillis?.() || Date.now()).toLocaleDateString()}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -426,10 +451,20 @@ export default function DashboardPage() {
                               </div>
                           </div>
                       )}
+                      {link.badge === 'SECUNDARIA' && (
+                          <div className="absolute -top-2 -right-2 z-20">
+                              <div className="rounded-full border transition-colors hover:bg-blue-600 bg-blue-500 text-white border-blue-400 shadow-lg text-[8px] font-black py-0 px-1.5 h-5 flex items-center gap-1">
+                                  <LayoutGrid className="size-2.5 fill-current" />
+                                  ACTIVIDAD SECUNDARIA
+                              </div>
+                          </div>
+                      )}
                       <div className={cn(
                           "rounded-lg border text-card-foreground shadow-sm h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group-hover:border-primary/20",
                           link.badge === 'PASO 1' 
                           ? "border-accent border-2 ring-4 ring-accent/10 bg-accent/[0.03]"
+                          : link.badge === 'SECUNDARIA'
+                          ? "border-blue-500/40 border-2 ring-4 ring-blue-500/10 bg-blue-500/[0.03]"
                           : link.badge === 'PASO 2'
                           ? "border-primary border-2 ring-4 ring-primary/10 bg-primary/[0.03]"
                           : link.badge === 'NUEVO'
@@ -445,6 +480,7 @@ export default function DashboardPage() {
                                   <div className="absolute top-4 right-4">
                                       <Badge variant="default" className={cn("font-black text-[10px] px-2 h-5",
                                         link.badge === 'PASO 1' ? 'bg-accent text-accent-foreground' : 
+                                        link.badge === 'SECUNDARIA' ? 'bg-blue-600 text-white' : 
                                         link.badge === 'NUEVO' ? 'bg-green-600 text-white' :
                                         link.badge === 'PÚBLICO' ? 'bg-emerald-600 text-white' :
                                         link.badge === 'ENVIVO' ? 'bg-orange-600 text-white' :
@@ -455,6 +491,7 @@ export default function DashboardPage() {
                               <div className={cn(
                                   "mb-4 p-2.5 w-fit rounded-xl transition-all group-hover:scale-110 duration-300 border shadow-sm",
                                   link.badge === 'PASO 1' ? "text-accent bg-accent/10" : 
+                                  link.badge === 'SECUNDARIA' ? "text-blue-600 bg-blue-100 dark:bg-blue-900/50" : 
                                   link.badge === 'PÚBLICO' ? "text-emerald-600 bg-emerald-100" :
                                   link.badge === 'ENVIVO' ? "text-orange-600 bg-orange-100" :
                                   "bg-primary/10 text-primary"

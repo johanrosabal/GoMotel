@@ -29,7 +29,10 @@ import {
   Navigation,
   Compass,
   Map as MapIcon,
-  MessageCircle
+  MessageCircle,
+  X,
+  Bell,
+  Eye
 } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
 import { Button } from '@/components/ui/button';
@@ -37,8 +40,9 @@ import { ReservationModal } from '@/components/ReservationModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDoc, useFirebase, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, query, collection, orderBy, where } from 'firebase/firestore';
-import type { LandingPageContent, RoomType } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import type { LandingPageContent, RoomType, AppNotification } from '@/types';
+import { formatCurrency, cn } from '@/lib/utils';
+import { getActiveNotifications } from '@/lib/actions/notification.actions';
 import {
   Carousel,
   CarouselContent,
@@ -83,6 +87,45 @@ export default function LandingPage() {
   const [current, setCurrent] = useState(0);
   const [activeAmenityIndex, setActiveAmenityIndex] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeNotifications, setActiveNotifications] = useState<AppNotification[]>([]);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showAllGallery, setShowAllGallery] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<{url: string, type: 'image' | 'video', alt?: string} | null>(null);
+  const galleryImages = cmsContent?.gallerySection?.images || [
+    { id: '1', url: "/motel_exterior_night_1773958134736.png", alt: 'Exterior' },
+    { id: '2', url: "/motel_premium_room_1773958120043.png", alt: 'Room' },
+    { id: '3', url: "/motel_amenities_sparkling_pool_1773958148851.png", alt: 'Pool' },
+    { id: '4', url: 'https://picsum.photos/seed/luxury4/1200/800', alt: 'Mood' },
+  ];
+  const galleryVideos = cmsContent?.gallerySection?.videos || [];
+
+  // Combine images and videos for the preview, limited to 4 items
+  const allGalleryMedia = [
+    ...galleryImages.map(img => ({ ...img, type: 'image' as const })),
+    ...galleryVideos.map(vid => ({ ...vid, type: 'video' as const }))
+  ].slice(0, 4);
+
+  useEffect(() => {
+    // Hide splash after 2.8s total
+    const timer = setTimeout(() => setShowSplash(false), 2800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (showSplash) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [showSplash]);
+
+  useEffect(() => {
+    async function fetchNotifs() {
+      const notifs = await getActiveNotifications('Public');
+      setActiveNotifications(notifs);
+    }
+    fetchNotifs();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -142,6 +185,13 @@ export default function LandingPage() {
     "/motel_premium_room_1773958120043.png",
   ];
 
+  const heroMobileImage = cmsContent?.heroSection?.mobileImageUrl || "/hero_bg_mural.png";
+  const heroDesktopImage = cmsContent?.heroSection?.desktopImageUrl || "/hotel_du_manolo_hero.jpg";
+  const heroTitle1 = cmsContent?.heroSection?.title1 || "Exclusividad";
+  const heroTitle2 = cmsContent?.heroSection?.title2 || "Sin Límites";
+  const heroDesktopSubtitle = cmsContent?.heroSection?.desktopSubtitle || "Discreción absoluta y confort premium.";
+  const heroMobileSubtitle = cmsContent?.heroSection?.mobileSubtitle || "Confort premium.";
+
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
@@ -150,12 +200,6 @@ export default function LandingPage() {
 
   const galleryTitle1 = cmsContent?.gallerySection?.title1 || "EXPLORE";
   const galleryTitle2 = cmsContent?.gallerySection?.title2 || "LUJO";
-  const galleryImages = cmsContent?.gallerySection?.images || [
-    { id: '1', url: "/motel_exterior_night_1773958134736.png", alt: 'Exterior' },
-    { id: '2', url: "/motel_premium_room_1773958120043.png", alt: 'Room' },
-    { id: '3', url: "/motel_amenities_sparkling_pool_1773958148851.png", alt: 'Pool' },
-    { id: '4', url: 'https://picsum.photos/seed/luxury4/1200/800', alt: 'Mood' },
-  ];
 
   const footerDescription = cmsContent?.footerSection?.description || "El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.";
   const footerAddress = cmsContent?.footerSection?.address || "San José, Costa Rica. Del cruce de Escazú 2km Sur.";
@@ -207,7 +251,124 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark:bg-[#0a0a0a] dark:text-white selection:bg-primary/30 selection:text-white overflow-x-hidden transition-colors duration-300">
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-background/80 backdrop-blur-xl py-2 border-b border-border shadow-lg' : 'bg-transparent py-4'}`}>
+      <AnimatePresence mode="wait">
+        {showSplash && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ 
+              opacity: 0,
+              scale: 1.1,
+              filter: "blur(20px)",
+              transition: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] }
+            }}
+            className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 overflow-hidden"
+          >
+            {/* Ambient Background Glow */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.3, scale: 1.2 }}
+              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+              className="absolute w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px]"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="relative flex flex-col items-center gap-8"
+            >
+              <div className="relative w-24 h-24 md:w-32 md:h-32 mb-4">
+                <Image
+                  src="/logo_manolo.png"
+                  alt="Hotel Du Manolo Logo"
+                  fill
+                  className="object-contain drop-shadow-[0_0_25px_rgba(179,153,255,0.4)]"
+                  priority
+                />
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <motion.h1 
+                  initial={{ opacity: 0, letterSpacing: '0.4em' }}
+                  animate={{ opacity: 1, letterSpacing: '0.2em' }}
+                  transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
+                  className="text-2xl md:text-5xl font-black uppercase italic tracking-[0.2em] text-white"
+                >
+                  Hotel Du Manolo
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.6 }}
+                  transition={{ delay: 0.8, duration: 1 }}
+                  className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-primary"
+                >
+                  Exclusividad & Discreción
+                </motion.p>
+              </div>
+
+              {/* Progress Bar Container */}
+              <div className="mt-8 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "0%" }}
+                  transition={{ 
+                    duration: 2.5, 
+                    ease: "easeInOut"
+                  }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
+                />
+              </div>
+            </motion.div>
+
+            {/* Bottom Status */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5, duration: 1 }}
+              className="absolute bottom-12 flex items-center gap-3"
+            >
+              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/30 italic">
+                Cargando Experiencia...
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeNotifications.length > 0 && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className={cn(
+              "fixed top-0 left-0 right-0 z-[60] py-2 px-4 text-center text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 transition-colors",
+              activeNotifications[0].priority === 'High' ? "bg-red-600 text-white" :
+              activeNotifications[0].priority === 'Medium' ? "bg-amber-500 text-black" :
+              "bg-primary text-primary-foreground"
+            )}
+          >
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <Bell className="h-3 w-3 animate-bounce" />
+              <span>{activeNotifications[0].title}: {activeNotifications[0].message}</span>
+            </div>
+            <button 
+              onClick={() => setActiveNotifications([])}
+              className="p-1 hover:bg-black/10 rounded-full transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <header className={cn(
+        "fixed left-0 right-0 z-50 transition-all duration-500",
+        activeNotifications.length > 0 ? "top-8 md:top-[34px]" : "top-0",
+        isScrolled ? "bg-background/80 backdrop-blur-xl py-2 border-b border-border shadow-lg" : "bg-transparent py-4"
+      )}>
         <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
           {/* Logo Central en Mobile, Izquierda en Desktop */}
           <Link
@@ -245,10 +406,17 @@ export default function LandingPage() {
         <section className="relative h-[100dvh] min-h-[100dvh] bg-black overflow-hidden flex flex-col items-center">
           <div className="absolute inset-0 z-0 flex items-center justify-center">
             <Image
-              src="/hero_bg_mural.png"
-              alt="Hotel Du Manolo Hero"
+              src={heroMobileImage}
+              alt="Hotel Du Manolo Hero Mobile"
               fill
-              className="object-contain opacity-70 brightness-[0.5]"
+              className="object-contain opacity-70 brightness-[0.5] md:hidden"
+              priority
+            />
+            <Image
+              src={heroDesktopImage}
+              alt="Hotel Du Manolo Hero Desktop"
+              fill
+              className="object-cover opacity-70 brightness-[0.5] hidden md:block"
               priority
             />
             {/* Logo a un lado (Desktop only) */}
@@ -277,11 +445,14 @@ export default function LandingPage() {
                 className="max-w-xl md:max-w-2xl mx-auto md:mx-0 mb-6 md:mb-10"
               >
                 <h1 className="text-2xl md:text-6xl font-black tracking-tighter italic uppercase mb-2 md:mb-6 leading-[0.9] text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
-                  Exclusividad <br />
-                  <span className="text-primary italic">Sin Límites</span>
+                  {heroTitle1} <br />
+                  <span className="text-primary italic">{heroTitle2}</span>
                 </h1>
                 <p className="hidden md:block text-md text-white/90 font-medium leading-relaxed balance drop-shadow-md">
-                  Discreción absoluta y confort premium.
+                  {heroDesktopSubtitle}
+                </p>
+                <p className="md:hidden text-sm max-w-[80%] mx-auto md:mx-0 text-white/90 font-medium leading-relaxed balance drop-shadow-md">
+                  {heroMobileSubtitle}
                 </p>
               </motion.div>
 
@@ -568,7 +739,7 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[400px]">
-              {galleryImages.map((image, index) => {
+              {allGalleryMedia.map((item, index) => {
                 // Alternating grid logic:
                 // Row 1: Span 2, Span 1
                 // Row 2: Span 1, Span 2
@@ -580,29 +751,74 @@ export default function LandingPage() {
 
                 return (
                   <motion.div
-                    key={image.id || index}
+                    key={item.id || index}
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
-                    className={`${colSpan} relative rounded-[2rem] overflow-hidden group border border-white/5`}
+                    className={cn(
+                      colSpan, 
+                      "relative rounded-[2rem] overflow-hidden group border border-white/5 bg-neutral-900/50 cursor-pointer"
+                    )}
+                    onClick={() => setSelectedMedia({ url: item.url, type: item.type, alt: item.alt })}
                   >
-                    <Image
-                      src={image.url}
-                      alt={image.alt || `Gallery image ${index + 1}`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                    {image.alt && (
-                      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-xs font-black uppercase tracking-widest">{image.alt}</p>
+                    {item.type === 'image' ? (
+                      <Image
+                        src={item.url}
+                        alt={item.alt || `Gallery image ${index + 1}`}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="relative w-full h-full bg-slate-900 pointer-events-none">
+                        <video 
+                          src={`${item.url}#t=0.1`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Play className="h-6 w-6 text-primary fill-primary" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                    
+                    {item.alt && (
+                      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">{item.type === 'video' ? 'VIDEO' : 'EXPLORE'}</p>
+                        <p className="text-xs font-black uppercase tracking-widest">{item.alt}</p>
                       </div>
                     )}
                   </motion.div>
                 );
               })}
             </div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-16 flex justify-center"
+            >
+              <Link href="/gallery">
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  className="h-14 px-10 rounded-full font-black uppercase tracking-[0.2em] text-[10px] border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary transition-all duration-300 group shadow-lg"
+                >
+                  <span className="flex items-center gap-3">
+                    Ver galería completa
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </span>
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </section>
 
@@ -769,6 +985,68 @@ export default function LandingPage() {
           </span>
         </motion.a>
       )}
+
+      {/* Media Lightbox */}
+      <AnimatePresence>
+        {selectedMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center px-4 md:px-6"
+          >
+            <button 
+              onClick={() => setSelectedMedia(null)}
+              className="absolute top-4 md:top-8 right-4 md:right-8 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[210]"
+            >
+              <X className="h-6 w-6 text-white" />
+            </button>
+
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-7xl w-full aspect-video rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            >
+              {selectedMedia.type === 'image' ? (
+                <Image
+                  src={selectedMedia.url}
+                  alt={selectedMedia.alt || 'View'}
+                  fill
+                  className="object-contain"
+                />
+              ) : (
+                <div className="w-full h-full bg-black">
+                  {selectedMedia.url.includes('youtube.com') || selectedMedia.url.includes('youtu.be') ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${selectedMedia.url.split('v=')[1] || selectedMedia.url.split('/').pop()}`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video 
+                      src={selectedMedia.url} 
+                      controls 
+                      autoPlay 
+                      className="w-full h-full"
+                    />
+                  )}
+                </div>
+              )}
+              
+              <div className="absolute bottom-4 left-4 md:bottom-10 md:left-10 p-4 md:p-6 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl md:rounded-2xl hidden md:block">
+                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                  {selectedMedia.type === 'image' ? 'Captura Real' : 'Experiencia Visual'}
+                </p>
+                <h3 className="text-lg md:text-2xl font-black uppercase italic tracking-tighter">
+                  {selectedMedia.alt || 'Hotel Du Manolo Experience'}
+                </h3>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

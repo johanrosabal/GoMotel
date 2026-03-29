@@ -83,10 +83,43 @@ graph TD
     DirectConfirm --> Cleaning[Estado: Limpieza]
     Cleaning --> Finish[Estado: Disponible]
     
-    style PaidState fill:#dcfce7,stroke:#166534
-    style OpenState fill:#fef3c7,stroke:#92400e
+    style PaidState fill:#dcfce7,stroke:#166534,color:#000
+    style OpenState fill:#fef3c7,stroke:#92400e,color:#000
+    style OpenState fill:#fef3c7,stroke:#92400e,color:#000
     style DirectConfirm fill:#10b981,stroke:#059669,color:#fff
-    style CheckType fill:#e0e7ff,stroke:#4338ca
+    style CheckType fill:#e0e7ff,stroke:#4338ca,color:#000
+`;
+
+const qrFlowChart = `
+graph TD
+    Client[Cliente: Escanea QR en Mesa] --> Menu[Accede a Menú Digital]
+    Menu --> Cart[Arma Carrito con Notas]
+    Cart --> Checkout[Confirma Pedido]
+    
+    Checkout --> System{¿Cuenta Activa?}
+    System -- Sí --> AddItems[Añade ítems a cuenta]
+    System -- No --> CreateAccount[Crea nueva 'Cuenta de Mesa']
+    
+    AddItems --> Queue[Cola de Cocina/Barra]
+    CreateAccount --> Queue
+    
+    Queue --> Prep[Staff: Estado 'Cocinando']
+    Prep --> Ready[Staff: Estado 'Entregado']
+    
+    Ready --> POS[Cajero visualiza consumos en POS]
+    POS --> ClientPay{Cliente Pide la Cuenta}
+    
+    ClientPay --> PayProcess[Pago: Efectivo, SINPE o Tarjeta]
+    PayProcess --> DirectInvoice[Facturación Final]
+    
+    DirectInvoice --> Inventory[Deducción de Stock e Histórico]
+    Inventory --> FreeTable[Libera Ubicación]
+    
+    style Queue fill:#e0e7ff,stroke:#4338ca,color:#111827
+    style Prep fill:#fef3c7,stroke:#92400e,color:#111827
+    style Ready fill:#dcfce7,stroke:#166534,color:#111827
+    style DirectInvoice fill:#10b981,stroke:#059669,color:#fff
+    style FreeTable fill:#f3f4f6,stroke:#4b5563,color:#111827
 `;
 
 export default function ManualOperationsPage() {
@@ -127,7 +160,10 @@ export default function ManualOperationsPage() {
                         Proceso de auto-servicio para clientes y gestión de barra/cocina en tiempo real.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-8">
+                    <div className="rounded-xl border border-indigo-200 bg-white/50 p-2 overflow-hidden shadow-inner dark:bg-indigo-950/20 dark:border-indigo-800">
+                        <Mermaid chart={qrFlowChart} />
+                    </div>
                     <div className="space-y-12 max-w-3xl mx-auto py-8">
                         <Step
                             icon={Smartphone}

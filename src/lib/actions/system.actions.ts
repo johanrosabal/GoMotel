@@ -19,18 +19,27 @@ export async function getSystemSettings(): Promise<SystemSettings> {
       return {
         id: SETTINGS_DOC_ID,
         verificationApiDomain: data.verificationApiDomain || DEFAULT_DOMAIN,
+        publicMenuDarkMode: data.publicMenuDarkMode || false,
+        supportEmail: data.supportEmail || '',
+        supportPhone: data.supportPhone || '',
       } as SystemSettings;
     }
 
     return {
       id: SETTINGS_DOC_ID,
       verificationApiDomain: DEFAULT_DOMAIN,
+      publicMenuDarkMode: false,
+      supportEmail: '',
+      supportPhone: '',
     } as SystemSettings;
   } catch (error) {
     console.error('Error fetching system settings:', error);
     return {
       id: SETTINGS_DOC_ID,
       verificationApiDomain: DEFAULT_DOMAIN,
+      publicMenuDarkMode: false,
+      supportEmail: '',
+      supportPhone: '',
     } as SystemSettings;
   }
 }
@@ -41,6 +50,7 @@ export async function updateSystemSettings(data: Partial<SystemSettings>) {
     await setDoc(docRef, data, { merge: true });
     revalidatePath('/settings');
     revalidatePath('/clients');
+    revalidatePath('/public/menu');
     return { success: true };
   } catch (error) {
     console.error('Error updating system settings:', error);

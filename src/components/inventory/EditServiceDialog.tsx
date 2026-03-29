@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -459,6 +460,27 @@ export default function EditServiceDialog({ children, service, allServices, open
                     )}
                 />
                 </div>
+                <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Descripción Promocional (Opcional)</FormLabel>
+                        <p className="text-[10px] text-muted-foreground my-1">
+                            Este texto se mostrará en el Menú de TV Público cuando el producto sea destacado.
+                        </p>
+                        <FormControl>
+                        <Textarea 
+                            placeholder="Una selección excepcional creada para deleitar sus sentidos con los mejores ingredientes." 
+                            className="resize-none"
+                            {...field} 
+                            id="editservicedialog-textarea-description" 
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                 {source === 'Purchased' && <FormField
                     control={form.control}
                     name="supplierId"

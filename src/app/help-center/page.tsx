@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HelpCircle, LifeBuoy, Mail } from 'lucide-react';
+import { HelpCircle, LifeBuoy, Mail, Phone } from 'lucide-react';
+import { getSystemSettings } from '@/lib/actions/system.actions';
 
 const faqs = [
     {
@@ -25,7 +26,10 @@ const faqs = [
     }
 ];
 
-export default function HelpCenterPage() {
+export default async function HelpCenterPage() {
+    const settings = await getSystemSettings();
+    const supportEmail = settings.supportEmail || "soporte.gomotel@example.com";
+    
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-8">
             <div className="space-y-1.5">
@@ -81,11 +85,24 @@ export default function HelpCenterPage() {
                                 <div>
                                     <h4 className="font-semibold">Contacto por Email</h4>
                                     <p className="text-sm text-muted-foreground">Para asistencia técnica, errores o sugerencias, escríbanos a:</p>
-                                    <a href="mailto:soporte.gomotel@example.com" className="text-sm font-medium text-primary hover:underline">
-                                        soporte.gomotel@example.com
+                                    <a href={`mailto:${supportEmail}`} className="text-sm font-medium text-primary hover:underline">
+                                        {supportEmail}
                                     </a>
                                 </div>
                             </div>
+                            
+                            {settings.supportPhone && (
+                                <div className="flex items-start gap-4 pt-4 border-t">
+                                    <Phone className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                                    <div>
+                                        <h4 className="font-semibold">Línea de Atención</h4>
+                                        <p className="text-sm text-muted-foreground">Para emergencias operativas, contáctenos vía llamada o WhatsApp:</p>
+                                        <a href={`tel:${settings.supportPhone.replace(/\s+/g, '')}`} className="text-sm font-medium text-primary hover:underline">
+                                            {settings.supportPhone}
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

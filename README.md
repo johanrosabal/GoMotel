@@ -45,16 +45,25 @@ El sistema está diseñado para cubrir todas las áreas críticas de la gestión
   - Historial detallado de Estancias, Facturas y Compras a proveedores.
   - Vista en tiempo real del inventario para control de stock.
 - **Administración del Sistema**:
-  - Configuración de tipos de habitación con planes de precios personalizables.
-  - Gestión de impuestos, proveedores y cuentas de pago.
+  - Panel centralizado de **Ajustes del Sistema** (`/settings`) para gobernar toda la operación.
+  - **Catálogo de Productos**: Gestión clasificada de categorías, sub-categorías e ítems, con soporte para control de stock.
+  - Configuración de **Administración de Inicio (CMS)**: Edite los textos, imágenes promocionales y tarifas de la página de inicio (Landing Page) pública directamente desde el panel.
+  - Configuración del **Sistema General**: Control de variables de sistema, como activar o desactivar el Modo Oscuro en pantallas de cliente.
+  - Configuración de **Tipos de Habitación** con planes de precios personalizables y modalidades adicionales (Sencilla, Suite, etc).
+  - Gestión de **Impuestos, Proveedores y Cuentas de Pago** centralizadas.
+  - Selección de **Sonido de Alarma** para alertas proactivas al vencerse el tiempo de estancias o detectar notificaciones nuevas.
 - **Sistema de Pedidos por QR (Auto-Servicio)**:
-  - Interfaz pública optimizada para móviles para que los clientes ordenen desde su mesa.
+  - Interfaz pública fluida, optimizada para móviles para que los clientes ordenen desde su mesa.
+  - Soporte de "Modo Computadora": Listado de ubicaciones dinámico si el cliente no escaneó un código QR específico.
+  - Integración de **Notas e Instrucciones** por cada producto para personalizar bebidas y platillos.
   - Seguimiento en tiempo real del estado de preparación de cada ítem.
 - **Cola de Cocina y Barra**: Interfaz dedicada para que el personal de servicio gestione y priorice las órdenes entrantes.
 - **Roles y Permisos**: Sistema de roles simple para controlar el acceso a diferentes funcionalidades:
-  - **Administrador**: Control total del sistema, incluyendo configuración y gestión de usuarios.
-  - **Recepcion**: Acceso a las operaciones diarias del motel (reservaciones, check-in, etc.).
+  - **Administrador**: Control total del sistema, configuración, catálogo y gestión de usuarios.
+  - **Recepcion**: Acceso a las operaciones diarias del motel (reservaciones, check-in, POS, habitación, etc.).
   - **Cocina/Barra**: Acceso exclusivo a la cola de pedidos para gestión de preparación.
+  - **Contador**: Acceso a reportería y finanzas.
+  - **Conserje**: Acceso limitado a tareas de apoyo.
 
 ## 📁 Estructura del Proyecto
 

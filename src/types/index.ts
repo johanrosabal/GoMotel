@@ -330,6 +330,9 @@ export interface CompanyProfile {
 export interface SystemSettings {
   id: 'system';
   verificationApiDomain: string;
+  publicMenuDarkMode?: boolean;
+  supportEmail?: string;
+  supportPhone?: string;
 }
 
 export interface LandingPageFeature {
@@ -339,8 +342,32 @@ export interface LandingPageFeature {
   description: string;
 }
 
+export type NotificationType = 'Public' | 'Internal';
+export type NotificationPriority = 'Low' | 'Medium' | 'High';
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  startDate: Timestamp;
+  endDate: Timestamp;
+  type: NotificationType;
+  priority: NotificationPriority;
+  isActive: boolean;
+  createdAt: Timestamp;
+  createdBy?: string;
+}
+
 export interface LandingPageContent {
   id: string; // 'main'
+  heroSection?: {
+    title1?: string;
+    title2?: string;
+    desktopSubtitle?: string;
+    mobileSubtitle?: string;
+    mobileImageUrl: string;
+    desktopImageUrl: string;
+  };
   featuresSection: {
     title1: string;
     title2: string;
@@ -364,6 +391,12 @@ export interface LandingPageContent {
       id: string;
       url: string;
       alt?: string;
+    }[];
+    videos?: {
+      id: string;
+      url: string;
+      alt?: string;
+      thumbnailUrl?: string;
     }[];
   };
   footerSection?: {
