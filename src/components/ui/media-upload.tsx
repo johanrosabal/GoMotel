@@ -59,8 +59,10 @@ export function MediaUpload({
       try {
         const oldRef = ref(storage, value);
         await deleteObject(oldRef);
-      } catch (error) {
-        console.error('Error deleting old media:', error);
+      } catch (error: any) {
+        if (error.code !== 'storage/object-not-found') {
+          console.error('Error deleting old media:', error);
+        }
       }
     }
 
@@ -81,10 +83,16 @@ export function MediaUpload({
         setUploading(false);
       },
       async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        onChange(downloadURL);
-        setUploading(false);
-        toast({ title: '¡Listo!', description: 'Archivo subido correctamente.' });
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          onChange(downloadURL);
+          setUploading(false);
+          toast({ title: '¡Listo!', description: 'Archivo subido correctamente.' });
+        } catch (err: any) {
+          console.error('Error obteniendo URL:', err);
+          toast({ title: 'Error de subida', description: 'Problema obteniendo enlace de archivo.', variant: 'destructive' });
+          setUploading(false);
+        }
       }
     );
   };
@@ -94,8 +102,10 @@ export function MediaUpload({
       try {
         const oldRef = ref(storage, value);
         await deleteObject(oldRef);
-      } catch (error) {
-        console.error('Error deleting file:', error);
+      } catch (error: any) {
+        if (error.code !== 'storage/object-not-found') {
+          console.error('Error deleting file:', error);
+        }
       }
     }
     onChange('');
