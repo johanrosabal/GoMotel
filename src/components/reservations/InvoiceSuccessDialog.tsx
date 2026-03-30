@@ -46,27 +46,47 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
 
     const { data: invoice, isLoading } = useDoc<Invoice>(invoiceDocRef);
 
-    // Auto-fill email if client has one
+    // Auto-fill contact info if client has it
     React.useEffect(() => {
-        const fetchClientEmail = async () => {
+        const fetchClientInfo = async () => {
             if (invoice?.clientId && firestore) {
                 try {
                     const clientRef = doc(firestore, 'clients', invoice.clientId);
                     const clientSnap = await getDoc(clientRef);
                     if (clientSnap.exists()) {
                         const clientData = clientSnap.data() as Client;
+                        
+                        // Auto-fill email
                         if (clientData.email) {
                             setEmailAddress(clientData.email);
                         }
+
+                        // Auto-fill phone
+                        const phoneToUse = clientData.whatsappNumber || clientData.phoneNumber;
+                        if (phoneToUse) {
+                            // Extract digits and apply formatting
+                            const digits = phoneToUse.replace(/\D/g, '');
+                            if (digits.length >= 8) {
+                                // Basic formatting for (506) XXXX-XXXX or similar
+                                let formatted = '';
+                                const mainDigits = digits.length > 8 ? digits.slice(-8) : digits;
+                                const areaCode = digits.length > 8 ? digits.slice(0, digits.length - 8) : '506';
+                                
+                                formatted = `(${areaCode}) ${mainDigits.slice(0, 4)}-${mainDigits.slice(4)}`;
+                                setPhoneNumber(formatted);
+                            } else {
+                                setPhoneNumber(phoneToUse);
+                            }
+                        }
                     }
                 } catch (error) {
-                    console.error("Error fetching client for email auto-fill:", error);
+                    console.error("Error fetching client info for auto-fill:", error);
                 }
             }
         };
 
         if (invoice) {
-            fetchClientEmail();
+            fetchClientInfo();
         }
     }, [invoice, firestore]);
 

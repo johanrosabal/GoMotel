@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 import { collection, doc, setDoc, getDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { EmailTemplate, Invoice } from '@/types';
-import { getLandingPageContent } from './cms.actions';
+import { getCompanyInfo } from './company.actions';
 import { getSystemSettings } from './system.actions';
 import { generateInvoicePdf } from './invoice-pdf.actions';
 
@@ -46,14 +46,17 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
     }
     
     const template = templateSnapshot.docs[0].data() as EmailTemplate;
-    const commercialInfo = await getLandingPageContent();
+    const companyInfo = await getCompanyInfo();
     
+    const formatCRC = (amount: number) => 
+      `CRC ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
     // 3. Format details table (Multi-item support)
     const itemsHtml = invoice.items.map(item => `
-      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: auto;">
         <tr>
-          <td style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase;">${item.description}</td>
-          <td align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600;">$${item.total.toFixed(2)}</td>
+          <td width="70%" style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; padding-right: 10px; word-break: break-word;">${item.description}</td>
+          <td width="30%" align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">${formatCRC(item.total)}</td>
         </tr>
       </table>
     `).join('');
@@ -62,12 +65,13 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
     const vars: Record<string, string> = {
       'nombre_cliente': invoice.clientName,
       'email_cliente': emailAddress,
-      'monto_total': `$${invoice.total.toFixed(2)}`,
+      'monto_total': formatCRC(invoice.total),
       'numero_reserva': invoice.invoiceNumber,
-      'nombre_empresa': commercialInfo?.featuresSection?.title1 || 'Hotel Du Manolo',
-      'direccion_empresa': commercialInfo?.footerSection?.address || 'San José, Costa Rica',
-      'email_empresa': settings.smtpUser,
-      'telefono_empresa': commercialInfo?.footerSection?.phone || '+(506) 8888-9999',
+      'nombre_empresa': companyInfo?.tradeName || 'Go Motel',
+      'cedula_juridica': companyInfo?.legalId || '',
+      'direccion_empresa': companyInfo?.address || '',
+      'email_empresa': companyInfo?.emails?.[0]?.value || settings.smtpUser,
+      'telefono_empresa': companyInfo?.phoneNumbers?.[0]?.value || '',
       'detalle_factura_html': itemsHtml,
       'url_factura_pdf': '#',
     };
@@ -81,10 +85,23 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
       finalSubject = finalSubject.replace(regex, vars[key]);
     });
 
-    // 5. Generate PDF Attachment on the Server
-    const pdfBuffer = await generateInvoicePdf(invoice, {
-      tradeName: commercialInfo?.featuresSection?.title1 || 'Hotel Du Manolo',
-    });
+    // 5. Fetch additional client info if needed for the PDF
+    let clientPhone = '';
+    if (invoice.clientId) {
+      try {
+        const clientRef = doc(db, 'clients', invoice.clientId);
+        const clientSnap = await getDoc(clientRef);
+        if (clientSnap.exists()) {
+          const clientData = clientSnap.data();
+          clientPhone = clientData.phoneNumber || clientData.whatsappNumber || '';
+        }
+      } catch (e) {
+        console.error('Error fetching client info for PDF:', e);
+      }
+    }
+
+    // 6. Generate PDF Attachment on the Server
+    const pdfBuffer = await generateInvoicePdf(invoice, companyInfo, emailAddress, clientPhone);
 
     // 6. Setup Nodemailer Transport
     const transporter = nodemailer.createTransport({

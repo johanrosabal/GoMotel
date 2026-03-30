@@ -47,8 +47,8 @@ export function SeedTemplateButton() {
               <div style="border-top: 1px solid #44403c; padding-top: 24px;">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
-                    <td style="color: #fbbf24; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;">Inversión Total</td>
-                    <td align="right" style="color: #ffffff; font-size: 26px; font-weight: 900;">{{monto_total}}</td>
+                    <td width="40%" style="color: #fbbf24; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; padding-bottom: 5px;">Inversión Total</td>
+                    <td width="60%" align="right" style="color: #ffffff; font-size: 22px; font-weight: 900; line-height: 1.1; white-space: nowrap;">{{monto_total}}</td>
                   </tr>
                 </table>
               </div>

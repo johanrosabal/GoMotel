@@ -15,7 +15,7 @@ interface TemplatePreviewProps {
 const SAMPLE_DATA: Record<string, string> = {
   nombre_cliente: 'Juan Pérez',
   email_cliente: 'juan.perez@email.com',
-  monto_total: '$150.00',
+  monto_total: 'CRC 150.00',
   numero_reserva: 'RSV-2026-88',
   fecha_entrada: '15/05/2026',
   fecha_salida: '17/05/2026',
@@ -25,22 +25,22 @@ const SAMPLE_DATA: Record<string, string> = {
   email_empresa: 'contacto@hoteldumanolo.com',
   telefono_empresa: '+(506) 8888-9999',
   detalle_factura_html: `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: fixed;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: auto;">
       <tr>
-        <td style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word;">Estancia Master Suite</td>
-        <td align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">$120.00</td>
+        <td width="70%" style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word; padding-right: 10px;">Estancia Master Suite</td>
+        <td width="30%" align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">CRC 120.00</td>
       </tr>
     </table>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: fixed;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: auto;">
       <tr>
-        <td style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word;">Consumo Mini-bar</td>
-        <td align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">$20.00</td>
+        <td width="70%" style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word; padding-right: 10px;">Consumo Mini-bar</td>
+        <td width="30%" align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">CRC 20.00</td>
       </tr>
     </table>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px; table-layout: fixed;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px; table-layout: auto;">
       <tr>
-        <td style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word;">Hora Extra (Late Checkout)</td>
-        <td align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">$10.00</td>
+        <td width="70%" style="color: #78716c; font-size: 11px; font-weight: 700; text-transform: uppercase; word-break: break-word; padding-right: 10px;">Hora Extra (Late Checkout)</td>
+        <td width="30%" align="right" style="color: #f5f5f4; font-size: 15px; font-weight: 600; white-space: nowrap;">CRC 10.00</td>
       </tr>
     </table>
   `,
@@ -69,12 +69,33 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
     // Inyectar resets de CSS básicos para mejorar responsividad en el iframe
     const styleReset = `
       <style>
-        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; overflow-x: hidden; }
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; overflow-x: hidden; font-smoothing: antialiased; }
         table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100% !important; }
         img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
         * { box-sizing: border-box; max-width: 100% !important; }
         @media only screen and (max-width: 480px) {
-          .responsive-padding { padding: 20px !important; }
+          .responsive-padding { padding: 15px !important; }
+          /* Fix for large amounts in total section */
+          td[align="right"] { 
+            font-size: 18px !important; 
+            white-space: nowrap !important;
+            padding-left: 10px !important;
+          }
+          /* Prevent description labels from being too wide */
+          td:first-child { 
+            font-size: 10px !important;
+            line-height: 1.2 !important;
+          }
+          /* Global font-size limiter for mobile preview */
+          td[style*="font-size: 26px"], td[style*="font-size: 24px"] {
+             font-size: 18px !important;
+             line-height: 1.1 !important;
+          }
+          /* Ensure the main table doesn't overflow */
+          table[style*="max-width: 600px"] {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
         }
       </style>
     `;

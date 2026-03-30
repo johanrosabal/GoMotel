@@ -9,10 +9,10 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
     MoreHorizontal, Eye, Printer, FileDown, 
-    ReceiptText, ChevronRight, X
+    ReceiptText, ChevronRight, X, Mail, Loader2, CheckCircle2
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import InvoiceTemplate from './InvoiceTemplate';
@@ -20,6 +20,9 @@ import PosTicketTemplate from './PosTicketTemplate';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { sendInvoiceEmail } from '@/lib/actions/email-sender.actions';
+import { getClient } from '@/lib/actions/client.actions';
+import { useToast } from '@/hooks/use-toast';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 32 32" {...props}><path d=" M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25-.19 0-.38.03-.57.07-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57 0 .19.03.38.07.57.04.19.13.46.33.72.19.26.42.51.61.68.19.17.38.34.58.44.18.1.38.19.57.19h.005c.19.03.38.07.57.11.19.04.46.13.72.33.26.19.51.42.68.61.17.19.34.38.44.57.1.18.19.38.19.57a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25s-.38.03-.57.07c-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57 0 .19.03.38.07.57.04.19.13.46.33.72.19.26.42.51.61.68.19.17.38.34.58.44.18.1.38.19.57.19.19.03.38.07.57.11.19.04.46.13.72.33.26.19.51.42.68.61.17.19.34.38.44.57.1.18.19.38.19.57.01.19-.03.38-.07.57-.04.19-.13.46-.33.72-.19.26-.42.51-.61.68-.19.17-.38.34-.58.44-.18.1-.38.19-.57.19a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25s-.38.03-.57.07c-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57z" fill="currentColor"></path></svg>
@@ -29,7 +32,35 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const ticketRef = useRef<HTMLDivElement>(null);
     const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+    const [showEmailDialog, setShowEmailDialog] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [emailAddress, setEmailAddress] = useState('');
+    const [isFetchingEmail, setIsFetchingEmail] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        if (showEmailDialog && invoice.clientId) {
+            const fetchClientEmail = async () => {
+                setIsFetchingEmail(true);
+                try {
+                    const client = await getClient(invoice.clientId!);
+                    if (client?.email) {
+                        setEmailAddress(client.email);
+                    }
+                } catch (error) {
+                    console.error("Error fetching client email:", error);
+                } finally {
+                    setIsFetchingEmail(false);
+                }
+            };
+            fetchClientEmail();
+        }
+        if (!showEmailDialog) {
+            setEmailSent(false);
+        }
+    }, [showEmailDialog, invoice.clientId]);
 
     const handlePrintInvoice = () => {
         const input = invoiceRef.current;
@@ -154,6 +185,31 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
         setPhoneNumber(formattedValue);
     };
 
+    const handleSendEmail = async () => {
+        if (!emailAddress || !emailAddress.includes('@')) {
+            toast({ title: 'Error', description: 'Por favor ingrese un correo válido.', variant: 'destructive' });
+            return;
+        }
+
+        setIsSendingEmail(true);
+        try {
+            await sendInvoiceEmail(emailAddress, invoice.id);
+            setEmailSent(true);
+            toast({ title: '¡Éxito!', description: `Factura enviada correctamente a ${emailAddress}` });
+            setTimeout(() => {
+                setShowEmailDialog(false);
+            }, 2000);
+        } catch (error: any) {
+            toast({ 
+                title: 'Error al enviar', 
+                description: error.message || 'No se pudo enviar el correo.', 
+                variant: 'destructive' 
+            });
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
+
     const handleShareViaWhatsApp = () => {
         if (!invoice) return;
         const cleanPhone = phoneNumber.replace(/\D/g, '');
@@ -189,6 +245,10 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                         <WhatsAppIcon className="mr-2 h-4 w-4 fill-current text-green-600" />
                         Enviar WhatsApp
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setShowEmailDialog(true)}>
+                        <Mail className="mr-2 h-4 w-4 text-blue-500" />
+                        Enviar por Correo
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleDownloadPdf}>
                         <FileDown className="mr-2 h-4 w-4" />
@@ -217,13 +277,78 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                                 placeholder="(506) 0000-0000" 
                                 value={phoneNumber} 
                                 onChange={handlePhoneChange}
-                                className="h-12 font-black text-lg rounded-xl border-green-500/30"
+                                className="h-12 font-black text-lg rounded-xl border-green-500/30 text-white"
                                 autoFocus
                             />
                             <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg" id="invoicestable-button-share">
-                                <ChevronRight className="h-6 w-6" />
+                                <ChevronRight className="h-6 w-6 text-white" />
                             </Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog para Enviar Email */}
+            <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                             <Mail className="h-5 w-5 text-blue-500" />
+                             Enviar Factura por Correo
+                        </DialogTitle>
+                        <DialogDescription>
+                            {emailSent 
+                                ? "La factura ha sido enviada con éxito."
+                                : "Confirme o ingrese la dirección de correo electrónico del cliente."
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        {emailSent ? (
+                            <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-in zoom-in-95">
+                                <div className="h-16 w-16 bg-green-500/20 rounded-full flex items-center justify-center">
+                                    <CheckCircle2 className="h-10 w-10 text-green-500" />
+                                </div>
+                                <p className="text-sm font-bold text-green-500 uppercase tracking-widest">¡Enviado con éxito!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <Label htmlFor="email-address-table" className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Correo Electrónico</Label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Input 
+                                            id="email-address-table"
+                                            type="email"
+                                            placeholder="ejemplo@correo.com" 
+                                            value={emailAddress} 
+                                            onChange={(e) => setEmailAddress(e.target.value)}
+                                            className="h-12 font-bold rounded-xl border-blue-500/30 pl-4 text-white"
+                                            disabled={isSendingEmail}
+                                            autoFocus
+                                        />
+                                        {isFetchingEmail && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Button 
+                                        onClick={handleSendEmail} 
+                                        disabled={isSendingEmail || !emailAddress}
+                                        className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold uppercase tracking-widest text-xs" 
+                                        id="invoicestable-button-send-email"
+                                    >
+                                        {isSendingEmail ? (
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                        ) : (
+                                            "Enviar"
+                                        )}
+                                    </Button>
+                                </div>
+                                {isFetchingEmail && <p className="text-[10px] italic text-muted-foreground animate-pulse">Buscando correo del cliente...</p>}
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

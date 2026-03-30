@@ -1,9 +1,29 @@
 'use server';
 
 import { z } from 'zod';
-import { collection, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
+import { Client } from '@/types';
+
+export async function getClient(clientId: string): Promise<any | null> {
+  try {
+    const clientRef = doc(db, 'clients', clientId);
+    const clientSnap = await getDoc(clientRef);
+    if (!clientSnap.exists()) return null;
+    
+    const data = clientSnap.data();
+    return { 
+      id: clientSnap.id, 
+      ...data,
+      birthDate: data.birthDate ? { seconds: data.birthDate.seconds, nanoseconds: data.birthDate.nanoseconds } : null,
+      createdAt: data.createdAt ? { seconds: data.createdAt.seconds, nanoseconds: data.createdAt.nanoseconds } : null,
+    };
+  } catch (error) {
+    console.error('Error fetching client:', error);
+    return null;
+  }
+}
 
 const clientSchema = z.object({
   id: z.string().optional(),

@@ -1,9 +1,10 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
+import { CompanyProfile } from '@/types';
 
 const companyContactSchema = z.object({
   label: z.string().min(1, 'La etiqueta es requerida.'),
@@ -63,5 +64,19 @@ export async function saveCompanyInfo(values: z.infer<typeof companyInfoSchema>)
   } catch (error) {
     console.error('Error saving company info:', error);
     return { error: 'No se pudo guardar la información de la empresa.' };
+  }
+}
+
+export async function getCompanyInfo(): Promise<CompanyProfile | null> {
+  try {
+    const companyInfoRef = doc(db, 'companyInfo', 'main');
+    const snapshot = await getDoc(companyInfoRef);
+    if (snapshot.exists()) {
+      return { id: snapshot.id, ...snapshot.data() } as CompanyProfile;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching company info:', error);
+    return null;
   }
 }

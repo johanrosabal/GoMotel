@@ -3,7 +3,6 @@
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { EmailTemplate, Invoice } from '@/types';
-import { getLandingPageContent } from './cms.actions';
 
 export async function getEmailTemplates(): Promise<EmailTemplate[]> {
   try {
