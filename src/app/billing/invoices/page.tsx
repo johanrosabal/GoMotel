@@ -4,7 +4,7 @@ import InvoicesClientPage from '@/components/billing/invoices/InvoicesClientPage
 
 export default function InvoicesRootPage() {
   return (
-    <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
+    <div className="container py-4 sm:py-6 lg:py-8 space-y-6" data-testid="invoices-root-container">
       <div className="space-y-1.5">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
           <Receipt className="h-8 w-8" />

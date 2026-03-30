@@ -176,7 +176,7 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-muted/20">
+        <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-muted/20" data-testid="order-queue-container">
             {/* Header Operativo */}
             <div className="bg-background border-b p-4 flex items-center justify-between shrink-0 shadow-sm">
                 <div className="flex items-center gap-4">

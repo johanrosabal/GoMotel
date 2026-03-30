@@ -346,11 +346,12 @@ export default function SystemSettingsPage() {
                 onClick={handleTestSmtp} 
                 disabled={isPending || isTesting}
                 className="border-primary/50 text-primary hover:bg-primary hover:text-white transition-all duration-300"
+                data-testid="btn-test-smtp"
             >
               {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Enviar Prueba
             </Button>
-            <Button onClick={handleSave} disabled={isPending || isTesting}>
+            <Button onClick={handleSave} disabled={isPending || isTesting} data-testid="btn-save-system-settings">
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Guardar Cambios
             </Button>

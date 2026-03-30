@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight, FileText, Mail, Send } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight, FileText, Mail, Send, ShieldCheck } from 'lucide-react';
 
 const SETTINGS_MODULES = [
     {
@@ -71,6 +71,13 @@ const SETTINGS_MODULES = [
         description: "Configure opciones del sistema y del Menú de TV.",
         icon: SettingsIcon,
         href: "/settings/system"
+    },
+    {
+        title: "Panel de Estabilidad",
+        description: "Monitoreo técnico de salud, conectividad AI y base de datos (POM).",
+        icon: ShieldCheck,
+        href: "/settings/stability",
+        badge: "ADMIN-TECH"
     }
 ];
 
