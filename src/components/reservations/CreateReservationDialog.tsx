@@ -317,10 +317,14 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
+        // Obtenemos el ID antes de cerrar por si acaso
+        const id = result.invoiceId;
         setOpen(false);
-        if (result.invoiceId) {
-            setInvoiceId(result.invoiceId);
-            setSuccessModalOpen(true);
+        
+        if (id) {
+            setInvoiceId(id);
+            // Pequeño delay para permitir que el modal anterior se limpie de la UI (Radix fix)
+            setTimeout(() => setSuccessModalOpen(true), 200);
         } else {
             toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
         }
@@ -334,7 +338,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+        <div className="p-6">
         <DialogHeader>
           <DialogTitle>{isWalkIn ? 'Registro Rápido' : 'Nueva Reservación'}</DialogTitle>
           <DialogDescription>Complete los 3 pasos para confirmar la estancia.</DialogDescription>
@@ -634,6 +639,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             </DialogFooter>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
     <InvoiceSuccessDialog open={successModalOpen} onOpenChange={setSuccessModalOpen} invoiceId={invoiceId} />

@@ -19,7 +19,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     content,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert prose-sm sm:prose-base focus:outline-none max-w-none min-h-[300px] p-4 bg-background border rounded-b-md prose-headings:text-primary prose-a:text-primary hover:prose-a:text-primary/80',
+        class: 'prose dark:prose-invert prose-sm sm:prose-base focus:outline-none max-w-none min-h-[300px] p-4 bg-background border rounded-b-md prose-headings:text-primary prose-a:text-primary hover:prose-a:text-primary/80 text-foreground',
       },
     },
     onUpdate: ({ editor }) => {

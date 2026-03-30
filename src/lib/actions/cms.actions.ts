@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 
@@ -82,6 +82,21 @@ export async function saveLandingPageContent(values: z.infer<typeof landingPageC
   } catch (error) {
     console.error('Error saving landing page content:', error);
     return { error: 'No se pudo guardar el contenido de la página de inicio.' };
+  }
+}
+
+export async function getLandingPageContent() {
+  try {
+    const contentRef = doc(db, 'landingPageContent', 'main');
+    const snapshot = await getDoc(contentRef);
+    
+    if (snapshot.exists()) {
+      return snapshot.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching landing page content:', error);
+    return null;
   }
 }
 

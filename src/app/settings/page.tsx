@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight, FileText } from 'lucide-react';
+import { BedDouble, Bell, Percent, BookCopy, Building, Layout, Settings as SettingsIcon, ChevronRight, FileText, Mail, Send } from 'lucide-react';
 
 const SETTINGS_MODULES = [
     {
@@ -53,6 +53,20 @@ const SETTINGS_MODULES = [
         badge: "LIVE Site Contenido"
     },
     {
+        title: "Centro de Notificaciones (Email)",
+        description: "Gestione sus plantillas de correo y comunicaciones de marketing.",
+        icon: Mail,
+        href: "/marketing",
+        badge: "NUEVO"
+    },
+    {
+        title: "Configuración SMTP",
+        description: "Configure el servidor de correo saliente (Gmail) para sus facturas.",
+        icon: Send,
+        href: "/settings/system",
+        badge: "CONFIGURAR"
+    },
+    {
         title: "Sistema General",
         description: "Configure opciones del sistema y del Menú de TV.",
         icon: SettingsIcon,
@@ -76,7 +90,7 @@ export default function SettingsPage() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {SETTINGS_MODULES.map((module) => (
                 <Link 
-                    key={module.href} 
+                    key={module.title} 
                     href={module.href}
                     className={`group relative flex flex-col p-6 rounded-2xl hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm ${module.badge ? 'bg-primary/5 dark:bg-primary/[0.02] border-primary/30 dark:border-primary/30 shadow-[0_0_15px_-3px_var(--tw-shadow-color)]' : 'bg-white dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800/80'}`}
                 >

@@ -271,9 +271,10 @@ export default function OrderServiceDialog({ children, stayId, availableServices
       if (result.error) {
         toast({ title: 'Pedido Fallido', description: result.error, variant: 'destructive' });
       } else {
+        const id = result.invoiceId;
         setOpen(false);
-        if (result.invoiceId && onOrderSuccess) {
-          onOrderSuccess(result.invoiceId);
+        if (id && onOrderSuccess) {
+          setTimeout(() => onOrderSuccess(id), 200);
         } else {
           setStep(3);
         }

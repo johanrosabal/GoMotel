@@ -130,9 +130,10 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
+        const id = result.invoiceId;
         setOpen(false);
-        if (result.invoiceId && onCheckoutSuccess) {
-            onCheckoutSuccess(result.invoiceId);
+        if (id && onCheckoutSuccess) {
+            setTimeout(() => onCheckoutSuccess(id), 200);
         } else {
             toast({ title: '¡Éxito!', description: 'Check-out completado correctamente.' });
         }
@@ -155,7 +156,8 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
   return (
     <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger asChild>{children}</DialogTrigger>
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+        <div className="p-6">
         <DialogHeader>
             <DialogTitle>{step === 1 ? 'Resumen de Check-Out' : 'Procesar Pago'}</DialogTitle>
             <DialogDescription>
@@ -379,6 +381,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                 </>
             )}
         </DialogFooter>
+        </div>
     </DialogContent>
     </Dialog>
   );

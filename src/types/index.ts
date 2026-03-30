@@ -333,6 +333,12 @@ export interface SystemSettings {
   publicMenuDarkMode?: boolean;
   supportEmail?: string;
   supportPhone?: string;
+  // SMTP Config
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
 }
 
 export interface LandingPageFeature {
@@ -422,4 +428,17 @@ export interface LandingPageContent {
 export interface AboutPageContent {
   content: string;
   heroImageUrl?: string;
+}
+
+export type EmailTemplateType = 'transactional' | 'marketing' | 'invoice';
+
+export interface EmailTemplate {
+  id?: string;
+  name: string;
+  subject: string;
+  bodyHtml: string;
+  variables: string[];
+  type: EmailTemplateType;
+  createdAt?: number;
+  updatedAt?: number;
 }

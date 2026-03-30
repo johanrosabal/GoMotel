@@ -41,7 +41,8 @@ import {
   Globe,
   Bell,
   AlertCircle,
-  Info as InfoIcon
+  Info as InfoIcon,
+  Mail
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -251,6 +252,13 @@ export default function DashboardPage() {
           description: 'Interfaz para que el cliente pida desde su mesa vía QR.',
           icon: QrCode,
           badge: 'PÚBLICO',
+        },
+        {
+          href: '/marketing',
+          title: 'Centro de Marketing',
+          description: 'Gestione plantillas de correo y notificaciones para sus clientes.',
+          icon: Mail,
+          badge: 'NUEVO',
         },
         {
           href: '/',

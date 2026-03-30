@@ -22,6 +22,11 @@ export async function getSystemSettings(): Promise<SystemSettings> {
         publicMenuDarkMode: data.publicMenuDarkMode || false,
         supportEmail: data.supportEmail || '',
         supportPhone: data.supportPhone || '',
+        smtpHost: data.smtpHost || 'smtp.gmail.com',
+        smtpPort: data.smtpPort || 465,
+        smtpUser: data.smtpUser || '',
+        smtpPass: data.smtpPass || '',
+        smtpFrom: data.smtpFrom || '',
       } as SystemSettings;
     }
 
@@ -31,6 +36,11 @@ export async function getSystemSettings(): Promise<SystemSettings> {
       publicMenuDarkMode: false,
       supportEmail: '',
       supportPhone: '',
+      smtpHost: 'smtp.gmail.com',
+      smtpPort: 465,
+      smtpUser: '',
+      smtpPass: '',
+      smtpFrom: '',
     } as SystemSettings;
   } catch (error) {
     console.error('Error fetching system settings:', error);
@@ -40,6 +50,11 @@ export async function getSystemSettings(): Promise<SystemSettings> {
       publicMenuDarkMode: false,
       supportEmail: '',
       supportPhone: '',
+      smtpHost: 'smtp.gmail.com',
+      smtpPort: 465,
+      smtpUser: '',
+      smtpPass: '',
+      smtpFrom: '',
     } as SystemSettings;
   }
 }

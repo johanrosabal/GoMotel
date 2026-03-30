@@ -161,9 +161,10 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' });
       } else {
+        const id = result.invoiceId;
         setOpen(false);
-        if (result.invoiceId && onExtensionSuccess) {
-            onExtensionSuccess(result.invoiceId);
+        if (id && onExtensionSuccess) {
+            setTimeout(() => onExtensionSuccess(id), 200);
         } else {
             toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
         }
@@ -195,7 +196,8 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       {stay && (
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+            <div className="p-6">
             <DialogHeader>
             <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
             <DialogDescription>
@@ -375,6 +377,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                 </div>
             </form>
             </Form>
+            </div>
         </DialogContent>
       )}
     </Dialog>

@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getSystemSettings, updateSystemSettings } from '@/lib/actions/system.actions';
-import { ShieldCheck, Loader2, Globe, Settings as SettingsIcon, Monitor } from 'lucide-react';
+import { testSmtpConnection } from '@/lib/actions/email-sender.actions';
+import { ShieldCheck, Loader2, Globe, Settings as SettingsIcon, Monitor, Mail, Key, Server, AtSign, Eye, EyeOff, Send } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 export default function SystemSettingsPage() {
@@ -16,6 +17,16 @@ export default function SystemSettingsPage() {
   const [supportEmail, setSupportEmail] = useState('');
   const [supportPhone, setSupportPhone] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // SMTP States
+  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState(465);
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -27,6 +38,13 @@ export default function SystemSettingsPage() {
       setSupportEmail(settings.supportEmail || '');
       setSupportPhone(settings.supportPhone || '');
       setIsDarkMode(!!settings.publicMenuDarkMode);
+      
+      setSmtpHost(settings.smtpHost || 'smtp.gmail.com');
+      setSmtpPort(settings.smtpPort || 465);
+      setSmtpUser(settings.smtpUser || '');
+      setSmtpPass(settings.smtpPass || '');
+      setSmtpFrom(settings.smtpFrom || '');
+
       setIsLoading(false);
     }
     loadSettings();
@@ -38,7 +56,12 @@ export default function SystemSettingsPage() {
         verificationApiDomain: domain.trim(),
         supportEmail: supportEmail.trim(),
         supportPhone: supportPhone.trim(),
-        publicMenuDarkMode: isDarkMode
+        publicMenuDarkMode: isDarkMode,
+        smtpHost: smtpHost.trim(),
+        smtpPort: Number(smtpPort),
+        smtpUser: smtpUser.trim(),
+        smtpPass: smtpPass.trim(),
+        smtpFrom: smtpFrom.trim(),
       });
       if (result.success) {
         toast({
@@ -53,6 +76,49 @@ export default function SystemSettingsPage() {
         });
       }
     });
+  };
+
+  const handleTestSmtp = async () => {
+    if (!smtpUser.trim() || !smtpPass.trim()) {
+      toast({
+        title: 'Faltan datos',
+        description: 'Ingrese el usuario y contraseña para realizar la prueba.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      const result = await testSmtpConnection({
+        smtpHost,
+        smtpPort,
+        smtpUser,
+        smtpPass,
+        smtpFrom,
+      });
+
+      if (result.success) {
+        toast({
+          title: 'Prueba Exitosa',
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: 'Prueba Fallida',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error de Conexión',
+        description: 'No se pudo contactar con el servidor SMTP.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   if (isLoading) {
@@ -181,6 +247,114 @@ export default function SystemSettingsPage() {
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Guardar Cambios
           </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="border-primary/20 shadow-lg">
+        <CardHeader className="bg-primary/5">
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" /> Mensajería y Notificaciones (SMTP)
+          </CardTitle>
+          <CardDescription>
+            Configure el servidor de correo saliente para el envío de facturas y notificaciones.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="smtpFrom" className="flex items-center gap-2">
+                <AtSign className="h-3.5 w-3.5" /> Email Remitente (Nombre)
+              </Label>
+              <Input
+                id="smtpFrom"
+                placeholder="Hotel Du Manolo <info@hotel.com>"
+                value={smtpFrom}
+                onChange={(e) => setSmtpFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtpUser" className="flex items-center gap-2">
+                <Mail className="h-3.5 w-3.5" /> Usuario SMTP (Email)
+              </Label>
+              <Input
+                id="smtpUser"
+                type="email"
+                placeholder="ejemplo@gmail.com"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="smtpHost" className="flex items-center gap-2">
+                <Server className="h-3.5 w-3.5" /> Servidor SMTP
+              </Label>
+              <Input
+                id="smtpHost"
+                placeholder="smtp.gmail.com"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtpPort">Puerto</Label>
+              <Input
+                id="smtpPort"
+                type="number"
+                placeholder="465"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(parseInt(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="smtpPass" className="flex items-center gap-2">
+              <Key className="h-3.5 w-3.5" /> Contraseña / App Password
+            </Label>
+            <div className="relative">
+              <Input
+                id="smtpPass"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••••••••••"
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground bg-muted p-2 rounded">
+              Tip: Para Gmail, usa una <span className="font-bold text-primary">Contraseña de Aplicación</span> de 16 caracteres.
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter className="border-t px-6 py-4 flex justify-between items-center bg-muted/20">
+          <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+            {smtpUser ? `Conectado a ${smtpUser.split('@')[1]}` : 'Sin configurar'}
+          </p>
+          <div className="flex gap-2">
+            <Button 
+                variant="outline" 
+                onClick={handleTestSmtp} 
+                disabled={isPending || isTesting}
+                className="border-primary/50 text-primary hover:bg-primary hover:text-white transition-all duration-300"
+            >
+              {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Enviar Prueba
+            </Button>
+            <Button onClick={handleSave} disabled={isPending || isTesting}>
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Guardar Cambios
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

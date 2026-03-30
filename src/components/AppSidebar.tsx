@@ -11,11 +11,12 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import AppLogo from './AppLogo';
-import { LayoutDashboard, Package, Cog } from 'lucide-react';
+import { LayoutDashboard, Package, Cog, Mail } from 'lucide-react';
 
 const menuItems = [
   { href: '/', label: 'Panel', icon: LayoutDashboard },
   { href: '/inventory', label: 'Inventario', icon: Package },
+  { href: '/marketing', label: 'Marketing', icon: Mail },
   { href: '/settings', label: 'Ajustes', icon: Cog },
 ];
 

@@ -1,10 +1,27 @@
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { cn } from "@/lib/utils";
 
-export default function PageHeader() {
+interface PageHeaderProps {
+  title: string;
+  description?: string;
+  icon?: React.ReactNode;
+  className?: string;
+}
+
+export function PageHeader({ title, description, icon, className }: PageHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <SidebarTrigger className="sm:hidden" />
-      {/* Add breadcrumbs or page titles here if needed */}
-    </header>
+    <div className={cn("flex flex-col gap-1 md:flex-row md:items-center md:justify-between group", className)}>
+      <div className="space-y-1">
+        <h2 className="text-3xl font-black tracking-tight uppercase flex items-center gap-3">
+          {icon && <span className="p-2 bg-primary/10 rounded-xl">{icon}</span>}
+          {title}
+        </h2>
+        {description && (
+          <p className="text-muted-foreground text-sm font-medium italic opacity-80 pl-2 border-l-2 border-primary/20">
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
+
