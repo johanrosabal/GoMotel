@@ -444,3 +444,14 @@ export interface EmailTemplate {
   createdAt?: number;
   updatedAt?: number;
 }
+
+export interface Tutorial {
+  id: string;
+  title: string;
+  description: string; // HTML from RichTextEditor
+  videoUrl: string;
+  category: string;
+  order: number;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}

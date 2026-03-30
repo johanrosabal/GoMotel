@@ -105,6 +105,27 @@ export default function ProjectDocsPage() {
                                 <p>El Punto de Venta (<code>/pos</code>) permite cargar artículos y crear una orden genérica sin atarse al documento de una habitación. Envía a la Cola de Producción automáticamente los artículos que apliquen, y el cierre de la orden reduce del esquema <code>Products -&gt; Stock</code> en Firestore mediante transacción única.</p>
                             </AccordionContent>
                         </AccordionItem>
+                        <AccordionItem value="room-qr-verification">
+                            <AccordionTrigger>Control de Ingreso: Verificación por QR (Suites)</AccordionTrigger>
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
+                                <p>Implementa un flujo de confirmación de llegada mediante escaneo de códigos QR únicos por habitación:</p>
+                                <ul className="list-disc list-inside pl-4 space-y-1">
+                                    <li><strong>Generación:</strong> El sistema genera un PDF dinámico con QR de alta resolución (512px) y branding del hotel.</li>
+                                    <li><strong>Landing de Verificación:</strong> Al escanear, el cliente accede a <code>/room-checkin/[id]</code>. El sistema valida que la habitación esté 'Occupied' y marca <code>isClientConfirmed: true</code>.</li>
+                                    <li><strong>Indicador Visual:</strong> Recepción visualiza un distintivo (ShieldCheck) esmeralda en el dashboard en tiempo real tras la confirmación del huésped.</li>
+                                </ul>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="identity-verification-tse">
+                            <AccordionTrigger>Validación de Identidad (Servicio Nacional de Cédulas)</AccordionTrigger>
+                            <AccordionContent className="space-y-2 text-sm leading-relaxed">
+                                <p>Integración con API de consulta ciudadana para automatización de registros:</p>
+                                <ul className="list-disc list-inside pl-4 space-y-1">
+                                    <li><strong>Clientes:</strong> Durante el check-in, la cédula permite auto-completar nombres y fecha de nacimiento, detectando automáticamente menores de edad.</li>
+                                    <li><strong>Registro de Personal:</strong> En <code>/register</code>, los prospectos pueden validar su identidad para garantizar que su perfil administrativo sea verídico y esté formateado profesionalmente (Title Case).</li>
+                                </ul>
+                            </AccordionContent>
+                        </AccordionItem>
                     </Accordion>
                 </CardContent>
             </Card>
@@ -138,7 +159,7 @@ export default function ProjectDocsPage() {
                         <AccordionItem value="stay-extension">
                             <AccordionTrigger>Colección /stays (Historial de Tiempo)</AccordionTrigger>
                             <AccordionContent>
-                                <p className="text-sm mb-4">Las extensiones de estancia no sobrescriben los datos originales, se acumulan en un array <code>extensionHistory</code> dentro del documento de la estancia. Cada entrada registra:</p>
+                                <p className="text-sm mb-4">Las extensiones de estancia no sobrescriben los datos originales, se acumulan en un array <code>extensionHistory</code> dentro del documento de la estancia.</p>
                                 <pre className="mt-2 p-3 bg-black text-green-400 rounded-lg text-xs overflow-x-auto">
 {`{
   extendedAt: Timestamp,
@@ -146,6 +167,18 @@ export default function ProjectDocsPage() {
   newExpectedCheckOut: Timestamp,
   planName: string,
   planPrice: number
+}`}
+                                </pre>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="room-extension">
+                            <AccordionTrigger>Colección /rooms (Estado de Confirmación)</AccordionTrigger>
+                            <AccordionContent>
+                                <p className="text-sm mb-4">Se agregaron campos para el rastreo del ingreso digital del cliente:</p>
+                                <pre className="mt-2 p-3 bg-black text-green-400 rounded-lg text-xs overflow-x-auto">
+{`{
+  isClientConfirmed: boolean,
+  clientConfirmedAt: Timestamp | null
 }`}
                                 </pre>
                             </AccordionContent>

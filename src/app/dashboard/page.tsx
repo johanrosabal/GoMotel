@@ -42,7 +42,8 @@ import {
   Bell,
   AlertCircle,
   Info as InfoIcon,
-  Mail
+  Mail,
+  GraduationCap
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -339,6 +340,12 @@ export default function DashboardPage() {
           description: 'Administra los roles, pines y accesos del personal.',
           icon: Users,
         },
+        {
+          href: '/dashboard/tutorials/manage',
+          title: 'Gestión de Tutoriales',
+          description: 'Administre el contenido educativo del centro de aprendizaje.',
+          icon: GraduationCap,
+        },
       ],
     },
      {
@@ -365,6 +372,13 @@ export default function DashboardPage() {
           title: 'Centro de Ayuda',
           description: 'Preguntas frecuentes y contacto técnico.',
           icon: HelpCircle,
+        },
+        {
+          href: '/manual/tutorials',
+          title: 'Tutoriales y Aprendizaje',
+          description: 'Centro de formación interactivo con video-guías para su equipo.',
+          icon: MonitorPlay,
+          badge: 'NUEVO',
         },
       ],
     },

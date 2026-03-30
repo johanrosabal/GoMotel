@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle } from 'lucide-react';
+import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle, Loader2 } from 'lucide-react';
 import ReservationActionsMenu from './ReservationActionsMenu';
 import TimeRemaining from './TimeRemaining';
 import { Progress } from '@/components/ui/progress';
@@ -17,19 +17,19 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const statusColorStyles: Record<Reservation['status'], string> = {
-  Confirmed: 'border-blue-500',
-  'Checked-in': 'border-green-500',
-  Cancelled: 'border-red-500',
-  'No-show': 'border-yellow-500',
-  Completed: 'border-gray-500',
+  Confirmed: 'border-blue-500/50 shadow-blue-500/10',
+  'Checked-in': 'border-emerald-500/50 shadow-emerald-500/10',
+  Cancelled: 'border-rose-500/50 shadow-rose-500/10',
+  'No-show': 'border-amber-500/50 shadow-amber-500/10',
+  Completed: 'border-slate-500/50 shadow-slate-500/10',
 };
 
 const statusBadgeStyles: Record<Reservation['status'], string> = {
-  Confirmed: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50',
-  'Checked-in': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50',
-  Cancelled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50',
-  'No-show': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50',
-  Completed: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50',
+  Confirmed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  'Checked-in': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  Cancelled: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  'No-show': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Completed: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
 };
 
 const statusMap: Record<Reservation['status'], string> = {
@@ -120,59 +120,90 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
     });
   };
 
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
   const isFinalState = ['Completed', 'Cancelled', 'No-show'].includes(reservation.status);
   const isArrivalOverdue = reservation.isArrivalOverdue;
 
   return (
     <>
-    <Card key={reservation.id} className={cn(
-        "flex flex-col relative border-l-[6px] hover:shadow-xl transition-all duration-300 h-full group", 
-        isOverdue ? 'border-destructive' : statusColorStyles[reservation.status],
-        isOverdue && 'animate-overdue-pulse'
-    )}>
-        <CardHeader className="pb-3 pt-5">
-            <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                    <CardTitle className="text-xl font-black tracking-tight truncate leading-none" title={reservation.guestName}>
+    <Card 
+        key={reservation.id} 
+        id={`reservation-card-${reservation.id}`} 
+        className={cn(
+            "flex flex-col relative border-t-0 border-r-0 border-b-0 border-l-[6px] transition-all duration-500 h-full group bg-white/5 backdrop-blur-xl border-white/5 rounded-[2.5rem] overflow-hidden", 
+            "hover:scale-[1.02] hover:bg-white/[0.08] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]",
+            isOverdue ? 'border-rose-500 shadow-rose-500/20 hover:shadow-rose-500/30' : cn(statusColorStyles[reservation.status], "hover:border-opacity-100"),
+            isOverdue && 'animate-overdue-pulse'
+        )}
+        onMouseMove={handleMouseMove}
+    >
+        {/* Dynamic Spotlight Effect */}
+        <div 
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
+            style={{
+                background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)`
+            }}
+        />
+
+        {/* Hover Highlight Overlay (Static fallback/enhancement) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+        <CardHeader className="pb-4 pt-6 relative z-10">
+            <div className="flex items-start justify-between gap-4">
+                <div className="space-y-4 flex-1 min-w-0">
+                    <CardTitle className="text-xl font-black uppercase italic tracking-tighter leading-tight text-white group-hover:text-primary transition-colors pr-8 break-words" title={reservation.guestName}>
                         {reservation.guestName}
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider">
+                    <div className="space-y-2">
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic leading-none">
+                            {reservation.roomType}
+                        </p>
+                        <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest bg-white/5 border-white/10 text-slate-300 rounded-lg h-5 px-2 w-fit">
                             Hab. {reservation.roomNumber}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground font-semibold uppercase">{reservation.roomType}</span>
                     </div>
                 </div>
-                <ReservationActionsMenu reservation={reservation} className="h-8 w-8 -mt-1 -mr-1" />
+                <div className="absolute right-6 top-6">
+                    <ReservationActionsMenu reservation={reservation} className="h-9 w-9 bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary transition-all rounded-xl shrink-0" />
+                </div>
             </div>
         </CardHeader>
-        <CardContent className="flex-grow space-y-4 text-sm">
+        <CardContent className="flex-grow space-y-5 text-sm relative z-10">
             {!isFinalState ? (
                 <div className={cn(
-                    "grid grid-cols-2 gap-4 p-3 rounded-lg border border-border/50",
-                    isArrivalOverdue ? "bg-red-500/10 border-red-500/20" : "bg-muted/30"
+                    "grid grid-cols-2 gap-4 p-4 rounded-2xl border border-white/5 transition-colors",
+                    isArrivalOverdue ? "bg-rose-500/10 border-rose-500/20" : "bg-black/20"
                 )}>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                         <p className={cn(
-                            "text-[10px] font-black uppercase tracking-tighter flex items-center gap-1",
-                            isArrivalOverdue ? "text-red-600" : "text-muted-foreground"
+                            "text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5",
+                            isArrivalOverdue ? "text-rose-500" : "text-slate-500"
                         )}>
-                            <CalendarClock className="w-3 h-3" /> Entrada {isArrivalOverdue && "(Atrasado)"}
+                            <CalendarClock className="w-3.5 h-3.5" /> Entrada
                         </p>
-                        <p className={cn("font-bold text-xs", isArrivalOverdue && "text-red-700")}>
+                        <p className={cn("font-black text-xs text-white", isArrivalOverdue && "text-rose-200")}>
                             {format(reservation.checkInDate.toDate(), "dd MMM, h:mm a", { locale: es })}
                         </p>
                     </div>
-                    <div className="space-y-1 text-right">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter flex items-center gap-1 justify-end">
-                            Salida <CalendarClock className="w-3 h-3" />
+                    <div className="space-y-1.5 text-right">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 justify-end">
+                            Salida <CalendarClock className="w-3.5 h-3.5" />
                         </p>
-                        <p className="font-bold text-xs">{format(reservation.checkOutDate.toDate(), "dd MMM, h:mm a", { locale: es })}</p>
+                        <p className="font-black text-xs text-white">{format(reservation.checkOutDate.toDate(), "dd MMM, h:mm a", { locale: es })}</p>
                     </div>
                 </div>
             ) : (
-                <div className="flex items-center justify-center p-4 bg-muted/20 rounded-lg border border-dashed text-xs text-muted-foreground font-medium">
-                    <Ban className="w-4 h-4 mr-2" />
+                <div className="flex items-center justify-center p-6 bg-white/2 rounded-2xl border border-dashed border-white/10 text-[10px] text-slate-500 font-black uppercase tracking-widest italic transition-opacity">
+                    <Ban className="w-4 h-4 mr-2 opacity-50" />
                     Estancia finalizada
                 </div>
             )}
@@ -191,14 +222,14 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
             )}
 
             {/* Quick Action Area */}
-            <div className="pt-2">
+            <div className="pt-3">
                 {reservation.status === 'Confirmed' && !isArrivalOverdue && (
                     <Button 
                         onClick={handleQuickCheckIn} 
                         disabled={isPending}
-                        className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] shadow-lg group-hover:scale-[1.02] transition-transform" id="reservationcard-button-1"
+                        className="w-full h-12 rounded-2xl bg-white text-black hover:bg-primary hover:text-black font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all group-hover:scale-[1.02]" id="reservationcard-button-1"
                     >
-                        {isPending ? 'Procesando...' : (
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                             <>
                                 <LogIn className="mr-2 h-4 w-4" /> 
                                 Hacer Check-in
@@ -208,12 +239,12 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 )}
 
                 {isArrivalOverdue && (
-                    <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <Button 
                                 onClick={handleQuickCheckIn} 
                                 disabled={isPending}
-                                className="h-11 font-black text-xs uppercase tracking-tight shadow-md" id="reservationcard-button-ingresar"
+                                className="h-12 rounded-2xl bg-white text-black hover:bg-primary font-black text-[10px] uppercase tracking-widest shadow-xl transition-all" id="reservationcard-button-ingresar"
                             >
                                 Ingresar
                             </Button>
@@ -221,31 +252,31 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                                 variant="destructive"
                                 onClick={handleMarkAsNoShow} 
                                 disabled={isPending}
-                                className="h-11 font-black text-xs uppercase tracking-tight" id="reservationcard-button-no-lleg"
+                                className="h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 font-black text-[10px] uppercase tracking-widest shadow-xl transition-all" id="reservationcard-button-no-lleg"
                             >
-                                <UserX className="mr-1 h-3.5 w-3.5" /> No llegó
+                                <UserX className="mr-2 h-4 w-4" /> No llegó
                             </Button>
                         </div>
                         <Button 
-                            variant="outline"
+                            variant="ghost"
                             onClick={(e) => { e.preventDefault(); setIsCancelAlertOpen(true); }}
                             disabled={isPending}
-                            className="w-full h-9 font-black text-[10px] uppercase tracking-widest text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20" id="reservationcard-button-cancelar-reservaci-n"
+                            className="w-full h-10 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] text-rose-500 hover:text-white hover:bg-rose-500/20 border border-rose-500/10 transition-all" id="reservationcard-button-cancelar-reservaci-n"
                         >
-                            <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar Reservación
+                            <XCircle className="mr-2 h-4 w-4" /> Cancelar Reservación
                         </Button>
                     </div>
                 )}
 
                 {reservation.status === 'Checked-in' && !isOverdue && (
-                    <Button asChild variant="secondary" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] border border-primary/20" id="reservationcard-button-2">
+                    <Button asChild variant="secondary" className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-primary hover:text-black font-black text-[10px] uppercase tracking-[0.2em] transition-all" id="reservationcard-button-2">
                         <Link href={`/rooms/${reservation.roomId}`} id="reservationcard-link-gestionar-estancia">
                             Gestionar Estancia <ChevronRight className="ml-2 h-4 w-4" />
                         </Link>
                     </Button>
                 )}
                 {isOverdue && reservation.status === 'Checked-in' && (
-                    <Button asChild variant="destructive" className="w-full h-11 font-black text-xs uppercase tracking-[0.1em] animate-pulse shadow-red-500/20 shadow-lg" id="reservationcard-button-3">
+                    <Button asChild variant="destructive" className="w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse shadow-rose-500/30 shadow-2xl transition-all" id="reservationcard-button-3">
                         <Link href={`/rooms/${reservation.roomId}`} id="reservationcard-link-check-out-pendiente">
                             <AlertTriangle className="mr-2 h-4 w-4" />
                             Check-out Pendiente
@@ -254,24 +285,18 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 )}
             </div>
         </CardContent>
-        <div className="px-6 pb-5 mt-auto flex justify-between items-center">
-             {isArrivalOverdue ? (
-                <Badge variant="destructive" className="font-black text-[10px] uppercase tracking-widest px-3 py-1 ring-4 ring-destructive/10">
-                    Cliente no llegó
-                </Badge>
-             ) : isOverdue ? (
-                <Badge variant="destructive" className="font-black text-[10px] uppercase tracking-widest px-3 py-1 ring-4 ring-destructive/10">
-                    Estancia Vencida
-                </Badge>
-             ) : (
-                <Badge variant="outline" className={cn('font-black text-[10px] uppercase tracking-widest px-3 py-1', statusBadgeStyles[reservation.status])}>
-                    {statusMap[reservation.status]}
-                </Badge>
-             )}
+        <div className="px-6 pb-6 pt-2 mt-auto flex justify-between items-center relative z-10 border-t border-white/5">
+             <Badge variant="outline" className={cn(
+                 'font-black text-[9px] uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border shadow-lg', 
+                 isArrivalOverdue || isOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : statusBadgeStyles[reservation.status]
+             )}>
+                 {isArrivalOverdue ? 'Cliente no llegó' : isOverdue ? 'Estancia Vencida' : statusMap[reservation.status]}
+             </Badge>
              
              {reservation.guestId && (
-                 <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground opacity-60">
-                     CLIENTE REGISTRADO
+                 <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 tracking-[0.2em] uppercase opacity-40 text-right">
+                     Huésped Validado
+                     <div className="h-1 w-1 rounded-full bg-slate-500" />
                  </div>
              )}
         </div>

@@ -36,7 +36,9 @@ El sistema está diseñado para cubrir todas las áreas críticas de la gestión
   - Catálogo de productos diferenciando entre comprados (con stock) y de producción interna.
   - Registro de facturas de compra que actualizan el stock automáticamente.
   - Deducción automática de stock al realizar pedidos de servicio.
-- **Gestión de Clientes (CRM)**: Base de datos de clientes para agilizar el check-in y ofrecer un servicio personalizado, con la capacidad de marcar clientes VIP.
+- **Gestión de Clientes (CRM) y Validación**: 
+  - Base de datos de clientes con historial de visitas y marca de CLIENTE VIP.
+  - **Validación TSE**: Integración con el servicio nacional de identidad para auto-completar datos de clientes y colaboradores (en `/register`), garantizando veracidad y detectando automáticamente menores de edad.
 - **Facturación y Pagos**:
   - Generación automática de facturas para pagos adelantados y check-outs con desglose de impuestos.
   - Soporte para múltiples métodos de pago: **Efectivo** (con cálculo de vuelto), **Tarjeta** (con registro de voucher) y **SINPE Móvil**.
@@ -64,6 +66,10 @@ El sistema está diseñado para cubrir todas las áreas críticas de la gestión
   - **Cocina/Barra**: Acceso exclusivo a la cola de pedidos para gestión de preparación.
   - **Contador**: Acceso a reportería y finanzas.
   - **Conserje**: Acceso limitado a tareas de apoyo.
+- **Control de Ingreso por QR (Suites)**:
+  - Generación de PDF con códigos QR únicos por habitación para confirmación de ingreso digital.
+  - Landing page de bienvenida personalizada para el huésped.
+  - Indicador visual en tiempo real en el Dashboard Administrativo tras el escaneo.
 
 ## 📁 Estructura del Proyecto
 

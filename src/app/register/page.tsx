@@ -7,7 +7,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Eye, EyeOff, User, Mail, Lock, Phone, CreditCard, Calendar, ChevronLeft, ArrowRight, Smartphone } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Phone, CreditCard, Calendar, ChevronLeft, ArrowRight, Smartphone, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { motion } from 'framer-motion';
 
@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { register } from '@/lib/actions/auth.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
+import { getSystemSettings } from '@/lib/actions/system.actions';
+import { Progress } from '@/components/ui/progress';
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'El nombre es requerido.').max(25, 'El nombre no debe exceder los 25 caracteres.'),
@@ -58,6 +60,8 @@ export default function RegisterPage() {
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isValidated, setIsValidated] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -125,6 +129,62 @@ export default function RegisterPage() {
     fieldOnChange(maskedValue);
   };
 
+  const toTitleCase = (str: string) => {
+    return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+  };
+
+  const handleVerify = async () => {
+    const idCard = form.getValues('idCard');
+    const cleanId = idCard.replace(/\D/g, '');
+    
+    if (cleanId.length < 9) {
+      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 9 dígitos de la cédula.', variant: 'destructive' });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const settings = await getSystemSettings();
+      const domain = settings.verificationApiDomain || 'api-krdy3op4ma-uc.a.run.app';
+      const response = await fetch(`https://${domain}/verify?cedula=${cleanId}`);
+      const data = await response.json();
+
+      if (data['person-found']) {
+        const parts = data.name.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 3) {
+          const secondLastName = parts.pop() || '';
+          const lastName = parts.pop() || '';
+          const firstName = parts.join(' ');
+          form.setValue('firstName', toTitleCase(firstName));
+          form.setValue('lastName', toTitleCase(lastName));
+          form.setValue('secondLastName', toTitleCase(secondLastName));
+        } else if (parts.length === 2) {
+          form.setValue('firstName', toTitleCase(parts[0]));
+          form.setValue('lastName', toTitleCase(parts[1]));
+        } else {
+          form.setValue('firstName', toTitleCase(parts[0]));
+        }
+
+        if (data['birth-date']) {
+          const [d, m, y] = data['birth-date'].split('/');
+          setBirthDay(String(parseInt(d, 10)));
+          setBirthMonth(String(parseInt(m, 10)));
+          setBirthYear(String(parseInt(y, 10)));
+        }
+
+        setIsValidated(true);
+        toast({ title: 'Persona Encontrada', description: `¡Hola ${data.name}! La información ha sido cargada.` });
+      } else {
+        setIsValidated(false);
+        toast({ title: 'No encontrado', description: 'No se encontró información para esta cédula.', variant: 'destructive' });
+      }
+    } catch (error) {
+       toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const onSubmit = (values: z.infer<typeof registerSchema>) => {
     startTransition(async () => {
       const result = await register(values);
@@ -154,16 +214,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center overflow-x-hidden bg-[#050505] py-20 dark">
+    <div className="min-h-screen w-full relative flex items-center justify-center bg-[#050505] py-20 dark">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/motel_exterior_night_1773958134736.png"
+          src="/login_register_bg.png"
           alt="Background"
           fill
-          className="object-cover opacity-30 blur-sm scale-105"
+          className="object-cover opacity-60 scale-105"
+          priority
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#050505] via-transparent to-[#050505] opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/40 to-[#050505] opacity-90" />
       </div>
 
       <div className="container relative z-10 px-6 flex flex-col items-center">
@@ -260,16 +321,44 @@ export default function RegisterPage() {
                   name="idCard"
                   render={({ field }) => (
                     <FormItem className="space-y-2">
-                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Cédula de Identidad</FormLabel>
+                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1 flex items-center justify-between">
+                         <span>Cédula de Identidad</span>
+                         {isValidated && (
+                           <motion.span 
+                             initial={{ opacity: 0, x: -10 }} 
+                             animate={{ opacity: 1, x: 0 }} 
+                             className="flex items-center gap-1 text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20"
+                           >
+                             <ShieldCheck className="h-2.5 w-2.5" /> Verificada
+                           </motion.span>
+                         )}
+                       </FormLabel>
                       <FormControl>
-                        <div className="relative group">
-                          <Input 
-                            placeholder="0-0000-0000" 
-                            {...field} 
-                            onChange={(e) => handleIdCardChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
-                          />
-                          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <div className="relative group flex-1">
+                              <Input 
+                                placeholder="0-0000-0000" 
+                                {...field} 
+                                onChange={(e) => {
+                                    handleIdCardChange(e, field.onChange);
+                                    setIsValidated(false);
+                                }} 
+                                className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
+                              />
+                              <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
+                            </div>
+                            <Button 
+                              type="button" 
+                              variant="secondary" 
+                              onClick={handleVerify} 
+                              disabled={isVerifying}
+                              className="h-14 px-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/80 font-bold uppercase tracking-widest text-[10px] shrink-0"
+                            >
+                              {isVerifying ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : 'Verificar'}
+                            </Button>
+                          </div>
+                          {isVerifying && <Progress value={100} className="h-1 animate-pulse bg-primary/10" />}
                         </div>
                       </FormControl>
                       <FormMessage className="text-[10px] uppercase font-bold tracking-widest text-red-400" />

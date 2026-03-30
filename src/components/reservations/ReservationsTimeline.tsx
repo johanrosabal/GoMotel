@@ -11,11 +11,11 @@ import { CheckCircle, AlertCircle, XCircle, Ban, BedDouble, UserX } from 'lucide
 type ProcessedReservation = Reservation & { isOverdue: boolean };
 
 const statusConfig: Record<Reservation['status'], { icon: React.ElementType, color: string, badge: string }> = {
-    Confirmed: { icon: CheckCircle, color: 'text-blue-500', badge: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' },
-    'Checked-in': { icon: BedDouble, color: 'text-green-500', badge: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' },
-    Cancelled: { icon: XCircle, color: 'text-red-500', badge: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50' },
-    'No-show': { icon: UserX, color: 'text-yellow-600', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50'},
-    Completed: { icon: Ban, color: 'text-gray-500', badge: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50' },
+    Confirmed: { icon: CheckCircle, color: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+    'Checked-in': { icon: BedDouble, color: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    Cancelled: { icon: XCircle, color: 'text-rose-400', badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
+    'No-show': { icon: UserX, color: 'text-amber-400', badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20'},
+    Completed: { icon: Ban, color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
 };
 
 const statusMap: Record<Reservation['status'], string> = {
@@ -50,46 +50,59 @@ export default function ReservationsTimeline({ reservations }: { reservations: P
     }
     
     return (
-        <div className="relative pl-6">
+        <div className="relative pl-12 pt-8 pb-12">
             {/* The vertical timeline bar */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border -translate-x-1/2"></div>
+            <div className="absolute left-6 top-10 bottom-10 w-px bg-white/10 -translate-x-1/2 shadow-[0_0_10px_rgba(255,255,255,0.05)]"></div>
             
-            <div className="space-y-12">
+            <div className="space-y-16">
                 {sortedDays.map(day => (
                     <div key={day} className="relative">
-                        <div className="absolute -left-6 top-1.5 -translate-x-1/2 w-4 h-4 rounded-full bg-primary ring-4 ring-background"></div>
-                        <h2 className="font-bold text-lg capitalize -ml-1 mb-6">
+                        <div className="absolute -left-12 top-2 -translate-x-1/2 w-5 h-5 rounded-full bg-primary ring-8 ring-white/5 border-4 border-black shadow-[0_0_15px_rgba(var(--primary),0.3)]"></div>
+                        <h2 className="font-black text-2xl uppercase italic tracking-tighter text-white -ml-4 mb-8 flex items-center gap-4">
                             {format(new Date(day), "eeee, dd 'de' MMMM", { locale: es })}
+                            <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                         </h2>
                         
-                        <div className="space-y-8">
+                        <div className="space-y-10 pl-4">
                             {reservationsByDay[day].map(res => {
                                 const { icon: Icon, color, badge: badgeColor } = statusConfig[res.status];
-                                const finalIcon = res.isOverdue ? AlertCircle : Icon;
-                                const finalColor = res.isOverdue ? 'text-destructive' : color;
-                                const finalBadgeColor = res.isOverdue ? 'bg-destructive/10 text-destructive border-destructive/20' : badgeColor;
+                                const finalColor = res.isOverdue ? 'text-rose-500' : color;
+                                const finalBadgeColor = res.isOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' : badgeColor;
 
                                 return (
-                                    <div key={res.id} className="flex items-start gap-4 relative">
-                                        <div className={cn("absolute -left-6 top-[5px] -translate-x-1/2 h-3 w-3 rounded-full ring-4 ring-background", res.isOverdue ? 'bg-destructive' : 'bg-muted-foreground' )}></div>
-                                        <div className="w-20 text-right shrink-0">
-                                            <p className="font-bold text-sm">{format(res.checkInDate.toDate(), 'h:mm a', { locale: es })}</p>
+                                    <div key={res.id} className="flex items-start gap-8 relative group">
+                                        <div className={cn(
+                                            "absolute -left-10 top-2.5 -translate-x-1/2 h-3.5 w-3.5 rounded-full ring-4 ring-black border-2 border-white/20 transition-all group-hover:scale-125", 
+                                            res.isOverdue ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-600' 
+                                        )}></div>
+                                        <div className="w-24 text-right shrink-0 pt-1">
+                                            <p className="font-black text-sm text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors">
+                                                {format(res.checkInDate.toDate(), 'h:mm a', { locale: es })}
+                                            </p>
                                         </div>
-                                        <div className="flex-1 border rounded-lg p-4 bg-card shadow-sm">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold">{res.guestName}</p>
-                                                    <p className="text-sm text-muted-foreground">Habitación {res.roomNumber} ({res.roomType})</p>
+                                        <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden transition-all group-hover:bg-white/[0.08] group-hover:border-white/20">
+                                            <div className="absolute top-0 left-0 w-1 h-full opacity-50 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+                                            
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div className="space-y-2">
+                                                    <p className="font-black text-lg text-white uppercase italic tracking-tighter leading-none">{res.guestName}</p>
+                                                    <div className="flex items-center gap-3">
+                                                       <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest bg-white/5 border-white/10 text-slate-400 rounded-lg h-5 px-2">
+                                                           Hab. {res.roomNumber}
+                                                       </Badge>
+                                                       <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">{res.roomType}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="outline" className={cn('font-semibold', finalBadgeColor)}>
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant="outline" className={cn('font-black text-[9px] uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border shadow-lg transition-all', finalBadgeColor)}>
                                                         {res.isOverdue ? 'Vencida' : statusMap[res.status]}
                                                     </Badge>
-                                                    <ReservationActionsMenu reservation={res} />
+                                                    <ReservationActionsMenu reservation={res} className="bg-white/5 border border-white/10 rounded-xl" />
                                                 </div>
                                             </div>
-                                            <div className="text-xs text-muted-foreground mt-2">
-                                                Check-out: {format(res.checkOutDate.toDate(), "h:mm a", { locale: es })}
+                                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                                Check-out Estimado: <span className="text-slate-300 ml-1">{format(res.checkOutDate.toDate(), "h:mm a", { locale: es })}</span>
                                             </div>
                                         </div>
                                     </div>

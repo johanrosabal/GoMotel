@@ -85,16 +85,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden bg-[#050505] dark">
+    <div className="min-h-screen w-full relative flex items-center justify-center bg-[#050505] dark">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/motel_exterior_night_1773958134736.png"
+          src="/login_register_bg.png"
           alt="Background"
           fill
-          className="object-cover opacity-30 blur-sm scale-105"
+          className="object-cover opacity-60 scale-105"
+          priority
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#050505] via-transparent to-[#050505] opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/40 to-[#050505] opacity-90" />
       </div>
 
       <div className="container relative z-10 px-6 py-12 flex flex-col items-center">

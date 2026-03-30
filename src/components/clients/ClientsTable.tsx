@@ -16,7 +16,8 @@ import { deleteClient } from '@/lib/actions/client.actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Phone, Mail, CreditCard, Calendar, UserCheck } from 'lucide-react';
 
 function ActionsMenu({ client }: { client: Client }) {
     const { toast } = useToast();
@@ -40,21 +41,21 @@ function ActionsMenu({ client }: { client: Client }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={isPending} id="clientstable-button-1">
-                        <MoreHorizontal className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" disabled={isPending} className="h-10 w-10 bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary transition-all rounded-xl shrink-0" id="clientstable-button-1">
+                        <MoreHorizontal className="h-5 w-5" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar Ficha
+                <DropdownMenuContent align="end" className="bg-[#0f0f0f] border-white/10 backdrop-blur-2xl text-white">
+                    <DropdownMenuLabel className="font-black uppercase tracking-widest text-[9px] text-slate-500">Acciones de Huésped</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-white/5" />
+                    <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)} className="focus:bg-white/5 focus:text-primary cursor-pointer transition-colors px-4 py-3">
+                        <Edit className="mr-3 h-4 w-4" />
+                        <span className="font-bold text-xs uppercase tracking-widest">Editar Perfil</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar Cliente
+                    <DropdownMenuSeparator className="bg-white/5" />
+                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-rose-500 focus:bg-rose-500/10 focus:text-rose-500 cursor-pointer transition-colors px-4 py-3">
+                        <Trash2 className="mr-3 h-4 w-4" />
+                        <span className="font-bold text-xs uppercase tracking-widest">Eliminar Registro</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -81,8 +82,16 @@ function ActionsMenu({ client }: { client: Client }) {
     );
 }
 
-export default function ClientsTable({ clients }: { clients: Client[] }) {
-  const [searchTerm, setSearchTerm] = useState('');
+export default function ClientsTable({ clients, searchTerm }: { clients: Client[], searchTerm: string }) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
@@ -93,137 +102,156 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Input
-          placeholder="Buscar por nombre, correo o cédula..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm" id="clientstable-input-buscar-por-nombre"
-        />
-      </div>
-
        {filteredClients.length === 0 ? (
-        <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
-            No se encontraron clientes.
+        <div className="text-center text-slate-500 py-32 bg-white/5 backdrop-blur-xl border-2 border-dashed border-white/10 rounded-[3rem] shadow-2xl">
+            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p className="font-black uppercase tracking-[0.3em] text-xs italic">No se encontraron huéspedes en la base de datos.</p>
         </div>
       ) : (
         <>
             {/* Mobile & Tablet View */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:hidden">
                 {filteredClients.map(client => (
-                <Card key={client.id} className={cn("flex flex-col", client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
-                    <CardHeader>
-                        <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                    <AvatarFallback>{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        {client.firstName} {client.lastName}
-                                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                    </CardTitle>
-                                    <CardDescription>{client.email}</CardDescription>
+                <Card 
+                    key={client.id} 
+                    className={cn(
+                        "flex flex-col relative transition-all duration-500 h-full group bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden hover:scale-[1.02] hover:bg-white/[0.08] p-8", 
+                        client.isVip && 'border-l-[6px] border-l-amber-500 shadow-amber-500/20 shadow-2xl'
+                    )}
+                    onMouseMove={handleMouseMove}
+                >
+                    {/* Dynamic Spotlight Effect */}
+                    <div 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
+                        style={{
+                            background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)`
+                        }}
+                    />
+
+                    <div className="flex justify-between items-start mb-6 relative z-10">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-14 w-14 ring-4 ring-white/5 border-2 border-primary/20">
+                                <AvatarFallback className="bg-black text-primary font-black">{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <CardTitle className="text-xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors flex items-center gap-2">
+                                    {client.firstName} {client.lastName}
+                                    {client.isVip && <Star className="h-4 w-4 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />}
+                                </CardTitle>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mt-1 italic">
+                                    <Mail className="h-3 w-3" /> {client.email}
+                                </p>
+                            </div>
+                        </div>
+                        <ActionsMenu client={client} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 relative z-10">
+                        <div className="space-y-1">
+                            <p className="font-black text-[9px] uppercase tracking-widest text-slate-600 flex items-center gap-2">
+                                <Phone className="h-3 w-3" /> Contacto
+                            </p>
+                            <p className="font-bold text-xs text-white uppercase">{client.phoneNumber}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-black text-[9px] uppercase tracking-widest text-slate-600 flex items-center gap-2">
+                                <CreditCard className="h-3 w-3" /> Identificación
+                            </p>
+                            <p className="font-mono text-xs text-white uppercase tracking-tighter font-black">{client.idCard}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center relative z-10">
+                        <div className="flex items-center gap-3">
+                            {client.isValidated ? (
+                                <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Verificado</span>
                                 </div>
-                            </div>
-                            <ActionsMenu client={client} />
+                            ) : (
+                                <div className="flex items-center gap-2 text-slate-500 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                                    <ShieldX className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-400">Verificar</span>
+                                </div>
+                            )}
                         </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow space-y-4 text-sm">
-                        <div>
-                            <p className="font-semibold text-muted-foreground">Contacto</p>
-                            <p>{client.phoneNumber}</p>
+                        <div className="text-right">
+                             <p className="font-black text-[8px] uppercase tracking-[0.2em] text-slate-600">Visitas Totales</p>
+                             <p className="font-black text-lg text-primary leading-none mt-1">{client.visitCount || 0}</p>
                         </div>
-                        <div>
-                            <p className="font-semibold text-muted-foreground">Cédula</p>
-                            <p className="font-mono">{client.idCard}</p>
-                        </div>
-                        <div>
-                            <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Estado</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                {client.isValidated ? (
-                                    <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-2 py-0.5 rounded-full border border-green-200/50">
-                                        <ShieldCheck className="h-3.5 w-3.5" />
-                                        <span className="text-xs font-medium">Verificado</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 dark:bg-slate-900/30 px-2 py-0.5 rounded-full border border-slate-200/50">
-                                        <ShieldX className="h-3.5 w-3.5" />
-                                        <span className="text-xs font-medium">No Verificado</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Miembro Desde</p>
-                            <p>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</p>
-                        </div>
-                        <div>
-                            <p className="font-semibold text-muted-foreground">Visitas</p>
-                            <p>{client.visitCount || 0}</p>
-                        </div>
-                    </CardContent>
+                    </div>
                 </Card>
                 ))}
             </div>
 
             {/* Desktop View */}
-            <div className="hidden md:block rounded-md border">
+            <div className="hidden md:block rounded-[3rem] border border-white/10 overflow-hidden bg-white/5 backdrop-blur-xl shadow-2xl">
                 <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Contacto</TableHead>
-                     <TableHead>Cédula</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Miembro Desde</TableHead>
-                    <TableHead>Visitas</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                <TableHeader className="bg-white/5 h-20">
+                    <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-10 leading-none">Huésped</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none">Canal de Contacto</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none">Cédula</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none">Estado</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none">Activo Desde</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none">Visitas</TableHead>
+                    <TableHead className="text-right pr-10"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredClients.map(client => (
-                    <TableRow key={client.id} className={cn(client.isVip && 'bg-yellow-100/50 dark:bg-yellow-900/20')}>
-                        <TableCell>
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                                <AvatarFallback>{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
+                    <TableRow 
+                        key={client.id} 
+                        className={cn(
+                            "border-white/5 transition-all duration-300 group hover:bg-white/5 h-24",
+                            client.isVip && 'bg-amber-500/5'
+                        )}
+                    >
+                        <TableCell className="pl-10">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-12 w-12 border-2 border-white/10 transition-transform group-hover:scale-110">
+                                <AvatarFallback className="bg-black text-primary font-black text-xs">{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
                             </Avatar>
                             <div>
-                            <div className="font-medium flex items-center gap-2">
-                                {client.firstName} {client.lastName}
-                                {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                            </div>
-                            <div className="text-sm text-muted-foreground">{client.email}</div>
+                                <div className="font-black text-white uppercase italic tracking-tighter text-sm flex items-center gap-2 group-hover:text-primary transition-colors">
+                                    {client.firstName} {client.lastName}
+                                    {client.isVip && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />}
+                                </div>
+                                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic mt-0.5">{client.email}</div>
                             </div>
                         </div>
                         </TableCell>
-                        <TableCell>{client.phoneNumber}</TableCell>
+                        <TableCell className="text-xs font-bold text-slate-300 uppercase italic tracking-widest">{client.phoneNumber}</TableCell>
                         <TableCell>
-                        <div className="font-mono text-sm">{client.idCard}</div>
+                        <div className="font-mono text-xs text-slate-400 font-black uppercase tracking-tight">{client.idCard}</div>
                         </TableCell>
                         <TableCell>
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div className="inline-flex items-center justify-center">
+                                        <div className="inline-flex items-center justify-center transition-transform hover:scale-125">
                                             {client.isValidated ? (
-                                                <ShieldCheck className="h-5 w-5 text-green-500 hover:text-green-600 transition-colors cursor-help drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
+                                                <ShieldCheck className="h-6 w-6 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.4)]" />
                                             ) : (
-                                                <ShieldX className="h-5 w-5 text-slate-300 dark:text-slate-600 hover:text-slate-400 transition-colors cursor-help" />
+                                                <ShieldX className="h-6 w-6 text-slate-700" />
                                             )}
                                         </div>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                        <p>{client.isValidated ? 'Cédula verificada con el Registro Civil' : 'Cédula pendiente de verificación'}</p>
+                                    <TooltipContent side="top" className="bg-[#0f0f0f] border-white/10 text-white rounded-xl">
+                                        <p className="font-bold text-[10px] uppercase tracking-widest px-2 py-1">{client.isValidated ? 'Identidad Verificada' : 'Pendiente de Verificación'}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         </TableCell>
-                        <TableCell>{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
-                        <TableCell>{client.visitCount || 0}</TableCell>
-                        <TableCell className="text-right">
-                        <ActionsMenu client={client} />
+                        <TableCell className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{format(client.createdAt.toDate(), 'dd MMM yyyy', { locale: es })}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-3.5 w-3.5 text-slate-600" />
+                                <span className="font-black text-sm text-primary">{client.visitCount || 0}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-10">
+                            <ActionsMenu client={client} />
                         </TableCell>
                     </TableRow>
                     ))}
