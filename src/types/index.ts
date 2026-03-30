@@ -32,6 +32,8 @@ export interface Room {
   roomTypeId: string;
   roomTypeName: string;
   statusUpdatedAt?: Timestamp;
+  isClientConfirmed?: boolean;
+  clientConfirmedAt?: Timestamp;
 }
 
 export interface RestaurantTable {

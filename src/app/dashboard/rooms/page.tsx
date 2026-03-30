@@ -4,6 +4,7 @@ import RoomGrid from '@/components/dashboard/RoomGrid';
 import SeedDataButton from '@/components/SeedDataButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AddRoomButton from '@/components/dashboard/AddRoomButton';
+import ExportRoomQRButton from '@/components/dashboard/ExportRoomQRButton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CalendarPlus, Settings2, Sparkles } from 'lucide-react';
@@ -67,6 +68,7 @@ export default function DashboardRoomsPage() {
                 Ir a Reservaciones
               </Link>
             </Button>
+            <ExportRoomQRButton rooms={rooms || []} />
             <AddRoomButton />
           </div>
         </div>

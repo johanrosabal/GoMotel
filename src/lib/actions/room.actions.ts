@@ -38,6 +38,8 @@ const toRoomObject = (doc: any): Room => {
     roomTypeId: data.roomTypeId || '',
     roomTypeName: data.roomTypeName || '',
     statusUpdatedAt: data.statusUpdatedAt || null,
+    isClientConfirmed: data.isClientConfirmed || false,
+    clientConfirmedAt: data.clientConfirmedAt || null,
   };
 };
 
@@ -286,9 +288,15 @@ export async function checkOut(
     paymentAmount: increment(totalDueAtCheckout > 0 ? totalDueAtCheckout : 0),
   });
 
-  // Update room status
+  // Update room status and reset confirmation
   const roomRef = doc(db, 'rooms', roomId);
-  batch.update(roomRef, { status: 'Cleaning', currentStayId: null, statusUpdatedAt: Timestamp.now() });
+  batch.update(roomRef, { 
+    status: 'Cleaning', 
+    currentStayId: null, 
+    statusUpdatedAt: Timestamp.now(),
+    isClientConfirmed: false,
+    clientConfirmedAt: null
+  });
 
   try {
     await batch.commit();
@@ -311,14 +319,55 @@ export async function updateRoomStatus(roomId: string, status: RoomStatus) {
 
   try {
     const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, { status, statusUpdatedAt: Timestamp.now() });
+    const updateData: any = { 
+        status, 
+        statusUpdatedAt: Timestamp.now() 
+    };
+    
+    // Reset confirmation if room becomes available or goes to cleaning
+    if (status === 'Available' || status === 'Cleaning' || status === 'Maintenance') {
+        updateData.isClientConfirmed = false;
+        updateData.clientConfirmedAt = null;
+    }
+
+    await updateDoc(roomRef, updateData);
     revalidatePath('/');
     revalidatePath(`/rooms/${roomId}`);
+    revalidatePath('/dashboard/rooms');
     return { success: true };
   } catch (error) {
     console.error('Failed to update room status:', error);
     return { error: 'Ocurrió un error inesperado.' };
   }
+}
+
+export async function confirmRoomCheckin(roomId: string) {
+    if (!roomId) return { error: 'ID de habitación no válido.' };
+
+    try {
+        const roomRef = doc(db, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        
+        if (!roomSnap.exists()) return { error: 'Habitación no encontrada.' };
+        
+        const roomData = roomSnap.data();
+        if (roomData.status !== 'Occupied') {
+            return { error: 'La habitación no está ocupada actualmente.' };
+        }
+
+        await updateDoc(roomRef, {
+            isClientConfirmed: true,
+            clientConfirmedAt: Timestamp.now()
+        });
+
+        revalidatePath('/');
+        revalidatePath(`/rooms/${roomId}`);
+        revalidatePath('/dashboard/rooms');
+        return { success: true };
+    } catch (error) {
+        console.error('Error confirming room checkin:', error);
+        return { error: 'No se pudo confirmar el ingreso.' };
+    }
 }
 
 

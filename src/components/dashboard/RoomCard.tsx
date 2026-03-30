@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import StatusBadge from './StatusBadge';
 import type { Room, Stay } from '@/types';
-import { BedDouble, Sparkles, Wrench, User, AlertTriangle, Clock, Zap } from 'lucide-react';
+import { BedDouble, Sparkles, Wrench, User, AlertTriangle, Clock, Zap, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
@@ -152,8 +152,20 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                 </div>
                 <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName || room.type}</CardDescription>
             </div>
-            <div className={cn("p-2 rounded-xl bg-white/5 border border-white/5", color)}>
-              <Icon className="h-5 w-5" />
+            <div className="flex flex-col items-end gap-2">
+              <div className={cn("p-2 rounded-xl bg-white/5 border border-white/5", color)}>
+                <Icon className="h-5 w-5" />
+              </div>
+              {room.status === 'Occupied' && room.isClientConfirmed && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_-3px_rgba(52,211,153,0.3)] min-w-fit"
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap">Confirmado</span>
+                </motion.div>
+              )}
             </div>
           </CardHeader>
 
