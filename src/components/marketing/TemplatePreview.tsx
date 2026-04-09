@@ -124,7 +124,7 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
             className={cn(
               "h-8 gap-2 text-[10px] font-black uppercase tracking-wider transition-all",
               viewMode === 'desktop' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-            )}
+            )} data-testid="templatepreview-button-escritorio"
           >
             <Monitor className="h-3.5 w-3.5" /> Escritorio
           </Button>
@@ -136,7 +136,7 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
             className={cn(
               "h-8 gap-2 text-[10px] font-black uppercase tracking-wider transition-all",
               viewMode === 'mobile' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-            )}
+            )} data-testid="templatepreview-button-m-vil"
           >
             <Smartphone className="h-3.5 w-3.5" /> Móvil
           </Button>

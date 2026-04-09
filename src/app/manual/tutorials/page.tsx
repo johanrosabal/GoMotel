@@ -76,7 +76,7 @@ export default function LearningCenterPage() {
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             placeholder="Buscar tutoriales..."
-                            className="h-12 bg-white/5 border-white/10 rounded-2xl pl-12 text-xs font-bold focus:ring-primary/20 text-white"
+                            className="h-12 bg-white/5 border-white/10 rounded-2xl pl-12 text-xs font-bold focus:ring-primary/20 text-white" data-testid="tutorials-input-buscar-tutoriales"
                         />
                     </div>
                 </div>
@@ -152,7 +152,7 @@ export default function LearningCenterPage() {
                                                 selectedTutorial?.id === tutorial.id 
                                                     ? "bg-primary text-black font-black shadow-lg shadow-primary/20 scale-[1.02]" 
                                                     : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
-                                            )}
+                                            )} data-testid="tutorials-button-1"
                                         >
                                             <div className={cn(
                                                 "h-6 w-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
@@ -185,7 +185,7 @@ export default function LearningCenterPage() {
                         </div>
                         <h4 className="text-xs font-black uppercase tracking-widest text-white italic">¿Necesita Asistencia Directa?</h4>
                         <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Si no encuentra la solución en estos videos, contacte a nuestro equipo de soporte técnico 24/7.</p>
-                        <button className="text-[9px] font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors flex items-center gap-2">
+                        <button className="text-[9px] font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors flex items-center gap-2" data-testid="tutorials-button-centro-de-soporte">
                             CENTRO DE SOPORTE <ChevronRight className="h-3 w-3" />
                         </button>
                     </div>

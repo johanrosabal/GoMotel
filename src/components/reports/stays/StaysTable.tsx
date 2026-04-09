@@ -51,8 +51,8 @@ export default function StaysTable({ stays }: { stays: Stay[] }) {
                                 )}
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button asChild variant="ghost" size="icon" id="staystable-button-1">
-                                    <Link href={`/rooms/${stay.roomId}`} id="staystable-link-1">
+                                <Button asChild variant="ghost" size="icon" id="staystable-button-1" data-testid="staystable-button-1">
+                                    <Link href={`/rooms/${stay.roomId}`} id="staystable-link-1" data-testid="staystable-link-1">
                                         <Eye className="h-4 w-4" />
                                         <span className="sr-only">Ver Habitación</span>
                                     </Link>

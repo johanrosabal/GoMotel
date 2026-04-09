@@ -184,7 +184,7 @@ export default function NotificationsPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0" data-testid="notifications-button-1">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -232,7 +232,7 @@ export default function NotificationsPage() {
             endDate: (Date.now() + 86400000) as any // +1 day
           });
           setIsOpen(true);
-        }} className="font-bold">
+        }} className="font-bold" data-testid="notifications-button-nueva-notificaci-n">
           <Plus className="mr-2 h-4 w-4" /> Nueva Notificación
         </Button>
       </div>
@@ -246,7 +246,7 @@ export default function NotificationsPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSave} className="grid gap-6 py-4">
+          <form onSubmit={handleSave} className="grid gap-6 py-4" data-testid="notifications-form-main">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Aviso</Label>
@@ -254,7 +254,7 @@ export default function NotificationsPage() {
                   value={editingNotif?.type} 
                   onValueChange={(val: NotificationType) => setEditingNotif({...editingNotif, type: val})}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="notifications-selecttrigger-1">
                     <SelectValue placeholder="Seleccione tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,7 +269,7 @@ export default function NotificationsPage() {
                   value={editingNotif?.priority} 
                   onValueChange={(val: NotificationPriority) => setEditingNotif({...editingNotif, priority: val})}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="notifications-selecttrigger-2">
                     <SelectValue placeholder="Prioridad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -288,7 +288,7 @@ export default function NotificationsPage() {
                 placeholder="Ej: Mantenimiento programado" 
                 value={editingNotif?.title || ''}
                 onChange={(e) => setEditingNotif({...editingNotif, title: e.target.value})}
-                required
+                required data-testid="notifications-input-ej-mantenimiento-programado"
               />
             </div>
 
@@ -300,7 +300,7 @@ export default function NotificationsPage() {
                 className="min-h-[100px]"
                 value={editingNotif?.message || ''}
                 onChange={(e) => setEditingNotif({...editingNotif, message: e.target.value})}
-                required
+                required data-testid="notifications-textarea-escriba-el-detalle"
               />
             </div>
 
@@ -312,7 +312,7 @@ export default function NotificationsPage() {
                   type="datetime-local" 
                   value={editingNotif?.startDate ? new Date(typeof editingNotif.startDate === 'number' ? editingNotif.startDate : (editingNotif.startDate as any).toMillis?.() || Date.now()).toISOString().slice(0, 16) : ''}
                   onChange={(e) => setEditingNotif({...editingNotif, startDate: new Date(e.target.value).getTime() as any})}
-                  required
+                  required data-testid="notifications-input-1"
                 />
               </div>
               <div className="space-y-2">
@@ -322,7 +322,7 @@ export default function NotificationsPage() {
                   type="datetime-local" 
                   value={editingNotif?.endDate ? new Date(typeof editingNotif.endDate === 'number' ? editingNotif.endDate : (editingNotif.endDate as any).toMillis?.() || Date.now()).toISOString().slice(0, 16) : ''}
                   onChange={(e) => setEditingNotif({...editingNotif, endDate: new Date(e.target.value).getTime() as any})}
-                  required
+                  required data-testid="notifications-input-2"
                 />
               </div>
             </div>
@@ -334,13 +334,13 @@ export default function NotificationsPage() {
               </div>
               <Switch 
                 checked={editingNotif?.isActive} 
-                onCheckedChange={(val) => setEditingNotif({...editingNotif, isActive: val})} 
+                onCheckedChange={(val) => setEditingNotif({...editingNotif, isActive: val})} data-testid="notifications-switch-1" 
               />
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isPending} className="font-bold">
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} data-testid="notifications-button-cancelar">Cancelar</Button>
+              <Button type="submit" disabled={isPending} className="font-bold" data-testid="notifications-button-submit">
                 {isPending ? 'Guardando...' : editingNotif?.id ? 'Actualizar Aviso' : 'Publicar Aviso'}
               </Button>
             </DialogFooter>

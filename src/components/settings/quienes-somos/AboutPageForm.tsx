@@ -75,7 +75,7 @@ export default function AboutPageForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="aboutpageform-form-main">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export default function AboutPageForm() {
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending} data-testid="aboutpageform-button-submit">
             {isPending ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/> Guardando...</span> : <span className="flex items-center gap-2"><Save className="w-4 h-4" /> Guardar Cambios</span>}
           </Button>
         </div>

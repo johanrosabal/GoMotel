@@ -48,10 +48,10 @@ export default function StaysReportPage() {
                         placeholder="Buscar por huésped o habitación..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="max-w-xs" id="staysreportpage-input-buscar-por-hu-sped"
+                        className="max-w-xs" id="staysreportpage-input-buscar-por-hu-sped" data-testid="staysreportpage-input-buscar-por-hu-sped"
                     />
                     <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-                        <SelectTrigger className="w-full sm:w-[180px]" id="staysreportpage-selecttrigger-1">
+                        <SelectTrigger className="w-full sm:w-[180px]" id="staysreportpage-selecttrigger-1" data-testid="staysreportpage-selecttrigger-1">
                             <SelectValue placeholder="Filtrar por estado" />
                         </SelectTrigger>
                         <SelectContent>

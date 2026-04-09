@@ -109,7 +109,7 @@ export function SeedTemplateButton() {
         "bg-primary/20 border-primary/40 text-primary",
         "hover:bg-primary hover:text-white", 
         "dark:bg-primary/30 dark:border-primary/50 dark:text-primary dark:hover:bg-primary dark:hover:text-white"
-      )}
+      )} data-testid="seedtemplatebutton-button-auto-generar-factura"
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" />

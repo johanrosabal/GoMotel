@@ -124,8 +124,8 @@ export default function RoomCheckInPage() {
                                 </div>
                             </div>
                             
-                            <Button asChild variant="outline" className="rounded-2xl border-white/10 hover:bg-white/5 font-bold uppercase tracking-widest text-[10px] w-full h-12">
-                                <Link href="/">
+                            <Button asChild variant="outline" className="rounded-2xl border-white/10 hover:bg-white/5 font-bold uppercase tracking-widest text-[10px] w-full h-12" data-testid="[roomid]-button-1">
+                                <Link href="/" data-testid="[roomid]-link-ir-al-sitio">
                                     <Home className="mr-2 h-4 w-4 text-emerald-400" />
                                     Ir al Sitio Web
                                 </Link>
@@ -162,8 +162,8 @@ export default function RoomCheckInPage() {
                                 <h3 className="text-xl font-bold uppercase tracking-widest italic text-rose-500">Error</h3>
                                 <p className="text-slate-300 text-sm font-medium">{errorMessage}</p>
                             </div>
-                            <Button asChild variant="outline" className="rounded-2xl border-white/10 bg-white/5 font-bold uppercase tracking-widest text-[10px] w-full">
-                                <Link href="/">Reintentar</Link>
+                            <Button asChild variant="outline" className="rounded-2xl border-white/10 bg-white/5 font-bold uppercase tracking-widest text-[10px] w-full" data-testid="[roomid]-button-2">
+                                <Link href="/" data-testid="[roomid]-link-reintentar">Reintentar</Link>
                             </Button>
                         </motion.div>
                     )}

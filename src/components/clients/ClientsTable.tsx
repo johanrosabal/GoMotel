@@ -41,7 +41,7 @@ function ActionsMenu({ client }: { client: Client }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={isPending} className="h-10 w-10 bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary transition-all rounded-xl shrink-0" id="clientstable-button-1">
+                    <Button variant="ghost" size="icon" disabled={isPending} className="h-10 w-10 bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary transition-all rounded-xl shrink-0" id="clientstable-button-1" data-testid="clientstable-button-1">
                         <MoreHorizontal className="h-5 w-5" />
                     </Button>
                 </DropdownMenuTrigger>

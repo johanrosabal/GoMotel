@@ -62,8 +62,8 @@ export default function DashboardRoomsPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border border-white/10 shadow-xl" id="page-button-1">
-              <Link href="/reservations" id="page-link-ir-a-reservaciones">
+            <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border border-white/10 shadow-xl" id="page-button-1" data-testid="rooms-button-1">
+              <Link href="/reservations" id="page-link-ir-a-reservaciones" data-testid="rooms-link-ir-a-reservaciones">
                 <CalendarPlus className="mr-2 h-4 w-4 text-primary" />
                 Ir a Reservaciones
               </Link>

@@ -127,7 +127,7 @@ export default function ExportRoomQRButton({ rooms }: ExportRoomQRButtonProps) {
                 onClick={handleExportPDF} 
                 disabled={isExporting}
                 className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border-white/10 shadow-xl bg-slate-900/50 hover:bg-slate-800 text-white transition-all hover:scale-105 active:scale-95"
-                id="export-room-qr-button"
+                id="export-room-qr-button" data-testid="exportroomqrbutton-button-1"
             >
                 {isExporting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />

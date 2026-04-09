@@ -234,7 +234,7 @@ export default function RegisterPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-10 flex items-center gap-4"
         >
-          <Link href="/login" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all">
+          <Link href="/login" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="register-link-login">
             <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
             <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Login</span>
           </Link>
@@ -260,7 +260,7 @@ export default function RegisterPage() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="register-form-main">
               {/* Name Section */}
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
@@ -271,7 +271,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Nombre</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
+                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-juan" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -287,7 +287,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Primer Apellido</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
+                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-p-rez" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                     <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Segundo Apellido (Opcional)</FormLabel>
                     <FormControl>
                       <div className="relative group">
-                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
+                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-garc-a" />
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
                     </FormControl>
@@ -344,7 +344,7 @@ export default function RegisterPage() {
                                     handleIdCardChange(e, field.onChange);
                                     setIsValidated(false);
                                 }} 
-                                className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
+                                className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-0-0000-0000"
                               />
                               <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                             </div>
@@ -353,7 +353,7 @@ export default function RegisterPage() {
                               variant="secondary" 
                               onClick={handleVerify} 
                               disabled={isVerifying}
-                              className="h-14 px-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/80 font-bold uppercase tracking-widest text-[10px] shrink-0"
+                              className="h-14 px-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/80 font-bold uppercase tracking-widest text-[10px] shrink-0" data-testid="register-button-1"
                             >
                               {isVerifying ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : 'Verificar'}
                             </Button>
@@ -370,7 +370,7 @@ export default function RegisterPage() {
                   <div className="flex gap-2">
                     <Select onValueChange={setBirthDay} value={birthDay}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-1">
                           <SelectValue placeholder="Día" />
                         </SelectTrigger>
                       </FormControl>
@@ -380,7 +380,7 @@ export default function RegisterPage() {
                     </Select>
                     <Select onValueChange={setBirthMonth} value={birthMonth}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-2">
                           <SelectValue placeholder="Mes" />
                         </SelectTrigger>
                       </FormControl>
@@ -390,7 +390,7 @@ export default function RegisterPage() {
                     </Select>
                     <Select onValueChange={setBirthYear} value={birthYear}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-3">
                           <SelectValue placeholder="Año" />
                         </SelectTrigger>
                       </FormControl>
@@ -417,7 +417,7 @@ export default function RegisterPage() {
                             placeholder="(506) 8888-8888" 
                             {...field} 
                             onChange={(e) => handlePhoneChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-input-506-8888-8888"
                           />
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
@@ -438,7 +438,7 @@ export default function RegisterPage() {
                             placeholder="(506) 8888-8888" 
                             {...field} 
                             onChange={(e) => handlePhoneChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10"
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-input-506-8888-8888-1"
                           />
                           <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
@@ -459,7 +459,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Correo Electrónico</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" />
+                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-admin-gomotel-com" />
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -479,7 +479,7 @@ export default function RegisterPage() {
                             type={showPassword ? 'text' : 'password'} 
                             placeholder="••••••••" 
                             {...field} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" 
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-1" 
                           />
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                           <Button
@@ -487,7 +487,7 @@ export default function RegisterPage() {
                             variant="ghost"
                             size="icon"
                             className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
-                            onClick={() => setShowPassword((prev) => !prev)}
+                            onClick={() => setShowPassword((prev) => !prev)} data-testid="register-button-2"
                           >
                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                           </Button>
@@ -502,7 +502,7 @@ export default function RegisterPage() {
               <Button 
                 type="submit" 
                 className="w-full h-16 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative mt-8" 
-                disabled={isPending}
+                disabled={isPending} data-testid="register-button-submit"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isPending ? 'Procesando...' : (
@@ -518,7 +518,7 @@ export default function RegisterPage() {
 
           <div className="mt-12 text-center pt-8 border-t border-white/5">
             <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿Ya tiene una cuenta?</p>
-            <Link href="/login">
+            <Link href="/login" data-testid="register-link-login-1">
               <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Iniciar Sesión</span>
             </Link>
           </div>

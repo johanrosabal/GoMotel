@@ -348,7 +348,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         <Stepper currentStep={currentStep} />
 
         <Form {...form}>
-          <form onSubmit={e => e.preventDefault()} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }} id="createreservationdialog-form-main">
+          <form onSubmit={e => e.preventDefault()} onKeyDown={(e) => { if(e.key === 'Enter') e.preventDefault() }} id="createreservationdialog-form-main" data-testid="createreservationdialog-form-main">
             <div className="min-h-[320px] flex flex-col justify-center">
                 {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -365,7 +365,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                                     autoComplete="off"
-                                    className="h-12 text-lg font-medium" id="createreservationdialog-input-nombre-del-cliente"
+                                    className="h-12 text-lg font-medium" id="createreservationdialog-input-nombre-del-cliente" data-testid="createreservationdialog-input-nombre-del-cliente"
                                 />
                                 </FormControl>
                                 {showSuggestions && (
@@ -382,7 +382,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                 form.setValue('guestId', client.id);
                                                 setShowSuggestions(false);
                                             }}
-                                            className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors" id="createreservationdialog-button-1"
+                                            className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors" id="createreservationdialog-button-1" data-testid="createreservationdialog-button-1"
                                             >
                                             <div className="flex items-center gap-3">
                                                 {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
@@ -413,7 +413,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Habitación Asignada (Disponibles)</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRooms || isWalkIn}>
                                     <FormControl>
-                                    <SelectTrigger className="h-12 text-lg" id="createreservationdialog-selecttrigger-1">
+                                    <SelectTrigger className="h-12 text-lg" id="createreservationdialog-selecttrigger-1" data-testid="createreservationdialog-selecttrigger-1">
                                         <SelectValue placeholder="Seleccione habitación" />
                                     </SelectTrigger>
                                     </FormControl>
@@ -451,7 +451,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Plan de Estancia</FormLabel>
                                 <Select onValueChange={(value) => field.onChange(value)} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                                     <FormControl>
-                                    <SelectTrigger className="h-12 text-lg" id="createreservationdialog-selecttrigger-2">
+                                    <SelectTrigger className="h-12 text-lg" id="createreservationdialog-selecttrigger-2" data-testid="createreservationdialog-selecttrigger-2">
                                         <SelectValue placeholder="Seleccione plan de tiempo" />
                                     </SelectTrigger>
                                     </FormControl>
@@ -482,7 +482,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         <p className="text-xs text-muted-foreground">El tiempo empieza a correr ahora.</p>
                                     </div>
                                     <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} id="createreservationdialog-switch-1" />
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} id="createreservationdialog-switch-1" data-testid="createreservationdialog-switch-1" />
                                     </FormControl>
                                 </FormItem>
                                 )}
@@ -527,7 +527,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                 <p className="text-xs text-muted-foreground">Se liquida el saldo total al salir.</p>
                                 </div>
                                 <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-switch-2" />
+                                <Switch checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-switch-2" data-testid="createreservationdialog-switch-2" />
                                 </FormControl>
                             </FormItem>
                             )}
@@ -542,7 +542,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         <FormItem>
                                             <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                <FormControl><SelectTrigger className="h-11" id="createreservationdialog-selecttrigger-3"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
+                                                <FormControl><SelectTrigger className="h-11" id="createreservationdialog-selecttrigger-3" data-testid="createreservationdialog-selecttrigger-3"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Efectivo">Efectivo</SelectItem>
                                                     <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
@@ -565,7 +565,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                     name="paymentConfirmed"
                                                     render={({ field }) => (
                                                         <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
-                                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" /></FormControl>
+                                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" data-testid="createreservationdialog-checkbox-1" /></FormControl>
                                                             <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
                                                         </FormItem>
                                                     )}
@@ -579,13 +579,13 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                         control={form.control}
                                         name="voucherNumber"
                                         render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-11 font-mono" id="createreservationdialog-input-1" /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-11 font-mono" id="createreservationdialog-input-1" data-testid="createreservationdialog-input-1" /></FormControl><FormMessage /></FormItem>
                                         )}
                                     />
                                 )}
                                 {paymentMethod === 'Efectivo' && (
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                                        <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" id="createreservationdialog-input-2" /></FormControl></FormItem>
+                                        <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" id="createreservationdialog-input-2" data-testid="createreservationdialog-input-2" /></FormControl></FormItem>
                                         {numericCashTendered >= (selectedPlan?.price || 0) && (
                                             <div className="text-right"><span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span><p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</p></div>
                                         )}
@@ -610,14 +610,14 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             <DialogFooter className='pt-6 border-t mt-6 flex-row sm:justify-between items-center gap-4'>
               <div className='flex items-center gap-2'>
                   {currentStep > 1 && (
-                      <Button type="button" variant="ghost" onClick={handleBack} disabled={isPending} className="font-bold" id="createreservationdialog-button-atr-s">
+                      <Button type="button" variant="ghost" onClick={handleBack} disabled={isPending} className="font-bold" id="createreservationdialog-button-atr-s" data-testid="createreservationdialog-button-atr-s">
                           <ChevronLeft className="mr-2 h-4 w-4" /> Atrás
                       </Button>
                   )}
               </div>
               <div className='flex items-center gap-2 flex-1 sm:flex-none'>
                   {currentStep < 3 ? (
-                      <Button type="button" onClick={handleNext} disabled={isPending} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg" id="createreservationdialog-button-siguiente">
+                      <Button type="button" onClick={handleNext} disabled={isPending} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg" id="createreservationdialog-button-siguiente" data-testid="createreservationdialog-button-siguiente">
                           Siguiente <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                   ) : (
@@ -625,7 +625,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                         type="button" 
                         disabled={isPending || isLoading || !canFinalize} 
                         onClick={() => form.handleSubmit(onSubmit)()}
-                        className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl" id="createreservationdialog-button-1-1"
+                        className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-primary/20 shadow-xl" id="createreservationdialog-button-1-1" data-testid="createreservationdialog-button-1-1"
                       >
                           {isPending ? 'Procesando...' : (
                               <>

@@ -22,7 +22,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background text-foreground dark:bg-[#0a0a0a] dark:text-white transition-colors duration-300">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl py-4 border-b border-border shadow-lg">
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group text-sm font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors">
+          <Link href="/" className="flex items-center gap-2 group text-sm font-bold uppercase tracking-widest text-foreground hover:text-primary transition-colors" data-testid="quienes-somos-link-volver">
             <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
             Volver
           </Link>

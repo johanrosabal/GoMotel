@@ -105,7 +105,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 flex items-center gap-4"
         >
-          <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all">
+          <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="login-link-1">
             <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
             <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Inicio</span>
           </Link>
@@ -131,7 +131,7 @@ export default function LoginPage() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-testid="login-form-main">
               <FormField
                 control={form.control}
                 name="email"
@@ -143,7 +143,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="admin@gomotel.com"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-input-admin-gomotel-com"
                         />
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
                   <FormItem className="space-y-2">
                      <div className="flex items-center justify-between ml-1">
                         <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Contraseña</FormLabel>
-                        <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors">¿Olvidó su contraseña?</Link>
+                        <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors" data-testid="login-link-olvid-su-contrase-a">¿Olvidó su contraseña?</Link>
                      </div>
                     <FormControl>
                       <div className="relative group">
@@ -167,7 +167,7 @@ export default function LoginPage() {
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-input-1"
                         />
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         <Button
@@ -175,7 +175,7 @@ export default function LoginPage() {
                           variant="ghost"
                           size="icon"
                           className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
-                          onClick={() => setShowPassword((prev) => !prev)}
+                          onClick={() => setShowPassword((prev) => !prev)} data-testid="login-button-1"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </Button>
@@ -189,7 +189,7 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full h-14 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative" 
-                disabled={isPending}
+                disabled={isPending} data-testid="login-button-submit"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isPending ? 'Validando...' : (
@@ -205,7 +205,7 @@ export default function LoginPage() {
 
           <div className="mt-12 text-center pt-8 border-t border-white/5">
             <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿No tiene una cuenta?</p>
-            <Link href="/register">
+            <Link href="/register" data-testid="login-link-register">
               <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Solicitar Registro</span>
             </Link>
           </div>

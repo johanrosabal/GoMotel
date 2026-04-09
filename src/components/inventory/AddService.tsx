@@ -19,7 +19,7 @@ export default function AddService({ allServices }: AddServiceProps) {
 
   if (!isMounted) {
     return (
-      <Button size="sm" disabled id="addservice-button-a-adir-servicio">
+      <Button size="sm" disabled id="addservice-button-a-adir-servicio" data-testid="addservice-button-a-adir-servicio">
         <PlusCircle className="mr-2 h-4 w-4" />
         Añadir Servicio
       </Button>
@@ -28,7 +28,7 @@ export default function AddService({ allServices }: AddServiceProps) {
 
   return (
     <EditServiceDialog allServices={allServices}>
-        <Button size="sm" id="addservice-button-a-adir-servicio-1">
+        <Button size="sm" id="addservice-button-a-adir-servicio-1" data-testid="addservice-button-add">
             <PlusCircle className="mr-2 h-4 w-4" />
             Añadir Servicio
         </Button>

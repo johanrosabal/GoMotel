@@ -330,7 +330,7 @@ export default function EditServiceDialog({ children, service, allServices, open
 
         <div className="flex-1 overflow-y-auto">
           <Form {...form}>
-            <form id="edit-service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
+            <form id="edit-service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4" data-testid="editservicedialog-form-main">
                 <FormField
                 control={form.control}
                 name="source"
@@ -345,13 +345,13 @@ export default function EditServiceDialog({ children, service, allServices, open
                         >
                         <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
-                            <RadioGroupItem value="Purchased" id="editservicedialog-radiogroupitem-1" />
+                            <RadioGroupItem value="Purchased" id="editservicedialog-radiogroupitem-1" data-testid="editservicedialog-radiogroupitem-1" />
                             </FormControl>
                             <FormLabel className="font-normal">Comprado</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
-                            <RadioGroupItem value="Internal" id="editservicedialog-radiogroupitem-2" />
+                            <RadioGroupItem value="Internal" id="editservicedialog-radiogroupitem-2" data-testid="editservicedialog-radiogroupitem-2" />
                             </FormControl>
                             <FormLabel className="font-normal">Producción Interna</FormLabel>
                         </FormItem>
@@ -369,13 +369,13 @@ export default function EditServiceDialog({ children, service, allServices, open
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             accept="image/*"
-                            className="hidden"
+                            className="hidden" data-testid="editservicedialog-input-1"
                         />
                         <Button
                             type="button"
                             variant="outline"
                             className="relative h-20 w-20 rounded-md p-0"
-                            onClick={() => fileInputRef.current?.click()} id="editservicedialog-button-1"
+                            onClick={() => fileInputRef.current?.click()} id="editservicedialog-button-1" data-testid="editservicedialog-button-1"
                         >
                             <Avatar className="h-full w-full rounded-md">
                                 <AvatarImage src={imagePreview || undefined} alt={form.getValues('name')} className="object-cover" />
@@ -391,7 +391,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                                 setImagePreview(null);
                                 form.setValue('imageUrl', '');
                                 if(fileInputRef.current) fileInputRef.current.value = '';
-                            }} id="editservicedialog-button-eliminar-imagen">
+                            }} id="editservicedialog-button-eliminar-imagen" data-testid="editservicedialog-button-eliminar-imagen">
                                 Eliminar imagen
                             </Button>
                         )}
@@ -408,7 +408,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         <FormLabel>Categoría</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
                         <FormControl>
-                            <SelectTrigger id="editservicedialog-selecttrigger-1"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                            <SelectTrigger id="editservicedialog-selecttrigger-1" data-testid="editservicedialog-selecttrigger-1"><SelectValue placeholder="Seleccione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>{categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
@@ -423,7 +423,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         <FormLabel>Sub-Categoría</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSubCategories || !selectedCategoryId}>
                         <FormControl>
-                            <SelectTrigger id="editservicedialog-selecttrigger-2"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                            <SelectTrigger id="editservicedialog-selecttrigger-2" data-testid="editservicedialog-selecttrigger-2"><SelectValue placeholder="Seleccione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>{subCategories?.map(sc => <SelectItem key={sc.id} value={sc.id}>{sc.name}</SelectItem>)}</SelectContent>
                         </Select>
@@ -440,7 +440,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                     <FormItem className="col-span-2">
                         <FormLabel>Nombre del Producto</FormLabel>
                         <FormControl>
-                        <Input placeholder="p.ej., Botella de Agua" {...field} id="editservicedialog-input-p-ej-botella-de" />
+                        <Input placeholder="p.ej., Botella de Agua" {...field} id="editservicedialog-input-p-ej-botella-de" data-testid="editservicedialog-input-p-ej-botella-de" />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -453,7 +453,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                     <FormItem>
                         <FormLabel>Código</FormLabel>
                         <FormControl>
-                        <Input readOnly placeholder="Auto-generado" {...field} className="bg-muted text-center font-mono" id="editservicedialog-input-auto-generado" />
+                        <Input readOnly placeholder="Auto-generado" {...field} className="bg-muted text-center font-mono" id="editservicedialog-input-auto-generado" data-testid="editservicedialog-input-auto-generado" />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -474,7 +474,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                             placeholder="Una selección excepcional creada para deleitar sus sentidos con los mejores ingredientes." 
                             className="resize-none"
                             {...field} 
-                            id="editservicedialog-textarea-description" 
+                            id="editservicedialog-textarea-description" data-testid="editservicedialog-textarea-una-selecci-n-excepcional" 
                         />
                         </FormControl>
                         <FormMessage />
@@ -498,7 +498,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         disabled={isLoadingSuppliers}
                         >
                         <FormControl>
-                            <SelectTrigger id="editservicedialog-selecttrigger-3">
+                            <SelectTrigger id="editservicedialog-selecttrigger-3" data-testid="editservicedialog-selecttrigger-3">
                             <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
                             </SelectTrigger>
                         </FormControl>
@@ -524,7 +524,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         defaultValue={field.value}
                     >
                         <FormControl>
-                        <SelectTrigger id="editservicedialog-selecttrigger-4">
+                        <SelectTrigger id="editservicedialog-selecttrigger-4" data-testid="editservicedialog-selecttrigger-4">
                             <SelectValue placeholder="Seleccione una categoría contable" />
                         </SelectTrigger>
                         </FormControl>
@@ -555,7 +555,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                           <FormControl>
                               <Switch
                                   checked={field.value}
-                                  onCheckedChange={field.onChange} id="editservicedialog-switch-1"
+                                  onCheckedChange={field.onChange} id="editservicedialog-switch-1" data-testid="editservicedialog-switch-1"
                               />
                           </FormControl>
                       </FormItem>
@@ -575,7 +575,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                           <FormControl>
                               <Switch
                                   checked={field.value}
-                                  onCheckedChange={field.onChange} id="editservicedialog-switch-is-public"
+                                  onCheckedChange={field.onChange} id="editservicedialog-switch-is-public" data-testid="editservicedialog-switch-2"
                               />
                           </FormControl>
                       </FormItem>
@@ -594,7 +594,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                             inputMode="decimal"
                             value={costPriceInput}
                             onChange={handleCostPriceChange}
-                            className="text-right" id="editservicedialog-input-1"
+                            className="text-right" id="editservicedialog-input-1" data-testid="editservicedialog-input-1-1"
                         />
                         </FormControl>
                         <FormMessage />
@@ -613,7 +613,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                             inputMode="decimal"
                             value={priceInput}
                             onChange={handlePriceChange}
-                            className="text-right" id="editservicedialog-input-2"
+                            className="text-right" id="editservicedialog-input-2" data-testid="editservicedialog-input-2"
                         />
                         </FormControl>
                         <FormMessage />
@@ -629,7 +629,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         <FormItem>
                             <FormLabel>Existencias</FormLabel>
                             <FormControl>
-                            <Input type="number" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-3" />
+                            <Input type="number" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-3" data-testid="editservicedialog-input-3" />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -642,7 +642,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                         <FormItem>
                             <FormLabel>Exist. Mínimas</FormLabel>
                             <FormControl>
-                            <Input type="number" {...field} placeholder="10" className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-10" />
+                            <Input type="number" {...field} placeholder="10" className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-10" data-testid="editservicedialog-input-10" />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -665,7 +665,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                                     <FormControl>
                                         <Switch
                                             checked={taxIncludedField.value}
-                                            onCheckedChange={taxIncludedField.onChange} id="editservicedialog-switch-tax-included"
+                                            onCheckedChange={taxIncludedField.onChange} id="editservicedialog-switch-tax-included" data-testid="editservicedialog-switch-3"
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -693,7 +693,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                                         currentIds.filter((id) => id !== tax.id)
                                     );
                                     }
-                                }} id="editservicedialog-checkbox-1"
+                                }} id="editservicedialog-checkbox-1" data-testid="editservicedialog-checkbox-1"
                                 />
                             </FormControl>
                             <FormLabel className="font-normal">
@@ -702,7 +702,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                             </FormItem>
                         ))
                         ) : (
-                        <p className="text-sm text-muted-foreground">No hay impuestos configurados. <Link href="/settings/taxes" className="text-primary underline" id="editservicedialog-link-crear-uno">Crear uno</Link></p>
+                        <p className="text-sm text-muted-foreground">No hay impuestos configurados. <Link href="/settings/taxes" className="text-primary underline" id="editservicedialog-link-crear-uno" data-testid="editservicedialog-link-crear-uno">Crear uno</Link></p>
                         )}
                     </div>
                     <FormMessage />
@@ -775,8 +775,8 @@ export default function EditServiceDialog({ children, service, allServices, open
         </div>
 
         <DialogFooter className="p-6 pt-4 border-t bg-background flex-shrink-0">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} id="editservicedialog-button-cancelar">Cancelar</Button>
-            <Button type="submit" form="edit-service-form" disabled={isPending} id="editservicedialog-button-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} id="editservicedialog-button-cancelar" data-testid="editservicedialog-button-cancelar">Cancelar</Button>
+            <Button type="submit" form="edit-service-form" disabled={isPending} id="editservicedialog-button-2" data-testid="editservicedialog-button-submit">
                 {isPending ? 'Guardando...' : 'Guardar Producto'}
             </Button>
         </DialogFooter>

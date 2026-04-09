@@ -35,7 +35,7 @@ export default function SuppliersClientPage() {
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={handleAdd} id="suppliersclientpage-button-a-adir-proveedor">
+                <Button onClick={handleAdd} id="suppliersclientpage-button-a-adir-proveedor" data-testid="suppliersclientpage-button-a-adir-proveedor">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Proveedor
                 </Button>

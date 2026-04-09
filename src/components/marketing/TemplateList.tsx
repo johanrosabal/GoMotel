@@ -67,8 +67,8 @@ export function TemplateList({ templates: initialTemplates }: TemplateListProps)
             Administre los formatos de correo para sus clientes.
           </CardDescription>
         </div>
-        <Link href="/marketing/templates/new">
-          <Button className="gap-2">
+        <Link href="/marketing/templates/new" data-testid="templatelist-link-marketing-templates-new">
+          <Button className="gap-2" data-testid="templatelist-button-nueva-plantilla">
             <Plus className="h-4 w-4" /> Nueva Plantilla
           </Button>
         </Link>
@@ -110,13 +110,13 @@ export function TemplateList({ templates: initialTemplates }: TemplateListProps)
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="templatelist-button-1">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/marketing/templates/edit/${template.id}`} className="flex items-center gap-2 cursor-pointer">
+                            <Link href={`/marketing/templates/edit/${template.id}`} className="flex items-center gap-2 cursor-pointer" data-testid="templatelist-link-editar">
                               <Pencil className="h-4 w-4" /> Editar
                             </Link>
                           </DropdownMenuItem>

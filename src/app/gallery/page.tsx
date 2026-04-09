@@ -61,7 +61,7 @@ export default function GalleryPage() {
       {/* Premium Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-xl border-b border-white/5 py-4">
         <div className="container mx-auto px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group" data-testid="gallery-link-1">
             <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary transition-colors">
               <ArrowLeft className="h-5 w-5 group-hover:text-black" />
             </div>
@@ -108,7 +108,7 @@ export default function GalleryPage() {
                   filter === t.id 
                     ? "bg-primary border-primary text-black shadow-lg shadow-primary/20 scale-105" 
                     : "bg-white/5 border-white/10 text-white/60 hover:border-primary/50"
-                )}
+                )} data-testid="gallery-button-1"
               >
                 <t.icon className="h-3 w-3" />
                 {t.label}
@@ -186,7 +186,7 @@ export default function GalleryPage() {
           >
             <button 
               onClick={() => setSelectedMedia(null)}
-              className="absolute top-8 right-8 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[110]"
+              className="absolute top-8 right-8 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[110]" data-testid="gallery-button-close"
             >
               <X className="h-6 w-6" />
             </button>

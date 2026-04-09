@@ -127,8 +127,8 @@ export default function ReportsClientPage() {
                     <CardContent>
                         <div className="text-2xl font-black">{formatCurrency(data.kpis.totalRevenue)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Total facturado en el periodo</p>
-                        <Button variant="link" size="sm" className="p-0 h-auto mt-3 text-primary font-bold" asChild id="reportsclientpage-button-1">
-                            <Link href="/billing/invoices" id="reportsclientpage-link-ver-facturas">
+                        <Button variant="link" size="sm" className="p-0 h-auto mt-3 text-primary font-bold" asChild id="reportsclientpage-button-1" data-testid="reportsclientpage-button-1">
+                            <Link href="/billing/invoices" id="reportsclientpage-link-ver-facturas" data-testid="reportsclientpage-link-ver-facturas">
                                 Ver facturas <ArrowRight className="ml-1 h-3 w-3" />
                             </Link>
                         </Button>
@@ -365,8 +365,8 @@ export default function ReportsClientPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="justify-center border-t py-4 bg-muted/10">
-                    <Button variant="outline" size="sm" asChild id="reportsclientpage-button-3">
-                        <Link href="/billing/invoices" id="reportsclientpage-link-ver-historial-de">
+                    <Button variant="outline" size="sm" asChild id="reportsclientpage-button-3" data-testid="reportsclientpage-button-2">
+                        <Link href="/billing/invoices" id="reportsclientpage-link-ver-historial-de" data-testid="reportsclientpage-link-ver-historial-de">
                             Ver Historial de Facturación Completo
                         </Link>
                     </Button>
@@ -512,7 +512,7 @@ export default function ReportsClientPage() {
                                 variant="outline" 
                                 onClick={handleExportStockPdf} 
                                 disabled={isExporting}
-                                className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors" id="reportsclientpage-button-4"
+                                className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors" id="reportsclientpage-button-4" data-testid="reportsclientpage-button-3"
                             >
                                 <Download className="h-5 w-5" />
                                 {isExporting ? "Generando Reporte..." : "Exportar Reporte Contable"}
@@ -520,7 +520,7 @@ export default function ReportsClientPage() {
                             <Button 
                                 variant="secondary" 
                                 onClick={() => setIsStockDialogOpen(false)} 
-                                className="sm:w-32 h-12 font-bold" id="reportsclientpage-button-cerrar"
+                                className="sm:w-32 h-12 font-bold" id="reportsclientpage-button-cerrar" data-testid="reportsclientpage-button-cerrar"
                             >
                                 Cerrar
                             </Button>

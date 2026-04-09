@@ -313,7 +313,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
   return (
     <Form {...form}>
-       <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)}>
+       <form id="room-type-form" onSubmit={form.handleSubmit(onSubmit)} data-testid="roomtypeform-form-main">
         <Card>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -328,7 +328,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                           <FormControl>
                           <Input
                               placeholder="p.ej., Suite Presidencial"
-                              {...field} id="roomtypeform-input-p-ej-suite-presidencial"
+                              {...field} id="roomtypeform-input-p-ej-suite-presidencial" data-testid="roomtypeform-input-p-ej-suite-presidencial"
                           />
                           </FormControl>
                           <FormMessage />
@@ -342,7 +342,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                       <FormItem>
                           <FormLabel>Capacidad</FormLabel>
                           <FormControl>
-                          <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="roomtypeform-input-1" />
+                          <Input type="number" min="1" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="roomtypeform-input-1" data-testid="roomtypeform-input-1" />
                           </FormControl>
                           <FormMessage />
                       </FormItem>
@@ -364,7 +364,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                           <FormControl>
                           <Switch
                               checked={field.value}
-                              onCheckedChange={field.onChange} id="roomtypeform-switch-1"
+                              onCheckedChange={field.onChange} id="roomtypeform-switch-1" data-testid="roomtypeform-switch-1"
                           />
                           </FormControl>
                       </FormItem>
@@ -388,7 +388,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                     setNewPlanDuration(e.target.value);
                                     if(planInputErrors.duration) setPlanInputErrors(p => ({...p, duration: undefined}));
                                   }}
-                                  className={cn("text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", planInputErrors.duration && "border-destructive focus-visible:ring-destructive")}
+                                  className={cn("text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", planInputErrors.duration && "border-destructive focus-visible:ring-destructive")} data-testid="roomtypeform-input-8"
                               />
                               {planInputErrors.duration && <p className="text-sm font-medium text-destructive">{planInputErrors.duration}</p>}
                           </div>
@@ -396,7 +396,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             <Label htmlFor="plan-unit">Unidad</Label>
                             <Select value={newPlanUnit} onValueChange={(value) => setNewPlanUnit(value as any)}>
                                 <FormControl>
-                                  <SelectTrigger id="plan-unit">
+                                  <SelectTrigger id="plan-unit" data-testid="roomtypeform-selecttrigger-1">
                                       <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
@@ -418,7 +418,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                 placeholder="10,000.00"
                                 value={newPlanPrice}
                                 onChange={handlePriceChange}
-                                className={cn("text-right", planInputErrors.price && "border-destructive focus-visible:ring-destructive")}
+                                className={cn("text-right", planInputErrors.price && "border-destructive focus-visible:ring-destructive")} data-testid="roomtypeform-input-10-000-00"
                             />
                              {planInputErrors.price && <p className="text-sm font-medium text-destructive">{planInputErrors.price}</p>}
                           </div>
@@ -427,7 +427,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                           <Button
                               type="button"
                               onClick={handleSavePlan}
-                              className="w-full sm:w-auto" id="roomtypeform-button-1"
+                              className="w-full sm:w-auto" id="roomtypeform-button-1" data-testid="roomtypeform-button-add"
                           >
                               <Plus className="h-4 w-4 mr-2" />
                               {editingPlanIndex !== null ? 'Actualizar Plan' : 'Añadir Plan'}
@@ -436,7 +436,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                               <Button
                                   type="button"
                                   variant="ghost"
-                                  onClick={handleCancelEdit} id="roomtypeform-button-cancelar"
+                                  onClick={handleCancelEdit} id="roomtypeform-button-cancelar" data-testid="roomtypeform-button-cancelar"
                               >
                                   Cancelar
                               </Button>
@@ -467,7 +467,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                         onClick={() => handleEditPlan(index)}
-                                        aria-label={`Editar ${plan.name}`} id="roomtypeform-button-2"
+                                        aria-label={`Editar ${plan.name}`} id="roomtypeform-button-2" data-testid="roomtypeform-button-edit"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Button>
@@ -477,7 +477,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                         onClick={() => handleRemovePlan(index)}
-                                        aria-label={`Eliminar ${plan.name}`} id="roomtypeform-button-3"
+                                        aria-label={`Eliminar ${plan.name}`} id="roomtypeform-button-3" data-testid="roomtypeform-button-close"
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
@@ -512,13 +512,13 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                   onChange={(e) => setNewFeature(e.target.value)}
                                   onKeyDown={handleEnterKey}
                                   onFocus={() => setShowSuggestions(true)}
-                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} id="roomtypeform-input-p-ej-wi-fi-de"
+                                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} id="roomtypeform-input-p-ej-wi-fi-de" data-testid="roomtypeform-input-p-ej-wi-fi-de"
                               />
                               <Button
                                   type="button"
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleAddFeature()} id="roomtypeform-button-4"
+                                  onClick={() => handleAddFeature()} id="roomtypeform-button-4" data-testid="roomtypeform-button-add"
                               >
                                   <Plus className="h-4 w-4" />
                                   <span className="sr-only">Añadir Característica</span>
@@ -562,7 +562,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                     type="button"
                                     onClick={() => handleRemoveFeature(index)}
                                     className="ml-1.5 p-0.5 rounded-full hover:bg-destructive/20 text-destructive"
-                                    aria-label={`Eliminar ${feature}`} id="roomtypeform-button-1-1"
+                                    aria-label={`Eliminar ${feature}`} id="roomtypeform-button-1-1" data-testid="roomtypeform-button-close"
                                 >
                                     <X className="h-3 w-3" />
                                 </button>
@@ -581,10 +581,10 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 border-t p-6">
-              <Button asChild variant="outline" type="button" id="roomtypeform-button-5">
-                <Link href="/settings/room-types" id="roomtypeform-link-cancelar">Cancelar</Link>
+              <Button asChild variant="outline" type="button" id="roomtypeform-button-5" data-testid="roomtypeform-button-5">
+                <Link href="/settings/room-types" id="roomtypeform-link-cancelar" data-testid="roomtypeform-link-cancelar">Cancelar</Link>
               </Button>
-              <Button type="submit" disabled={isPending} id="roomtypeform-button-6">
+              <Button type="submit" disabled={isPending} id="roomtypeform-button-6" data-testid="roomtypeform-button-submit">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
           </CardFooter>

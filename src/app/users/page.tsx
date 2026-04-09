@@ -24,7 +24,7 @@ export default async function UsersPage() {
           </p>
         </div>
         <UserFormDialog>
-            <Button id="page-button-a-adir-nuevo-usuario">
+            <Button id="page-button-a-adir-nuevo-usuario" data-testid="users-button-a-adir-nuevo-usuario">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Añadir Nuevo Usuario
             </Button>

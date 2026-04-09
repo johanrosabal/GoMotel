@@ -118,18 +118,18 @@ export default function ReservationsClientPage() {
                             placeholder="Buscar por huésped, habitación o tipo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 h-14 bg-white/5 border-white/10 rounded-3xl text-lg text-white font-bold placeholder:text-slate-600 focus:ring-primary/20 focus:border-primary transition-all shadow-2xl" id="reservationsclientpage-input-buscar-por-hu-sped"
+                            className="pl-12 h-14 bg-white/5 border-white/10 rounded-3xl text-lg text-white font-bold placeholder:text-slate-600 focus:ring-primary/20 focus:border-primary transition-all shadow-2xl" id="reservationsclientpage-input-buscar-por-hu-sped" data-testid="reservationsclientpage-input-buscar-por-hu-sped"
                         />
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <AddClientDialog>
-                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all" id="reservationsclientpage-button-1">
+                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all" id="reservationsclientpage-button-1" data-testid="reservationsclientpage-button-1">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 <span className="hidden sm:inline">Nuevo Cliente</span>
                             </Button>
                         </AddClientDialog>
                         <CreateReservationDialog>
-                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95" id="reservationsclientpage-button-nueva-reservaci-n">
+                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-button-nueva-reservaci-n">
                                 <PlusCircle className="mr-2 h-5 w-5" />
                                 Nueva Reservación
                             </Button>
@@ -148,7 +148,7 @@ export default function ReservationsClientPage() {
                                     statusFilter === f.value 
                                         ? "bg-primary text-black border-primary shadow-lg shadow-primary/10 scale-105" 
                                         : "bg-white/5 text-slate-400 border-white/5 hover:border-white/20"
-                                )} id="reservationsclientpage-button-1-1"
+                                )} id="reservationsclientpage-button-1-1" data-testid="reservationsclientpage-button-1-1"
                             >
                                 {f.label}
                             </button>
@@ -163,7 +163,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'grid' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-tarjetas"
+                            )} id="reservationsclientpage-button-tarjetas" data-testid="reservationsclientpage-button-tarjetas"
                         >
                             <LayoutGrid className="h-3.5 w-3.5" />
                             Tarjetas
@@ -175,7 +175,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'timeline' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-agenda"
+                            )} id="reservationsclientpage-button-agenda" data-testid="reservationsclientpage-button-agenda"
                         >
                             <CalendarDays className="h-3.5 w-3.5" />
                             Agenda
@@ -187,7 +187,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'list' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-lista"
+                            )} id="reservationsclientpage-button-lista" data-testid="reservationsclientpage-button-lista"
                         >
                             <List className="h-3.5 w-3.5" />
                             Lista

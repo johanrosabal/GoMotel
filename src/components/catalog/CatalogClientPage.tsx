@@ -101,7 +101,7 @@ export default function CatalogClientPage() {
             <div className="border rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold">Categorías</h3>
-                    <Button size="sm" onClick={() => { setEditingCategory(undefined); setCategoryDialogOpen(true); }} id="catalogclientpage-button-a-adir">
+                    <Button size="sm" onClick={() => { setEditingCategory(undefined); setCategoryDialogOpen(true); }} id="catalogclientpage-button-a-adir" data-testid="catalogclientpage-button-a-adir">
                         <PlusCircle className="mr-2 h-4 w-4" /> Añadir
                     </Button>
                 </div>
@@ -113,9 +113,9 @@ export default function CatalogClientPage() {
                                     <div className="flex justify-between items-center">
                                         <span className="font-medium">{cat.name}</span>
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); setEditingCategory(cat); setCategoryDialogOpen(true);}} id="catalogclientpage-button-1"><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); setEditingCategory(cat); setCategoryDialogOpen(true);}} id="catalogclientpage-button-1" data-testid="catalogclientpage-button-edit"><Edit className="h-4 w-4"/></Button>
                                             <DeleteAction id={cat.id} name={cat.name} type="categoría" onDelete={handleDeleteCategory}>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-2"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-2" data-testid="catalogclientpage-button-delete"><Trash2 className="h-4 w-4"/></Button>
                                             </DeleteAction>
                                         </div>
                                     </div>
@@ -130,7 +130,7 @@ export default function CatalogClientPage() {
             <div className="border rounded-lg p-4">
                  <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold">Sub-Categorías</h3>
-                    <Button size="sm" disabled={!selectedCategory} onClick={() => { setEditingSubCategory(undefined); setSubCategoryDialogOpen(true); }} id="catalogclientpage-button-a-adir-1">
+                    <Button size="sm" disabled={!selectedCategory} onClick={() => { setEditingSubCategory(undefined); setSubCategoryDialogOpen(true); }} id="catalogclientpage-button-a-adir-1" data-testid="catalogclientpage-button-add">
                         <PlusCircle className="mr-2 h-4 w-4" /> Añadir
                     </Button>
                 </div>
@@ -143,11 +143,11 @@ export default function CatalogClientPage() {
                                    <div className="flex justify-between items-center">
                                         <span className="font-medium">{sub.name}</span>
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSubCategory(sub); setSubCategoryDialogOpen(true); }} id="catalogclientpage-button-3">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSubCategory(sub); setSubCategoryDialogOpen(true); }} id="catalogclientpage-button-3" data-testid="catalogclientpage-button-edit">
                                                 <Edit className="h-4 w-4"/>
                                             </Button>
                                             <DeleteAction id={sub.id} name={sub.name} type="sub-categoría" onDelete={handleDeleteSubCategory}>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-4">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-4" data-testid="catalogclientpage-button-delete">
                                                     <Trash2 className="h-4 w-4"/>
                                                 </Button>
                                             </DeleteAction>
@@ -164,7 +164,7 @@ export default function CatalogClientPage() {
             <div className="border rounded-lg p-4">
                  <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold">Productos</h3>
-                    <Button size="sm" disabled={!selectedSubCategory} onClick={() => { setEditingService(undefined); setServiceDialogOpen(true); }} id="catalogclientpage-button-a-adir-2">
+                    <Button size="sm" disabled={!selectedSubCategory} onClick={() => { setEditingService(undefined); setServiceDialogOpen(true); }} id="catalogclientpage-button-a-adir-2" data-testid="catalogclientpage-button-add">
                         <PlusCircle className="mr-2 h-4 w-4" /> Añadir
                     </Button>
                 </div>
@@ -177,11 +177,11 @@ export default function CatalogClientPage() {
                                     <div className="flex justify-between items-center">
                                         <span className="font-medium">{srv.name}</span>
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingService(srv); setServiceDialogOpen(true); }} id="catalogclientpage-button-5">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingService(srv); setServiceDialogOpen(true); }} id="catalogclientpage-button-5" data-testid="catalogclientpage-button-edit">
                                                 <Edit className="h-4 w-4"/>
                                             </Button>
                                             <DeleteAction id={srv.id} name={srv.name} type="producto" onDelete={handleDeleteService}>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-6">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()} id="catalogclientpage-button-6" data-testid="catalogclientpage-button-delete">
                                                     <Trash2 className="h-4 w-4"/>
                                                 </Button>
                                             </DeleteAction>

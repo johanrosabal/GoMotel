@@ -231,7 +231,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                 </div>
             ) : (
                 <Form {...form}>
-                    <form id="checkout-payment-form" className="space-y-4 py-2" onSubmit={(e) => e.preventDefault()}>
+                    <form id="checkout-payment-form" className="space-y-4 py-2" onSubmit={(e) => e.preventDefault()} data-testid="checkoutdialog-form-main">
                         <FormField
                             control={form.control}
                             name="paymentMethod"
@@ -240,7 +240,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                     <FormLabel>Método de Pago</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-12 text-base font-bold" id="checkoutdialog-selecttrigger-1">
+                                            <SelectTrigger className="h-12 text-base font-bold" id="checkoutdialog-selecttrigger-1" data-testid="checkoutdialog-selecttrigger-1">
                                                 <SelectValue placeholder="Seleccione método" />
                                             </SelectTrigger>
                                         </FormControl>
@@ -271,7 +271,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                         placeholder="₡0.00"
                                         value={cashTendered}
                                         onChange={handleCashTenderedChange}
-                                        className="h-12 text-right text-xl font-bold" id="checkoutdialog-input-0-00"
+                                        className="h-12 text-right text-xl font-bold" id="checkoutdialog-input-0-00" data-testid="checkoutdialog-input-0-00"
                                     />
                                 </div>
                                 {numericCashTendered >= billing.totalDue && (
@@ -300,7 +300,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                             render={({ field }) => (
                                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 text-left shadow-sm">
                                                     <FormControl>
-                                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} id="checkoutdialog-checkbox-1" />
+                                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} id="checkoutdialog-checkbox-1" data-testid="checkoutdialog-checkbox-1" />
                                                     </FormControl>
                                                     <div className="space-y-1 leading-none">
                                                         <FormLabel className="font-bold">He recibido el pago</FormLabel>
@@ -326,7 +326,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                     <FormItem>
                                         <FormLabel>Número de Voucher</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ingrese el código de transacción" {...field} className="h-12 font-mono text-center text-lg" id="checkoutdialog-input-ingrese-el-c-digo" />
+                                            <Input placeholder="Ingrese el código de transacción" {...field} className="h-12 font-mono text-center text-lg" id="checkoutdialog-input-ingrese-el-c-digo" data-testid="checkoutdialog-input-ingrese-el-c-digo" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -341,7 +341,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
         <DialogFooter className="gap-2 pt-4 border-t">
             {step === 1 ? (
                 <>
-                    <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12" disabled={isPending} id="checkoutdialog-button-cancelar">Cancelar</Button>
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 h-12" disabled={isPending} id="checkoutdialog-button-cancelar" data-testid="checkoutdialog-button-cancelar">Cancelar</Button>
                     <Button 
                         type="button" 
                         onClick={onNextStep} 
@@ -349,7 +349,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                             "flex-1 h-12 font-black uppercase text-[10px] tracking-widest shadow-lg transition-all",
                             billing.totalDue === 0 ? "bg-green-600 hover:bg-green-700 shadow-green-500/20" : ""
                         )}
-                        disabled={isPending} id="checkoutdialog-button-1"
+                        disabled={isPending} id="checkoutdialog-button-1" data-testid="checkoutdialog-button-1"
                     >
                         {isPending ? "Procesando..." : (
                             billing.totalDue > 0 ? (
@@ -362,7 +362,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                 </>
             ) : (
                 <>
-                    <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="h-12" id="checkoutdialog-button-volver">
+                    <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="h-12" id="checkoutdialog-button-volver" data-testid="checkoutdialog-button-volver">
                         <ChevronLeft className="mr-2 h-4 w-4" /> Volver
                     </Button>
                     <Button 
@@ -370,7 +370,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                         onClick={form.handleSubmit(handleProcessCheckout)} 
                         disabled={isPending || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount)} 
                         variant="destructive" 
-                        className="flex-1 h-12 font-black uppercase tracking-wider shadow-red-500/20 shadow-xl" id="checkoutdialog-button-2"
+                        className="flex-1 h-12 font-black uppercase tracking-wider shadow-red-500/20 shadow-xl" id="checkoutdialog-button-2" data-testid="checkoutdialog-button-2"
                     >
                         {isPending ? 'Procesando...' : (
                             <>

@@ -53,9 +53,9 @@ export default function PurchasesClientPage() {
               placeholder="Buscar por N° de factura o proveedor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm" id="purchasesclientpage-input-buscar-por-n"
+              className="max-w-sm" id="purchasesclientpage-input-buscar-por-n" data-testid="purchasesclientpage-input-buscar-por-n"
           />
-          <Button onClick={handleAdd} id="purchasesclientpage-button-registrar-factura-de">
+          <Button onClick={handleAdd} id="purchasesclientpage-button-registrar-factura-de" data-testid="purchasesclientpage-button-registrar-factura-de">
             <PlusCircle className="mr-2 h-4 w-4" />
             Registrar Factura de Compra
           </Button>

@@ -131,7 +131,7 @@ export function MediaUpload({
             variant="destructive"
             size="icon"
             className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleRemove}
+            onClick={handleRemove} data-testid="media-upload-button-close"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -153,7 +153,7 @@ export function MediaUpload({
             accept={type === 'image' ? 'image/*' : 'video/*'}
             className="hidden"
             onChange={onFileChange}
-            disabled={uploading}
+            disabled={uploading} data-testid="media-upload-input-1"
           />
           
           {uploading ? (

@@ -85,7 +85,7 @@ export default async function HelpCenterPage() {
                                 <div>
                                     <h4 className="font-semibold">Contacto por Email</h4>
                                     <p className="text-sm text-muted-foreground">Para asistencia técnica, errores o sugerencias, escríbanos a:</p>
-                                    <a href={`mailto:${supportEmail}`} className="text-sm font-medium text-primary hover:underline">
+                                    <a href={`mailto:${supportEmail}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-a-1">
                                         {supportEmail}
                                     </a>
                                 </div>
@@ -97,7 +97,7 @@ export default async function HelpCenterPage() {
                                     <div>
                                         <h4 className="font-semibold">Línea de Atención</h4>
                                         <p className="text-sm text-muted-foreground">Para emergencias operativas, contáctenos vía llamada o WhatsApp:</p>
-                                        <a href={`tel:${settings.supportPhone.replace(/\s+/g, '')}`} className="text-sm font-medium text-primary hover:underline">
+                                        <a href={`tel:${settings.supportPhone.replace(/\s+/g, '')}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-a-2">
                                             {settings.supportPhone}
                                         </a>
                                     </div>

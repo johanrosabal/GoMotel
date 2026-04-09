@@ -208,7 +208,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
             </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="extendstaydialog-form-main">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="extendstaydialog-form-main" data-testid="extendstaydialog-form-main">
                 <FormField
                 control={form.control}
                 name="newPlanName"
@@ -217,7 +217,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                     <FormLabel>Extender con Nuevo Plan</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                         <FormControl>
-                        <SelectTrigger id="extendstaydialog-selecttrigger-1">
+                        <SelectTrigger id="extendstaydialog-selecttrigger-1" data-testid="extendstaydialog-selecttrigger-1">
                             <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan de extensión"} />
                         </SelectTrigger>
                         </FormControl>
@@ -260,7 +260,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                 <FormControl>
                                 <Switch
                                     checked={field.value}
-                                    onCheckedChange={field.onChange} id="extendstaydialog-switch-1"
+                                    onCheckedChange={field.onChange} id="extendstaydialog-switch-1" data-testid="extendstaydialog-switch-1"
                                 />
                                 </FormControl>
                             </FormItem>
@@ -275,7 +275,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                     <FormItem>
                                         <FormLabel>Método de Pago</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger id="extendstaydialog-selecttrigger-2"><SelectValue placeholder="Seleccione" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger id="extendstaydialog-selecttrigger-2" data-testid="extendstaydialog-selecttrigger-2"><SelectValue placeholder="Seleccione" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="Efectivo">Efectivo</SelectItem>
                                                 <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
@@ -302,7 +302,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                     render={({ field }) => (
                                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
                                                             <FormControl>
-                                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} id="extendstaydialog-checkbox-1" />
+                                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} id="extendstaydialog-checkbox-1" data-testid="extendstaydialog-checkbox-1" />
                                                             </FormControl>
                                                             <div className="space-y-1 leading-none">
                                                                 <FormLabel>Confirmar Pago Recibido</FormLabel>
@@ -320,7 +320,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                         control={form.control}
                                         name="voucherNumber"
                                         render={({ field }) => (
-                                            <FormItem><FormLabel>Número de Voucher</FormLabel><FormControl><Input {...field} id="extendstaydialog-input-1" /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Número de Voucher</FormLabel><FormControl><Input {...field} id="extendstaydialog-input-1" data-testid="extendstaydialog-input-1" /></FormControl><FormMessage /></FormItem>
                                         )}
                                     />
                                 )}
@@ -335,7 +335,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                     placeholder="Monto recibido"
                                                     value={cashTendered}
                                                     onChange={handleCashTenderedChange}
-                                                    className="text-right" id="extendstaydialog-input-monto-recibido"
+                                                    className="text-right" id="extendstaydialog-input-monto-recibido" data-testid="extendstaydialog-input-monto-recibido"
                                                 />
                                             </FormControl>
                                         </FormItem>
@@ -364,12 +364,12 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
 
 
                 <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                    <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1" id="extendstaydialog-button-1">
+                    <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1" id="extendstaydialog-button-1" data-testid="extendstaydialog-button-submit">
                         {isPending ? 'Guardando...' : submitButtonText}
                     </Button>
                     {isOverdue && (
                       <CheckoutDialog stay={stay} room={room} orders={orders || []} onCheckoutSuccess={onExtensionSuccess}>
-                          <Button type="button" variant="destructive" className="flex-1" id="extendstaydialog-button-realizar-check-out">
+                          <Button type="button" variant="destructive" className="flex-1" id="extendstaydialog-button-realizar-check-out" data-testid="extendstaydialog-button-realizar-check-out">
                               Realizar Check-Out
                           </Button>
                       </CheckoutDialog>

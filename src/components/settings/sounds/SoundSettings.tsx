@@ -61,7 +61,7 @@ export default function SoundSettings() {
           >
             <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                    <RadioGroupItem value={option.value} id={`sound-${option.value}`} />
+                    <RadioGroupItem value={option.value} id={`sound-${option.value}`} data-testid="soundsettings-radiogroupitem-1" />
                     <span className="font-bold text-base">{option.label}</span>
                 </div>
                  <Button
@@ -74,7 +74,7 @@ export default function SoundSettings() {
                         e.stopPropagation();
                         previewSound(option.value);
                     }}
-                    aria-label={`Probar sonido ${option.label}`} id="soundsettings-button-1"
+                    aria-label={`Probar sonido ${option.label}`} id="soundsettings-button-1" data-testid="soundsettings-button-1"
                 >
                     <Volume2 className="h-5 w-5" />
                 </Button>

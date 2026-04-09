@@ -288,9 +288,9 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     value={phoneNumber} 
                                     onChange={handlePhoneChange}
                                     className="h-14 font-black text-xl rounded-2xl border-2 border-green-500/30 focus-visible:ring-green-500/50"
-                                    autoFocus
+                                    autoFocus data-testid="invoicesuccessdialog-input-506-0000-0000"
                                 />
-                                <Button onClick={handleShareViaWhatsApp} className="h-14 w-14 rounded-2xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg shadow-green-500/20" id="invoicesuccessdialog-button-1">
+                                <Button onClick={handleShareViaWhatsApp} className="h-14 w-14 rounded-2xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg shadow-green-500/20" id="invoicesuccessdialog-button-1" data-testid="invoicesuccessdialog-button-1">
                                     <ChevronRight className="h-7 w-7" />
                                 </Button>
                             </div>
@@ -308,13 +308,13 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     value={emailAddress} 
                                     onChange={(e) => setEmailAddress(e.target.value)}
                                     className="h-14 font-black text-xl rounded-2xl border-2 border-blue-500/30 focus-visible:ring-blue-500/50"
-                                    autoFocus
+                                    autoFocus data-testid="invoicesuccessdialog-input-cliente-ejemplo-com"
                                 />
                                 <Button 
                                     onClick={handleSendEmail} 
                                     disabled={isSendingEmail || !emailAddress}
                                     className="h-14 w-14 rounded-2xl bg-blue-500 hover:bg-blue-600 shrink-0 shadow-lg shadow-blue-500/20" 
-                                    id="invoicesuccessdialog-button-send-email"
+                                    id="invoicesuccessdialog-button-send-email" data-testid="invoicesuccessdialog-button-2"
                                 >
                                     {isSendingEmail ? <Loader2 className="h-6 w-6 animate-spin" /> : <ChevronRight className="h-7 w-7" />}
                                 </Button>
@@ -332,11 +332,11 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                 <DialogFooter className="mt-4 pt-4 border-t border-muted sm:flex-row gap-4 items-center justify-between">
                     <div className="w-full space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
-                            <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl bg-primary text-primary-foreground hover:-translate-y-1 transition-all active:scale-95 group" id="invoicesuccessdialog-button-imprimir-ticket">
+                            <Button type="button" onClick={handlePrintTicket} disabled={isLoading || !invoice} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl bg-primary text-primary-foreground hover:-translate-y-1 transition-all active:scale-95 group" id="invoicesuccessdialog-button-imprimir-ticket" data-testid="invoicesuccessdialog-button-ticket">
                                 <Printer className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                                 Ticket
                             </Button>
-                            <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 shadow-sm hover:bg-muted active:scale-95 group" id="invoicesuccessdialog-button-factura-full">
+                            <Button type="button" variant="outline" onClick={handlePrintInvoice} disabled={isLoading || !invoice} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 shadow-sm hover:bg-muted active:scale-95 group" id="invoicesuccessdialog-button-factura-full" data-testid="invoicesuccessdialog-button-factura">
                                 <FileText className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                                 Factura
                             </Button>
@@ -345,7 +345,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                 variant="outline" 
                                 className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-blue-500/30 text-blue-600 hover:bg-blue-500 hover:text-white shadow-sm active:scale-95 group" 
                                 disabled={isLoading || !invoice} 
-                                onClick={() => setShowEmailInput(true)} id="invoicesuccessdialog-button-enviar-email"
+                                onClick={() => setShowEmailInput(true)} id="invoicesuccessdialog-button-enviar-email" data-testid="invoicesuccessdialog-button-correo"
                             >
                                 <Mail className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                                 Correo
@@ -356,7 +356,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                 variant="outline" 
                                 className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white shadow-sm active:scale-95 group" 
                                 disabled={isLoading || !invoice} 
-                                onClick={() => setShowPhoneInput(true)} id="invoicesuccessdialog-button-enviar-whatsapp"
+                                onClick={() => setShowPhoneInput(true)} id="invoicesuccessdialog-button-enviar-whatsapp" data-testid="invoicesuccessdialog-button-whatsapp"
                             >
                                 <WhatsAppIcon className="mr-2 h-5 w-5 fill-current transition-transform group-hover:scale-110" />
                                 WhatsApp
@@ -367,12 +367,12 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                 onClick={handleDownloadPdf} 
                                 disabled={isLoading || !invoice} 
                                 className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 shadow-sm hover:bg-muted active:scale-95 group" 
-                                id="invoicesuccessdialog-button-bajar-pdf"
+                                id="invoicesuccessdialog-button-bajar-pdf" data-testid="invoicesuccessdialog-button-pdf"
                             >
                                 <Download className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                                 PDF
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors" id="invoicesuccessdialog-button-close-manual">
+                            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors" id="invoicesuccessdialog-button-close-manual" data-testid="invoicesuccessdialog-button-cerrar">
                                 Cerrar
                             </Button>
                         </div>
@@ -383,7 +383,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                 size="sm" 
                                 onClick={() => { setShowPhoneInput(false); setShowEmailInput(false); }} 
                                 className="h-10 w-full font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors" 
-                                id="invoicesuccessdialog-button-cancelar-y-volver"
+                                id="invoicesuccessdialog-button-cancelar-y-volver" data-testid="invoicesuccessdialog-button-ocultar-campo"
                             >
                                 Ocultar Campo
                             </Button>

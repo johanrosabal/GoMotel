@@ -254,7 +254,7 @@ function OrderPageContent() {
                             className={cn(
                                 "flex-1 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
                                 selectedLocationType === type ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
-                            )}
+                            )} data-testid="order-button-1"
                         >
                             {TYPE_LABELS[type] || type}
                         </Button>
@@ -269,7 +269,7 @@ function OrderPageContent() {
                             key={t.id}
                             variant="outline"
                             className="h-32 flex flex-col items-center justify-center gap-3 bg-neutral-900/50 backdrop-blur-sm border border-neutral-800/80 hover:border-primary/60 hover:bg-primary/10 hover:shadow-primary/10 hover:scale-[1.02] transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 group cursor-pointer"
-                            onClick={() => window.location.href = `/public/order?tableId=${t.id}`}
+                            onClick={() => window.location.href = `/public/order?tableId=${t.id}`} data-testid="order-button-2"
                         >
                             <div className="bg-neutral-800/80 text-neutral-400 group-hover:bg-primary group-hover:text-white p-3.5 rounded-full transition-colors duration-300 shadow-inner">
                                 {t.type === 'Table' ? <Utensils className="h-6 w-6" /> : <PackageOpen className="h-6 w-6" />}
@@ -321,7 +321,7 @@ function OrderPageContent() {
                         placeholder="Buscar comida o bebida..." 
                         className="bg-neutral-800 border-none rounded-xl pl-9 text-white placeholder:text-neutral-600 h-11"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)} id="page-input-buscar-comida-o"
+                        onChange={(e) => setSearchTerm(e.target.value)} id="page-input-buscar-comida-o" data-testid="order-input-buscar-comida-o"
                     />
                 </div>
             </div>
@@ -347,7 +347,7 @@ function OrderPageContent() {
                                         className={cn(
                                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                             !selectedCategoryId ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                        )} id="page-button-todos"
+                                        )} id="page-button-todos" data-testid="order-button-todos"
                                     >TODOS</button>
                                     {categories?.map(cat => (
                                         <button 
@@ -356,7 +356,7 @@ function OrderPageContent() {
                                             className={cn(
                                                 "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                                 selectedCategoryId === cat.id ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                            )} id="page-button-1"
+                                            )} id="page-button-1" data-testid="order-button-1-1"
                                         >{cat.name}</button>
                                     ))}
                                 </div>
@@ -380,7 +380,7 @@ function OrderPageContent() {
                                                         size="sm" 
                                                         variant="ghost"
                                                         onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
-                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg"
+                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg" data-testid="order-button-3"
                                                     >
                                                         <MessageSquare className="h-3.5 w-3.5" />
                                                         <span className="text-[9px] font-black uppercase tracking-widest">Instrucciones</span>
@@ -392,7 +392,7 @@ function OrderPageContent() {
                                                 <Button 
                                                     size="sm" 
                                                     className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir"
+                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir" data-testid="order-button-a-adir"
                                                 >
                                                     AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
                                                 </Button>
@@ -461,7 +461,7 @@ function OrderPageContent() {
                                                             key={item.id}
                                                             onClick={() => handleCancelItem(item.id)}
                                                             disabled={isPending}
-                                                            className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors"
+                                                            className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors" data-testid="order-button-delete"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
@@ -503,7 +503,7 @@ function OrderPageContent() {
                                             <Button 
                                                 onClick={handleRequestBill}
                                                 disabled={isPending}
-                                                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20"
+                                                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20" data-testid="order-button-solicitar-cuenta"
                                             >
                                                 SOLICITAR CUENTA
                                             </Button>
@@ -532,14 +532,14 @@ function OrderPageContent() {
                         <Button 
                             variant="outline" 
                             className="bg-neutral-800 border-none h-14 w-14 rounded-2xl shrink-0"
-                            onClick={() => setCart([])} id="page-button-1-1"
+                            onClick={() => setCart([])} id="page-button-1-1" data-testid="order-button-4"
                         >
                             <ShoppingCart className="h-6 w-6 text-neutral-400" />
                         </Button>
                         <Button 
                             className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
                             onClick={handleSendOrder}
-                            disabled={isPending} id="page-button-2"
+                            disabled={isPending} id="page-button-2" data-testid="order-button-5"
                         >
                             {isPending ? "ENVIANDO..." : `PEDIR ${formatCurrency(cartTotal)}`}
                             <ChevronRight className="ml-2 h-5 w-5" />
@@ -567,12 +567,12 @@ function OrderPageContent() {
                             onChange={e => setCurrentNoteValue(e.target.value)}
                             placeholder="Escriba aquí sus indicaciones..."
                             className="bg-neutral-800 border-neutral-700 min-h-[120px] rounded-xl text-white font-bold"
-                            autoFocus id="page-textarea-escriba-aqu-sus"
+                            autoFocus id="page-textarea-escriba-aqu-sus" data-testid="order-textarea-escriba-aqu-sus"
                         />
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar">CANCELAR</Button>
-                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota">GUARDAR NOTA</Button>
+                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar" data-testid="order-button-cancelar">CANCELAR</Button>
+                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota" data-testid="order-button-guardar-nota">GUARDAR NOTA</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

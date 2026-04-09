@@ -40,12 +40,12 @@ export default function ClientsPage() {
                         placeholder="Buscar por nombre, correo o cédula..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-bold uppercase tracking-wider text-[10px] placeholder:text-slate-600 italic text-white"
+                        className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-bold uppercase tracking-wider text-[10px] placeholder:text-slate-600 italic text-white" data-testid="clientspage-input-buscar-por-nombre"
                     />
                 </div>
                 
                 <AddClientDialog>
-                    <Button className="h-14 px-8 bg-white text-black hover:bg-primary hover:text-black font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] active:scale-95 flex items-center gap-3">
+                    <Button className="h-14 px-8 bg-white text-black hover:bg-primary hover:text-black font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] active:scale-95 flex items-center gap-3" data-testid="clientspage-button-registrar-hu-sped">
                         <UserPlus className="h-5 w-5" />
                         Registrar Huésped
                     </Button>

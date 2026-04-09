@@ -25,7 +25,7 @@ function ActionsMenu({ tax }: { tax: Tax }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" id="taxestable-button-1"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" id="taxestable-button-1" data-testid="taxestable-button-1"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>

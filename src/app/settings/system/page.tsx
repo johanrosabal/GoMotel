@@ -152,7 +152,7 @@ export default function SystemSettingsPage() {
               id="domain"
               placeholder="api-xxxxx-xx.a.run.app"
               value={domain}
-              onChange={(e) => setDomain(e.target.value)}
+              onChange={(e) => setDomain(e.target.value)} data-testid="system-input-api-xxxxx-xx-a-run-app"
             />
             <p className="text-xs text-muted-foreground">
               Dominio actual: <code className="bg-muted px-1 rounded">{domain || 'api-krdy3op4ma-uc.a.run.app'}</code>
@@ -160,7 +160,7 @@ export default function SystemSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
-          <Button onClick={handleSave} disabled={isPending || !domain.trim()}>
+          <Button onClick={handleSave} disabled={isPending || !domain.trim()} data-testid="system-button-guardar-cambios">
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Guardar Cambios
           </Button>
@@ -185,7 +185,7 @@ export default function SystemSettingsPage() {
                 type="email"
                 placeholder="soporte@tuempresa.com"
                 value={supportEmail}
-                onChange={(e) => setSupportEmail(e.target.value)}
+                onChange={(e) => setSupportEmail(e.target.value)} data-testid="system-input-soporte-tuempresa-com"
               />
             </div>
             <div className="space-y-2">
@@ -194,13 +194,13 @@ export default function SystemSettingsPage() {
                 id="supportPhone"
                 placeholder="+506 8888-8888"
                 value={supportPhone}
-                onChange={(e) => setSupportPhone(e.target.value)}
+                onChange={(e) => setSupportPhone(e.target.value)} data-testid="system-input-506-8888-8888"
               />
             </div>
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button onClick={handleSave} disabled={isPending} data-testid="system-button-guardar-cambios-1">
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Guardar Cambios
           </Button>
@@ -238,12 +238,12 @@ export default function SystemSettingsPage() {
             <Switch
               id="dark-mode"
               checked={isDarkMode}
-              onCheckedChange={setIsDarkMode}
+              onCheckedChange={setIsDarkMode} data-testid="system-switch-1"
             />
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button onClick={handleSave} disabled={isPending} data-testid="system-button-guardar-cambios-2">
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Guardar Cambios
           </Button>
@@ -269,7 +269,7 @@ export default function SystemSettingsPage() {
                 id="smtpFrom"
                 placeholder="Hotel Du Manolo <info@hotel.com>"
                 value={smtpFrom}
-                onChange={(e) => setSmtpFrom(e.target.value)}
+                onChange={(e) => setSmtpFrom(e.target.value)} data-testid="system-input-hotel-du-manolo"
               />
             </div>
             <div className="space-y-2">
@@ -281,7 +281,7 @@ export default function SystemSettingsPage() {
                 type="email"
                 placeholder="ejemplo@gmail.com"
                 value={smtpUser}
-                onChange={(e) => setSmtpUser(e.target.value)}
+                onChange={(e) => setSmtpUser(e.target.value)} data-testid="system-input-ejemplo-gmail-com"
               />
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function SystemSettingsPage() {
                 id="smtpHost"
                 placeholder="smtp.gmail.com"
                 value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
+                onChange={(e) => setSmtpHost(e.target.value)} data-testid="system-input-smtp-gmail-com"
               />
             </div>
             <div className="space-y-2">
@@ -305,7 +305,7 @@ export default function SystemSettingsPage() {
                 type="number"
                 placeholder="465"
                 value={smtpPort}
-                onChange={(e) => setSmtpPort(parseInt(e.target.value))}
+                onChange={(e) => setSmtpPort(parseInt(e.target.value))} data-testid="system-input-465"
               />
             </div>
           </div>
@@ -321,12 +321,12 @@ export default function SystemSettingsPage() {
                 placeholder="••••••••••••••••"
                 value={smtpPass}
                 onChange={(e) => setSmtpPass(e.target.value)}
-                className="pr-10"
+                className="pr-10" data-testid="system-input-1"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors" data-testid="system-button-1"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
