@@ -64,8 +64,8 @@ type SocialPlatform = 'Facebook' | 'Instagram' | 'Twitter' | 'TikTok' | 'LinkedI
 const socialIcons: Record<SocialPlatform, React.ElementType> = {
   Facebook: Facebook,
   Instagram: Instagram,
-  Twitter: () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 fill-current"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83-8.209-9.078h7.404l5.24-6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>,
-  TikTok: () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 fill-current"><title>TikTok</title><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.04-5.36Z"/></svg>,
+  Twitter: () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 fill-current"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83-8.209-9.078h7.404l5.24-6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" /></svg>,
+  TikTok: () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 fill-current"><title>TikTok</title><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.04-5.36Z" /></svg>,
   LinkedIn: Linkedin,
 };
 
@@ -76,12 +76,12 @@ export default function CompanyInfoForm() {
   const { firestore } = useFirebase();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  
+
   const companyInfoRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'companyInfo', 'main');
   }, [firestore]);
-  
+
   const { data: companyInfo, isLoading } = useDoc<CompanyProfile>(companyInfoRef);
 
   const form = useForm<z.infer<typeof companyInfoSchema>>({
@@ -96,7 +96,7 @@ export default function CompanyInfoForm() {
   const { fields: emailFields, append: appendEmail, remove: removeEmail } = useFieldArray({ control: form.control, name: 'emails' });
   const { fields: socialFields, append: appendSocial, remove: removeSocial } = useFieldArray({ control: form.control, name: 'socialMedia' });
   const { fields: bankFields, append: appendBank, remove: removeBank } = useFieldArray({ control: form.control, name: 'bankAccounts' });
-  
+
   useEffect(() => {
     if (companyInfo) {
       form.reset({
@@ -126,45 +126,45 @@ export default function CompanyInfoForm() {
     // AVISO: Redimensionamiento agresivo para forzar cumplimiento de límite de 1MB del servidor
     const reader = new FileReader();
     reader.onload = (e) => {
-        const img = new globalThis.Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            // Tamaño máximo reducido para garantizar que el peso sea mínimo (aprox 50KB)
-            const MAX_WIDTH = 400; 
-            const MAX_HEIGHT = 400;
-            let width = img.width;
-            let height = img.height;
+      const img = new globalThis.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Tamaño máximo reducido para garantizar que el peso sea mínimo (aprox 50KB)
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 400;
+        let width = img.width;
+        let height = img.height;
 
-            if (width > height) {
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-            } else {
-                if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
-                }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            ctx.drawImage(img, 0, 0, width, height);
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, width, height);
 
-            // Forzamos formato JPEG con calidad media para comprimir drásticamente
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        // Forzamos formato JPEG con calidad media para comprimir drásticamente
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
 
-            setLogoPreview(dataUrl);
-            form.setValue('logoUrl', dataUrl, { shouldValidate: true });
-        };
-        img.src = e.target?.result as string;
+        setLogoPreview(dataUrl);
+        form.setValue('logoUrl', dataUrl, { shouldValidate: true });
+      };
+      img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
-};
+  };
 
   const handleLegalIdChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
-    const rawValue = e.target.value.replace(/\D/g, ''); 
+    const rawValue = e.target.value.replace(/\D/g, '');
     const maxLength = 10;
     const value = rawValue.slice(0, maxLength);
 
@@ -179,10 +179,10 @@ export default function CompanyInfoForm() {
 
     fieldOnChange(maskedValue);
   };
-  
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
     let numbers = e.target.value.replace(/\D/g, '');
-    
+
     if (numbers.startsWith('506')) {
       numbers = numbers.substring(3);
     }
@@ -210,29 +210,29 @@ export default function CompanyInfoForm() {
 
   if (isLoading) {
     return (
-        <div className="space-y-6">
-            <Skeleton className="h-10 w-1/4" />
-            <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-1 space-y-4">
-                    <Skeleton className="h-52 w-52 rounded-lg" />
-                    <Skeleton className="h-10 w-52" />
-                </div>
-                <div className="col-span-2 space-y-6">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                </div>
-            </div>
-            <div className="flex justify-end">
-                <Skeleton className="h-10 w-32" />
-            </div>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-1/4" />
+        <div className="grid grid-cols-3 gap-6">
+          <div className="col-span-1 space-y-4">
+            <Skeleton className="h-52 w-52 rounded-lg" />
+            <Skeleton className="h-10 w-52" />
+          </div>
+          <div className="col-span-2 space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
         </div>
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-32" />
+        </div>
+      </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} id="companyinfoform-form-main" data-testid="companyinfoform-form-main">
+      <form onSubmit={form.handleSubmit(onSubmit)} id="companyinfoform-form-main" data-testid="companyinfoform-main-form">
         <Tabs defaultValue="identity" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="identity">Identidad</TabsTrigger>
@@ -240,119 +240,119 @@ export default function CompanyInfoForm() {
             <TabsTrigger value="social">Social y Bancos</TabsTrigger>
           </TabsList>
           <TabsContent value="identity" className="pt-6">
-              <div className="grid lg:grid-cols-3 gap-8 items-start">
-                <div className="space-y-2 flex flex-col items-center lg:items-start">
-                    <Label>Logo</Label>
-                    <Avatar className="h-[400px] w-[400px] rounded-lg border-2 border-dashed">
-                        <AvatarImage src={logoPreview || undefined} className="object-contain" />
-                        <AvatarFallback className="rounded-lg bg-transparent">
-                            <Building className="h-32 w-32 text-muted-foreground" />
-                        </AvatarFallback>
-                    </Avatar>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" data-testid="companyinfoform-input-1" />
-                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2" id="companyinfoform-button-cambiar-imagen" data-testid="companyinfoform-button-cambiar-imagen"> Cambiar Imagen </Button>
-                </div>
-                <div className="lg:col-span-2 grid gap-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="tradeName" render={({ field }) => (<FormItem><FormLabel>Nombre Comercial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-1" data-testid="companyinfoform-input-1-1" /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="legalId" render={({ field }) => (<FormItem><FormLabel>Cédula Jurídica</FormLabel><FormControl><Input {...field} placeholder="X-XXX-XXXXXX" onChange={(e) => handleLegalIdChange(e, field.onChange)} id="companyinfoform-input-x-xxx-xxxxxx" data-testid="companyinfoform-input-x-xxx-xxxxxx"/></FormControl><FormMessage /></FormItem>)} />
-                    </div>
-                    <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>País Local de Operación</FormLabel><FormControl><Input {...field} disabled id="companyinfoform-input-2" data-testid="companyinfoform-input-2" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Dirección Física</FormLabel><FormControl><Textarea {...field} rows={3} id="companyinfoform-textarea-1" data-testid="companyinfoform-textarea-1" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="googleMapsUrl" render={({ field }) => (<FormItem><FormLabel>Enlace de Google Maps</FormLabel><FormControl><Input {...field} id="companyinfoform-input-3" data-testid="companyinfoform-input-3" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="websiteUrl" render={({ field }) => (<FormItem><FormLabel>Sitio Web Oficial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-4" data-testid="companyinfoform-input-4" /></FormControl><FormMessage /></FormItem>)} />
-                </div>
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
+              <div className="space-y-2 flex flex-col items-center lg:items-start">
+                <Label>Logo</Label>
+                <Avatar className="h-[400px] w-[400px] rounded-lg border-2 border-dashed">
+                  <AvatarImage src={logoPreview || undefined} className="object-contain" />
+                  <AvatarFallback className="rounded-lg bg-transparent">
+                    <Building className="h-32 w-32 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" data-testid="companyinfoform-file-input" />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2" id="companyinfoform-button-cambiar-imagen" data-testid="companyinfoform-action-change-image-button"> Cambiar Imagen </Button>
               </div>
+              <div className="lg:col-span-2 grid gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="tradeName" render={({ field }) => (<FormItem><FormLabel>Nombre Comercial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-1" data-testid="companyinfoform-trade-name-input" /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="legalId" render={({ field }) => (<FormItem><FormLabel>Cédula Jurídica</FormLabel><FormControl><Input {...field} placeholder="X-XXX-XXXXXX" onChange={(e) => handleLegalIdChange(e, field.onChange)} id="companyinfoform-input-x-xxx-xxxxxx" data-testid="companyinfoform-legal-id-input" /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+                <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>País Local de Operación</FormLabel><FormControl><Input {...field} disabled id="companyinfoform-input-2" data-testid="companyinfoform-country-input" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Dirección Física</FormLabel><FormControl><Textarea {...field} rows={3} id="companyinfoform-textarea-1" data-testid="companyinfoform-address-textarea" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="googleMapsUrl" render={({ field }) => (<FormItem><FormLabel>Enlace de Google Maps</FormLabel><FormControl><Input {...field} id="companyinfoform-input-3" data-testid="companyinfoform-google-maps-url-input" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="websiteUrl" render={({ field }) => (<FormItem><FormLabel>Sitio Web Oficial</FormLabel><FormControl><Input {...field} id="companyinfoform-input-4" data-testid="companyinfoform-website-url-input" /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="contact" className="pt-6 space-y-6">
-              <div>
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2"><Smartphone className="h-5 w-5" />Números de Teléfono</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendPhone({ label: '', value: '' })} id="companyinfoform-button-a-adir-tel-fono" data-testid="companyinfoform-button-a-adir-tel-fono"><PlusCircle className="mr-2 h-4 w-4" />Añadir Teléfono</Button>
-                  </div>
-                  <div className="space-y-4">
-                      {phoneFields.length > 0 ? phoneFields.map((field, index) => (
-                          <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} id="companyinfoform-input-ej-recepci-n" data-testid="companyinfoform-input-ej-recepci-n" /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="companyinfoform-input-506-8888-8888" data-testid="companyinfoform-input-506-8888-8888"/></FormControl><FormMessage /></FormItem>)} />
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)} id="companyinfoform-button-1" data-testid="companyinfoform-button-delete"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                      )) : (
-                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                            No se han añadido números de teléfono.
-                        </div>
-                      )}
-                  </div>
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium flex items-center gap-2"><Smartphone className="h-5 w-5" />Números de Teléfono</h3>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendPhone({ label: '', value: '' })} id="companyinfoform-button-a-adir-tel-fono" data-testid="companyinfoform-add-button"><PlusCircle className="mr-2 h-4 w-4" />Añadir Teléfono</Button>
               </div>
-              <div>
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2"><Mail className="h-5 w-5" />Correos Electrónicos</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendEmail({ label: '', value: '' })} id="companyinfoform-button-a-adir-correo" data-testid="companyinfoform-button-a-adir-correo"><PlusCircle className="mr-2 h-4 w-4" />Añadir Correo</Button>
+              <div className="space-y-4">
+                {phoneFields.length > 0 ? phoneFields.map((field, index) => (
+                  <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                    <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} id="companyinfoform-input-ej-recepci-n" data-testid="companyinfoform-phone-label-input" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="companyinfoform-input-506-8888-8888" data-testid="companyinfoform-phone-value-input" /></FormControl><FormMessage /></FormItem>)} />
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)} id="companyinfoform-button-1" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>
                   </div>
-                  <div className="space-y-4">
-                      {emailFields.length > 0 ? emailFields.map((field, index) => (
-                          <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                              <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} id="companyinfoform-input-ej-reservaciones" data-testid="companyinfoform-input-ej-reservaciones" /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} id="companyinfoform-input-ejemplo-correo-com" data-testid="companyinfoform-input-ejemplo-correo-com" /></FormControl><FormMessage /></FormItem>)} />
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)} id="companyinfoform-button-2" data-testid="companyinfoform-button-delete"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                      )) : (
-                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                            No se han añadido correos electrónicos.
-                        </div>
-                      )}
+                )) : (
+                  <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                    No se han añadido números de teléfono.
                   </div>
+                )}
               </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium flex items-center gap-2"><Mail className="h-5 w-5" />Correos Electrónicos</h3>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendEmail({ label: '', value: '' })} id="companyinfoform-button-a-adir-correo" data-testid="companyinfoform-add-button"><PlusCircle className="mr-2 h-4 w-4" />Añadir Correo</Button>
+              </div>
+              <div className="space-y-4">
+                {emailFields.length > 0 ? emailFields.map((field, index) => (
+                  <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                    <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} id="companyinfoform-input-ej-reservaciones" data-testid="companyinfoform-email-label-input" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} id="companyinfoform-input-ejemplo-correo-com" data-testid="companyinfoform-email-value-input" /></FormControl><FormMessage /></FormItem>)} />
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)} id="companyinfoform-button-2" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                )) : (
+                  <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                    No se han añadido correos electrónicos.
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="social" className="pt-6 space-y-6">
-              <div>
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2"><svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>Redes Sociales</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendSocial({ platform: 'Facebook', url: '' })} id="companyinfoform-button-a-adir-red-social" data-testid="companyinfoform-button-a-adir-red-social"><PlusCircle className="mr-2 h-4 w-4" />Añadir Red Social</Button>
-                  </div>
-                  <div className="space-y-4">
-                      {socialFields.length > 0 ? socialFields.map((field, index) => {
-                           const Icon = socialIcons[form.watch(`socialMedia.${index}.platform`)];
-                           return(
-                            <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
-                                <FormField control={form.control} name={`socialMedia.${index}.platform`} render={({ field }) => (<FormItem><FormLabel>Plataforma</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="w-[150px]" id="companyinfoform-selecttrigger-1" data-testid="companyinfoform-selecttrigger-1"><div className="flex items-center gap-2"><Icon/> <SelectValue /></div></SelectTrigger></FormControl><SelectContent>{Object.keys(socialIcons).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name={`socialMedia.${index}.url`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>URL</FormLabel><FormControl><Input type="url" placeholder="https://..." {...field} id="companyinfoform-input-https" data-testid="companyinfoform-input-https" /></FormControl><FormMessage /></FormItem>)} />
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)} id="companyinfoform-button-3" data-testid="companyinfoform-button-delete"><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                           )
-                        }) : (
-                            <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                                No se han añadido redes sociales.
-                            </div>
-                        )}
-                  </div>
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium flex items-center gap-2"><svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>Redes Sociales</h3>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendSocial({ platform: 'Facebook', url: '' })} id="companyinfoform-button-a-adir-red-social" data-testid="companyinfoform-add-button"><PlusCircle className="mr-2 h-4 w-4" />Añadir Red Social</Button>
               </div>
-              <div>
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2"><Banknote className="h-5 w-5" />Cuentas Bancarias</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendBank({ bankName: '', accountHolder: '', accountNumber: '', iban: ''})} id="companyinfoform-button-a-adir-cuenta" data-testid="companyinfoform-button-a-adir-cuenta"><PlusCircle className="mr-2 h-4 w-4" />Añadir Cuenta</Button>
+              <div className="space-y-4">
+                {socialFields.length > 0 ? socialFields.map((field, index) => {
+                  const Icon = socialIcons[form.watch(`socialMedia.${index}.platform`)];
+                  return (
+                    <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                      <FormField control={form.control} name={`socialMedia.${index}.platform`} render={({ field }) => (<FormItem><FormLabel>Plataforma</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="w-[150px]" id="companyinfoform-selecttrigger-1" data-testid="companyinfoform-social-platform-select"><div className="flex items-center gap-2"><Icon /> <SelectValue /></div></SelectTrigger></FormControl><SelectContent>{Object.keys(socialIcons).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name={`socialMedia.${index}.url`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>URL</FormLabel><FormControl><Input type="url" placeholder="https://..." {...field} id="companyinfoform-input-https" data-testid="companyinfoform-social-url-input" /></FormControl><FormMessage /></FormItem>)} />
+                      <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)} id="companyinfoform-button-3" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  )
+                }) : (
+                  <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                    No se han añadido redes sociales.
                   </div>
-                  <div className="space-y-4">
-                      {bankFields.length > 0 ? bankFields.map((field, index) => (
-                          <div key={field.id} className="p-4 border rounded-lg bg-muted/50 space-y-4">
-                              <div className="flex justify-end -mt-2 -mr-2"><Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBank(index)} id="companyinfoform-button-4" data-testid="companyinfoform-button-delete"><Trash2 className="h-4 w-4" /></Button></div>
-                              <div className="grid sm:grid-cols-2 gap-4">
-                                <FormField control={form.control} name={`bankAccounts.${index}.bankName`} render={({ field }) => (<FormItem><FormLabel>Nombre del Banco</FormLabel><FormControl><Input placeholder="Banco Nacional" {...field} id="companyinfoform-input-banco-nacional" data-testid="companyinfoform-input-banco-nacional" /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name={`bankAccounts.${index}.accountHolder`} render={({ field }) => (<FormItem><FormLabel>Titular</FormLabel><FormControl><Input placeholder="Nombre del titular" {...field} id="companyinfoform-input-nombre-del-titular" data-testid="companyinfoform-input-nombre-del-titular" /></FormControl><FormMessage /></FormItem>)} />
-                              </div>
-                              <FormField control={form.control} name={`bankAccounts.${index}.accountNumber`} render={({ field }) => (<FormItem><FormLabel>Número de Cuenta</FormLabel><FormControl><Input {...field} id="companyinfoform-input-5" data-testid="companyinfoform-input-5" /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name={`bankAccounts.${index}.iban`} render={({ field }) => (<FormItem><FormLabel>IBAN (Opcional)</FormLabel><FormControl><Input {...field} id="companyinfoform-input-6" data-testid="companyinfoform-input-6" /></FormControl><FormMessage /></FormItem>)} />
-                          </div>
-                      )) : (
-                        <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                            No se han añadido cuentas bancarias.
-                        </div>
-                      )}
-                  </div>
+                )}
               </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium flex items-center gap-2"><Banknote className="h-5 w-5" />Cuentas Bancarias</h3>
+                <Button type="button" variant="outline" size="sm" onClick={() => appendBank({ bankName: '', accountHolder: '', accountNumber: '', iban: '' })} id="companyinfoform-button-a-adir-cuenta" data-testid="companyinfoform-add-button"><PlusCircle className="mr-2 h-4 w-4" />Añadir Cuenta</Button>
+              </div>
+              <div className="space-y-4">
+                {bankFields.length > 0 ? bankFields.map((field, index) => (
+                  <div key={field.id} className="p-4 border rounded-lg bg-muted/50 space-y-4">
+                    <div className="flex justify-end -mt-2 -mr-2"><Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBank(index)} id="companyinfoform-button-4" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button></div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <FormField control={form.control} name={`bankAccounts.${index}.bankName`} render={({ field }) => (<FormItem><FormLabel>Nombre del Banco</FormLabel><FormControl><Input placeholder="Banco Nacional" {...field} id="companyinfoform-input-banco-nacional" data-testid="companyinfoform-bank-name-input" /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name={`bankAccounts.${index}.accountHolder`} render={({ field }) => (<FormItem><FormLabel>Titular</FormLabel><FormControl><Input placeholder="Nombre del titular" {...field} id="companyinfoform-input-nombre-del-titular" data-testid="companyinfoform-account-holder-input" /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                    <FormField control={form.control} name={`bankAccounts.${index}.accountNumber`} render={({ field }) => (<FormItem><FormLabel>Número de Cuenta</FormLabel><FormControl><Input {...field} id="companyinfoform-input-5" data-testid="companyinfoform-account-number-input" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name={`bankAccounts.${index}.iban`} render={({ field }) => (<FormItem><FormLabel>IBAN (Opcional)</FormLabel><FormControl><Input {...field} id="companyinfoform-input-6" data-testid="companyinfoform-iban-input" /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                )) : (
+                  <div className="text-center text-sm text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                    No se han añadido cuentas bancarias.
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
           <div className="flex justify-end pt-8">
-            <Button type="submit" disabled={isPending} id="companyinfoform-button-5" data-testid="companyinfoform-button-submit">
+            <Button type="submit" disabled={isPending} id="companyinfoform-button-5" data-testid="companyinfoform-submit-button">
               {isPending ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </div>

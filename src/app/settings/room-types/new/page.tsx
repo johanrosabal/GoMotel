@@ -36,8 +36,8 @@ export default function NewRoomTypePage() {
   return (
     <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
       <div className="flex items-center gap-4">
-         <Button asChild variant="outline" size="icon" id="page-button-1" data-testid="new-button-1">
-            <Link href="/settings/room-types" id="page-link-settings-room-types" data-testid="new-link-settings-room-types">
+         <Button asChild variant="outline" size="icon" id="page-button-1" data-testid="new-action-button">
+            <Link href="/settings/room-types" id="page-link-settings-room-types" data-testid="new-back-link">
               <ArrowLeft />
               <span className="sr-only">Volver</span>
             </Link>

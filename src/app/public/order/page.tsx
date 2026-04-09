@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-    ShoppingCart, Plus, Minus, Search, Utensils, 
+import {
+    ShoppingCart, Plus, Minus, Search, Utensils,
     CheckCircle, Clock, Info, ChevronRight, MessageSquare,
     ReceiptText, PackageOpen, GlassWater, Trash2
 } from 'lucide-react';
@@ -28,9 +28,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 type CartItem = {
-  service: Service;
-  quantity: number;
-  notes?: string;
+    service: Service;
+    quantity: number;
+    notes?: string;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -51,7 +51,7 @@ function OrderPageContent() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
-    
+
     // Kitchen Notes dialog
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
@@ -102,7 +102,7 @@ function OrderPageContent() {
     const billing = useMemo(() => {
         const orderItems = currentOrder?.items || [];
         const sub = orderItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-        
+
         let taxTotal = 0;
         const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
 
@@ -111,7 +111,7 @@ function OrderPageContent() {
                 const itemTotal = item.price * item.quantity;
                 const service = availableServices.find(s => s.id === item.serviceId);
                 const taxIds = service?.taxIds || [];
-                
+
                 // Add restaurant service tax if applicable
                 const serviceTax = allTaxes.find(t => t.name.toLowerCase().includes('servicio'));
                 const effectiveTaxIds = new Set(taxIds);
@@ -199,8 +199,8 @@ function OrderPageContent() {
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
-                toast({ 
-                    title: "Cuenta Solicitada", 
+                toast({
+                    title: "Cuenta Solicitada",
                     description: "El personal vendrá a tu mesa en breve.",
                 });
             }
@@ -216,8 +216,8 @@ function OrderPageContent() {
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
-                toast({ 
-                    title: "Producto Cancelado", 
+                toast({
+                    title: "Producto Cancelado",
                     description: "El producto ha sido eliminado de su cuenta.",
                 });
             }
@@ -231,7 +231,7 @@ function OrderPageContent() {
     if (!table) {
         const uniqueTypes = Array.from(new Set((allTables || []).map(t => t.type))).sort();
         const filteredTabs = (allTables || []).filter(t => t.type === selectedLocationType);
-        
+
         // Auto-select first available type if current is empty or not in the set
         if (uniqueTypes.length > 0 && !uniqueTypes.includes(selectedLocationType)) {
             setSelectedLocationType(uniqueTypes[0]);
@@ -244,7 +244,7 @@ function OrderPageContent() {
                 </div>
                 <h1 className="text-white text-3xl font-black uppercase tracking-[0.2em] italic mb-2">Hotel Du Manolo</h1>
                 <p className="text-neutral-400 text-xs font-bold tracking-widest uppercase mb-8">Seleccione su ubicación</p>
-                
+
                 <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mb-8 flex gap-2 flex-wrap justify-center">
                     {uniqueTypes.map(type => (
                         <Button
@@ -254,7 +254,7 @@ function OrderPageContent() {
                             className={cn(
                                 "flex-1 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
                                 selectedLocationType === type ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
-                            )} data-testid="order-button-1"
+                            )} data-testid="order-action-button"
                         >
                             {TYPE_LABELS[type] || type}
                         </Button>
@@ -264,12 +264,12 @@ function OrderPageContent() {
                 <div className="w-full max-w-md sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl h-px bg-gradient-to-r from-transparent via-neutral-800 to-transparent mb-8" />
 
                 <div className="w-full max-w-md sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto pb-12 px-4 pt-2 pr-4 lg:pr-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-800 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    {[...filteredTabs].sort((a,b) => a.number.localeCompare(b.number, undefined, {numeric: true})).map(t => (
-                        <Button 
+                    {[...filteredTabs].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })).map(t => (
+                        <Button
                             key={t.id}
                             variant="outline"
                             className="h-32 flex flex-col items-center justify-center gap-3 bg-neutral-900/50 backdrop-blur-sm border border-neutral-800/80 hover:border-primary/60 hover:bg-primary/10 hover:shadow-primary/10 hover:scale-[1.02] transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 group cursor-pointer"
-                            onClick={() => window.location.href = `/public/order?tableId=${t.id}`} data-testid="order-button-2"
+                            onClick={() => window.location.href = `/public/order?tableId=${t.id}`} data-testid="order-action-button"
                         >
                             <div className="bg-neutral-800/80 text-neutral-400 group-hover:bg-primary group-hover:text-white p-3.5 rounded-full transition-colors duration-300 shadow-inner">
                                 {t.type === 'Table' ? <Utensils className="h-6 w-6" /> : <PackageOpen className="h-6 w-6" />}
@@ -317,11 +317,11 @@ function OrderPageContent() {
 
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                    <Input 
-                        placeholder="Buscar comida o bebida..." 
+                    <Input
+                        placeholder="Buscar comida o bebida..."
                         className="bg-neutral-800 border-none rounded-xl pl-9 text-white placeholder:text-neutral-600 h-11"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)} id="page-input-buscar-comida-o" data-testid="order-input-buscar-comida-o"
+                        onChange={(e) => setSearchTerm(e.target.value)} id="page-input-buscar-comida-o" data-testid="order-search-input"
                     />
                 </div>
             </div>
@@ -342,21 +342,21 @@ function OrderPageContent() {
                         <div className="p-4 border-b border-neutral-900 bg-neutral-900/20">
                             <ScrollArea className="w-full whitespace-nowrap">
                                 <div className="flex gap-2 pb-2">
-                                    <button 
+                                    <button
                                         onClick={() => setSelectedCategoryId(null)}
                                         className={cn(
                                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                             !selectedCategoryId ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                        )} id="page-button-todos" data-testid="order-button-todos"
+                                        )} id="page-button-todos" data-testid="order-action-all-button"
                                     >TODOS</button>
                                     {categories?.map(cat => (
-                                        <button 
+                                        <button
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryId(cat.id)}
                                             className={cn(
                                                 "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
                                                 selectedCategoryId === cat.id ? "bg-primary text-white" : "bg-neutral-800 text-neutral-400"
-                                            )} id="page-button-1" data-testid="order-button-1-1"
+                                            )} id="page-button-1" data-testid="order-action-category-button"
                                         >{cat.name}</button>
                                     ))}
                                 </div>
@@ -376,11 +376,11 @@ function OrderPageContent() {
                                                 <h3 className="font-black text-sm uppercase tracking-tight line-clamp-1">{service.name}</h3>
                                                 <p className="text-[10px] text-neutral-500 line-clamp-2 leading-tight">{service.description || 'Sin descripción disponible.'}</p>
                                                 {cart.some(i => i.service.id === service.id) && (
-                                                    <Button 
-                                                        size="sm" 
+                                                    <Button
+                                                        size="sm"
                                                         variant="ghost"
                                                         onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
-                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg" data-testid="order-button-3"
+                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg" data-testid="order-action-button"
                                                     >
                                                         <MessageSquare className="h-3.5 w-3.5" />
                                                         <span className="text-[9px] font-black uppercase tracking-widest">Instrucciones</span>
@@ -389,10 +389,10 @@ function OrderPageContent() {
                                             </div>
                                             <div className="flex justify-between items-center mt-2">
                                                 <span className="font-black text-primary text-base">{formatCurrency(service.price)}</span>
-                                                <Button 
-                                                    size="sm" 
+                                                <Button
+                                                    size="sm"
                                                     className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir" data-testid="order-button-a-adir"
+                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir" data-testid="order-add-button"
                                                 >
                                                     AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
                                                 </Button>
@@ -457,11 +457,11 @@ function OrderPageContent() {
                                                 </div>
                                                 <div className="flex items-center gap-3 shrink-0">
                                                     {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
-                                                        <button 
+                                                        <button
                                                             key={item.id}
                                                             onClick={() => handleCancelItem(item.id)}
                                                             disabled={isPending}
-                                                            className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors" data-testid="order-button-delete"
+                                                            className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors" data-testid="order-delete-button"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
@@ -500,10 +500,10 @@ function OrderPageContent() {
                                         </div>
 
                                         {!currentOrder.billRequested ? (
-                                            <Button 
+                                            <Button
                                                 onClick={handleRequestBill}
                                                 disabled={isPending}
-                                                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20" data-testid="order-button-solicitar-cuenta"
+                                                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20" data-testid="order-action-button"
                                             >
                                                 SOLICITAR CUENTA
                                             </Button>
@@ -529,17 +529,17 @@ function OrderPageContent() {
             {cart.length > 0 && (
                 <div className="p-4 bg-neutral-900 border-t border-neutral-800 fixed bottom-0 left-0 right-0 max-w-md mx-auto animate-in slide-in-from-bottom-full duration-300 shadow-2xl z-30">
                     <div className="flex gap-3">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="bg-neutral-800 border-none h-14 w-14 rounded-2xl shrink-0"
-                            onClick={() => setCart([])} id="page-button-1-1" data-testid="order-button-4"
+                            onClick={() => setCart([])} id="page-button-1-1" data-testid="order-action-button"
                         >
                             <ShoppingCart className="h-6 w-6 text-neutral-400" />
                         </Button>
-                        <Button 
+                        <Button
                             className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
                             onClick={handleSendOrder}
-                            disabled={isPending} id="page-button-2" data-testid="order-button-5"
+                            disabled={isPending} id="page-button-2" data-testid="order-next-button"
                         >
                             {isPending ? "ENVIANDO..." : `PEDIR ${formatCurrency(cartTotal)}`}
                             <ChevronRight className="ml-2 h-5 w-5" />
@@ -562,17 +562,17 @@ function OrderPageContent() {
                                 {editingNoteIndex !== null ? cart[editingNoteIndex].service.name : ''}
                             </span>
                         </div>
-                        <Textarea 
+                        <Textarea
                             value={currentNoteValue}
                             onChange={e => setCurrentNoteValue(e.target.value)}
                             placeholder="Escriba aquí sus indicaciones..."
                             className="bg-neutral-800 border-neutral-700 min-h-[120px] rounded-xl text-white font-bold"
-                            autoFocus id="page-textarea-escriba-aqu-sus" data-testid="order-textarea-escriba-aqu-sus"
+                            autoFocus id="page-textarea-escriba-aqu-sus" data-testid="order-1-textarea"
                         />
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar" data-testid="order-button-cancelar">CANCELAR</Button>
-                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota" data-testid="order-button-guardar-nota">GUARDAR NOTA</Button>
+                        <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar" data-testid="order-cancel-button">CANCELAR</Button>
+                        <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota" data-testid="order-save-button">GUARDAR NOTA</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

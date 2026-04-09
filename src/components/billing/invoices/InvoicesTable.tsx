@@ -228,7 +228,7 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" id="invoicestable-button-1" data-testid="invoicestable-button-1"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" id="invoicestable-button-1" data-testid="invoicestable-action-button"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones de Impresión</DropdownMenuLabel>
@@ -278,9 +278,9 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                                 value={phoneNumber} 
                                 onChange={handlePhoneChange}
                                 className="h-12 font-black text-lg rounded-xl border-green-500/30 text-white"
-                                autoFocus data-testid="invoicestable-input-506-0000-0000"
+                                autoFocus data-testid="invoicestable-1-input"
                             />
-                            <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg" id="invoicestable-button-share" data-testid="invoicestable-button-2">
+                            <Button onClick={handleShareViaWhatsApp} className="h-12 w-12 rounded-xl bg-green-500 hover:bg-green-600 shrink-0 shadow-lg" id="invoicestable-button-share" data-testid="invoicestable-next-button">
                                 <ChevronRight className="h-6 w-6 text-white" />
                             </Button>
                         </div>
@@ -325,7 +325,7 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                                             onChange={(e) => setEmailAddress(e.target.value)}
                                             className="h-12 font-bold rounded-xl border-blue-500/30 pl-4 text-white"
                                             disabled={isSendingEmail}
-                                            autoFocus data-testid="invoicestable-input-ejemplo-correo-com"
+                                            autoFocus data-testid="invoicestable-2-input"
                                         />
                                         {isFetchingEmail && (
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -337,7 +337,7 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                                         onClick={handleSendEmail} 
                                         disabled={isSendingEmail || !emailAddress}
                                         className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold uppercase tracking-widest text-xs" 
-                                        id="invoicestable-button-send-email" data-testid="invoicestable-button-3"
+                                        id="invoicestable-button-send-email" data-testid="invoicestable-action-button"
                                     >
                                         {isSendingEmail ? (
                                             <Loader2 className="h-5 w-5 animate-spin" />

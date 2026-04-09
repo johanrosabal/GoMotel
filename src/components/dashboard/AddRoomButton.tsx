@@ -14,7 +14,7 @@ export default function AddRoomButton() {
 
   if (!isMounted) {
     return (
-      <Button size="sm" disabled id="addroombutton-button-a-adir-habitaci-n" data-testid="addroombutton-button-a-adir-habitaci-n">
+      <Button size="sm" disabled id="addroombutton-button-a-adir-habitaci-n" data-testid="addroombutton-add-button">
         <PlusCircle className="mr-2 h-4 w-4" />
         Añadir Habitación
       </Button>
@@ -23,7 +23,7 @@ export default function AddRoomButton() {
 
   return (
     <AddRoomDialog>
-        <Button size="sm" id="addroombutton-button-a-adir-habitaci-n-1" data-testid="addroombutton-button-add">
+        <Button size="sm" id="addroombutton-button-a-adir-habitaci-n-1" data-testid="addroombutton-add-button">
             <PlusCircle className="mr-2 h-4 w-4" />
             Añadir Habitación
         </Button>

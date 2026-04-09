@@ -365,7 +365,7 @@ export default function LandingPage() {
             </div>
             <button
               onClick={() => setActiveNotifications([])}
-              className="p-1 hover:bg-black/10 rounded-full transition-colors" data-testid="app-button-close"
+              className="p-1 hover:bg-black/10 rounded-full transition-colors" data-testid="app-close-button"
             >
               <X className="h-3 w-3" />
             </button>
@@ -383,7 +383,7 @@ export default function LandingPage() {
           <Link
             href="/"
             className="flex items-center gap-2 group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
-            id="landing-logo" data-testid="app-link-1"
+            id="landing-logo" data-testid="app-1-link"
           >
             <div className="relative w-8 h-8 md:w-12 md:h-12 transition-transform group-hover:scale-110">
               <Image
@@ -397,15 +397,15 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 ml-auto mr-12">
-            <Link href="#features" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-link-caracter-sticas">Características</Link>
-            <Link href="#pricing" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-link-tarifas">Tarifas</Link>
-            <Link href="#gallery" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-link-galer-a">Galería</Link>
-            <Link href="#contact" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-link-contacto">Contacto</Link>
+            <Link href="#features" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-features-link">Características</Link>
+            <Link href="#pricing" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-pricing-link">Tarifas</Link>
+            <Link href="#gallery" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-gallery-link">Galería</Link>
+            <Link href="#contact" className="text-sm font-bold uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-contact-link">Contacto</Link>
           </nav>
 
           <div className="flex items-center gap-4 ml-auto md:ml-0">
             <ThemeToggle className={isScrolled ? 'text-foreground hover:bg-black/5' : 'text-white'} />
-            <Link href="/dashboard" className="hidden sm:block text-[10px] md:text-sm font-black uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-link-dashboard">Dashboard</Link>
+            <Link href="/dashboard" className="hidden sm:block text-[10px] md:text-sm font-black uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-dashboard-link">Dashboard</Link>
           </div>
         </div>
       </header>
@@ -474,13 +474,13 @@ export default function LandingPage() {
                 <Button
                   onClick={() => setIsReservationModalOpen(true)}
                   size="lg"
-                  className="bg-[#b399ff] hover:bg-[#a080ff] text-primary text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full shadow-2xl shadow-purple-500/30 flex items-center gap-3 transition-all duration-300 group" data-testid="app-button-reservar-ahora"
+                  className="bg-[#b399ff] hover:bg-[#a080ff] text-primary text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full shadow-2xl shadow-purple-500/30 flex items-center gap-3 transition-all duration-300 group" data-testid="app-next-button"
                 >
                   Reservar Ahora
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
-                <Link href="#gallery" data-testid="app-link-gallery">
-                  <Button size="lg" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full backdrop-blur-md transition-all duration-300" data-testid="app-button-ver-galer-a">
+                <Link href="#gallery" data-testid="app-gallery-link">
+                  <Button size="lg" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest h-12 md:h-14 px-8 md:px-10 rounded-full backdrop-blur-md transition-all duration-300" data-testid="app-action-button">
                     Ver Galería
                   </Button>
                 </Link>
@@ -628,7 +628,7 @@ export default function LandingPage() {
                             className={`w-full mt-10 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] ${isHighlighted
                               ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
                               : 'bg-background hover:bg-accent text-foreground border border-border dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10'
-                              }`} data-testid="app-button-consultar-disponibilidad"
+                              }`} data-testid="app-action-button"
                           >
                             Consultar Disponibilidad
                           </Button>
@@ -645,14 +645,14 @@ export default function LandingPage() {
                       <button
                         onClick={() => api?.scrollPrev()}
                         className={`w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center transition-all active:scale-95 shadow-2xl pointer-events-auto ${api ? (api.canScrollPrev() ? 'bg-primary text-white' : 'bg-black/60 text-white/20 border-white/5 cursor-not-allowed') : 'bg-primary/20 text-white'}`}
-                        aria-label="Anterior" data-testid="app-button-anterior"
+                        aria-label="Anterior" data-testid="app-back-button"
                       >
                         <ArrowLeft className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => api?.scrollNext()}
                         className={`w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center transition-all active:scale-95 shadow-2xl pointer-events-auto ${api ? (api.canScrollNext() ? 'bg-primary text-white' : 'bg-black/60 text-white/20 border-white/5 cursor-not-allowed') : 'bg-primary/20 text-white'}`}
-                        aria-label="Siguiente" data-testid="app-button-siguiente"
+                        aria-label="Siguiente" data-testid="app-next-button"
                       >
                         <ArrowRight className="h-5 w-5" />
                       </button>
@@ -817,11 +817,11 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="mt-16 flex justify-center"
             >
-              <Link href="/gallery" data-testid="app-link-gallery-1">
+              <Link href="/gallery" data-testid="app-gallery-link">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-14 px-10 rounded-full font-black uppercase tracking-[0.2em] text-[10px] border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary transition-all duration-300 group shadow-lg" data-testid="app-button-1-1"
+                  className="h-14 px-10 rounded-full font-black uppercase tracking-[0.2em] text-[10px] border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary transition-all duration-300 group shadow-lg" data-testid="app-action-button"
                 >
                   <span className="flex items-center gap-3">
                     Ver galería completa
@@ -847,10 +847,10 @@ export default function LandingPage() {
                 {aboutDesc}
               </p>
               <div className="pt-4">
-                <Link href="/quienes-somos" data-testid="app-link-quienes-somos">
+                <Link href="/quienes-somos" data-testid="app-quienes-somos-link">
                   <Button
                     size="lg"
-                    className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-primary-foreground group" data-testid="app-button-2"
+                    className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-primary-foreground group" data-testid="app-next-button"
                   >
                     {aboutBtnText} <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
@@ -872,7 +872,7 @@ export default function LandingPage() {
                 <Button
                   onClick={() => setIsReservationModalOpen(true)}
                   size="lg"
-                  className="h-16 px-12 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/40 group text-primary-foreground" data-testid="app-button-hacer-mi-reserva"
+                  className="h-16 px-12 rounded-full bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/40 group text-primary-foreground" data-testid="app-next-button"
                 >
                   Hacer mi Reserva <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -901,7 +901,7 @@ export default function LandingPage() {
       <footer id="contact" className="py-20 border-t border-border dark:border-white/5 bg-background dark:bg-black transition-colors">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-[1.5fr_0.8fr_1.5fr] gap-16 md:gap-24 text-center md:text-left">
           <div className="space-y-8 flex flex-col items-center md:items-start">
-            <Link href="/" className="flex items-center gap-4 group" data-testid="app-link-2">
+            <Link href="/" className="flex items-center gap-4 group" data-testid="app-2-link">
               <div className="relative w-10 h-10 transition-transform group-hover:scale-110">
                 <Image
                   src="/logo_manolo.png"
@@ -923,7 +923,7 @@ export default function LandingPage() {
                     key={index}
                     href={social.url}
                     target="_blank"
-                    className="w-12 h-12 rounded-full border border-border dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg group" data-testid="app-link-3"
+                    className="w-12 h-12 rounded-full border border-border dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg group" data-testid="app-action-link"
                   >
                     <Icon className="h-5 w-5 text-foreground group-hover:text-primary-foreground transition-colors dark:text-white dark:group-hover:text-black" />
                   </Link>
@@ -935,10 +935,10 @@ export default function LandingPage() {
           <div className="space-y-6 flex flex-col items-center md:items-start">
             <h4 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground dark:text-white/30">Navegación</h4>
             <ul className="space-y-4 text-center md:text-left">
-              <li><Link href="/" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-link-inicio">Inicio</Link></li>
-              <li><Link href="#features" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-link-habitaciones">Habitaciones</Link></li>
-              <li><Link href="#gallery" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-link-galer-a-1">Galería</Link></li>
-              <li><Link href={user ? "/dashboard" : "/login"} className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-link-4">{user ? "Dashboard" : "Personal"}</Link></li>
+              <li><Link href="/" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-3-link">Inicio</Link></li>
+              <li><Link href="#features" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-features-link">Habitaciones</Link></li>
+              <li><Link href="#gallery" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-gallery-link">Galería</Link></li>
+              <li><Link href={user ? "/dashboard" : "/login"} className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-action-link">{user ? "Dashboard" : "Personal"}</Link></li>
             </ul>
           </div>
 
@@ -948,7 +948,7 @@ export default function LandingPage() {
               <MapPin className="h-5 w-5 text-primary shrink-0" />
               {footerAddress}
             </p>
-            <a href={`tel:${footerPhone.replace(/\s+/g, '')}`} className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-primary transition-colors group" data-testid="app-a-1">
+            <a href={`tel:${footerPhone.replace(/\s+/g, '')}`} className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-primary transition-colors group" data-testid="app-action-link">
               <Phone className="h-5 w-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
               {formatPhoneNumber(footerPhone)}
             </a>
@@ -957,7 +957,7 @@ export default function LandingPage() {
                 href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-green-500 transition-colors group" data-testid="app-a-2"
+                className="text-muted-foreground dark:text-white/60 flex items-center gap-4 hover:text-green-500 transition-colors group" data-testid="app-action-link"
               >
                 <div className="w-5 h-5 flex items-center justify-center shrink-0">
                   <MessageCircle className="h-5 w-5 text-green-500 group-hover:scale-110 transition-transform" />
@@ -973,7 +973,7 @@ export default function LandingPage() {
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm" data-testid="app-a-google-maps"
+                  className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm" data-testid="app-action-link"
                 >
                   <MapIcon className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" /> Google Maps
                 </a>
@@ -982,7 +982,7 @@ export default function LandingPage() {
                     href={wazeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm" data-testid="app-a-waze"
+                    className="flex-1 h-11 px-4 rounded-xl bg-foreground/5 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/20 transition-all group backdrop-blur-sm" data-testid="app-action-link"
                   >
                     <Navigation className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" /> Waze
                   </a>
@@ -1035,7 +1035,7 @@ export default function LandingPage() {
           >
             <button
               onClick={() => setSelectedMedia(null)}
-              className="absolute top-4 md:top-8 right-4 md:right-8 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[210]" data-testid="app-button-close"
+              className="absolute top-4 md:top-8 right-4 md:right-8 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[210]" data-testid="app-close-button"
             >
               <X className="h-6 w-6 text-white" />
             </button>

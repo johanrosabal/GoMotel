@@ -47,7 +47,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   }, [firestore]);
 
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-  
+
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'rooms'));
@@ -59,7 +59,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     return query(collection(firestore, 'roomTypes'));
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
-  
+
   const room = useMemo(() => rooms?.find(r => r.id === roomId), [rooms, roomId]);
   const roomType = useMemo(() => roomTypes?.find(rt => rt.id === room?.roomTypeId), [roomTypes, room]);
   const availablePlans = useMemo(() => roomType?.pricePlans?.sort((a, b) => a.price - b.price) || [], [roomType]);
@@ -84,18 +84,18 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   }, [clients]);
 
   const filteredClients = useMemo(() => {
-      if (!searchTerm) {
-          return sortedClients;
-      }
-      const lowercasedQuery = searchTerm.toLowerCase();
-      return sortedClients.filter(client =>
-          `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
-      );
+    if (!searchTerm) {
+      return sortedClients;
+    }
+    const lowercasedQuery = searchTerm.toLowerCase();
+    return sortedClients.filter(client =>
+      `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
+    );
   }, [searchTerm, sortedClients]);
 
 
   const selectedPlanName = form.watch('pricePlanName');
-  
+
   const calculatedCheckOut = useMemo(() => {
     if (!selectedPlanName || !availablePlans.length) return null;
 
@@ -104,15 +104,15 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
 
     const checkInTime = new Date();
     let checkOutTime = new Date(checkInTime);
-    
-    switch(plan.unit) {
+
+    switch (plan.unit) {
       case 'Minutes': checkOutTime = addMinutes(checkInTime, plan.duration); break;
       case 'Hours': checkOutTime = addHours(checkInTime, plan.duration); break;
       case 'Days': checkOutTime = addDays(checkInTime, plan.duration); break;
       case 'Weeks': checkOutTime = addWeeks(checkInTime, plan.duration); break;
       case 'Months': checkOutTime = addMonths(checkInTime, plan.duration); break;
     }
-    
+
     return format(checkOutTime, 'PPpp', { locale: es });
   }, [selectedPlanName, availablePlans]);
 
@@ -122,16 +122,16 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     if (values.guestId) {
       formData.append('guestId', values.guestId);
     }
-    
+
     const plan = availablePlans.find(p => p.name === values.pricePlanName);
     if (!plan) {
-        toast({ title: 'Error', description: 'Plan de precios inválido.', variant: 'destructive' });
-        return;
+      toast({ title: 'Error', description: 'Plan de precios inválido.', variant: 'destructive' });
+      return;
     }
 
     const checkInTime = new Date();
     let expectedCheckOutDate = new Date(checkInTime);
-    switch(plan.unit) {
+    switch (plan.unit) {
       case 'Minutes': expectedCheckOutDate = addMinutes(checkInTime, plan.duration); break;
       case 'Hours': expectedCheckOutDate = addHours(checkInTime, plan.duration); break;
       case 'Days': expectedCheckOutDate = addDays(checkInTime, plan.duration); break;
@@ -187,69 +187,69 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="checkindialog-form-main" data-testid="checkindialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="checkindialog-form-main" data-testid="checkindialog-main-form">
             <FormField
               control={form.control}
               name="guestName"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Huésped</FormLabel>
-                   <div className="relative">
-                      <Input
-                          placeholder="Buscar o escribir nombre..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onFocus={() => setShowSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                          autoComplete="off"
-                          className="pr-10" id="checkindialog-input-buscar-o-escribir" data-testid="checkindialog-input-buscar-o-escribir"
-                      />
-                      {showSuggestions && (
-                          <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
-                              <ScrollArea className="max-h-56">
-                                <div className="p-1">
-                                  {filteredClients.length > 0 ? (
-                                    filteredClients.map((client) => (
-                                      <button
-                                        type="button"
-                                        key={client.id}
-                                        onMouseDown={() => {
-                                          setSearchTerm(`${client.firstName} ${client.lastName}`);
-                                          form.setValue('guestId', client.id);
-                                          setShowSuggestions(false);
-                                        }}
-                                        className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-1" data-testid="checkindialog-button-1"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <Check
-                                            className={cn('h-4 w-4', guestNameValue === `${client.firstName} ${client.lastName}` ? 'opacity-100' : 'opacity-0')}
-                                          />
-                                          {client.firstName} {client.lastName}
-                                        </div>
-                                        {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    !isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">No se encontraron clientes.</p>
-                                  )}
-                                  {isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">Cargando...</p>}
-                                </div>
-                              </ScrollArea>
-                               <div className="border-t p-1">
-                                  <button
-                                      type="button"
-                                      onMouseDown={() => {
-                                        setShowSuggestions(false);
-                                        setAddClientOpen(true);
-                                      }}
-                                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-a-adir-nuevo-cliente" data-testid="checkindialog-button-a-adir-nuevo-cliente"
-                                  >
-                                      <PlusCircle className="h-4 w-4" />
-                                      Añadir Nuevo Cliente
-                                  </button>
-                              </div>
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar o escribir nombre..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      autoComplete="off"
+                      className="pr-10" id="checkindialog-input-buscar-o-escribir" data-testid="checkindialog-search-input"
+                    />
+                    {showSuggestions && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                        <ScrollArea className="max-h-56">
+                          <div className="p-1">
+                            {filteredClients.length > 0 ? (
+                              filteredClients.map((client) => (
+                                <button
+                                  type="button"
+                                  key={client.id}
+                                  onMouseDown={() => {
+                                    setSearchTerm(`${client.firstName} ${client.lastName}`);
+                                    form.setValue('guestId', client.id);
+                                    setShowSuggestions(false);
+                                  }}
+                                  className="relative flex w-full cursor-default select-none items-center justify-between rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-1" data-testid="checkindialog-action-button"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Check
+                                      className={cn('h-4 w-4', guestNameValue === `${client.firstName} ${client.lastName}` ? 'opacity-100' : 'opacity-0')}
+                                    />
+                                    {client.firstName} {client.lastName}
+                                  </div>
+                                  {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
+                                </button>
+                              ))
+                            ) : (
+                              !isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">No se encontraron clientes.</p>
+                            )}
+                            {isLoadingClients && <p className="p-2 text-center text-sm text-muted-foreground">Cargando...</p>}
                           </div>
-                      )}
+                        </ScrollArea>
+                        <div className="border-t p-1">
+                          <button
+                            type="button"
+                            onMouseDown={() => {
+                              setShowSuggestions(false);
+                              setAddClientOpen(true);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground" id="checkindialog-button-a-adir-nuevo-cliente" data-testid="checkindialog-add-client-button"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Añadir Nuevo Cliente
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -263,7 +263,7 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
                   <FormLabel>Plan de Estancia</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                     <FormControl>
-                      <SelectTrigger id="checkindialog-selecttrigger-1" data-testid="checkindialog-selecttrigger-1">
+                      <SelectTrigger id="checkindialog-selecttrigger-1" data-testid="checkindialog-plan-select">
                         <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan"} />
                       </SelectTrigger>
                     </FormControl>
@@ -281,17 +281,17 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
             />
 
             {calculatedCheckOut && (
-                <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                        <Clock className="h-4 w-4" />
-                        <span>Salida Estimada</span>
-                    </div>
-                    <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                  <Clock className="h-4 w-4" />
+                  <span>Salida Estimada</span>
                 </div>
+                <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
+              </div>
             )}
 
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending || isLoading} id="checkindialog-button-1-1" data-testid="checkindialog-button-submit">
+              <Button type="submit" disabled={isPending || isLoading} id="checkindialog-button-1-1" data-testid="checkindialog-submit-button">
                 {isPending ? 'Registrando...' : 'Confirmar Check-In'}
               </Button>
             </DialogFooter>

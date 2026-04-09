@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, cn } from '@/lib/utils';
-import { 
-    TrendingUp, Users, AlertTriangle, 
+import {
+    TrendingUp, Users, AlertTriangle,
     Download, ArrowRight, DollarSign, PieChart as PieIcon,
     Receipt, PackageSearch
 } from 'lucide-react';
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-    ResponsiveContainer, PieChart, Pie, Cell, Legend 
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,12 +21,12 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -82,13 +82,13 @@ export default function ReportsClientPage() {
 
         try {
             for (let i = 0; i < pages.length; i++) {
-                const canvas = await html2canvas(pages[i] as HTMLElement, { 
-                    scale: 2.5, 
+                const canvas = await html2canvas(pages[i] as HTMLElement, {
+                    scale: 2.5,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     logging: false
                 });
-                
+
                 const imgData = canvas.toDataURL('image/png');
                 if (i > 0) pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
@@ -127,8 +127,8 @@ export default function ReportsClientPage() {
                     <CardContent>
                         <div className="text-2xl font-black">{formatCurrency(data.kpis.totalRevenue)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Total facturado en el periodo</p>
-                        <Button variant="link" size="sm" className="p-0 h-auto mt-3 text-primary font-bold" asChild id="reportsclientpage-button-1" data-testid="reportsclientpage-button-1">
-                            <Link href="/billing/invoices" id="reportsclientpage-link-ver-facturas" data-testid="reportsclientpage-link-ver-facturas">
+                        <Button variant="link" size="sm" className="p-0 h-auto mt-3 text-primary font-bold" asChild id="reportsclientpage-button-1" data-testid="reportsclientpage-action-shows-bills-button">
+                            <Link href="/billing/invoices" id="reportsclientpage-link-ver-facturas" data-testid="reportsclientpage-next-link">
                                 Ver facturas <ArrowRight className="ml-1 h-3 w-3" />
                             </Link>
                         </Button>
@@ -144,7 +144,7 @@ export default function ReportsClientPage() {
                         <p className="text-xs text-muted-foreground mt-1">Capacidad actual utilizada</p>
                     </CardContent>
                 </Card>
-                <Card 
+                <Card
                     className={cn(
                         "transition-all duration-200 cursor-pointer hover:shadow-md border-2",
                         data.kpis.lowStockCount > 0 ? "border-yellow-500 bg-yellow-500/5 hover:bg-yellow-500/10" : "border-transparent hover:bg-muted/50"
@@ -256,8 +256,8 @@ export default function ReportsClientPage() {
                             <BarChart data={data.revenueData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" fontSize={12} />
-                                <YAxis fontSize={12} tickFormatter={(v) => `₡${v/1000}k`} />
-                                <Tooltip 
+                                <YAxis fontSize={12} tickFormatter={(v) => `₡${v / 1000}k`} />
+                                <Tooltip
                                     formatter={(v) => formatCurrency(v as number)}
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                 />
@@ -292,7 +292,7 @@ export default function ReportsClientPage() {
                                     ))}
                                 </Pie>
                                 <Tooltip formatter={(v) => formatCurrency(v as number)} />
-                                <Legend verticalAlign="bottom" height={36}/>
+                                <Legend verticalAlign="bottom" height={36} />
                             </PieChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -365,8 +365,8 @@ export default function ReportsClientPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="justify-center border-t py-4 bg-muted/10">
-                    <Button variant="outline" size="sm" asChild id="reportsclientpage-button-3" data-testid="reportsclientpage-button-2">
-                        <Link href="/billing/invoices" id="reportsclientpage-link-ver-historial-de" data-testid="reportsclientpage-link-ver-historial-de">
+                    <Button variant="outline" size="sm" asChild id="reportsclientpage-button-3" data-testid="reportsclientpage-action-button">
+                        <Link href="/billing/invoices" id="reportsclientpage-link-ver-historial-de" data-testid="reportsclientpage-billing-invoices-link">
                             Ver Historial de Facturación Completo
                         </Link>
                     </Button>
@@ -415,12 +415,12 @@ export default function ReportsClientPage() {
                     <div className="absolute -left-[9999px] top-0 pointer-events-none">
                         <div ref={stockReportRef} style={{ letterSpacing: '0px', wordSpacing: 'normal' }}>
                             {stockPages.map((pageItems, pageIndex) => (
-                                <div 
+                                <div
                                     key={pageIndex}
-                                    className="stock-pdf-page bg-white p-12 text-gray-900 flex flex-col mb-10" 
-                                    style={{ 
-                                        width: '210mm', 
-                                        height: '297mm', 
+                                    className="stock-pdf-page bg-white p-12 text-gray-900 flex flex-col mb-10"
+                                    style={{
+                                        width: '210mm',
+                                        height: '297mm',
                                         fontFamily: 'Arial, sans-serif'
                                     }}
                                 >
@@ -508,19 +508,19 @@ export default function ReportsClientPage() {
 
                     <DialogFooter className="p-6 border-t bg-muted/20">
                         <div className="flex flex-col sm:flex-row w-full gap-3">
-                            <Button 
-                                variant="outline" 
-                                onClick={handleExportStockPdf} 
+                            <Button
+                                variant="outline"
+                                onClick={handleExportStockPdf}
                                 disabled={isExporting}
-                                className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors" id="reportsclientpage-button-4" data-testid="reportsclientpage-button-3"
+                                className="flex-1 h-12 gap-2 font-black uppercase tracking-widest border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-colors" id="reportsclientpage-button-4" data-testid="reportsclientpage-action-button"
                             >
                                 <Download className="h-5 w-5" />
                                 {isExporting ? "Generando Reporte..." : "Exportar Reporte Contable"}
                             </Button>
-                            <Button 
-                                variant="secondary" 
-                                onClick={() => setIsStockDialogOpen(false)} 
-                                className="sm:w-32 h-12 font-bold" id="reportsclientpage-button-cerrar" data-testid="reportsclientpage-button-cerrar"
+                            <Button
+                                variant="secondary"
+                                onClick={() => setIsStockDialogOpen(false)}
+                                className="sm:w-32 h-12 font-bold" id="reportsclientpage-button-cerrar" data-testid="reportsclientpage-close-button"
                             >
                                 Cerrar
                             </Button>

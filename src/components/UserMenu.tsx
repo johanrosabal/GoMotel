@@ -60,11 +60,11 @@ export default function UserMenu() {
   if (!user) {
     return (
       <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="sm" id="usermenu-button-1" data-testid="usermenu-button-1">
-          <Link href="/" id="usermenu-link-iniciar-sesi-n" data-testid="usermenu-link-iniciar-sesi-n">Iniciar Sesión</Link>
+        <Button asChild variant="ghost" size="sm" id="usermenu-button-1" data-testid="usermenu-action-button">
+          <Link href="/" id="usermenu-link-iniciar-sesi-n" data-testid="usermenu-login-link">Iniciar Sesión</Link>
         </Button>
-        <Button asChild size="sm" id="usermenu-button-2" data-testid="usermenu-button-2">
-          <Link href="/register" id="usermenu-link-registrarse" data-testid="usermenu-link-registrarse">Registrarse</Link>
+        <Button asChild size="sm" id="usermenu-button-2" data-testid="usermenu-action-button">
+          <Link href="/register" id="usermenu-link-registrarse" data-testid="usermenu-register-link">Registrarse</Link>
         </Button>
       </div>
     );
@@ -83,7 +83,7 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all hover:bg-muted p-1 md:pr-3 text-left" id="usermenu-button-1-1" data-testid="usermenu-button-1-1">
+        <button className="flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all hover:bg-muted p-1 md:pr-3 text-left" id="usermenu-button-1-1" data-testid="usermenu-action-button">
             <Avatar className="h-8 w-8 border shadow-sm">
                 <AvatarImage src={userProfile?.photoURL || user.photoURL || ''} alt={fullName || ''} />
                 <AvatarFallback>{getInitials()}</AvatarFallback>

@@ -57,7 +57,7 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="subcategoryformdialog-form-main" data-testid="subcategoryformdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="subcategoryformdialog-form-main" data-testid="subcategoryformdialog-main-form">
             <FormField
               control={form.control}
               name="name"
@@ -65,7 +65,7 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
                 <FormItem>
                   <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Gaseosas" {...field} id="subcategoryformdialog-input-ej-gaseosas" data-testid="subcategoryformdialog-input-ej-gaseosas" />
+                    <Input placeholder="Ej: Gaseosas" {...field} id="subcategoryformdialog-input-ej-gaseosas" data-testid="subcategoryformdialog-name-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -78,15 +78,15 @@ export default function SubCategoryFormDialog({ open, onOpenChange, categoryId, 
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Una breve descripción de la sub-categoría." {...field} id="subcategoryformdialog-textarea-una-breve-descripci-n" data-testid="subcategoryformdialog-textarea-una-breve-descripci-n" />
+                    <Textarea placeholder="Una breve descripción de la sub-categoría." {...field} id="subcategoryformdialog-textarea-una-breve-descripcion" data-testid="subcategoryformdialog-description-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="subcategoryformdialog-button-cancelar" data-testid="subcategoryformdialog-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} id="subcategoryformdialog-button-1" data-testid="subcategoryformdialog-button-submit">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="subcategoryformdialog-button-cancelar" data-testid="subcategoryformdialog-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="subcategoryformdialog-button-1" data-testid="subcategoryformdialog-submit-button">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

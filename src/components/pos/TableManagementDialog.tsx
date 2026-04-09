@@ -48,7 +48,7 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
 
     const filteredTablesForList = useMemo(() => {
         if (!activeType && isAddingCustomType) return [];
-        return tables.filter(t => t.type === activeType).sort((a,b) => 
+        return tables.filter(t => t.type === activeType).sort((a, b) =>
             a.number.localeCompare(b.number, undefined, { numeric: true })
         );
     }, [tables, activeType, isAddingCustomType]);
@@ -112,13 +112,13 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
 
         try {
             for (let i = 0; i < pages.length; i++) {
-                const canvas = await html2canvas(pages[i] as HTMLElement, { 
-                    scale: 2, 
+                const canvas = await html2canvas(pages[i] as HTMLElement, {
+                    scale: 2,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     logging: false
                 });
-                
+
                 const imgData = canvas.toDataURL('image/png');
                 if (i > 0) pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
@@ -127,17 +127,17 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                 const tablesInThisPage = sortedTables.slice(i * 4, (i + 1) * 4);
                 tablesInThisPage.forEach((table, idx) => {
                     const orderUrl = `${baseUrl}/public/order?tableId=${table.id}`;
-                    
+
                     // Calcular cuadrante (x, y en mm)
                     const col = idx % 2; // 0 o 1
                     const row = Math.floor(idx / 2); // 0 o 1
-                    
+
                     const x = col * 105;
                     const y = row * 148.5;
 
                     // Añadir link sobre toda el área del cuadrante (más robusto)
                     // pdf.link(x + 10, y + 10, 85, 128, { url: orderUrl });
-                    
+
                     // Añadir link específico sobre el área del código QR y URL text
                     // Aproximadamente el centro del cuadrante
                     pdf.link(x + 25, y + 40, 55, 70, { url: orderUrl });
@@ -176,20 +176,20 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Zona</Label>
                             {isAddingCustomType ? (
                                 <div className="flex gap-2">
-                                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => setIsAddingCustomType(false)} id="tablemanagementdialog-button-1" data-testid="tablemanagementdialog-button-1">
+                                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => setIsAddingCustomType(false)} id="tablemanagementdialog-button-1" data-testid="tablemanagementdialog-back-button">
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
-                                    <Input 
-                                        placeholder="Ej: VIP, Piscina..." 
-                                        value={customType} 
+                                    <Input
+                                        placeholder="Ej: VIP, Piscina..."
+                                        value={customType}
                                         onChange={(e) => setCustomType(e.target.value)}
                                         className="h-11 font-bold rounded-xl border-2"
-                                        autoFocus id="tablemanagementdialog-input-ej-vip-piscina" data-testid="tablemanagementdialog-input-ej-vip-piscina"
+                                        autoFocus id="tablemanagementdialog-input-ej-vip-piscina" data-testid="tablemanagementdialog-zone-input"
                                     />
                                 </div>
                             ) : (
                                 <Select value={newType} onValueChange={(v) => v === 'ADD_NEW' ? setIsAddingCustomType(true) : setNewType(v)} disabled={isPending}>
-                                    <SelectTrigger className="h-11 font-bold rounded-xl bg-background border-2" id="tablemanagementdialog-selecttrigger-1" data-testid="tablemanagementdialog-selecttrigger-1">
+                                    <SelectTrigger className="h-11 font-bold rounded-xl bg-background border-2" id="tablemanagementdialog-selecttrigger-1" data-testid="tablemanagementdialog-zone-select">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -219,20 +219,20 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                 </Select>
                             )}
                         </div>
-                        
+
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Próximo N°</Label>
-                            <Input 
-                                value={nextNumber} 
+                            <Input
+                                value={nextNumber}
                                 readOnly
-                                className="h-11 font-black text-center text-xl bg-primary/5 border-2 border-primary/20 rounded-xl font-mono text-primary pointer-events-none" id="tablemanagementdialog-input-1" data-testid="tablemanagementdialog-input-1"
+                                className="h-11 font-black text-center text-xl bg-primary/5 border-2 border-primary/20 rounded-xl font-mono text-primary pointer-events-none" id="tablemanagementdialog-input-1" data-testid="tablemanagementdialog-number-input"
                             />
                         </div>
 
-                        <Button 
-                            onClick={handleAdd} 
-                            disabled={isPending || (isAddingCustomType && !customType)} 
-                            className="md:col-span-3 h-11 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-primary/10" id="tablemanagementdialog-button-agregar-ubicaci-n" data-testid="tablemanagementdialog-button-agregar-ubicaci-n"
+                        <Button
+                            onClick={handleAdd}
+                            disabled={isPending || (isAddingCustomType && !customType)}
+                            className="md:col-span-3 h-11 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-primary/10" id="tablemanagementdialog-button-agregar-ubicaci-n" data-testid="tablemanagementdialog-add-button"
                         >
                             <Plus className="mr-1 h-4 w-4" /> Agregar Ubicación
                         </Button>
@@ -282,12 +282,12 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
                                                 disabled={isPending || table.status === 'Occupied'}
                                                 onClick={() => handleDelete(table.id)}
-                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100" id="tablemanagementdialog-button-2" data-testid="tablemanagementdialog-button-delete"
+                                                className="text-muted-foreground hover:text-destructive h-8 w-8 rounded-lg transition-all opacity-0 group-hover:opacity-100" id="tablemanagementdialog-button-2" data-testid="tablemanagementdialog-delete-button"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -300,16 +300,16 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                 </div>
 
                 <DialogFooter className="p-6 border-t bg-muted/5 flex flex-col sm:flex-row gap-3">
-                    <Button 
-                        variant="outline" 
-                        className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest gap-2 border-2" 
+                    <Button
+                        variant="outline"
+                        className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest gap-2 border-2"
                         onClick={handleExportQrPdf}
-                        disabled={isExporting || tables.length === 0} id="tablemanagementdialog-button-3" data-testid="tablemanagementdialog-button-3"
+                        disabled={isExporting || tables.length === 0} id="tablemanagementdialog-button-3" data-testid="tablemanagementdialog-export-button"
                     >
                         <QrCode className="h-4 w-4" />
                         {isExporting ? 'Generando...' : 'Exportar QRs con Hipervínculos'}
                     </Button>
-                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold" id="tablemanagementdialog-button-cerrar" data-testid="tablemanagementdialog-button-cerrar">Cerrar</Button>
+                    <Button variant="secondary" onClick={() => onOpenChange(false)} className="sm:w-32 h-12 font-bold" id="tablemanagementdialog-button-cerrar" data-testid="tablemanagementdialog-close-button">Cerrar</Button>
                 </DialogFooter>
 
                 <div className="absolute -left-[9999px] top-0 pointer-events-none">

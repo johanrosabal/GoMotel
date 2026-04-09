@@ -73,8 +73,8 @@ export function ReservationModal({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <a href={`tel:${phoneNumber}`} className="block" data-testid="reservationmodal-a-1">
-                <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative" data-testid="reservationmodal-button-1">
+              <a href={`tel:${phoneNumber}`} className="block" data-testid="reservationmodal-action-link">
+                <Button className="w-full h-20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl flex items-center justify-between px-8 group overflow-hidden relative" data-testid="reservationmodal-action-button">
                   <div className="flex flex-col items-start relative z-10 text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/80">Llamada Directa</span>
                     <span className="text-xl font-black tracking-tight italic">{formatPhoneNumber(phoneNumber)}</span>
@@ -92,8 +92,8 @@ export function ReservationModal({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block" data-testid="reservationmodal-a-2">
-                <Button variant="outline" className="w-full h-20 bg-foreground/5 dark:bg-white/[0.03] border-border dark:border-white/5 hover:bg-accent dark:hover:bg-white/[0.08] hover:border-green-500/50 text-foreground dark:text-white rounded-2xl flex items-center justify-between px-8 group transition-all" data-testid="reservationmodal-button-2">
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block" data-testid="reservationmodal-action-link">
+                <Button variant="outline" className="w-full h-20 bg-foreground/5 dark:bg-white/[0.03] border-border dark:border-white/5 hover:bg-accent dark:hover:bg-white/[0.08] hover:border-green-500/50 text-foreground dark:text-white rounded-2xl flex items-center justify-between px-8 group transition-all" data-testid="reservationmodal-action-button">
                   <div className="flex flex-col items-start text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground dark:text-white/60 group-hover:text-white/80 transition-colors">Reserva Express</span>
                     <span className="text-xl font-black tracking-tight italic text-green-600 dark:text-green-400 leading-tight group-hover:text-white transition-colors">WHATSAPP</span>

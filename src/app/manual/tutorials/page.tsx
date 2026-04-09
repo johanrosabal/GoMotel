@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { getTutorials } from '@/lib/actions/tutorial.actions';
 import { VideoPlayer } from '@/components/dashboard/VideoPlayer';
-import { 
-    BookOpen, 
-    GraduationCap, 
-    Play, 
-    ChevronRight, 
+import {
+    BookOpen,
+    GraduationCap,
+    Play,
+    ChevronRight,
     Search,
     MonitorPlay,
     Info
@@ -34,7 +34,7 @@ export default function LearningCenterPage() {
         fetchTutorials();
     }, []);
 
-    const filteredTutorials = tutorials.filter(t => 
+    const filteredTutorials = tutorials.filter(t =>
         t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -72,11 +72,11 @@ export default function LearningCenterPage() {
                     </div>
                     <div className="relative w-full md:w-80">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Input 
+                        <Input
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             placeholder="Buscar tutoriales..."
-                            className="h-12 bg-white/5 border-white/10 rounded-2xl pl-12 text-xs font-bold focus:ring-primary/20 text-white" data-testid="tutorials-input-buscar-tutoriales"
+                            className="h-12 bg-white/5 border-white/10 rounded-2xl pl-12 text-xs font-bold focus:ring-primary/20 text-white" data-testid="tutorials-search-input"
                         />
                     </div>
                 </div>
@@ -87,7 +87,7 @@ export default function LearningCenterPage() {
                 <div className="lg:col-span-3 space-y-8">
                     <AnimatePresence mode="wait">
                         {selectedTutorial ? (
-                            <motion.div 
+                            <motion.div
                                 key={selectedTutorial.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -95,9 +95,9 @@ export default function LearningCenterPage() {
                                 transition={{ duration: 0.4 }}
                                 className="space-y-8"
                             >
-                                <VideoPlayer 
-                                    url={selectedTutorial.videoUrl} 
-                                    title={selectedTutorial.title} 
+                                <VideoPlayer
+                                    url={selectedTutorial.videoUrl}
+                                    title={selectedTutorial.title}
                                 />
 
                                 <div className="space-y-6 bg-white/[0.02] border border-white/5 p-8 rounded-[2.5rem] backdrop-blur-3xl shadow-2xl">
@@ -109,12 +109,12 @@ export default function LearningCenterPage() {
                                             Lección {tutorials.indexOf(selectedTutorial) + 1} de {tutorials.length}
                                         </span>
                                     </div>
-                                    
+
                                     <h2 className="text-3xl font-black uppercase italic tracking-tight text-white border-l-4 border-primary pl-6 leading-tight">
                                         {selectedTutorial.title}
                                     </h2>
 
-                                    <div 
+                                    <div
                                         className="prose prose-invert prose-emerald max-w-none prose-sm sm:prose-base text-slate-300 font-medium leading-relaxed
                                         prose-headings:uppercase prose-headings:italic prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-white
                                         prose-p:mb-6 prose-strong:text-white prose-strong:font-black prose-li:text-slate-400 prose-blockquote:border-primary"
@@ -149,10 +149,10 @@ export default function LearningCenterPage() {
                                             onClick={() => setSelectedTutorial(tutorial)}
                                             className={cn(
                                                 "w-full flex items-start gap-3 p-4 rounded-2xl transition-all duration-300 text-left group",
-                                                selectedTutorial?.id === tutorial.id 
-                                                    ? "bg-primary text-black font-black shadow-lg shadow-primary/20 scale-[1.02]" 
+                                                selectedTutorial?.id === tutorial.id
+                                                    ? "bg-primary text-black font-black shadow-lg shadow-primary/20 scale-[1.02]"
                                                     : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
-                                            )} data-testid="tutorials-button-1"
+                                            )} data-testid="tutorials-action-button"
                                         >
                                             <div className={cn(
                                                 "h-6 w-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
@@ -185,7 +185,7 @@ export default function LearningCenterPage() {
                         </div>
                         <h4 className="text-xs font-black uppercase tracking-widest text-white italic">¿Necesita Asistencia Directa?</h4>
                         <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Si no encuentra la solución en estos videos, contacte a nuestro equipo de soporte técnico 24/7.</p>
-                        <button className="text-[9px] font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors flex items-center gap-2" data-testid="tutorials-button-centro-de-soporte">
+                        <button className="text-[9px] font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors flex items-center gap-2" data-testid="tutorials-next-button">
                             CENTRO DE SOPORTE <ChevronRight className="h-3 w-3" />
                         </button>
                     </div>

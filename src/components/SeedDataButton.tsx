@@ -29,7 +29,7 @@ export default function SeedDataButton() {
   };
 
   return (
-    <Button onClick={handleSeed} disabled={isPending} id="seeddatabutton-button-1" data-testid="seeddatabutton-button-1">
+    <Button onClick={handleSeed} disabled={isPending} id="seeddatabutton-button-1" data-testid="seeddatabutton-action-button">
       <Database className="mr-2 h-4 w-4" />
       {isPending ? 'Cargando...' : 'Cargar Datos Iniciales'}
     </Button>

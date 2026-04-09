@@ -97,7 +97,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                                         <span className="font-black text-3xl text-primary leading-none shrink-0">{item.quantity}</span>
                                         <span className="font-bold text-lg leading-tight uppercase tracking-tight">{item.name}</span>
                                     </div>
-                                    
+
                                     {item.notes && (
                                         <div className="p-3 bg-amber-100 dark:bg-amber-900/40 border-l-4 border-amber-500 rounded-xl text-base font-black text-amber-950 dark:text-amber-100 shadow-md">
                                             <span className="text-[10px] block opacity-50 mb-1 uppercase tracking-tighter">Instrucciones:</span>
@@ -107,19 +107,19 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
 
                                     <div className="pt-2">
                                         {item.status === 'Pendiente' ? (
-                                            <Button 
+                                            <Button
                                                 className="w-full h-12 font-black text-xs uppercase tracking-widest shadow-lg"
                                                 onClick={() => handleUpdateItemStatus(item.id, 'En preparación')}
-                                                disabled={isUpdating} data-testid="orderqueuepage-button-empezar-preparaci-n"
+                                                disabled={isUpdating} data-testid="orderqueuepage-action-start-button"
                                             >
                                                 Empezar Preparación
                                             </Button>
                                         ) : (
-                                            <Button 
+                                            <Button
                                                 variant="outline"
                                                 className="w-full h-12 font-black text-xs uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none shadow-lg"
                                                 onClick={() => handleUpdateItemStatus(item.id, 'Entregado')}
-                                                disabled={isUpdating} data-testid="orderqueuepage-button-marcar-como-listo"
+                                                disabled={isUpdating} data-testid="orderqueuepage-action-finish-button"
                                             >
                                                 <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Listo
                                             </Button>
@@ -155,9 +155,9 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     const filteredOrders = (allOrders || []).map(order => {
         const relevantItems = (order.items || []).filter(item => {
             // Filter by category
-            const matchesCategory = (type === 'Kitchen' && item.category === 'Food') || 
-                                  (type === 'Bar' && item.category === 'Beverage');
-                                  
+            const matchesCategory = (type === 'Kitchen' && item.category === 'Food') ||
+                (type === 'Bar' && item.category === 'Beverage');
+
             // IMPORTANT: Only show items that are not 'Entregado' in the queue
             return matchesCategory && item.status !== 'Entregado';
         });
@@ -176,7 +176,7 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-muted/20" data-testid="order-queue-container">
+        <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-muted/20" data-testid="orderqueuepage-main-div">
             {/* Header Operativo */}
             <div className="bg-background border-b p-4 flex items-center justify-between shrink-0 shadow-sm">
                 <div className="flex items-center gap-4">

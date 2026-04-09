@@ -11,8 +11,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-    Utensils, Search, ShoppingCart, Plus, Minus, 
+import {
+    Utensils, Search, ShoppingCart, Plus, Minus,
     ArrowRight, MapPin, Clock, CheckCircle, Package,
     ChevronLeft, Smartphone, History, Receipt, Info, Sparkles, GlassWater, MessageSquare
 } from 'lucide-react';
@@ -69,8 +69,8 @@ export default function PublicOrderClient() {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
             if (existing) {
-                return prev.map(i => i.service.id === service.id 
-                    ? { ...i, quantity: i.quantity + 1 } 
+                return prev.map(i => i.service.id === service.id
+                    ? { ...i, quantity: i.quantity + 1 }
                     : i
                 );
             }
@@ -88,7 +88,7 @@ export default function PublicOrderClient() {
             return prev.filter(i => i.service.id !== serviceId);
         });
     };
-    
+
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
     const handleUpdateNote = (serviceId: string, note: string) => {
@@ -111,8 +111,8 @@ export default function PublicOrderClient() {
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
-                toast({ 
-                    title: "¡Pedido Enviado!", 
+                toast({
+                    title: "¡Pedido Enviado!",
                     description: "En un momento lo llevaremos a tu mesa.",
                 });
                 setCart([]);
@@ -129,8 +129,8 @@ export default function PublicOrderClient() {
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
-                toast({ 
-                    title: "Cuenta Solicitada", 
+                toast({
+                    title: "Cuenta Solicitada",
                     description: "El personal vendrá a tu mesa en breve.",
                 });
             }
@@ -181,21 +181,21 @@ export default function PublicOrderClient() {
 
             {/* Navigation Tabs */}
             <div className="px-4 py-2 border-b bg-card/30 shrink-0 flex gap-2">
-                <button 
+                <button
                     onClick={() => setActiveTab('menu')}
                     className={cn(
                         "flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
                         activeTab === 'menu' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted"
-                    )} id="publicorderclient-button-men" data-testid="publicorderclient-button-men"
+                    )} id="publicorderclient-button-men" data-testid="publicorderclient-action-menu-button"
                 >
                     MENÚ
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('account')}
                     className={cn(
                         "flex-1 h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all relative",
                         activeTab === 'account' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted"
-                    )} id="publicorderclient-button-mi-cuenta" data-testid="publicorderclient-button-mi-cuenta"
+                    )} id="publicorderclient-button-mi-cuenta" data-testid="publicorderclient-action-account-button"
                 >
                     MI CUENTA
                     {activeOrder && (
@@ -214,32 +214,32 @@ export default function PublicOrderClient() {
                         <div className="p-4 bg-muted/5 space-y-4 shrink-0">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Buscar en el menú..." 
+                                <Input
+                                    placeholder="Buscar en el menú..."
                                     className="pl-10 h-12 bg-card rounded-2xl border-none shadow-sm focus-visible:ring-primary"
                                     value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el" data-testid="publicorderclient-input-buscar-en-el"
+                                    onChange={e => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el" data-testid="publicorderclient-search-input"
                                 />
                             </div>
                             <ScrollArea className="w-full">
                                 <div className="flex gap-2 pb-2">
-                                    <button 
+                                    <button
                                         onClick={() => setSelectedCategoryId(null)}
                                         className={cn(
                                             "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
                                             selectedCategoryId === null ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"
-                                        )} id="publicorderclient-button-todos" data-testid="publicorderclient-button-todos"
+                                        )} id="publicorderclient-button-todos" data-testid="publicorderclient-action-all-button"
                                     >
                                         TODOS
                                     </button>
                                     {categories?.map(cat => (
-                                        <button 
+                                        <button
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryId(cat.id)}
                                             className={cn(
                                                 "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
                                                 selectedCategoryId === cat.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"
-                                            )} id="publicorderclient-button-1" data-testid="publicorderclient-button-1"
+                                            )} id="publicorderclient-button-1" data-testid="publicorderclient-action-category-button"
                                         >
                                             {cat.name}
                                         </button>
@@ -253,7 +253,7 @@ export default function PublicOrderClient() {
                         <ScrollArea className="flex-1">
                             <div className="grid grid-cols-2 gap-4 p-4 pb-32">
                                 {filteredServices.map(service => (
-                                    <div 
+                                    <div
                                         key={service.id}
                                         className="group bg-card rounded-3xl border border-border/50 overflow-hidden flex flex-col shadow-sm hover:shadow-xl transition-all active:scale-95"
                                         onClick={() => handleAddToCart(service)}
@@ -271,7 +271,7 @@ export default function PublicOrderClient() {
                                             <p className="text-[9px] text-muted-foreground font-bold uppercase">{service.category === 'Food' ? 'Cocina' : 'Bar'}</p>
                                         </div>
                                         <div className="p-2 pt-0 mt-auto">
-                                            <Button variant="secondary" className="w-full h-8 rounded-xl font-black text-[9px] uppercase tracking-widest" id="publicorderclient-button-agregar" data-testid="publicorderclient-button-agregar">
+                                            <Button variant="secondary" className="w-full h-8 rounded-xl font-black text-[9px] uppercase tracking-widest" id="publicorderclient-button-agregar" data-testid="publicorderclient-add-button">
                                                 AGREGAR <Plus className="ml-1 h-3 w-3" />
                                             </Button>
                                         </div>
@@ -318,24 +318,24 @@ export default function PublicOrderClient() {
                                                                 {item.category === 'Food' ? <Utensils className="h-3 w-3 text-orange-500" /> : <GlassWater className="h-3 w-3 text-blue-500" />}
                                                             </div>
                                                         </div>
-                                                            <div className="flex flex-col">
-                                                                <p className="font-black text-sm uppercase tracking-tight truncate">{item.name}</p>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
-                                                                    {item.status === 'Pendiente' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">Pendiente</Badge>}
-                                                                    {item.status === 'En preparación' && (
-                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-200 animate-pulse">
-                                                                            {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
-                                                                        </Badge>
-                                                                    )}
-                                                                    {item.status === 'Entregado' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border-green-200">Entregado</Badge>}
-                                                                </div>
-                                                                {item.notes && (
-                                                                    <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
-                                                                        "{item.notes}"
-                                                                    </p>
+                                                        <div className="flex flex-col">
+                                                            <p className="font-black text-sm uppercase tracking-tight truncate">{item.name}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <p className="text-[10px] text-muted-foreground font-bold">{formatCurrency(item.price)} c/u</p>
+                                                                {item.status === 'Pendiente' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">Pendiente</Badge>}
+                                                                {item.status === 'En preparación' && (
+                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-blue-200 animate-pulse">
+                                                                        {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
+                                                                    </Badge>
                                                                 )}
+                                                                {item.status === 'Entregado' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border-green-200">Entregado</Badge>}
                                                             </div>
+                                                            {item.notes && (
+                                                                <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
+                                                                    "{item.notes}"
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="text-right ml-4 shrink-0">
                                                         <p className="font-black text-sm tabular-nums">{formatCurrency(item.price * item.quantity)}</p>
@@ -354,10 +354,10 @@ export default function PublicOrderClient() {
                                     </div>
 
                                     {!activeOrder.billRequested && (
-                                        <Button 
+                                        <Button
                                             onClick={handleRequestBill}
                                             disabled={isPending}
-                                            className="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20" data-testid="publicorderclient-button-solicitar-cuenta"
+                                            className="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20" data-testid="publicorderclient-action-bill-button"
                                         >
                                             SOLICITAR CUENTA
                                         </Button>
@@ -376,9 +376,9 @@ export default function PublicOrderClient() {
                                 </div>
                                 <h3 className="text-xl font-black uppercase tracking-tighter mb-2">SIN CUENTA ACTIVA</h3>
                                 <p className="text-sm text-muted-foreground max-w-xs mb-8 font-medium">Realiza tu primer pedido desde la sección de Menú para iniciar tu consumo en esta mesa.</p>
-                                <Button 
+                                <Button
                                     onClick={() => setActiveTab('menu')}
-                                    className="rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20" id="publicorderclient-button-ver-el-men" data-testid="publicorderclient-button-ver-el-men"
+                                    className="rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20" id="publicorderclient-button-ver-el-men" data-testid="publicorderclient-action-menu-button"
                                 >
                                     VER EL MENÚ AHORA
                                 </Button>
@@ -397,19 +397,19 @@ export default function PublicOrderClient() {
                                 <div key={item.service.id} className="bg-card border-2 border-primary/20 rounded-2xl p-3 animate-in slide-in-from-bottom-5 duration-300">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-[10px] font-black uppercase text-primary">Instrucciones: {item.service.name}</span>
-                                        <button onClick={() => setEditingNoteId(null)} className="text-[10px] font-bold text-muted-foreground uppercase h-6 px-2" data-testid="publicorderclient-button-cerrar">Cerrar</button>
+                                        <button onClick={() => setEditingNoteId(null)} className="text-[10px] font-bold text-muted-foreground uppercase h-6 px-2" data-testid="publicorderclient-close-button">Cerrar</button>
                                     </div>
-                                    <Input 
-                                        placeholder="Ej: Sin sal, término medio..." 
+                                    <Input
+                                        placeholder="Ej: Sin sal, término medio..."
                                         className="h-10 text-xs bg-muted/30 border-none font-bold"
                                         value={item.notes || ''}
                                         onChange={(e) => handleUpdateNote(item.service.id, e.target.value)}
-                                        autoFocus data-testid="publicorderclient-input-ej-sin-sal"
+                                        autoFocus data-testid="publicorderclient-notes-input"
                                     />
                                 </div>
                             )
                         ))}
-                        
+
                         <div className="bg-primary p-4 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-primary/40 border-2 border-white/10 animate-in slide-in-from-bottom-10 duration-500">
                             <div className="flex items-center gap-4 ml-2">
                                 <div className="relative">
@@ -424,16 +424,16 @@ export default function PublicOrderClient() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button 
+                                <button
                                     onClick={() => setEditingNoteId(editingNoteId ? null : cart[0].service.id)}
-                                    className="bg-white/10 text-white hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors" data-testid="publicorderclient-button-2"
+                                    className="bg-white/10 text-white hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors" data-testid="publicorderclient-action-notes-button"
                                 >
                                     <MessageSquare className="h-4 w-4" />
                                 </button>
-                                <Button 
+                                <Button
                                     onClick={handleSendOrder}
                                     disabled={isPending}
-                                    className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner" id="publicorderclient-button-1-1" data-testid="publicorderclient-button-1-1"
+                                    className="bg-white text-primary hover:bg-white/90 rounded-3xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2 shadow-inner" id="publicorderclient-button-send-order" data-testid="publicorderclient-send-order-button"
                                 >
                                     {isPending ? "ENVIANDO..." : "ENVIAR PEDIDO"} <ArrowRight className="h-4 w-4" />
                                 </Button>

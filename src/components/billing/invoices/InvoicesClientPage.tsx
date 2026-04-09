@@ -153,7 +153,7 @@ export default function InvoicesClientPage() {
                             placeholder="Cliente o N° factura..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 w-full lg:w-64 bg-background" id="invoicesclientpage-input-cliente-o-n" data-testid="invoicesclientpage-input-cliente-o-n"
+                            className="pl-9 w-full lg:w-64 bg-background" id="invoicesclientpage-input-cliente-o-n" data-testid="invoicesclientpage-1-input"
                         />
                     </div>
                 </div>
@@ -161,7 +161,7 @@ export default function InvoicesClientPage() {
                 <div className="grid gap-2 w-full lg:w-auto">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Periodo</label>
                     <Select value={period} onValueChange={handlePeriodChange}>
-                        <SelectTrigger className="w-full lg:w-48 bg-background" id="invoicesclientpage-selecttrigger-1" data-testid="invoicesclientpage-selecttrigger-1">
+                        <SelectTrigger className="w-full lg:w-48 bg-background" id="invoicesclientpage-selecttrigger-1" data-testid="invoicesclientpage-1-select">
                             <SelectValue placeholder="Seleccionar periodo" />
                         </SelectTrigger>
                         <SelectContent>
@@ -181,7 +181,7 @@ export default function InvoicesClientPage() {
                         <div className="flex items-center gap-2">
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full lg:w-auto justify-start text-left font-normal bg-background", !dateRange.from && "text-muted-foreground")} id="invoicesclientpage-button-1" data-testid="invoicesclientpage-button-1">
+                                    <Button variant="outline" className={cn("w-full lg:w-auto justify-start text-left font-normal bg-background", !dateRange.from && "text-muted-foreground")} id="invoicesclientpage-button-1" data-testid="invoicesclientpage-action-button">
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : "Desde"}
                                     </Button>
@@ -198,7 +198,7 @@ export default function InvoicesClientPage() {
                             <span className="text-muted-foreground">-</span>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full lg:w-auto justify-start text-left font-normal bg-background", !dateRange.to && "text-muted-foreground")} id="invoicesclientpage-button-2" data-testid="invoicesclientpage-button-2">
+                                    <Button variant="outline" className={cn("w-full lg:w-auto justify-start text-left font-normal bg-background", !dateRange.to && "text-muted-foreground")} id="invoicesclientpage-button-2" data-testid="invoicesclientpage-action-button">
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : "Hasta"}
                                     </Button>
@@ -226,7 +226,7 @@ export default function InvoicesClientPage() {
                                 setPeriod('all');
                                 setDateRange({ from: undefined, to: undefined });
                             }}
-                            className="h-10 w-10 text-muted-foreground hover:text-destructive" id="invoicesclientpage-button-3" data-testid="invoicesclientpage-button-close"
+                            className="h-10 w-10 text-muted-foreground hover:text-destructive" id="invoicesclientpage-button-3" data-testid="invoicesclientpage-close-button"
                         >
                             <X className="h-4 w-4" />
                         </Button>
@@ -234,7 +234,7 @@ export default function InvoicesClientPage() {
                     <Button 
                         onClick={handleExportPDF} 
                         disabled={filteredInvoices.length === 0 || isExporting}
-                        className="flex-1 lg:flex-none h-10 gap-2 font-bold" id="invoicesclientpage-button-4" data-testid="invoicesclientpage-button-4"
+                        className="flex-1 lg:flex-none h-10 gap-2 font-bold" id="invoicesclientpage-button-4" data-testid="invoicesclientpage-action-button"
                     >
                         <Download className="h-4 w-4" />
                         {isExporting ? "Generando..." : "Exportar Reporte"}

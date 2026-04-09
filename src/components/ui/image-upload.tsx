@@ -71,7 +71,7 @@ export function ImageUpload({ value, onChange, path = 'landing-page' }: ImageUpl
                 }
               }
               onChange('');
-            }} data-testid="image-upload-button-close"
+            }}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -83,7 +83,7 @@ export function ImageUpload({ value, onChange, path = 'landing-page' }: ImageUpl
             accept="image/*"
             className="hidden"
             onChange={onFileChange}
-            disabled={uploading} data-testid="image-upload-input-1"
+            disabled={uploading}
           />
           {uploading ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

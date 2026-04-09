@@ -20,17 +20,17 @@ function CleaningRoomCard({ room }: { room: Room }) {
 
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined;
-    
+
         if (room.status === 'Cleaning' && room.statusUpdatedAt) {
-          const update = () => {
-            setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es, addSuffix: true }));
-          };
-          update();
-          intervalId = setInterval(update, 60000); // update every minute
+            const update = () => {
+                setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es, addSuffix: true }));
+            };
+            update();
+            intervalId = setInterval(update, 60000); // update every minute
         } else {
             setTimeInStatus('');
         }
-    
+
         return () => clearInterval(intervalId);
     }, [room.status, room.statusUpdatedAt]);
 
@@ -59,7 +59,7 @@ function CleaningRoomCard({ room }: { room: Room }) {
                 <CardDescription>{room.roomTypeName}</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full" onClick={handleSetAvailable} disabled={isPending} id="cleaningqueuepage-button-1" data-testid="cleaningqueuepage-button-1">
+                <Button className="w-full" onClick={handleSetAvailable} disabled={isPending} id="cleaningqueuepage-button-1" data-testid="cleaningqueuepage-mark-available-button">
                     <Check className="mr-2 h-4 w-4" />
                     {isPending ? 'Actualizando...' : 'Marcar como Disponible'}
                 </Button>
@@ -74,14 +74,14 @@ export default function CleaningQueuePage() {
     const cleaningRoomsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
-            collection(firestore, "rooms"), 
+            collection(firestore, "rooms"),
             where('status', '==', 'Cleaning'),
             orderBy('statusUpdatedAt', 'asc') // Oldest first
         );
     }, [firestore]);
 
     const { data: cleaningRooms, isLoading } = useCollection<Room>(cleaningRoomsQuery);
-    
+
     if (isLoading) {
         return (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -95,11 +95,11 @@ export default function CleaningQueuePage() {
     if (!cleaningRooms || cleaningRooms.length === 0) {
         return (
             <div className="text-center py-16 border-2 border-dashed rounded-lg flex flex-col items-center gap-4">
-              <Sparkles className="h-12 w-12 text-muted-foreground" />
-              <h3 className="text-lg font-medium text-muted-foreground">¡Todo Limpio!</h3>
-              <p className="text-sm text-muted-foreground">
-                No hay habitaciones en la cola de limpieza en este momento.
-              </p>
+                <Sparkles className="h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-medium text-muted-foreground">¡Todo Limpio!</h3>
+                <p className="text-sm text-muted-foreground">
+                    No hay habitaciones en la cola de limpieza en este momento.
+                </p>
             </div>
         )
     }

@@ -41,7 +41,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleBold().run()}
           data-active={editor.isActive('bold') ? 'true' : 'false'}
-          style={editor.isActive('bold') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-1"
+          style={editor.isActive('bold') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Bold className="h-4 w-4" />
         </Button>
@@ -52,7 +52,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           data-active={editor.isActive('italic') ? 'true' : 'false'}
-          style={editor.isActive('italic') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-2"
+          style={editor.isActive('italic') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Italic className="h-4 w-4" />
         </Button>
@@ -63,7 +63,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleStrike().run()}
           data-active={editor.isActive('strike') ? 'true' : 'false'}
-          style={editor.isActive('strike') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-3"
+          style={editor.isActive('strike') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Strikethrough className="h-4 w-4" />
         </Button>
@@ -74,7 +74,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          style={editor.isActive('heading', { level: 1 }) ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-4"
+          style={editor.isActive('heading', { level: 1 }) ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Heading1 className="h-4 w-4" />
         </Button>
@@ -84,7 +84,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          style={editor.isActive('heading', { level: 2 }) ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-5"
+          style={editor.isActive('heading', { level: 2 }) ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Heading2 className="h-4 w-4" />
         </Button>
@@ -95,7 +95,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          style={editor.isActive('bulletList') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-6"
+          style={editor.isActive('bulletList') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <List className="h-4 w-4" />
         </Button>
@@ -105,7 +105,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          style={editor.isActive('orderedList') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-7"
+          style={editor.isActive('orderedList') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
@@ -115,7 +115,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          style={editor.isActive('blockquote') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}} data-testid="rich-text-editor-button-8"
+          style={editor.isActive('blockquote') ? { backgroundColor: 'var(--primary)', color: 'white' } : {}}
         >
           <Quote className="h-4 w-4" />
         </Button>
@@ -125,7 +125,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} data-testid="rich-text-editor-button-9"
+          onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
         >
           <RemoveFormatting className="h-4 w-4" />
         </Button>
@@ -136,7 +136,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()} data-testid="rich-text-editor-button-10"
+          disabled={!editor.can().undo()}
         >
           <Undo className="h-4 w-4" />
         </Button>
@@ -146,7 +146,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           size="icon"
           className="h-8 w-8"
           onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()} data-testid="rich-text-editor-button-11"
+          disabled={!editor.can().redo()}
         >
           <Redo className="h-4 w-4" />
         </Button>

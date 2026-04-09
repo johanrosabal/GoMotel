@@ -33,7 +33,7 @@ function InfoRow({ label, value, icon: Icon, children }: { label: string; value?
     return (
         <div className="flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                 <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
             </div>
             <div className="flex-1">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
@@ -50,7 +50,7 @@ export default function RoomDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const roomId = params.id as string
-    
+
     const [availableServices, setAvailableServices] = useState<Service[]>([])
     const { toast } = useToast()
     const [timeInStatus, setTimeInStatus] = useState('');
@@ -84,7 +84,7 @@ export default function RoomDetailsPage() {
         if (!firestore || !stay?.id) return null;
         return query(collection(firestore, 'orders'), where('stayId', '==', stay.id), orderBy('createdAt', 'desc'));
     }, [firestore, stay?.id]);
-    
+
     const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
     const activeOrders = useMemo(() => {
@@ -98,7 +98,7 @@ export default function RoomDetailsPage() {
         const servicesSubtotal = unpaidOrders.reduce((sum, o) => sum + (o.subtotal || o.total), 0);
         const servicesTaxes = unpaidOrders.reduce((sum, o) => sum + (o.total - (o.subtotal || o.total)), 0);
         const upfrontPaid = stay.paymentAmount || 0;
-        
+
         const totalStay = roomTotal + servicesSubtotal + servicesTaxes;
         const netDue = Math.max(0, totalStay - upfrontPaid);
 
@@ -113,20 +113,20 @@ export default function RoomDetailsPage() {
 
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined;
-    
+
         if (room?.status === 'Cleaning' && room.statusUpdatedAt) {
-          const update = () => {
-            setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es }));
-          };
-          update();
-          intervalId = setInterval(update, 60000); // update every minute
+            const update = () => {
+                setTimeInStatus(formatDistanceToNowStrict(room.statusUpdatedAt.toDate(), { locale: es }));
+            };
+            update();
+            intervalId = setInterval(update, 60000); // update every minute
         } else {
             setTimeInStatus('');
         }
-    
+
         return () => clearInterval(intervalId);
-      }, [room?.status, room?.statusUpdatedAt]);
-    
+    }, [room?.status, room?.statusUpdatedAt]);
+
     useEffect(() => {
         if (stay && room?.status === 'Occupied') {
             const checkOverdue = () => {
@@ -135,8 +135,8 @@ export default function RoomDetailsPage() {
                 setIsOverdue(isStayOverdue);
             };
 
-            checkOverdue(); 
-            const interval = setInterval(checkOverdue, 30000); 
+            checkOverdue();
+            const interval = setInterval(checkOverdue, 30000);
             return () => clearInterval(interval);
         } else {
             setIsOverdue(false);
@@ -149,7 +149,7 @@ export default function RoomDetailsPage() {
                 const now = new Date();
                 const checkInTime = stay.checkIn.toDate();
                 const expectedCheckOutTime = stay.expectedCheckOut.toDate();
-    
+
                 if (now >= expectedCheckOutTime) {
                     setProgress(100);
                     return;
@@ -158,16 +158,16 @@ export default function RoomDetailsPage() {
                     setProgress(0);
                     return;
                 }
-    
+
                 const totalDuration = expectedCheckOutTime.getTime() - checkInTime.getTime();
                 const elapsedTime = now.getTime() - checkInTime.getTime();
-                
+
                 const calculatedProgress = (elapsedTime / totalDuration) * 100;
-                setProgress(Math.min(100, calculatedProgress)); 
+                setProgress(Math.min(100, calculatedProgress));
             };
-    
+
             calculateProgress();
-            const interval = setInterval(calculateProgress, 60000); 
+            const interval = setInterval(calculateProgress, 60000);
             return () => clearInterval(interval);
         } else {
             setProgress(0);
@@ -184,7 +184,7 @@ export default function RoomDetailsPage() {
             toast({ title: 'Error', description: result.error, variant: 'destructive' })
         }
     }
-    
+
     const handleCancelOrder = (orderId: string) => {
         startCancelTransition(async () => {
             const result = await cancelOrder(orderId);
@@ -219,15 +219,15 @@ export default function RoomDetailsPage() {
             </div>
         )
     }
-    
-    if (!room) return null; 
+
+    if (!room) return null;
 
     const renderRoomActions = () => {
         switch (room.status) {
             case 'Available':
                 return (
                     <CreateReservationDialog isWalkIn initialRoomId={room.id}>
-                        <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" id="page-button-registrar-hu-sped" data-testid="[id]-button-registrar-hu-sped">
+                        <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" id="page-button-registrar-hu-sped" data-testid="id-action-save-guest-button">
                             <LogIn className="mr-2 h-5 w-5" /> Registrar Huésped
                         </Button>
                     </CreateReservationDialog>
@@ -236,21 +236,21 @@ export default function RoomDetailsPage() {
                 return (
                     <div className="space-y-2">
                         <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
-                            <Button className="w-full h-12 text-base sm:text-sm" id="page-button-pedir-servicio" data-testid="[id]-button-pedir-servicio">
+                            <Button className="w-full h-12 text-base sm:text-sm" id="page-button-pedir-servicio" data-testid="id-add-button">
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
 
                         {isOverdue && stay && (
-                           <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
-                               <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse" id="page-button-gestionar-estancia-vencida" data-testid="[id]-button-gestionar-estancia-vencida">
-                                   <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
-                               </Button>
-                           </ExtendStayDialog>
+                            <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
+                                <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse" id="page-button-gestionar-estancia-vencida" data-testid="id-action-checkout-expired-button">
+                                    <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
+                                </Button>
+                            </ExtendStayDialog>
                         )}
-                        
+
                         <CheckoutDialog stay={stay} room={room} orders={activeOrders || []} onCheckoutSuccess={handleInvoiceSuccess}>
-                            <Button variant="destructive" className="w-full h-12 text-base sm:text-sm" id="page-button-realizar-check-out" data-testid="[id]-button-realizar-check-out">
+                            <Button variant="destructive" className="w-full h-12 text-base sm:text-sm" id="page-button-realizar-check-out" data-testid="id-action-checkout-button">
                                 <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
                         </CheckoutDialog>
@@ -259,7 +259,7 @@ export default function RoomDetailsPage() {
             case 'Cleaning':
             case 'Maintenance':
                 return (
-                    <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable} id="page-button-marcar-como-disponible" data-testid="[id]-button-marcar-como-disponible">
+                    <Button className="w-full h-16 sm:h-12 text-base sm:text-sm" onClick={handleSetAvailable} id="page-button-marcar-como-disponible" data-testid="id-action-mark-available-button">
                         <Check className="mr-2 h-5 w-5" /> Marcar como Disponible
                     </Button>
                 )
@@ -272,13 +272,13 @@ export default function RoomDetailsPage() {
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
             <div className="flex items-center justify-end gap-2">
-                <Button asChild variant="outline" id="page-button-1" data-testid="[id]-button-1">
-                    <Link href="/reservations" id="page-link-ir-a-reservaciones" data-testid="[id]-link-ir-a-reservaciones">
+                <Button asChild variant="outline" id="page-button-1" data-testid="id-action-button">
+                    <Link href="/reservations" id="page-link-ir-a-reservaciones" data-testid="id-reservations-link">
                         <CalendarPlus className="mr-2 h-4 w-4" />
                         Ir a Reservaciones
                     </Link>
                 </Button>
-                <Button variant="outline" onClick={() => router.back()} id="page-button-volver" data-testid="[id]-button-volver">
+                <Button variant="outline" onClick={() => router.back()} id="page-button-volver" data-testid="id-back-button">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver
                 </Button>
@@ -293,21 +293,21 @@ export default function RoomDetailsPage() {
                                     <div className="flex flex-col items-end gap-1">
                                         <StatusBadge status={room.status} isOverdue={isOverdue} />
                                         {room.status === 'Cleaning' && timeInStatus && (
-                                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            {timeInStatus}
-                                        </div>
+                                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <Clock className="h-3 w-3" />
+                                                {timeInStatus}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                                 {stay && (
                                     <div className="flex">
-                                        <Badge 
-                                            variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'} 
+                                        <Badge
+                                            variant={stay.paymentStatus === 'Pagado' ? 'default' : 'outline'}
                                             className={cn(
                                                 "text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1 h-auto rounded-md shadow-sm border-2",
-                                                stay.paymentStatus === 'Pagado' 
-                                                    ? "bg-green-600 text-white border-green-700 shadow-sm" 
+                                                stay.paymentStatus === 'Pagado'
+                                                    ? "bg-green-600 text-white border-green-700 shadow-sm"
                                                     : "text-amber-700 border-amber-500 bg-amber-50 dark:bg-amber-950/20 shadow-sm"
                                             )}
                                         >
@@ -344,13 +344,13 @@ export default function RoomDetailsPage() {
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {stay?.extensionHistory && stay.extensionHistory.length > 0 && (
                                             <Collapsible>
                                                 <div className="flex items-start justify-between">
                                                     <InfoRow label="Renovaciones" value={`${stay.extensionHistory.length} ${stay.extensionHistory.length > 1 ? 'veces' : 'vez'}`} icon={Repeat} />
                                                     <CollapsibleTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="mt-3 -mr-2" id="page-button-2" data-testid="[id]-button-2">
+                                                        <Button variant="ghost" size="sm" className="mt-3 -mr-2" id="page-button-2" data-testid="id-action-hide-show-history-button">
                                                             <ChevronsUpDown className="h-4 w-4" />
                                                             <span className="sr-only">Mostrar/Ocultar Historial</span>
                                                         </Button>
@@ -447,86 +447,86 @@ export default function RoomDetailsPage() {
                     )}
                 </div>
                 <div className="md:col-span-2">
-                     <Card className="h-full flex flex-col">
+                    <Card className="h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>Detalles de la Estancia Actual</CardTitle>
                             <CardDescription>Servicios y pedidos para el huésped actual.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow">
-                             {room.status === 'Occupied' && stay ? (
+                            {room.status === 'Occupied' && stay ? (
                                 <>
-                                {activeOrders && activeOrders.length > 0 ? (
-                                    <ul className="space-y-4">
-                                        {activeOrders.map(order => (
-                                            <li key={order.id} className="p-4 border rounded-xl bg-muted/30 shadow-sm transition-all hover:shadow-md border-primary/10">
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <div className='flex items-center gap-2'>
-                                                        <History className="w-4 h-4 text-muted-foreground" />
-                                                        <p className="text-xs font-black uppercase tracking-widest">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
-                                                        <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className="text-[10px] h-5">{order.status}</Badge>
+                                    {activeOrders && activeOrders.length > 0 ? (
+                                        <ul className="space-y-4">
+                                            {activeOrders.map(order => (
+                                                <li key={order.id} className="p-4 border rounded-xl bg-muted/30 shadow-sm transition-all hover:shadow-md border-primary/10">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div className='flex items-center gap-2'>
+                                                            <History className="w-4 h-4 text-muted-foreground" />
+                                                            <p className="text-xs font-black uppercase tracking-widest">Pedido - {format(order.createdAt.toDate(), 'h:mm a', { locale: es })}</p>
+                                                            <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className="text-[10px] h-5">{order.status}</Badge>
+                                                        </div>
+                                                        <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] tracking-widest" id="page-button-3" data-testid="id-action-is-cancel-button">
+                                                            {isCancelling ? '...' : 'Remover'}
+                                                        </Button>
                                                     </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={isCancelling} className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] tracking-widest" id="page-button-3" data-testid="[id]-button-cancel">
-                                                        {isCancelling ? '...' : 'Remover'}
-                                                    </Button>
-                                                </div>
-                                                <ul className="space-y-2 mb-4">
-                                                    {order.items.map(item => (
-                                                        <li key={item.serviceId} className="flex justify-between items-start group">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="font-black text-sm text-primary">{item.quantity}x</span>
-                                                                <div className="flex flex-col">
-                                                                    <span className="uppercase text-xs font-bold tracking-tight">{item.name}</span>
-                                                                    <div className="flex gap-1.5 items-center mt-0.5">
-                                                                        {item.category === 'Food' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-orange-50 border-orange-200 text-orange-700">{order.kitchenStatus}</Badge>}
-                                                                        {item.category === 'Beverage' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-blue-50 border-blue-200 text-blue-700">{order.barStatus}</Badge>}
+                                                    <ul className="space-y-2 mb-4">
+                                                        {order.items.map(item => (
+                                                            <li key={item.serviceId} className="flex justify-between items-start group">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="font-black text-sm text-primary">{item.quantity}x</span>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="uppercase text-xs font-bold tracking-tight">{item.name}</span>
+                                                                        <div className="flex gap-1.5 items-center mt-0.5">
+                                                                            {item.category === 'Food' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-orange-50 border-orange-200 text-orange-700">{order.kitchenStatus}</Badge>}
+                                                                            {item.category === 'Beverage' && <Badge variant="outline" className="text-[8px] h-3.5 uppercase bg-blue-50 border-blue-200 text-blue-700">{order.barStatus}</Badge>}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                            <span className="font-bold text-xs text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                                
-                                                <div className="pt-3 border-t border-dashed border-primary/20 space-y-1">
-                                                    {(order.taxes && order.taxes.length > 0) ? (
-                                                        <>
-                                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
-                                                                <span>Subtotal Neto:</span>
-                                                                <span>{formatCurrency(order.subtotal || order.total)}</span>
-                                                            </div>
-                                                            {order.taxes.map(tax => (
-                                                                <div key={tax.taxId} className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
-                                                                    <span>{tax.name} ({tax.percentage}%):</span>
-                                                                    <span>{formatCurrency(tax.amount)}</span>
+                                                                <span className="font-bold text-xs text-muted-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+
+                                                    <div className="pt-3 border-t border-dashed border-primary/20 space-y-1">
+                                                        {(order.taxes && order.taxes.length > 0) ? (
+                                                            <>
+                                                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
+                                                                    <span>Subtotal Neto:</span>
+                                                                    <span>{formatCurrency(order.subtotal || order.total)}</span>
                                                                 </div>
-                                                            ))}
-                                                        </>
-                                                    ) : (
-                                                        <p className="text-[9px] italic text-muted-foreground/50">Impuestos incluidos en total.</p>
-                                                    )}
-                                                    <div className="flex justify-between items-center pt-1">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total del Pedido:</span>
-                                                        <span className="text-lg font-black text-primary tracking-tighter">{formatCurrency(order.total)}</span>
+                                                                {order.taxes.map(tax => (
+                                                                    <div key={tax.taxId} className="flex justify-between text-[10px] font-bold text-muted-foreground/70 uppercase">
+                                                                        <span>{tax.name} ({tax.percentage}%):</span>
+                                                                        <span>{formatCurrency(tax.amount)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        ) : (
+                                                            <p className="text-[9px] italic text-muted-foreground/50">Impuestos incluidos en total.</p>
+                                                        )}
+                                                        <div className="flex justify-between items-center pt-1">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total del Pedido:</span>
+                                                            <span className="text-lg font-black text-primary tracking-tighter">{formatCurrency(order.total)}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed p-6">
-                                        <ConciergeBell className="mx-auto h-12 w-12" />
-                                        <p className="mt-4 mb-6">Aún no se han pedido servicios para esta estancia.</p>
-                                        <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
-                                            <Button id="page-button-a-adir-pedido" data-testid="[id]-button-a-adir-pedido">
-                                                <PlusCircle className="mr-2 h-4 w-4" />
-                                                Añadir Pedido
-                                            </Button>
-                                        </OrderServiceDialog>
-                                    </div>
-                                )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed p-6">
+                                            <ConciergeBell className="mx-auto h-12 w-12" />
+                                            <p className="mt-4 mb-6">Aún no se han pedido servicios para esta estancia.</p>
+                                            <OrderServiceDialog stayId={stay?.id} availableServices={availableServices} onOrderSuccess={handleInvoiceSuccess}>
+                                                <Button id="page-button-a-adir-pedido" data-testid="id-add-order-button">
+                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                    Añadir Pedido
+                                                </Button>
+                                            </OrderServiceDialog>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
-                                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed">
+                                <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground rounded-lg border-2 border-dashed">
                                     <p>No hay una estancia activa en esta habitación.</p>
                                 </div>
                             )}

@@ -99,7 +99,7 @@ export default function SettingsPage() {
                 <Link 
                     key={module.title} 
                     href={module.href}
-                    className={`group relative flex flex-col p-6 rounded-2xl hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm ${module.badge ? 'bg-primary/5 dark:bg-primary/[0.02] border-primary/30 dark:border-primary/30 shadow-[0_0_15px_-3px_var(--tw-shadow-color)]' : 'bg-white dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800/80'}`} data-testid="settings-link-1"
+                    className={`group relative flex flex-col p-6 rounded-2xl hover:bg-neutral-50 dark:hover:bg-neutral-800/60 border hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/20 dark:shadow-primary/20 dark:hover:-translate-y-1 hover:-translate-y-1 overflow-hidden shadow-sm ${module.badge ? 'bg-primary/5 dark:bg-primary/[0.02] border-primary/30 dark:border-primary/30 shadow-[0_0_15px_-3px_var(--tw-shadow-color)]' : 'bg-white dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800/80'}`} data-testid="settings-action-link"
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     

@@ -63,22 +63,22 @@ export default function LoginPage() {
           });
           router.push('/dashboard');
         } catch (error: any) {
-             let errorMessage = 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.';
-            switch (error.code) {
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                case 'auth/invalid-credential':
-                    errorMessage = 'Correo electrónico o contraseña incorrectos.';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'El formato del correo electrónico no es válido.';
-                    break;
-            }
-             toast({
-                title: 'Error de Inicio de Sesión',
-                description: errorMessage,
-                variant: 'destructive',
-            });
+          let errorMessage = 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.';
+          switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+              errorMessage = 'Correo electrónico o contraseña incorrectos.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'El formato del correo electrónico no es válido.';
+              break;
+          }
+          toast({
+            title: 'Error de Inicio de Sesión',
+            description: errorMessage,
+            variant: 'destructive',
+          });
         }
       }
     });
@@ -100,12 +100,12 @@ export default function LoginPage() {
 
       <div className="container relative z-10 px-6 py-12 flex flex-col items-center">
         {/* Header/Logo */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 flex items-center gap-4"
         >
-          <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="login-link-1">
+          <Link href="/" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="login-back-link">
             <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
             <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Inicio</span>
           </Link>
@@ -118,20 +118,20 @@ export default function LoginPage() {
           className="w-full max-w-[480px] bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-10 md:p-14 shadow-2xl shadow-black/50"
         >
           <div className="mb-10 text-center">
-             <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                  <Lock className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Personal Autorizado</h2>
-             </div>
-             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic mb-4 text-white">
-                Bienvenido de <span className="text-primary italic border-b-2 border-primary/30">Vuelta</span>
-             </h1>
-             <p className="text-white/40 text-sm font-medium">Ingrese sus credenciales para acceder al sistema.</p>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Personal Autorizado</h2>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic mb-4 text-white">
+              Bienvenido de <span className="text-primary italic border-b-2 border-primary/30">Vuelta</span>
+            </h1>
+            <p className="text-white/40 text-sm font-medium">Ingrese sus credenciales para acceder al sistema.</p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-testid="login-form-main">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-testid="login-main-form">
               <FormField
                 control={form.control}
                 name="email"
@@ -143,7 +143,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="admin@gomotel.com"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-input-admin-gomotel-com"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-email-input"
                         />
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
@@ -157,17 +157,17 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
-                     <div className="flex items-center justify-between ml-1">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Contraseña</FormLabel>
-                        <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors" data-testid="login-link-olvid-su-contrase-a">¿Olvidó su contraseña?</Link>
-                     </div>
+                    <div className="flex items-center justify-between ml-1">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Contraseña</FormLabel>
+                      <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors" data-testid="login-1-link">¿Olvidó su contraseña?</Link>
+                    </div>
                     <FormControl>
                       <div className="relative group">
                         <Input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-input-1"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-password-input"
                         />
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         <Button
@@ -175,7 +175,7 @@ export default function LoginPage() {
                           variant="ghost"
                           size="icon"
                           className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
-                          onClick={() => setShowPassword((prev) => !prev)} data-testid="login-button-1"
+                          onClick={() => setShowPassword((prev) => !prev)} data-testid="login-action-button"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </Button>
@@ -186,10 +186,10 @@ export default function LoginPage() {
                 )}
               />
 
-              <Button 
-                type="submit" 
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative" 
-                disabled={isPending} data-testid="login-button-submit"
+              <Button
+                type="submit"
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative"
+                disabled={isPending} data-testid="login-submit-button"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isPending ? 'Validando...' : (
@@ -205,14 +205,14 @@ export default function LoginPage() {
 
           <div className="mt-12 text-center pt-8 border-t border-white/5">
             <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿No tiene una cuenta?</p>
-            <Link href="/register" data-testid="login-link-register">
+            <Link href="/register" data-testid="login-register-link">
               <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Solicitar Registro</span>
             </Link>
           </div>
         </motion.div>
 
         {/* Branding Footer */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}

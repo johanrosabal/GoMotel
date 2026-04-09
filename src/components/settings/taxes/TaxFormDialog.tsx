@@ -58,7 +58,7 @@ export default function TaxFormDialog({ open, onOpenChange, tax, children }: Tax
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="taxformdialog-form-main" data-testid="taxformdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="taxformdialog-form-main" data-testid="taxformdialog-main-form">
             <FormField
               control={form.control}
               name="name"
@@ -66,7 +66,7 @@ export default function TaxFormDialog({ open, onOpenChange, tax, children }: Tax
                 <FormItem>
                   <FormLabel>Nombre del Impuesto</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: IVA" {...field} id="taxformdialog-input-ej-iva" data-testid="taxformdialog-input-ej-iva" />
+                    <Input placeholder="Ej: IVA" {...field} id="taxformdialog-input-ej-iva" data-testid="taxformdialog-1-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -79,7 +79,7 @@ export default function TaxFormDialog({ open, onOpenChange, tax, children }: Tax
                 <FormItem>
                   <FormLabel>Porcentaje (%)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="13" {...field} id="taxformdialog-input-13" data-testid="taxformdialog-input-13" />
+                    <Input type="number" step="0.01" placeholder="13" {...field} id="taxformdialog-input-13" data-testid="taxformdialog-2-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,15 +92,15 @@ export default function TaxFormDialog({ open, onOpenChange, tax, children }: Tax
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Una breve descripción del impuesto." {...field} id="taxformdialog-textarea-una-breve-descripci-n" data-testid="taxformdialog-textarea-una-breve-descripci-n" />
+                    <Textarea placeholder="Una breve descripción del impuesto." {...field} id="taxformdialog-textarea-una-breve-descripci-n" data-testid="taxformdialog-1-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="taxformdialog-button-cancelar" data-testid="taxformdialog-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} id="taxformdialog-button-1" data-testid="taxformdialog-button-submit">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="taxformdialog-button-cancelar" data-testid="taxformdialog-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="taxformdialog-button-1" data-testid="taxformdialog-submit-button">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

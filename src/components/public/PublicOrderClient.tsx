@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-    Utensils, Beer, ShoppingCart, Plus, Minus, CheckCircle, 
+import {
+    Utensils, Beer, ShoppingCart, Plus, Minus, CheckCircle,
     Search, Trash2, Clock, MapPin, ChevronRight, X, User,
     LayoutGrid, History, Smartphone, ChevronDown
 } from 'lucide-react';
@@ -22,16 +22,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
 type CartItem = {
-  service: Service;
-  quantity: number;
+    service: Service;
+    quantity: number;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -172,13 +172,13 @@ export default function PublicOrderClient() {
     const getPrepStatusBadge = (item: any) => {
         if (!activeOrder) return null;
         const status = item.category === 'Food' ? activeOrder.kitchenStatus : activeOrder.barStatus;
-        
+
         return (
             <Badge variant="outline" className={cn(
                 "text-[9px] font-black uppercase px-2 py-0 h-5",
                 status === 'Pendiente' ? "text-amber-600 border-amber-200" :
-                status === 'En preparación' ? "text-blue-600 border-blue-200 animate-pulse" :
-                "text-green-600 border-green-200"
+                    status === 'En preparación' ? "text-blue-600 border-blue-200 animate-pulse" :
+                        "text-green-600 border-green-200"
             )}>
                 {status || 'En cola'}
             </Badge>
@@ -188,7 +188,7 @@ export default function PublicOrderClient() {
     if (!selectedTable) {
         return (
             <div className="min-h-screen bg-[#0a0a0a] text-white p-6 flex flex-col items-center justify-center">
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full max-w-4xl space-y-12"
@@ -208,7 +208,7 @@ export default function PublicOrderClient() {
                                 </TabsTrigger>
                             ))}
                         </TabsList>
-                        
+
                         {locationTypes.map(type => (
                             <TabsContent key={type} value={type} className="animate-in fade-in zoom-in-95 duration-500">
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
@@ -216,7 +216,7 @@ export default function PublicOrderClient() {
                                         <button
                                             key={table.id}
                                             onClick={() => setSelectedTable(table)}
-                                            className="aspect-square rounded-2xl border-2 border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/10 transition-all group active:scale-95" id="publicorderclient-button-1" data-testid="publicorderclient-button-1"
+                                            className="aspect-square rounded-2xl border-2 border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 hover:border-primary hover:bg-primary/10 transition-all group active:scale-95" id="publicorderclient-button-1" data-testid="publicorderclient-action-tabs-button"
                                         >
                                             <span className="text-xs font-black opacity-40 uppercase tracking-tighter group-hover:text-primary transition-colors">N°</span>
                                             <span className="text-4xl font-black leading-none">{table.number}</span>
@@ -235,7 +235,7 @@ export default function PublicOrderClient() {
         <div className="flex flex-col h-screen bg-muted/20 overflow-hidden font-sans">
             {/* Header Fijo */}
             <div className="bg-background border-b px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
-                <button onClick={() => setSelectedTable(null)} className="flex items-center gap-3" id="publicorderclient-button-2" data-testid="publicorderclient-button-2">
+                <button onClick={() => setSelectedTable(null)} className="flex items-center gap-3" id="publicorderclient-button-2" data-testid="publicorderclient-action-button">
                     <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                         <Utensils className="h-5 w-5 text-white" />
                     </div>
@@ -244,11 +244,11 @@ export default function PublicOrderClient() {
                         <p className="text-lg font-black uppercase tracking-tight text-primary">{TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}</p>
                     </div>
                 </button>
-                
+
                 <div className="flex items-center gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9 rounded-xl font-bold uppercase text-[10px] tracking-widest gap-2" id="publicorderclient-button-categor-as" data-testid="publicorderclient-button-categor-as">
+                            <Button variant="outline" size="sm" className="h-9 rounded-xl font-bold uppercase text-[10px] tracking-widest gap-2" id="publicorderclient-button-categor-as" data-testid="publicorderclient-action-button">
                                 <ChevronDown className="h-3 w-3" /> Categorías
                             </Button>
                         </DropdownMenuTrigger>
@@ -286,11 +286,11 @@ export default function PublicOrderClient() {
                     <div className="p-4 border-b bg-background shrink-0">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder="Buscar en el menú..." 
+                            <Input
+                                placeholder="Buscar en el menú..."
                                 className="pl-10 h-11 bg-muted/50 border-none rounded-xl text-sm font-medium"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el" data-testid="publicorderclient-input-buscar-en-el"
+                                onChange={(e) => setSearchTerm(e.target.value)} id="publicorderclient-input-buscar-en-el" data-testid="publicorderclient-search-input"
                             />
                         </div>
                     </div>
@@ -312,9 +312,9 @@ export default function PublicOrderClient() {
                                     </div>
                                     <CardContent className="p-3 space-y-2">
                                         <h3 className="font-black uppercase text-[11px] leading-tight line-clamp-2 min-h-[2.4em]">{service.name}</h3>
-                                        <Button 
+                                        <Button
                                             onClick={() => handleAddToCart(service)}
-                                            className="w-full h-9 rounded-2xl font-black uppercase text-[9px] tracking-widest gap-2 shadow-lg shadow-primary/10" id="publicorderclient-button-ordenar" data-testid="publicorderclient-button-ordenar"
+                                            className="w-full h-9 rounded-2xl font-black uppercase text-[9px] tracking-widest gap-2 shadow-lg shadow-primary/10" id="publicorderclient-button-ordenar" data-testid="publicorderclient-add-button"
                                         >
                                             <Plus className="h-3 w-3" /> Ordenar
                                         </Button>
@@ -363,7 +363,7 @@ export default function PublicOrderClient() {
                                         <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(activeOrder.total)}</span>
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-4 bg-muted/30 rounded-2xl text-[10px] font-bold text-center uppercase tracking-widest text-muted-foreground leading-relaxed">
                                     Para pagar su cuenta, por favor solicite la factura al personal de recepción o bar.
                                 </div>
@@ -375,7 +375,7 @@ export default function PublicOrderClient() {
 
             {/* Barra Inferior del Carrito */}
             {cart.length > 0 && (
-                <motion.div 
+                <motion.div
                     initial={{ y: 100 }}
                     animate={{ y: 0 }}
                     className="fixed bottom-0 inset-x-0 bg-background border-t p-4 pb-8 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2.5rem]"
@@ -394,11 +394,11 @@ export default function PublicOrderClient() {
                                     <p className="text-xl font-black tracking-tighter">{formatCurrency(cartTotal)}</p>
                                 </div>
                             </div>
-                            
-                            <Button 
-                                onClick={handleSendOrder} 
+
+                            <Button
+                                onClick={handleSendOrder}
                                 disabled={isPending}
-                                className="h-12 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-primary/20 gap-2" id="publicorderclient-button-1-1" data-testid="publicorderclient-button-1-1"
+                                className="h-12 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-primary/20 gap-2" id="publicorderclient-button-1-1" data-testid="publicorderclient-next-button"
                             >
                                 {isPending ? 'Enviando...' : activeOrderId ? 'Añadir a mi Cuenta' : 'Confirmar Pedido'}
                                 <ChevronRight className="h-4 w-4" />
@@ -412,13 +412,13 @@ export default function PublicOrderClient() {
                                         <span className="font-bold text-xs uppercase truncate max-w-[150px]">{item.service.name}</span>
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-2 bg-background rounded-lg p-1 border shadow-sm">
-                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-3" data-testid="publicorderclient-button-delete"><Minus className="h-3 w-3" /></button>
+                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-3" data-testid="publicorderclient-action-button"><Minus className="h-3 w-3" /></button>
                                                 <span className="text-xs font-black w-4 text-center">{item.quantity}</span>
-                                                <button onClick={() => handleAddToCart(item.service)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-4" data-testid="publicorderclient-button-add"><Plus className="h-3 w-3" /></button>
+                                                <button onClick={() => handleAddToCart(item.service)} className="h-6 w-6 flex items-center justify-center hover:text-primary" id="publicorderclient-button-4" data-testid="publicorderclient-add-button"><Plus className="h-3 w-3" /></button>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => setCart(prev => prev.filter(i => i.service.id !== item.service.id))}
-                                                className="h-8 w-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" id="publicorderclient-button-5" data-testid="publicorderclient-button-delete"
+                                                className="h-8 w-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" id="publicorderclient-button-5" data-testid="publicorderclient-delete-button"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

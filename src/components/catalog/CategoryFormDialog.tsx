@@ -55,7 +55,7 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="categoryformdialog-form-main" data-testid="categoryformdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="categoryformdialog-form-main" data-testid="categoryformdialog-main-form">
             <FormField
               control={form.control}
               name="name"
@@ -63,7 +63,7 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
                 <FormItem>
                   <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Bebidas" {...field} id="categoryformdialog-input-ej-bebidas" data-testid="categoryformdialog-input-ej-bebidas" />
+                    <Input placeholder="Ej: Bebidas" {...field} id="categoryformdialog-input-ej-bebidas" data-testid="categoryformdialog-name-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -76,15 +76,15 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Cat
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Una breve descripción de la categoría." {...field} id="categoryformdialog-textarea-una-breve-descripci-n" data-testid="categoryformdialog-textarea-una-breve-descripci-n" />
+                    <Textarea placeholder="Una breve descripción de la categoría." {...field} id="categoryformdialog-textarea-una-breve-descripci-n" data-testid="categoryformdialog-description-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="categoryformdialog-button-cancelar" data-testid="categoryformdialog-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} id="categoryformdialog-button-1" data-testid="categoryformdialog-button-submit">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="categoryformdialog-button-cancelar" data-testid="categoryformdialog-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="categoryformdialog-button-1" data-testid="categoryformdialog-submit-button">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

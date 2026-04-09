@@ -28,17 +28,17 @@ export default function PurchasesClientPage() {
   const filteredInvoices = useMemo(() => {
     if (!purchaseInvoices) return [];
     return purchaseInvoices.filter(invoice => {
-        const searchContent = `${invoice.invoiceNumber} ${invoice.supplierName}`.toLowerCase();
-        return searchContent.includes(searchTerm.toLowerCase());
+      const searchContent = `${invoice.invoiceNumber} ${invoice.supplierName}`.toLowerCase();
+      return searchContent.includes(searchTerm.toLowerCase());
     });
   }, [purchaseInvoices, searchTerm]);
-  
+
   const handleView = (purchase: PurchaseInvoice) => {
     setEditingPurchase(purchase);
     setIsReadOnly(true);
     setIsFormOpen(true);
   };
-  
+
   const handleAdd = () => {
     setEditingPurchase(undefined);
     setIsReadOnly(false);
@@ -48,23 +48,23 @@ export default function PurchasesClientPage() {
 
   return (
     <div className="space-y-4">
-       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <Input
-              placeholder="Buscar por N° de factura o proveedor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm" id="purchasesclientpage-input-buscar-por-n" data-testid="purchasesclientpage-input-buscar-por-n"
-          />
-          <Button onClick={handleAdd} id="purchasesclientpage-button-registrar-factura-de" data-testid="purchasesclientpage-button-registrar-factura-de">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Registrar Factura de Compra
-          </Button>
-          <PurchaseInvoiceFormDialog 
-            open={isFormOpen} 
-            onOpenChange={setIsFormOpen} 
-            purchaseInvoice={editingPurchase}
-            readOnly={isReadOnly}
-          />
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <Input
+          placeholder="Buscar por N° de factura o proveedor..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm" id="purchasesclientpage-input-buscar-por-n" data-testid="purchasesclientpage-search-input"
+        />
+        <Button onClick={handleAdd} id="purchasesclientpage-button-registrar-factura-de" data-testid="purchasesclientpage-add-button">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Registrar Factura de Compra
+        </Button>
+        <PurchaseInvoiceFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          purchaseInvoice={editingPurchase}
+          readOnly={isReadOnly}
+        />
       </div>
       {isLoading ? (
         <div className="space-y-2 rounded-md border p-4">

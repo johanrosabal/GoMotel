@@ -113,32 +113,32 @@ export default function UserFormDialog({ children, user, open: controlledOpen, o
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="userformdialog-form-main" data-testid="userformdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="userformdialog-form-main" data-testid="userformdialog-main-form">
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="firstName" render={({ field }) => (
-                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} id="userformdialog-input-1" data-testid="userformdialog-input-1" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} id="userformdialog-input-1" data-testid="userformdialog-1-input" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="lastName" render={({ field }) => (
-                    <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input {...field} id="userformdialog-input-2" data-testid="userformdialog-input-2" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input {...field} id="userformdialog-input-2" data-testid="userformdialog-2-input" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="secondLastName" render={({ field }) => (
-                    <FormItem><FormLabel>Segundo Apellido</FormLabel><FormControl><Input {...field} id="userformdialog-input-3" data-testid="userformdialog-input-3" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Segundo Apellido</FormLabel><FormControl><Input {...field} id="userformdialog-input-3" data-testid="userformdialog-3-input" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="idCard" render={({ field }) => (
-                    <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input {...field} placeholder="0-0000-0000" id="userformdialog-input-0-0000-0000" data-testid="userformdialog-input-0-0000-0000" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Cédula</FormLabel><FormControl><Input {...field} placeholder="0-0000-0000" id="userformdialog-input-0-0000-0000" data-testid="userformdialog-4-input" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" {...field} readOnly={isEdit} className={isEdit ? "bg-muted" : ""} id="userformdialog-input-4" data-testid="userformdialog-input-4" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" {...field} readOnly={isEdit} className={isEdit ? "bg-muted" : ""} id="userformdialog-input-4" data-testid="userformdialog-5-input" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="role" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Rol / Permisos</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger id="userformdialog-selecttrigger-1" data-testid="userformdialog-selecttrigger-1"><SelectValue /></SelectTrigger></FormControl>
+                            <FormControl><SelectTrigger id="userformdialog-selecttrigger-1" data-testid="userformdialog-1-select"><SelectValue /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="Administrador">Administrador</SelectItem>
                                 <SelectItem value="Recepcion">Recepción</SelectItem>
@@ -152,20 +152,20 @@ export default function UserFormDialog({ children, user, open: controlledOpen, o
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input {...field} placeholder="(506) 8888-8888" id="userformdialog-input-506-8888-8888" data-testid="userformdialog-input-506-8888-8888" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input {...field} placeholder="(506) 8888-8888" id="userformdialog-input-506-8888-8888" data-testid="userformdialog-6-input" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="birthDate" render={({ field }) => (
-                    <FormItem><FormLabel>Fecha de Nacimiento</FormLabel><FormControl><Input type="date" {...field} id="userformdialog-input-5" data-testid="userformdialog-input-5" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Fecha de Nacimiento</FormLabel><FormControl><Input type="date" {...field} id="userformdialog-input-5" data-testid="userformdialog-7-input" /></FormControl><FormMessage /></FormItem>
                 )} />
             </div>
             {!isEdit && (
                 <FormField control={form.control} name="password" render={({ field }) => (
-                    <FormItem><FormLabel>Contraseña Inicial</FormLabel><FormControl><Input type="password" {...field} id="userformdialog-input-6" data-testid="userformdialog-input-6" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Contraseña Inicial</FormLabel><FormControl><Input type="password" {...field} id="userformdialog-input-6" data-testid="userformdialog-8-input" /></FormControl><FormMessage /></FormItem>
                 )} />
             )}
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} id="userformdialog-button-cancelar" data-testid="userformdialog-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} id="userformdialog-button-1" data-testid="userformdialog-button-submit">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} id="userformdialog-button-cancelar" data-testid="userformdialog-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="userformdialog-button-1" data-testid="userformdialog-submit-button">
                 {isPending ? 'Guardando...' : (isEdit ? 'Guardar Cambios' : 'Crear Usuario')}
               </Button>
             </DialogFooter>

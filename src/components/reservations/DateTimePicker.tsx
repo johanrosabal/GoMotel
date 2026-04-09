@@ -21,7 +21,7 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
         const numValue = parseInt(value, 10);
         if (isNaN(numValue)) return;
 
-        switch(part) {
+        switch (part) {
             case 'day':
                 newDate.setDate(numValue);
                 break;
@@ -52,7 +52,7 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
         value: String(i + 1),
         label: new Date(2000, i, 1).toLocaleString('es', { month: 'long' }),
     }));
-    
+
     const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
     const days = year && month ? Array.from({ length: daysInMonth(parseInt(year, 10), parseInt(month, 10)) }, (_, i) => String(i + 1)) : [];
 
@@ -71,19 +71,19 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
         <div className="space-y-2">
             <div className="grid grid-cols-3 gap-2">
                 <Select value={day} onValueChange={(value) => handleValueChange('day', value)}>
-                    <SelectTrigger id="datetimepicker-selecttrigger-1" data-testid="datetimepicker-selecttrigger-1"><SelectValue placeholder="Día" /></SelectTrigger>
+                    <SelectTrigger id="datetimepicker-selecttrigger-1" data-testid="datetimepicker-day-select"><SelectValue placeholder="Día" /></SelectTrigger>
                     <SelectContent>
                         {days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={month} onValueChange={(value) => handleValueChange('month', value)}>
-                    <SelectTrigger id="datetimepicker-selecttrigger-2" data-testid="datetimepicker-selecttrigger-2"><SelectValue placeholder="Mes" /></SelectTrigger>
+                    <SelectTrigger id="datetimepicker-selecttrigger-2" data-testid="datetimepicker-month-select"><SelectValue placeholder="Mes" /></SelectTrigger>
                     <SelectContent>
                         {months.map(m => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                 <Select value={year} onValueChange={(value) => handleValueChange('year', value)}>
-                    <SelectTrigger id="datetimepicker-selecttrigger-3" data-testid="datetimepicker-selecttrigger-3"><SelectValue placeholder="Año" /></SelectTrigger>
+                <Select value={year} onValueChange={(value) => handleValueChange('year', value)}>
+                    <SelectTrigger id="datetimepicker-selecttrigger-3" data-testid="datetimepicker-year-select"><SelectValue placeholder="Año" /></SelectTrigger>
                     <SelectContent>
                         {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                     </SelectContent>
@@ -92,13 +92,13 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
 
             <div className="grid grid-cols-2 gap-2">
                 <Select value={hour} onValueChange={(value) => handleValueChange('hour', value)}>
-                    <SelectTrigger id="datetimepicker-selecttrigger-4" data-testid="datetimepicker-selecttrigger-4"><SelectValue placeholder="Hora" /></SelectTrigger>
+                    <SelectTrigger id="datetimepicker-selecttrigger-4" data-testid="datetimepicker-hour-select"><SelectValue placeholder="Hora" /></SelectTrigger>
                     <SelectContent>
                         {hours.map(h => <SelectItem key={h} value={h}>{formatHourForDisplay(h)}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={minute} onValueChange={(value) => handleValueChange('minute', value)}>
-                    <SelectTrigger id="datetimepicker-selecttrigger-5" data-testid="datetimepicker-selecttrigger-5"><SelectValue placeholder="Min." /></SelectTrigger>
+                    <SelectTrigger id="datetimepicker-selecttrigger-5" data-testid="datetimepicker-minute-select"><SelectValue placeholder="Min." /></SelectTrigger>
                     <SelectContent>
                         {minutes.map(m => <SelectItem key={m} value={m}>{m} min</SelectItem>)}
                     </SelectContent>

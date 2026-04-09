@@ -97,7 +97,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="sinpeaccountformdialog-form-main" data-testid="sinpeaccountformdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="sinpeaccountformdialog-form-main" data-testid="sinpeaccountformdialog-main-form">
             <FormField
               control={form.control}
               name="accountHolder"
@@ -105,7 +105,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                 <FormItem>
                   <FormLabel>Titular de la Cuenta</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Pérez" {...field} id="sinpeaccountformdialog-input-ej-juan-p-rez" data-testid="sinpeaccountformdialog-input-ej-juan-p-rez" />
+                    <Input placeholder="Ej: Juan Pérez" {...field} id="sinpeaccountformdialog-input-ej-juan-p-rez" data-testid="sinpeaccountformdialog-1-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,7 +122,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                       <Input
                         placeholder="(506) 8888-8888"
                         {...field}
-                        onChange={(e) => handlePhoneChange(e, field.onChange)} id="sinpeaccountformdialog-input-506-8888-8888" data-testid="sinpeaccountformdialog-input-506-8888-8888"
+                        onChange={(e) => handlePhoneChange(e, field.onChange)} id="sinpeaccountformdialog-input-506-8888-8888" data-testid="sinpeaccountformdialog-2-input"
                       />
                     </FormControl>
                     <FormMessage />
@@ -136,7 +136,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                   <FormItem>
                     <FormLabel>Nombre del Banco</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Banco Nacional" {...field} id="sinpeaccountformdialog-input-ej-banco-nacional" data-testid="sinpeaccountformdialog-input-ej-banco-nacional" />
+                      <Input placeholder="Ej: Banco Nacional" {...field} id="sinpeaccountformdialog-input-ej-banco-nacional" data-testid="sinpeaccountformdialog-3-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -155,7 +155,7 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                         inputMode="numeric"
                         value={limitAmountInput}
                         onChange={handleLimitAmountChange}
-                        className="text-right" id="sinpeaccountformdialog-input-1" data-testid="sinpeaccountformdialog-input-1"
+                        className="text-right" id="sinpeaccountformdialog-input-1" data-testid="sinpeaccountformdialog-4-input"
                       />
                   </FormControl>
                   <FormMessage />
@@ -176,15 +176,15 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
                     <FormControl>
                         <Switch
                             checked={field.value}
-                            onCheckedChange={field.onChange} id="sinpeaccountformdialog-switch-1" data-testid="sinpeaccountformdialog-switch-1"
+                            onCheckedChange={field.onChange} id="sinpeaccountformdialog-switch-1" data-testid="sinpeaccountformdialog-1-switch"
                         />
                     </FormControl>
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="sinpeaccountformdialog-button-cancelar" data-testid="sinpeaccountformdialog-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} id="sinpeaccountformdialog-button-1" data-testid="sinpeaccountformdialog-button-submit">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="sinpeaccountformdialog-button-cancelar" data-testid="sinpeaccountformdialog-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} id="sinpeaccountformdialog-button-1" data-testid="sinpeaccountformdialog-submit-button">
                 {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>

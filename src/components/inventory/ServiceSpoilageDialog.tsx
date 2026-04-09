@@ -13,17 +13,17 @@ import { registerServiceSpoilage } from '@/lib/actions/service.actions';
 import { Textarea } from '../ui/textarea';
 
 const spoilageSchema = z.object({
-  serviceId: z.string(),
-  quantity: z.coerce.number().int().min(1, 'La cantidad de merma debe ser al menos 1.'),
-  notes: z.string().optional(),
+    serviceId: z.string(),
+    quantity: z.coerce.number().int().min(1, 'La cantidad de merma debe ser al menos 1.'),
+    notes: z.string().optional(),
 });
 
 type SpoilageFormValues = z.infer<typeof spoilageSchema>;
 
 interface ServiceSpoilageDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  service: Service;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    service: Service;
 }
 
 export default function ServiceSpoilageDialog({ open, onOpenChange, service }: ServiceSpoilageDialogProps) {
@@ -60,7 +60,7 @@ export default function ServiceSpoilageDialog({ open, onOpenChange, service }: S
             }
         });
     };
-    
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
@@ -71,7 +71,7 @@ export default function ServiceSpoilageDialog({ open, onOpenChange, service }: S
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="servicespoilagedialog-form-main" data-testid="servicespoilagedialog-form-main">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="servicespoilagedialog-form-main" data-testid="servicespoilagedialog-main-form">
                         <FormField
                             control={form.control}
                             name="quantity"
@@ -79,7 +79,7 @@ export default function ServiceSpoilageDialog({ open, onOpenChange, service }: S
                                 <FormItem>
                                     <FormLabel>Cantidad a Dar de Baja</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} min="1" max={service.stock} id="servicespoilagedialog-input-1" data-testid="servicespoilagedialog-input-1" />
+                                        <Input type="number" {...field} min="1" max={service.stock} id="servicespoilagedialog-input-1" data-testid="servicespoilagedialog-quantity-input" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -92,15 +92,15 @@ export default function ServiceSpoilageDialog({ open, onOpenChange, service }: S
                                 <FormItem>
                                     <FormLabel>Notas / Motivo (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Ej: Producto vencido, daño..." {...field} id="servicespoilagedialog-textarea-ej-producto-vencido" data-testid="servicespoilagedialog-textarea-ej-producto-vencido" />
+                                        <Textarea placeholder="Ej: Producto vencido, daño..." {...field} id="servicespoilagedialog-textarea-ej-producto-vencido" data-testid="servicespoilagedialog-notes-textarea" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="servicespoilagedialog-button-cancelar" data-testid="servicespoilagedialog-button-cancelar">Cancelar</Button>
-                            <Button type="submit" disabled={isPending} variant="destructive" id="servicespoilagedialog-button-1" data-testid="servicespoilagedialog-button-submit">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="servicespoilagedialog-button-cancelar" data-testid="servicespoilagedialog-cancel-button">Cancelar</Button>
+                            <Button type="submit" disabled={isPending} variant="destructive" id="servicespoilagedialog-button-1" data-testid="servicespoilagedialog-submit-button">
                                 {isPending ? 'Guardando...' : 'Confirmar Merma'}
                             </Button>
                         </DialogFooter>

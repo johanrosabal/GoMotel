@@ -29,7 +29,7 @@ const faqs = [
 export default async function HelpCenterPage() {
     const settings = await getSystemSettings();
     const supportEmail = settings.supportEmail || "soporte.gomotel@example.com";
-    
+
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-8">
             <div className="space-y-1.5">
@@ -85,19 +85,19 @@ export default async function HelpCenterPage() {
                                 <div>
                                     <h4 className="font-semibold">Contacto por Email</h4>
                                     <p className="text-sm text-muted-foreground">Para asistencia técnica, errores o sugerencias, escríbanos a:</p>
-                                    <a href={`mailto:${supportEmail}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-a-1">
+                                    <a href={`mailto:${supportEmail}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-email-link">
                                         {supportEmail}
                                     </a>
                                 </div>
                             </div>
-                            
+
                             {settings.supportPhone && (
                                 <div className="flex items-start gap-4 pt-4 border-t">
                                     <Phone className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                                     <div>
                                         <h4 className="font-semibold">Línea de Atención</h4>
                                         <p className="text-sm text-muted-foreground">Para emergencias operativas, contáctenos vía llamada o WhatsApp:</p>
-                                        <a href={`tel:${settings.supportPhone.replace(/\s+/g, '')}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-a-2">
+                                        <a href={`tel:${settings.supportPhone.replace(/\s+/g, '')}`} className="text-sm font-medium text-primary hover:underline" data-testid="help-center-action-link">
                                             {settings.supportPhone}
                                         </a>
                                     </div>

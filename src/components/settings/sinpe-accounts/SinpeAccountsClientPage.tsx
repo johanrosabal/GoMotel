@@ -32,7 +32,7 @@ function ActionsMenu({ account }: { account: SinpeAccount }) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" id="sinpeaccountsclientpage-button-1" data-testid="sinpeaccountsclientpage-button-1"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" id="sinpeaccountsclientpage-button-1" data-testid="sinpeaccountsclientpage-action-button"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
@@ -76,7 +76,7 @@ export default function SinpeAccountsClientPage() {
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={() => setIsFormOpen(true)} id="sinpeaccountsclientpage-button-a-adir-cuenta-sinpe" data-testid="sinpeaccountsclientpage-button-a-adir-cuenta-sinpe">
+                <Button onClick={() => setIsFormOpen(true)} id="sinpeaccountsclientpage-button-a-adir-cuenta-sinpe" data-testid="sinpeaccountsclientpage-add-button">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Cuenta SINPE
                 </Button>

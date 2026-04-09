@@ -20,7 +20,7 @@ export default function Notifications() {
   const { toast, dismiss } = useToast();
   const [now, setNow] = useState(new Date());
   const [isAlarmSilenced, setIsAlarmSilenced] = useState(false);
-  
+
   const alarmToastId = useRef<string | null>(null);
   const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -115,7 +115,7 @@ export default function Notifications() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" id="notifications-button-1" data-testid="notifications-button-1">
+        <Button variant="ghost" size="icon" className="relative" id="notifications-button-1" data-testid="notifications-action-button">
           <Bell className="h-5 w-5" />
           {totalNotifications > 0 && (
             <Badge
@@ -137,7 +137,7 @@ export default function Notifications() {
           </div>
           <Separator />
           {isLoading ? (
-             <p className="text-sm text-muted-foreground text-center">Cargando notificaciones...</p>
+            <p className="text-sm text-muted-foreground text-center">Cargando notificaciones...</p>
           ) : totalNotifications === 0 ? (
             <p className="text-sm text-muted-foreground text-center">No hay notificaciones nuevas.</p>
           ) : (
@@ -146,31 +146,31 @@ export default function Notifications() {
                 {overdueReservations.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">
-                        <BedDouble className="h-4 w-4" />
-                        Estancias Vencidas ({overdueReservations.length})
+                      <BedDouble className="h-4 w-4" />
+                      Estancias Vencidas ({overdueReservations.length})
                     </p>
                     <div className="space-y-1">
                       {overdueReservations.map(res => (
-                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref id="notifications-link-1" data-testid="notifications-link-1">
+                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref id="notifications-link-1" data-testid="notifications-action-room-link">
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
-                              Habitación <span className="font-bold">{res.roomNumber}</span>
+                            Habitación <span className="font-bold">{res.roomNumber}</span>
                           </div>
                         </Link>
                       ))}
                     </div>
                   </div>
                 )}
-                 {cleaningRooms && cleaningRooms.length > 0 && (
+                {cleaningRooms && cleaningRooms.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-yellow-600 flex items-center gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Limpieza Requerida ({cleaningRooms.length})
+                      <Sparkles className="h-4 w-4" />
+                      Limpieza Requerida ({cleaningRooms.length})
                     </p>
-                     <div className="space-y-1">
+                    <div className="space-y-1">
                       {cleaningRooms.map(room => (
-                        <Link key={room.id} href={`/rooms/${room.id}`} passHref id="notifications-link-2" data-testid="notifications-link-2">
+                        <Link key={room.id} href={`/rooms/${room.id}`} passHref id="notifications-link-2" data-testid="notifications-action-room-link">
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
-                             Habitación <span className="font-bold">{room.number}</span>
+                            Habitación <span className="font-bold">{room.number}</span>
                           </div>
                         </Link>
                       ))}

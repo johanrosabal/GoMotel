@@ -54,7 +54,7 @@ export default function MarketingPage() {
           <Link 
             key={module.title} 
             href={module.disabled ? '#' : module.href}
-            className={module.disabled ? 'cursor-not-allowed opacity-60' : 'group'} data-testid="marketing-link-1"
+            className={module.disabled ? 'cursor-not-allowed opacity-60' : 'group'} data-testid="marketing-action-link"
           >
             <Card className="h-full border-primary/10 hover:border-primary/30 transition-all duration-300 shadow-xl shadow-primary/5 hover:shadow-primary/10">
               <CardHeader className="flex flex-row items-center gap-4">

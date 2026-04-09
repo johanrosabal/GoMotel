@@ -41,7 +41,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             }
         });
     }
-    
+
     const handleNoShow = () => {
         setIsNoShowAlertOpen(false);
         startTransition(async () => {
@@ -70,7 +70,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending} className={className} id="reservationactionsmenu-button-1" data-testid="reservationactionsmenu-button-1">
+                    <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isPending} className={className} id="reservationactionsmenu-button-1" data-testid="reservationactionsmenu-action-button">
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Toggle menu</span>
                     </Button>
@@ -95,8 +95,8 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                         </>
                     )}
                     {reservation.status === 'Checked-in' && (
-                         <DropdownMenuItem asChild>
-                            <Link href={`/rooms/${reservation.roomId}`} id="reservationactionsmenu-link-1" data-testid="reservationactionsmenu-link-1">
+                        <DropdownMenuItem asChild>
+                            <Link href={`/rooms/${reservation.roomId}`} id="reservationactionsmenu-link-1" data-testid="reservationactionsmenu-action-manage-link">
                                 <Eye className="mr-2 h-4 w-4" />
                                 <span>Gestionar Estancia</span>
                             </Link>
@@ -130,7 +130,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            
+
             <AlertDialog open={isNoShowAlertOpen} onOpenChange={setIsNoShowAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -147,7 +147,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            
+
             <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

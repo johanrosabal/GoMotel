@@ -57,7 +57,7 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
       const regex = new RegExp(`{{${key}}}`, 'g');
       result = result.replace(regex, value);
     });
-    
+
     // Para variables no definidas en SAMPLE_DATA, mostrar un placeholder genérico
     variables.forEach(v => {
       if (!SAMPLE_DATA[v]) {
@@ -116,32 +116,32 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
     <div className="space-y-4 animate-in fade-in duration-500">
       <div className="flex items-center justify-between bg-muted/30 p-2 rounded-lg border border-primary/10">
         <div className="flex items-center gap-1">
-          <Button 
+          <Button
             type="button"
-            variant={viewMode === 'desktop' ? 'default' : 'ghost'} 
-            size="sm" 
+            variant={viewMode === 'desktop' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setViewMode('desktop')}
             className={cn(
               "h-8 gap-2 text-[10px] font-black uppercase tracking-wider transition-all",
               viewMode === 'desktop' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-            )} data-testid="templatepreview-button-escritorio"
+            )} data-testid="templatepreview-action-desktop-button"
           >
             <Monitor className="h-3.5 w-3.5" /> Escritorio
           </Button>
-          <Button 
+          <Button
             type="button"
-            variant={viewMode === 'mobile' ? 'default' : 'ghost'} 
-            size="sm" 
+            variant={viewMode === 'mobile' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setViewMode('mobile')}
             className={cn(
               "h-8 gap-2 text-[10px] font-black uppercase tracking-wider transition-all",
               viewMode === 'mobile' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-            )} data-testid="templatepreview-button-m-vil"
+            )} data-testid="templatepreview-action-mobile-button"
           >
             <Smartphone className="h-3.5 w-3.5" /> Móvil
           </Button>
         </div>
-        
+
         <div className="text-[10px] text-foreground/60 dark:text-muted-foreground font-mono flex items-center gap-2">
           <RefreshCw className="h-3 w-3 animate-spin-slow" /> Vista previa en vivo
         </div>
@@ -163,7 +163,7 @@ export function TemplatePreview({ bodyHtml, subject, variables }: TemplatePrevie
           "mx-auto transition-all duration-500 min-h-[500px] border-x shadow-inner overflow-hidden",
           viewMode === 'desktop' ? "w-full" : "max-w-[375px]"
         )}>
-          <iframe 
+          <iframe
             srcDoc={renderedHtml}
             title="Email Preview"
             className="w-full h-[600px] border-none"

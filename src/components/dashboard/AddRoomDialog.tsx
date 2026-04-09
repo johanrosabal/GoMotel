@@ -51,7 +51,7 @@ interface AddRoomDialogProps {
 const roomSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'El número de habitación es requerido.'),
-  roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.'}).min(1, 'El tipo de habitación es requerido.'),
+  roomTypeId: z.string({ required_error: 'El tipo de habitación es requerido.' }).min(1, 'El tipo de habitación es requerido.'),
 });
 
 export default function AddRoomDialog({ children, room, open: controlledOpen, onOpenChange: setControlledOpen }: AddRoomDialogProps) {
@@ -69,7 +69,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
     return query(collection(firestore, 'roomTypes'), fbOrderBy('name'));
   }, [firestore]);
   const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
-  
+
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'rooms'));
@@ -104,7 +104,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
           const num = parseInt(r.number, 10);
           return !isNaN(num) && num > max ? num : max;
         }, 0) || 0;
-  
+
         const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '101';
         form.reset({ number: nextNumber, roomTypeId: undefined, id: undefined });
       }
@@ -119,20 +119,20 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
 
   const onSubmit = (values: z.infer<typeof roomSchema>) => {
     const rt = roomTypes?.find(rt => rt.id === values.roomTypeId);
-    if (!rt) { 
-        toast({ title: 'Error', description: 'Por favor seleccione un tipo de habitación válido.', variant: 'destructive' });
-        return; 
+    if (!rt) {
+      toast({ title: 'Error', description: 'Por favor seleccione un tipo de habitación válido.', variant: 'destructive' });
+      return;
     }
-     if (!rt.capacity) {
+    if (!rt.capacity) {
       toast({ title: 'Error', description: 'El tipo de habitación seleccionado no tiene una capacidad definida.', variant: 'destructive' });
       return;
     }
 
     const hourlyRatePlan = rt.pricePlans?.find(p => p.unit === 'Hours' && p.duration === 1) || rt.pricePlans?.[0];
     const ratePerHour = hourlyRatePlan ? hourlyRatePlan.price : 0;
-    
+
     const formData = new FormData();
-    if(values.id) formData.append('id', values.id);
+    if (values.id) formData.append('id', values.id);
     formData.append('number', values.number.padStart(3, '0'));
     formData.append('capacity', String(rt.capacity));
     formData.append('roomTypeId', values.roomTypeId);
@@ -172,16 +172,16 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addroomdialog-form-main" data-testid="addroomdialog-form-main">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addroomdialog-form-main" data-testid="addroomdialog-main-form">
             <FormField
               control={form.control}
               name="roomTypeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Habitación</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRoomTypes}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRoomTypes}>
                     <FormControl>
-                      <SelectTrigger id="addroomdialog-selecttrigger-1" data-testid="addroomdialog-selecttrigger-1">
+                      <SelectTrigger id="addroomdialog-selecttrigger-1" data-testid="addroomdialog-roomtype-select">
                         <SelectValue placeholder={isLoadingRoomTypes ? "Cargando tipos..." : "Seleccione un tipo"} />
                       </SelectTrigger>
                     </FormControl>
@@ -193,8 +193,8 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
                       ) : (
                         <div className="p-4 text-center text-sm text-muted-foreground">
                           No hay tipos de habitación.
-                          <Button variant="link" asChild className="pl-1" id="addroomdialog-button-1" data-testid="addroomdialog-button-1">
-                            <Link href="/settings/room-types/new" id="addroomdialog-link-crear-uno" data-testid="addroomdialog-link-crear-uno">Crear uno</Link>
+                          <Button variant="link" asChild className="pl-1" id="addroomdialog-button-1" data-testid="addroomdialog-action-button">
+                            <Link href="/settings/room-types/new" id="addroomdialog-link-crear-uno" data-testid="addroomdialog-create-link">Crear uno</Link>
                           </Button>
                         </div>
                       )}
@@ -217,10 +217,10 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
                       type="text"
                       inputMode="numeric"
                       onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          field.onChange(value.slice(0, 3));
+                        const value = e.target.value.replace(/\D/g, '');
+                        field.onChange(value.slice(0, 3));
                       }}
-                      className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="addroomdialog-input-000" data-testid="addroomdialog-input-000"
+                      className="text-[7.875rem] font-bold text-center h-40 w-full bg-muted/50 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="addroomdialog-input-000" data-testid="addroomdialog-number-input"
                     />
                   </FormControl>
                   <FormMessage className="text-center" />
@@ -232,39 +232,39 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
               <div className="space-y-4 pt-2">
                 <Separator />
                 <div className="p-4 rounded-lg border bg-muted/50 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" />Capacidad</h4>
-                            <p className="font-semibold">{selectedRoomType.capacity} persona(s)</p>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Tag className="h-4 w-4" />Características</h4>
-                            {selectedRoomType.features && selectedRoomType.features.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedRoomType.features.map(feature => <Badge key={feature} variant="secondary">{feature}</Badge>)}
-                                </div>
-                            ) : <p className="text-sm text-muted-foreground">Sin características.</p>}
-                        </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" />Capacidad</h4>
+                      <p className="font-semibold">{selectedRoomType.capacity} persona(s)</p>
                     </div>
                     <div>
-                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><span className="w-4 text-center">₡</span>Planes de Precios</h4>
-                        {selectedRoomType.pricePlans && selectedRoomType.pricePlans.length > 0 ? (
-                            <ul className="space-y-1.5 text-sm">
-                            {selectedRoomType.pricePlans.map(plan => (
-                                <li key={plan.name} className="flex justify-between">
-                                    <span className="text-muted-foreground">{plan.name}</span>
-                                    <span className="font-medium">{formatCurrency(plan.price)}</span>
-                                </li>
-                            ))}
-                            </ul>
-                        ) : <p className="text-sm text-muted-foreground">Sin planes de precios.</p>}
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><Tag className="h-4 w-4" />Características</h4>
+                      {selectedRoomType.features && selectedRoomType.features.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRoomType.features.map(feature => <Badge key={feature} variant="secondary">{feature}</Badge>)}
+                        </div>
+                      ) : <p className="text-sm text-muted-foreground">Sin características.</p>}
                     </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground"><span className="w-4 text-center">₡</span>Planes de Precios</h4>
+                    {selectedRoomType.pricePlans && selectedRoomType.pricePlans.length > 0 ? (
+                      <ul className="space-y-1.5 text-sm">
+                        {selectedRoomType.pricePlans.map(plan => (
+                          <li key={plan.name} className="flex justify-between">
+                            <span className="text-muted-foreground">{plan.name}</span>
+                            <span className="font-medium">{formatCurrency(plan.price)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="text-sm text-muted-foreground">Sin planes de precios.</p>}
+                  </div>
                 </div>
               </div>
             )}
-           
+
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isPending || isLoadingRoomTypes || isLoadingRooms} id="addroomdialog-button-2" data-testid="addroomdialog-button-submit">
+              <Button type="submit" disabled={isPending || isLoadingRoomTypes || isLoadingRooms} id="addroomdialog-button-2" data-testid="addroomdialog-submit-button">
                 {isPending ? 'Guardando...' : 'Guardar Habitación'}
               </Button>
             </DialogFooter>

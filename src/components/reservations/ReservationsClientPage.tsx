@@ -67,7 +67,7 @@ export default function ReservationsClientPage() {
                 };
             });
     }, [reservations, searchTerm, statusFilter, now]);
-    
+
     const sortedForTimeline = useMemo(() => {
         return [...processedReservations].sort((a, b) => a.checkInDate.toDate().getTime() - b.checkInDate.toDate().getTime());
     }, [processedReservations]);
@@ -75,16 +75,16 @@ export default function ReservationsClientPage() {
 
     useEffect(() => {
         const newlyOverdue = processedReservations.filter(r => r.isOverdue && !notifiedOverdueReservations.current.has(r.id));
-        
+
         if (newlyOverdue.length > 0) {
             playNotificationSound();
             newlyOverdue.forEach(reservation => {
                 notifiedOverdueReservations.current.add(reservation.id);
-                
-                const title = reservation.isArrivalOverdue 
+
+                const title = reservation.isArrivalOverdue
                     ? `¡Cliente no llegó!: Hab. ${reservation.roomNumber}`
                     : `¡Check-out vencido!: Hab. ${reservation.roomNumber}`;
-                
+
                 const description = reservation.isArrivalOverdue
                     ? `${reservation.guestName} debió ingresar a las ${format(reservation.checkInDate.toDate(), 'h:mm a')}.`
                     : `${reservation.guestName} ya debería haber desocupado la habitación.`;
@@ -97,7 +97,7 @@ export default function ReservationsClientPage() {
                 });
             });
         }
-        
+
         const currentlyOverdueIds = new Set(processedReservations.filter(r => r.isOverdue).map(r => r.id));
         notifiedOverdueReservations.current.forEach(resId => {
             if (!currentlyOverdueIds.has(resId)) {
@@ -118,18 +118,18 @@ export default function ReservationsClientPage() {
                             placeholder="Buscar por huésped, habitación o tipo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 h-14 bg-white/5 border-white/10 rounded-3xl text-lg text-white font-bold placeholder:text-slate-600 focus:ring-primary/20 focus:border-primary transition-all shadow-2xl" id="reservationsclientpage-input-buscar-por-hu-sped" data-testid="reservationsclientpage-input-buscar-por-hu-sped"
+                            className="pl-12 h-14 bg-white/5 border-white/10 rounded-3xl text-lg text-white font-bold placeholder:text-slate-600 focus:ring-primary/20 focus:border-primary transition-all shadow-2xl" id="reservationsclientpage-input-buscar-por-hu-sped" data-testid="reservationsclientpage-search-input"
                         />
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <AddClientDialog>
-                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all" id="reservationsclientpage-button-1" data-testid="reservationsclientpage-button-1">
+                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all" id="reservationsclientpage-button-1" data-testid="reservationsclientpage-add-client-button">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 <span className="hidden sm:inline">Nuevo Cliente</span>
                             </Button>
                         </AddClientDialog>
                         <CreateReservationDialog>
-                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-button-nueva-reservaci-n">
+                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-add-reservation-button">
                                 <PlusCircle className="mr-2 h-5 w-5" />
                                 Nueva Reservación
                             </Button>
@@ -145,16 +145,16 @@ export default function ReservationsClientPage() {
                                 onClick={() => setStatusFilter(f.value)}
                                 className={cn(
                                     "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
-                                    statusFilter === f.value 
-                                        ? "bg-primary text-black border-primary shadow-lg shadow-primary/10 scale-105" 
+                                    statusFilter === f.value
+                                        ? "bg-primary text-black border-primary shadow-lg shadow-primary/10 scale-105"
                                         : "bg-white/5 text-slate-400 border-white/5 hover:border-white/20"
-                                )} id="reservationsclientpage-button-1-1" data-testid="reservationsclientpage-button-1-1"
+                                )} id="reservationsclientpage-button-1-1" data-testid="reservationsclientpage-filter-button"
                             >
                                 {f.label}
                             </button>
                         ))}
                     </div>
-                    
+
                     <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
                         <Button
                             variant={view === 'grid' ? 'secondary' : 'ghost'}
@@ -163,7 +163,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'grid' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-tarjetas" data-testid="reservationsclientpage-button-tarjetas"
+                            )} id="reservationsclientpage-button-tarjetas" data-testid="reservationsclientpage-action-cards-button"
                         >
                             <LayoutGrid className="h-3.5 w-3.5" />
                             Tarjetas
@@ -175,7 +175,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'timeline' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-agenda" data-testid="reservationsclientpage-button-agenda"
+                            )} id="reservationsclientpage-button-agenda" data-testid="reservationsclientpage-action-timeline-button"
                         >
                             <CalendarDays className="h-3.5 w-3.5" />
                             Agenda
@@ -187,7 +187,7 @@ export default function ReservationsClientPage() {
                             className={cn(
                                 "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
                                 view === 'list' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-lista" data-testid="reservationsclientpage-button-lista"
+                            )} id="reservationsclientpage-button-lista" data-testid="reservationsclientpage-action-list-button"
                         >
                             <List className="h-3.5 w-3.5" />
                             Lista

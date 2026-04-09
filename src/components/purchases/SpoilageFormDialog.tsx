@@ -15,27 +15,27 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 
 const spoilageItemSchema = z.object({
-  serviceId: z.string(),
-  serviceName: z.string(),
-  spoilageQuantity: z.coerce.number().int().min(0, "La cantidad debe ser un número positivo."),
-  originalQuantity: z.number().int(),
+    serviceId: z.string(),
+    serviceName: z.string(),
+    spoilageQuantity: z.coerce.number().int().min(0, "La cantidad debe ser un número positivo."),
+    originalQuantity: z.number().int(),
 }).refine(data => data.spoilageQuantity <= data.originalQuantity, {
-  message: "No puede registrar más merma que la cantidad comprada.",
-  path: ["spoilageQuantity"],
+    message: "No puede registrar más merma que la cantidad comprada.",
+    path: ["spoilageQuantity"],
 });
 
 const spoilageFormSchema = z.object({
-  purchaseInvoiceId: z.string(),
-  notes: z.string().optional(),
-  items: z.array(spoilageItemSchema).min(1),
+    purchaseInvoiceId: z.string(),
+    notes: z.string().optional(),
+    items: z.array(spoilageItemSchema).min(1),
 });
 
 type SpoilageFormValues = z.infer<typeof spoilageFormSchema>;
 
 interface SpoilageFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  purchaseInvoice: PurchaseInvoice;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    purchaseInvoice: PurchaseInvoice;
 }
 
 export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice }: SpoilageFormDialogProps) {
@@ -93,7 +93,7 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
             }
         });
     };
-    
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-2xl">
@@ -104,7 +104,7 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="spoilageformdialog-form-main" data-testid="spoilageformdialog-form-main">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="spoilageformdialog-form-main" data-testid="spoilageformdialog-main-form">
                         <ScrollArea className="h-72 pr-3">
                             <Table>
                                 <TableHeader>
@@ -126,7 +126,7 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <Input type="number" {...field} className="text-right" min="0" max={item.originalQuantity} id="spoilageformdialog-input-1" data-testid="spoilageformdialog-input-1" />
+                                                                <Input type="number" {...field} className="text-right" min="0" max={item.originalQuantity} id="spoilageformdialog-input-1" data-testid="spoilageformdialog-spoilage-quantity-input" />
                                                             </FormControl>
                                                             <FormMessage />
                                                         </FormItem>
@@ -145,15 +145,15 @@ export default function SpoilageFormDialog({ open, onOpenChange, purchaseInvoice
                                 <FormItem>
                                     <FormLabel>Notas / Motivo (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Ej: Productos dañados durante el transporte." {...field} id="spoilageformdialog-textarea-ej-productos-da-ados" data-testid="spoilageformdialog-textarea-ej-productos-da-ados" />
+                                        <Textarea placeholder="Ej: Productos dañados durante el transporte." {...field} id="spoilageformdialog-textarea-ej-productos-da-ados" data-testid="spoilageformdialog-notes-textarea" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="spoilageformdialog-button-cancelar" data-testid="spoilageformdialog-button-cancelar">Cancelar</Button>
-                            <Button type="submit" disabled={isPending} id="spoilageformdialog-button-1" data-testid="spoilageformdialog-button-submit">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} id="spoilageformdialog-button-cancelar" data-testid="spoilageformdialog-cancel-button">Cancelar</Button>
+                            <Button type="submit" disabled={isPending} id="spoilageformdialog-button-1" data-testid="spoilageformdialog-submit-button">
                                 {isPending ? 'Guardando...' : 'Confirmar Merma'}
                             </Button>
                         </DialogFooter>

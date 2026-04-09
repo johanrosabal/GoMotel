@@ -23,19 +23,19 @@ import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
 
 interface ExtendStayDialogProps {
-  children: ReactNode;
-  stay?: Stay | null;
-  room: Room;
-  isOverdue?: boolean;
-  onExtensionSuccess?: (invoiceId: string) => void;
+    children: ReactNode;
+    stay?: Stay | null;
+    room: Room;
+    isOverdue?: boolean;
+    onExtensionSuccess?: (invoiceId: string) => void;
 }
 
 const extendStaySchema = z.object({
-  newPlanName: z.string({ required_error: 'Debe seleccionar un nuevo plan de estancia.' }),
-  payNow: z.boolean().default(false),
-  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
-  paymentConfirmed: z.boolean().optional(),
-  voucherNumber: z.string().optional(),
+    newPlanName: z.string({ required_error: 'Debe seleccionar un nuevo plan de estancia.' }),
+    payNow: z.boolean().default(false),
+    paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
+    paymentConfirmed: z.boolean().optional(),
+    voucherNumber: z.string().optional(),
 }).refine(data => {
     if (data.payNow) return !!data.paymentMethod;
     return true;
@@ -61,325 +61,325 @@ const extendStaySchema = z.object({
 });
 
 export default function ExtendStayDialog({ children, stay, room, isOverdue, onExtensionSuccess }: ExtendStayDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
-  const { firestore } = useFirebase();
-  const [cashTendered, setCashTendered] = useState('');
-  
-  const roomTypesQuery = useMemoFirebase(() => {
-    if (!firestore || !room) return null;
-    return query(collection(firestore, 'roomTypes'), where('__name__', '==', room.roomTypeId));
-  }, [firestore, room]);
-  const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
-  const roomType = useMemo(() => roomTypes?.[0], [roomTypes]);
-  const availablePlans = useMemo(() => roomType?.pricePlans?.sort((a, b) => a.price - b.price) || [], [roomType]);
+    const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const { firestore } = useFirebase();
+    const [cashTendered, setCashTendered] = useState('');
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !stay) return null;
-    return query(collection(firestore, 'orders'), where('stayId', '==', stay.id));
-  }, [firestore, stay]);
-  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
-  
-  const sinpeAccountsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc'));
-  }, [firestore]);
-  const { data: activeSinpeAccounts, isLoading: isLoadingSinpe } = useCollection<SinpeAccount>(sinpeAccountsQuery);
+    const roomTypesQuery = useMemoFirebase(() => {
+        if (!firestore || !room) return null;
+        return query(collection(firestore, 'roomTypes'), where('__name__', '==', room.roomTypeId));
+    }, [firestore, room]);
+    const { data: roomTypes, isLoading: isLoadingRoomTypes } = useCollection<RoomType>(roomTypesQuery);
+    const roomType = useMemo(() => roomTypes?.[0], [roomTypes]);
+    const availablePlans = useMemo(() => roomType?.pricePlans?.sort((a, b) => a.price - b.price) || [], [roomType]);
 
-  const form = useForm<z.infer<typeof extendStaySchema>>({
-    resolver: zodResolver(extendStaySchema),
-    defaultValues: { newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined },
-  });
+    const ordersQuery = useMemoFirebase(() => {
+        if (!firestore || !stay) return null;
+        return query(collection(firestore, 'orders'), where('stayId', '==', stay.id));
+    }, [firestore, stay]);
+    const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
-  const selectedPlanName = form.watch('newPlanName');
-  const payNow = form.watch('payNow');
-  const paymentMethod = form.watch('paymentMethod');
+    const sinpeAccountsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+    }, [firestore]);
+    const { data: activeSinpeAccounts, isLoading: isLoadingSinpe } = useCollection<SinpeAccount>(sinpeAccountsQuery);
 
-  const selectedPlan = useMemo(() => {
-    if (!selectedPlanName || !availablePlans.length) return null;
-    return availablePlans.find(p => p.name === selectedPlanName);
-  }, [selectedPlanName, availablePlans]);
-
-  const targetSinpeAccount = useMemo(() => {
-    if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts || !selectedPlan) {
-      return null;
-    }
-    const paymentAmount = selectedPlan.price;
-    for (const account of activeSinpeAccounts) {
-        const limit = account.limitAmount || Infinity;
-        if ((account.balance + paymentAmount) <= limit) {
-            return account;
-        }
-    }
-    return null;
-  }, [paymentMethod, activeSinpeAccounts, selectedPlan]);
-
-  const calculatedCheckOut = useMemo(() => {
-    if (!selectedPlanName || !availablePlans.length || !stay) return null;
-
-    const plan = availablePlans.find(p => p.name === selectedPlanName);
-    if (!plan) return null;
-
-    const now = new Date();
-    const currentCheckOut = stay.expectedCheckOut.toDate();
-    const baseDate = isOverdue && now > currentCheckOut ? now : currentCheckOut;
-    
-    let checkOutTime = new Date(baseDate);
-    
-    switch(plan.unit) {
-      case 'Minutes': checkOutTime = addMinutes(baseDate, plan.duration); break;
-      case 'Hours': checkOutTime = addHours(baseDate, plan.duration); break;
-      case 'Days': checkOutTime = addDays(baseDate, plan.duration); break;
-      case 'Weeks': checkOutTime = addWeeks(baseDate, plan.duration); break;
-      case 'Months': checkOutTime = addMonths(baseDate, plan.duration); break;
-    }
-    
-    return format(checkOutTime, 'PPpp', { locale: es });
-  }, [selectedPlanName, availablePlans, stay, isOverdue]);
-
-  const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    if (rawValue === '') {
-        setCashTendered('');
-    } else {
-        setCashTendered(new Intl.NumberFormat('en-US').format(Number(rawValue)));
-    }
-  };
-
-  const numericCashTendered = useMemo(() => {
-    return Number(cashTendered.replace(/\D/g, ''));
-  }, [cashTendered]);
-
-  const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
-    if (!stay) return;
-    startTransition(async () => {
-      const result = await extendStay({
-        stayId: stay.id,
-        ...values,
-      });
-      if (result.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      } else {
-        const id = result.invoiceId;
-        setOpen(false);
-        if (id && onExtensionSuccess) {
-            setTimeout(() => onExtensionSuccess(id), 200);
-        } else {
-            toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
-        }
-      }
+    const form = useForm<z.infer<typeof extendStaySchema>>({
+        resolver: zodResolver(extendStaySchema),
+        defaultValues: { newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined },
     });
-  };
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined });
-      setCashTendered('');
-    }
-  }, [open, form]);
+    const selectedPlanName = form.watch('newPlanName');
+    const payNow = form.watch('payNow');
+    const paymentMethod = form.watch('paymentMethod');
 
-  useEffect(() => {
-    if (!payNow) {
-        setCashTendered('');
-    }
-  }, [payNow]);
+    const selectedPlan = useMemo(() => {
+        if (!selectedPlanName || !availablePlans.length) return null;
+        return availablePlans.find(p => p.name === selectedPlanName);
+    }, [selectedPlanName, availablePlans]);
 
-  useEffect(() => {
-    setCashTendered('');
-  }, [paymentMethod]);
+    const targetSinpeAccount = useMemo(() => {
+        if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts || !selectedPlan) {
+            return null;
+        }
+        const paymentAmount = selectedPlan.price;
+        for (const account of activeSinpeAccounts) {
+            const limit = account.limitAmount || Infinity;
+            if ((account.balance + paymentAmount) <= limit) {
+                return account;
+            }
+        }
+        return null;
+    }, [paymentMethod, activeSinpeAccounts, selectedPlan]);
 
-  const isLoading = isLoadingRoomTypes || isLoadingOrders || isLoadingSinpe;
-  const submitButtonText = payNow ? 'Pagar y Extender' : 'Extender (Pendiente)';
+    const calculatedCheckOut = useMemo(() => {
+        if (!selectedPlanName || !availablePlans.length || !stay) return null;
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      {stay && (
-        <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
-            <div className="p-6">
-            <DialogHeader>
-            <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
-            <DialogDescription>
-                {isOverdue 
-                ? `La estancia de ${stay.guestName} ha vencido. Puede extender la estancia o realizar el check-out.`
-                : `Añada más tiempo a la estancia de ${stay.guestName}.`
+        const plan = availablePlans.find(p => p.name === selectedPlanName);
+        if (!plan) return null;
+
+        const now = new Date();
+        const currentCheckOut = stay.expectedCheckOut.toDate();
+        const baseDate = isOverdue && now > currentCheckOut ? now : currentCheckOut;
+
+        let checkOutTime = new Date(baseDate);
+
+        switch (plan.unit) {
+            case 'Minutes': checkOutTime = addMinutes(baseDate, plan.duration); break;
+            case 'Hours': checkOutTime = addHours(baseDate, plan.duration); break;
+            case 'Days': checkOutTime = addDays(baseDate, plan.duration); break;
+            case 'Weeks': checkOutTime = addWeeks(baseDate, plan.duration); break;
+            case 'Months': checkOutTime = addMonths(baseDate, plan.duration); break;
+        }
+
+        return format(checkOutTime, 'PPpp', { locale: es });
+    }, [selectedPlanName, availablePlans, stay, isOverdue]);
+
+    const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, '');
+        if (rawValue === '') {
+            setCashTendered('');
+        } else {
+            setCashTendered(new Intl.NumberFormat('en-US').format(Number(rawValue)));
+        }
+    };
+
+    const numericCashTendered = useMemo(() => {
+        return Number(cashTendered.replace(/\D/g, ''));
+    }, [cashTendered]);
+
+    const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
+        if (!stay) return;
+        startTransition(async () => {
+            const result = await extendStay({
+                stayId: stay.id,
+                ...values,
+            });
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                const id = result.invoiceId;
+                setOpen(false);
+                if (id && onExtensionSuccess) {
+                    setTimeout(() => onExtensionSuccess(id), 200);
+                } else {
+                    toast({ title: '¡Éxito!', description: 'La estancia ha sido extendida.' });
                 }
-            </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="extendstaydialog-form-main" data-testid="extendstaydialog-form-main">
-                <FormField
-                control={form.control}
-                name="newPlanName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Extender con Nuevo Plan</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
-                        <FormControl>
-                        <SelectTrigger id="extendstaydialog-selecttrigger-1" data-testid="extendstaydialog-selecttrigger-1">
-                            <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan de extensión"} />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {availablePlans.map(plan => (
-                            <SelectItem key={plan.name} value={plan.name}>
-                              {plan.name} ({formatCurrency(plan.price)})
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+            }
+        });
+    };
 
-                {calculatedCheckOut && (
-                    <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                            <Clock className="h-4 w-4" />
-                            <span>Nueva Salida Estimada</span>
-                        </div>
-                        <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
-                    </div>
-                )}
-                
-                {selectedPlan && (
-                    <div className="space-y-4 pt-4 border-t">
-                        <FormField
-                            control={form.control}
-                            name="payNow"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                <div className="space-y-0.5">
-                                <FormLabel>Pagar Extensión Ahora</FormLabel>
-                                <p className="text-[13px] text-muted-foreground">
-                                    Genera una factura para este pago.
-                                </p>
-                                </div>
-                                <FormControl>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange} id="extendstaydialog-switch-1" data-testid="extendstaydialog-switch-1"
-                                />
-                                </FormControl>
-                            </FormItem>
-                            )}
-                        />
-                        {payNow && (
-                            <div className="space-y-4 rounded-lg border p-4">
+    useEffect(() => {
+        if (open) {
+            form.reset({ newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined });
+            setCashTendered('');
+        }
+    }, [open, form]);
+
+    useEffect(() => {
+        if (!payNow) {
+            setCashTendered('');
+        }
+    }, [payNow]);
+
+    useEffect(() => {
+        setCashTendered('');
+    }, [paymentMethod]);
+
+    const isLoading = isLoadingRoomTypes || isLoadingOrders || isLoadingSinpe;
+    const submitButtonText = payNow ? 'Pagar y Extender' : 'Extender (Pendiente)';
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            {stay && (
+                <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+                    <div className="p-6">
+                        <DialogHeader>
+                            <DialogTitle>{isOverdue ? 'Gestionar Estancia Vencida' : 'Extender Estancia'}</DialogTitle>
+                            <DialogDescription>
+                                {isOverdue
+                                    ? `La estancia de ${stay.guestName} ha vencido. Puede extender la estancia o realizar el check-out.`
+                                    : `Añada más tiempo a la estancia de ${stay.guestName}.`
+                                }
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="extendstaydialog-form-main" data-testid="extendstaydialog-main-form">
                                 <FormField
                                     control={form.control}
-                                    name="paymentMethod"
+                                    name="newPlanName"
                                     render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Método de Pago</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger id="extendstaydialog-selecttrigger-2" data-testid="extendstaydialog-selecttrigger-2"><SelectValue placeholder="Seleccione" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="Efectivo">Efectivo</SelectItem>
-                                                <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
-                                                <SelectItem value="Tarjeta">Tarjeta</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
+                                        <FormItem>
+                                            <FormLabel>Extender con Nuevo Plan</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger id="extendstaydialog-selecttrigger-1" data-testid="extendstaydialog-extend-plan-select">
+                                                        <SelectValue placeholder={isLoading ? "Cargando..." : "Seleccione un plan de extensión"} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {availablePlans.map(plan => (
+                                                        <SelectItem key={plan.name} value={plan.name}>
+                                                            {plan.name} ({formatCurrency(plan.price)})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
 
-                                {paymentMethod === 'Sinpe Movil' && (
-                                    <div className='space-y-3 pt-3 border-t'>
-                                        {isLoadingSinpe ? <p>Buscando cuenta...</p> : targetSinpeAccount ? (
-                                             <div className="space-y-3">
-                                                <div className='p-4 bg-muted rounded-lg text-center'>
-                                                    <p className='text-sm text-muted-foreground'>Transferir <span className='font-bold'>{formatCurrency(selectedPlan.price)}</span> a:</p>
-                                                    <p className='py-1 text-2xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                    <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
-                                                </div>
+                                {calculatedCheckOut && (
+                                    <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                            <Clock className="h-4 w-4" />
+                                            <span>Nueva Salida Estimada</span>
+                                        </div>
+                                        <p className="font-semibold text-center pt-1">{calculatedCheckOut}</p>
+                                    </div>
+                                )}
+
+                                {selectedPlan && (
+                                    <div className="space-y-4 pt-4 border-t">
+                                        <FormField
+                                            control={form.control}
+                                            name="payNow"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel>Pagar Extensión Ahora</FormLabel>
+                                                        <p className="text-[13px] text-muted-foreground">
+                                                            Genera una factura para este pago.
+                                                        </p>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange} id="extendstaydialog-switch-1" data-testid="extendstaydialog-pay-extension-switch"
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        {payNow && (
+                                            <div className="space-y-4 rounded-lg border p-4">
                                                 <FormField
                                                     control={form.control}
-                                                    name="paymentConfirmed"
+                                                    name="paymentMethod"
                                                     render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
-                                                            <FormControl>
-                                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} id="extendstaydialog-checkbox-1" data-testid="extendstaydialog-checkbox-1" />
-                                                            </FormControl>
-                                                            <div className="space-y-1 leading-none">
-                                                                <FormLabel>Confirmar Pago Recibido</FormLabel>
-                                                                <FormMessage className="pt-1" />
-                                                            </div>
+                                                        <FormItem>
+                                                            <FormLabel>Método de Pago</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <FormControl><SelectTrigger id="extendstaydialog-selecttrigger-2" data-testid="extendstaydialog-2-select"><SelectValue placeholder="Seleccione" /></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Efectivo">Efectivo</SelectItem>
+                                                                    <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
+                                                                    <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
                                                         </FormItem>
                                                     )}
                                                 />
+
+                                                {paymentMethod === 'Sinpe Movil' && (
+                                                    <div className='space-y-3 pt-3 border-t'>
+                                                        {isLoadingSinpe ? <p>Buscando cuenta...</p> : targetSinpeAccount ? (
+                                                            <div className="space-y-3">
+                                                                <div className='p-4 bg-muted rounded-lg text-center'>
+                                                                    <p className='text-sm text-muted-foreground'>Transferir <span className='font-bold'>{formatCurrency(selectedPlan.price)}</span> a:</p>
+                                                                    <p className='py-1 text-2xl font-mono font-extrabold tracking-widest'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                                    <p className='text-sm font-semibold'>{targetSinpeAccount.accountHolder}</p>
+                                                                </div>
+                                                                <FormField
+                                                                    control={form.control}
+                                                                    name="paymentConfirmed"
+                                                                    render={({ field }) => (
+                                                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border bg-background p-4 shadow-sm">
+                                                                            <FormControl>
+                                                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} id="extendstaydialog-checkbox-1" data-testid="extendstaydialog-confirm-payment-checkbox" />
+                                                                            </FormControl>
+                                                                            <div className="space-y-1 leading-none">
+                                                                                <FormLabel>Confirmar Pago Recibido</FormLabel>
+                                                                                <FormMessage className="pt-1" />
+                                                                            </div>
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+                                                            </div>
+                                                        ) : <p className='p-3 bg-destructive/10 text-destructive rounded-md text-sm font-semibold text-center'>No hay cuentas SINPE disponibles.</p>}
+                                                    </div>
+                                                )}
+                                                {paymentMethod === 'Tarjeta' && (
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="voucherNumber"
+                                                        render={({ field }) => (
+                                                            <FormItem><FormLabel>Número de Voucher</FormLabel><FormControl><Input {...field} id="extendstaydialog-input-1" data-testid="extendstaydialog-voucher-number-input" /></FormControl><FormMessage /></FormItem>
+                                                        )}
+                                                    />
+                                                )}
+                                                {paymentMethod === 'Efectivo' && (
+                                                    <div className="space-y-4 pt-4 border-t">
+                                                        <FormItem>
+                                                            <FormLabel>Paga con</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    placeholder="Monto recibido"
+                                                                    value={cashTendered}
+                                                                    onChange={handleCashTenderedChange}
+                                                                    className="text-right" id="extendstaydialog-input-monto-recibido" data-testid="extendstaydialog-payment-amount-input"
+                                                                />
+                                                            </FormControl>
+                                                        </FormItem>
+                                                        {cashTendered && selectedPlan && numericCashTendered >= selectedPlan.price && (
+                                                            <div className="flex justify-between items-center text-sm font-semibold">
+                                                                <FormLabel>Vuelto</FormLabel>
+                                                                <span className="text-lg text-primary">
+                                                                    {formatCurrency(numericCashTendered - selectedPlan.price)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {paymentMethod && paymentMethod !== 'Sinpe Movil' && (
+                                                    <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">
+                                                        <div className="flex justify-between items-center font-semibold">
+                                                            <span className='flex items-center gap-2'><CheckCircle className="h-4 w-4" />Monto a Cobrar:</span>
+                                                            <span className="font-bold text-base">{formatCurrency(selectedPlan.price)}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        ) : <p className='p-3 bg-destructive/10 text-destructive rounded-md text-sm font-semibold text-center'>No hay cuentas SINPE disponibles.</p>}
-                                    </div>
-                                )}
-                                {paymentMethod === 'Tarjeta' && (
-                                    <FormField
-                                        control={form.control}
-                                        name="voucherNumber"
-                                        render={({ field }) => (
-                                            <FormItem><FormLabel>Número de Voucher</FormLabel><FormControl><Input {...field} id="extendstaydialog-input-1" data-testid="extendstaydialog-input-1" /></FormControl><FormMessage /></FormItem>
-                                        )}
-                                    />
-                                )}
-                                {paymentMethod === 'Efectivo' && (
-                                    <div className="space-y-4 pt-4 border-t">
-                                        <FormItem>
-                                            <FormLabel>Paga con</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    placeholder="Monto recibido"
-                                                    value={cashTendered}
-                                                    onChange={handleCashTenderedChange}
-                                                    className="text-right" id="extendstaydialog-input-monto-recibido" data-testid="extendstaydialog-input-monto-recibido"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                        {cashTendered && selectedPlan && numericCashTendered >= selectedPlan.price && (
-                                            <div className="flex justify-between items-center text-sm font-semibold">
-                                                <FormLabel>Vuelto</FormLabel>
-                                                <span className="text-lg text-primary">
-                                                    {formatCurrency(numericCashTendered - selectedPlan.price)}
-                                                </span>
-                                            </div>
                                         )}
                                     </div>
                                 )}
-                                {paymentMethod && paymentMethod !== 'Sinpe Movil' && (
-                                     <div className="p-3 bg-green-100/50 dark:bg-green-900/20 rounded-lg text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/50">
-                                        <div className="flex justify-between items-center font-semibold">
-                                            <span className='flex items-center gap-2'><CheckCircle className="h-4 w-4" />Monto a Cobrar:</span>
-                                            <span className="font-bold text-base">{formatCurrency(selectedPlan.price)}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+
+
+                                <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
+                                    <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1" id="extendstaydialog-button-1" data-testid="extendstaydialog-submit-button">
+                                        {isPending ? 'Guardando...' : submitButtonText}
+                                    </Button>
+                                    {isOverdue && (
+                                        <CheckoutDialog stay={stay} room={room} orders={orders || []} onCheckoutSuccess={onExtensionSuccess}>
+                                            <Button type="button" variant="destructive" className="flex-1" id="extendstaydialog-button-realizar-check-out" data-testid="extendstaydialog-action-checkout-button">
+                                                Realizar Check-Out
+                                            </Button>
+                                        </CheckoutDialog>
+                                    )}
+                                </div>
+                            </form>
+                        </Form>
                     </div>
-                )}
-
-
-                <div className="flex flex-col sm:flex-row-reverse gap-2 pt-4">
-                    <Button type="submit" disabled={isPending || isLoading || !selectedPlanName} className="flex-1" id="extendstaydialog-button-1" data-testid="extendstaydialog-button-submit">
-                        {isPending ? 'Guardando...' : submitButtonText}
-                    </Button>
-                    {isOverdue && (
-                      <CheckoutDialog stay={stay} room={room} orders={orders || []} onCheckoutSuccess={onExtensionSuccess}>
-                          <Button type="button" variant="destructive" className="flex-1" id="extendstaydialog-button-realizar-check-out" data-testid="extendstaydialog-button-realizar-check-out">
-                              Realizar Check-Out
-                          </Button>
-                      </CheckoutDialog>
-                    )}
-                </div>
-            </form>
-            </Form>
-            </div>
-        </DialogContent>
-      )}
-    </Dialog>
-  );
+                </DialogContent>
+            )}
+        </Dialog>
+    );
 }

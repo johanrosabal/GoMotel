@@ -103,8 +103,8 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-6 mb-8 border-primary/10">
         <div className="flex items-center gap-4">
-          <Link href="/marketing/templates" data-testid="templateform-link-marketing-templates">
-            <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-primary/30 hover:bg-primary hover:text-white transition-all shadow-sm" data-testid="templateform-button-1">
+          <Link href="/marketing/templates" data-testid="templateform-marketing-templates-link">
+            <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-primary/30 hover:bg-primary hover:text-white transition-all shadow-sm" data-testid="templateform-back-button">
               <ArrowLeft className="h-5 w-5 text-primary active:scale-95 transition-transform" />
             </Button>
           </Link>
@@ -121,7 +121,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="templateform-form-main">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="templateform-main-form">
           <Tabs defaultValue="editor" className="w-full">
             <div className="flex justify-center mb-6">
               <TabsList className="grid w-[400px] grid-cols-2 h-12 bg-muted/50 p-1 border border-primary/10">
@@ -142,23 +142,23 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                       <CardTitle className="flex items-center gap-2 text-primary">
                         <Mail className="h-5 w-5" /> Detalles del Correo
                       </CardTitle>
-                      
+
                       <div className="flex items-center gap-1 bg-background/50 p-1 rounded-lg border">
-                        <Button 
+                        <Button
                           type="button"
-                          variant={editorMode === 'visual' ? 'secondary' : 'ghost'} 
-                          size="sm" 
+                          variant={editorMode === 'visual' ? 'secondary' : 'ghost'}
+                          size="sm"
                           onClick={() => setEditorMode('visual')}
-                          className="h-8 gap-2 text-[10px] font-black uppercase tracking-widest px-3" data-testid="templateform-button-visual"
+                          className="h-8 gap-2 text-[10px] font-black uppercase tracking-widest px-3" data-testid="templateform-action-visual-button"
                         >
                           <Edit3 className="h-3.5 w-3.5" /> Visual
                         </Button>
-                        <Button 
+                        <Button
                           type="button"
-                          variant={editorMode === 'html' ? 'secondary' : 'ghost'} 
-                          size="sm" 
+                          variant={editorMode === 'html' ? 'secondary' : 'ghost'}
+                          size="sm"
                           onClick={() => setEditorMode('html')}
-                          className="h-8 gap-2 text-[10px] font-black uppercase tracking-widest px-3" data-testid="templateform-button-html"
+                          className="h-8 gap-2 text-[10px] font-black uppercase tracking-widest px-3" data-testid="templateform-action-html-button"
                         >
                           <Code2 className="h-3.5 w-3.5" /> HTML
                         </Button>
@@ -172,7 +172,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                           <FormItem>
                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Asunto del Correo</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Ej: Confirmación de su Reserva en {{nombre_empresa}}" className="h-12 bg-muted/30 focus:bg-background transition-all text-foreground" data-testid="templateform-input-ej-confirmaci-n-de" />
+                              <Input {...field} placeholder="Ej: Confirmación de su Reserva en {{nombre_empresa}}" className="h-12 bg-muted/30 focus:bg-background transition-all text-foreground" data-testid="templateform-subject-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -194,16 +194,16 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                               {editorMode === 'visual' ? (
                                 <RichTextEditor content={field.value} onChange={field.onChange} />
                               ) : (
-                                <Textarea 
-                                  {...field} 
+                                <Textarea
+                                  {...field}
                                   placeholder="Escriba su código HTML aquí..."
-                                  className="min-h-[400px] font-mono text-sm leading-relaxed bg-zinc-950 text-emerald-400 border-primary/20 focus:border-primary/50 transition-all p-6 selection:bg-primary/30 shadow-inner" data-testid="templateform-textarea-escriba-su-c-digo"
+                                  className="min-h-[400px] font-mono text-sm leading-relaxed bg-zinc-950 text-emerald-400 border-primary/20 focus:border-primary/50 transition-all p-6 selection:bg-primary/30 shadow-inner" data-testid="templateform-body-textarea"
                                 />
                               )}
                             </FormControl>
                             <FormMessage />
                             <FormDescription className="text-[10px] italic text-muted-foreground">
-                              {editorMode === 'visual' 
+                              {editorMode === 'visual'
                                 ? "Use dobles llaves para variables: Hola {{nombre_cliente}}"
                                 : "Asegúrese de usar estilos en línea (inline styles) para mejor compatibilidad."}
                             </FormDescription>
@@ -229,7 +229,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                           <FormItem>
                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Nombre Interno</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Ej: Confirmación Reserva" className="h-10 text-foreground" data-testid="templateform-input-ej-confirmaci-n-reserva" />
+                              <Input {...field} placeholder="Ej: Confirmación Reserva" className="h-10 text-foreground" data-testid="templateform-name-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -244,7 +244,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Categoría</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger className="h-10 text-foreground" data-testid="templateform-selecttrigger-1">
+                                <SelectTrigger className="h-10 text-foreground" data-testid="templateform-type-select">
                                   <SelectValue placeholder="Seleccione tipo" />
                                 </SelectTrigger>
                               </FormControl>
@@ -273,8 +273,8 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                     <CardContent className="pt-0 space-y-4">
                       <div className="flex flex-wrap gap-2">
                         {COMMON_VARIABLES.map(variable => (
-                          <Badge 
-                            key={variable} 
+                          <Badge
+                            key={variable}
                             variant={activeVariables.includes(variable) ? "default" : "outline"}
                             className={cn(
                               "cursor-pointer transition-all hover:scale-105 py-1 px-2 text-[10px] font-mono",
@@ -290,7 +290,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                     </CardContent>
                   </Card>
 
-                  <Button type="submit" size="lg" className="w-full h-14 rounded-xl gap-2 font-black uppercase tracking-widest shadow-xl shadow-primary/20" disabled={isPending} data-testid="templateform-button-submit">
+                  <Button type="submit" size="lg" className="w-full h-14 rounded-xl gap-2 font-black uppercase tracking-widest shadow-xl shadow-primary/20" disabled={isPending} data-testid="templateform-submit-button">
                     {isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
                     ) : (
@@ -303,10 +303,10 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
             </TabsContent>
 
             <TabsContent value="preview" className="mt-0 focus-visible:ring-0 animate-in fade-in slide-in-from-right-4 duration-300">
-              <TemplatePreview 
-                bodyHtml={watchedValues.bodyHtml} 
-                subject={watchedValues.subject} 
-                variables={activeVariables} 
+              <TemplatePreview
+                bodyHtml={watchedValues.bodyHtml}
+                subject={watchedValues.subject}
+                variables={activeVariables}
               />
             </TabsContent>
           </Tabs>

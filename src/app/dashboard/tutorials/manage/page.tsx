@@ -12,7 +12,7 @@ export default async function ManageTutorialsPage() {
         <div className="min-h-screen bg-[#050505] p-6 lg:p-12 space-y-12">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 max-w-[1600px] mx-auto">
                 <div className="space-y-2">
-                    <Link href="/manual/project-docs" className="group flex items-center gap-2 mb-4 hover:translate-x-1 transition-transform" data-testid="manage-link-manual-project-docs">
+                    <Link href="/manual/project-docs" className="group flex items-center gap-2 mb-4 hover:translate-x-1 transition-transform" data-testid="manage-back-link">
                         <ChevronLeft className="h-4 w-4 text-primary" />
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-white transition-colors">Volver a Documentación</span>
                     </Link>

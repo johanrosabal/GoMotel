@@ -162,7 +162,7 @@ export default function StabilityDashboardPage() {
                     )}
                     onClick={runTests}
                     disabled={isPending}
-                    data-testid="btn-run-diagnostic"
+                    data-testid="stability-action-button"
                 >
                     {isPending ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <PlayCircle className="mr-2 h-6 w-6" />}
                     {isPending ? 'Ejecutando...' : 'Iniciar Escaneo'}

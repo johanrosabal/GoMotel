@@ -18,14 +18,14 @@ export default function PurchasesRootPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button asChild variant="outline" className="shadow-sm" id="page-button-1" data-testid="purchases-button-1">
-            <Link href="/inventory" id="page-link-inventario" data-testid="purchases-link-inventario">
+          <Button asChild variant="outline" className="shadow-sm" id="page-button-1" data-testid="purchases-action-button">
+            <Link href="/inventory" id="page-link-inventario" data-testid="purchases-inventory-link">
               <Package className="mr-2 h-4 w-4" />
               Inventario
             </Link>
           </Button>
-          <Button asChild variant="outline" className="shadow-sm" id="page-button-2" data-testid="purchases-button-2">
-            <Link href="/catalog" id="page-link-cat-logo-de-productos" data-testid="purchases-link-cat-logo-de-productos">
+          <Button asChild variant="outline" className="shadow-sm" id="page-button-2" data-testid="purchases-action-button">
+            <Link href="/catalog" id="page-link-cat-logo-de-productos" data-testid="purchases-catalog-link">
               <BookCopy className="mr-2 h-4 w-4" />
               Catálogo de Productos
             </Link>

@@ -101,12 +101,12 @@ export default function LandingPageForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user, firestore, storage } = useFirebase();
-  
+
   const contentRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'landingPageContent', 'main');
   }, [firestore]);
-  
+
   const { data: content, isLoading } = useDoc<LandingPageContent>(contentRef);
 
   const defaultValues: FormData = {
@@ -199,7 +199,7 @@ export default function LandingPageForm() {
     control: form.control,
     name: 'footerSection.socialMedia',
   });
-  
+
   useEffect(() => {
     if (content) {
       // Merge content with default values to ensure no section becomes undefined
@@ -270,11 +270,11 @@ export default function LandingPageForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="landingpageform-form-main">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="landingpageform-main-form">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Hero (Principal)
+              <Layout className="h-5 w-5" /> Sección: Hero (Principal)
             </CardTitle>
             <CardDescription>
               Gestione las imágenes principales para computadora y dispositivos móviles.
@@ -289,7 +289,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 1 (Blanco)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: EXCLUSIVIDAD" data-testid="landingpageform-input-ej-exclusividad" />
+                      <Input {...field} placeholder="Ej: EXCLUSIVIDAD" data-testid="landingpageform-title1-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -302,7 +302,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: SIN LÍMITES" data-testid="landingpageform-input-ej-sin-l-mites" />
+                      <Input {...field} placeholder="Ej: SIN LÍMITES" data-testid="landingpageform-title2-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -317,7 +317,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Subtítulo (Desktop)</FormLabel>
                     <FormControl>
-                      <Textarea {...field} rows={2} placeholder="Descripción larga..." data-testid="landingpageform-textarea-descripci-n-larga" />
+                      <Textarea {...field} rows={2} placeholder="Descripción larga..." data-testid="landingpageform-desktopsubtitle-textarea" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -330,7 +330,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Subtítulo (Mobile, menos letras)</FormLabel>
                     <FormControl>
-                      <Textarea {...field} rows={2} placeholder="Descripción corta..." data-testid="landingpageform-textarea-descripci-n-corta" />
+                      <Textarea {...field} rows={2} placeholder="Descripción corta..." data-testid="landingpageform-mobilesubtitle-textarea" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -345,10 +345,10 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Imagen Desktop</FormLabel>
                     <FormControl>
-                      <MediaUpload 
-                        value={field.value || ''} 
-                        onChange={field.onChange} 
-                        path="hero" 
+                      <MediaUpload
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        path="hero"
                         type="image"
                       />
                     </FormControl>
@@ -363,10 +363,10 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Imagen Móvil</FormLabel>
                     <FormControl>
-                      <MediaUpload 
-                        value={field.value || ''} 
-                        onChange={field.onChange} 
-                        path="hero" 
+                      <MediaUpload
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        path="hero"
                         type="image"
                       />
                     </FormControl>
@@ -381,7 +381,7 @@ export default function LandingPageForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Por qué somos Diferentes
+              <Layout className="h-5 w-5" /> Sección: Por qué somos Diferentes
             </CardTitle>
             <CardDescription>
               Personalice el título principal y la descripción de la sección de características.
@@ -396,7 +396,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 1 (Blanco)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: POR QUÉ SOMOS" data-testid="landingpageform-input-ej-por-qu" />
+                      <Input {...field} placeholder="Ej: POR QUÉ SOMOS" data-testid="landingpageform-title1-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -409,7 +409,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: DIFERENTES" data-testid="landingpageform-input-ej-diferentes" />
+                      <Input {...field} placeholder="Ej: DIFERENTES" data-testid="landingpageform-title2-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -423,7 +423,7 @@ export default function LandingPageForm() {
                 <FormItem>
                   <FormLabel>Descripción</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} placeholder="Ingrese una breve descripción..." data-testid="landingpageform-textarea-ingrese-una-breve" />
+                    <Textarea {...field} rows={3} placeholder="Ingrese una breve descripción..." data-testid="landingpageform-description-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -439,7 +439,7 @@ export default function LandingPageForm() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ id: Date.now().toString(), icon: 'Star', title: '', description: '' })} data-testid="landingpageform-button-a-adir-caja"
+              onClick={() => append({ id: Date.now().toString(), icon: 'Star', title: '', description: '' })} data-testid="landingpageform-add-button"
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Añadir Caja
             </Button>
@@ -458,7 +458,7 @@ export default function LandingPageForm() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive/80"
-                      onClick={() => remove(index)} data-testid="landingpageform-button-delete"
+                      onClick={() => remove(index)} data-testid="landingpageform-delete-button"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -476,7 +476,7 @@ export default function LandingPageForm() {
                           render={({ field }) => (
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger className="w-full" data-testid="landingpageform-selecttrigger-1">
+                                <SelectTrigger className="w-full" data-testid="landingpageform-icon-select">
                                   <SelectValue placeholder="Icono" />
                                 </SelectTrigger>
                               </FormControl>
@@ -500,7 +500,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel>Título de la Caja</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Ej: MÁXIMA PRIVACIDAD" data-testid="landingpageform-input-ej-m-xima-privacidad" />
+                              <Input {...field} placeholder="Ej: MÁXIMA PRIVACIDAD" data-testid="landingpageform-title-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -513,7 +513,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel>Descripción corta</FormLabel>
                             <FormControl>
-                              <Textarea {...field} rows={2} placeholder="Describa esta característica..." data-testid="landingpageform-textarea-describa-esta-caracter-stica" />
+                              <Textarea {...field} rows={2} placeholder="Describa esta característica..." data-testid="landingpageform-description-textarea" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -530,7 +530,7 @@ export default function LandingPageForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Nuestras Amenidades
+              <Layout className="h-5 w-5" /> Sección: Nuestras Amenidades
             </CardTitle>
             <CardDescription>
               Personalice el título y las amenidades destacadas.
@@ -545,7 +545,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 1 (Blanco)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: DISEÑO QUE" data-testid="landingpageform-input-ej-dise-o-que" />
+                      <Input {...field} placeholder="Ej: DISEÑO QUE" data-testid="landingpageform-title1-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -558,7 +558,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: INSPIRA" data-testid="landingpageform-input-ej-inspira" />
+                      <Input {...field} placeholder="Ej: INSPIRA" data-testid="landingpageform-title2-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -573,7 +573,7 @@ export default function LandingPageForm() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendAmenity({ id: Date.now().toString(), title: '', description: '' })} data-testid="landingpageform-button-a-adir-amenidad"
+                  onClick={() => appendAmenity({ id: Date.now().toString(), title: '', description: '' })} data-testid="landingpageform-add-button"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Amenidad
                 </Button>
@@ -588,7 +588,7 @@ export default function LandingPageForm() {
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 text-destructive hover:text-destructive/80"
-                        onClick={() => removeAmenity(index)} data-testid="landingpageform-button-delete"
+                        onClick={() => removeAmenity(index)} data-testid="landingpageform-delete-button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -599,7 +599,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Título</FormLabel>
                             <FormControl>
-                              <Input {...field} className="h-9 px-3" placeholder="Ej: Jacuzzi Privado" data-testid="landingpageform-input-ej-jacuzzi-privado" />
+                              <Input {...field} className="h-9 px-3" placeholder="Ej: Jacuzzi Privado" data-testid="landingpageform-8-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -612,7 +612,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Descripción</FormLabel>
                             <FormControl>
-                              <Textarea {...field} rows={2} className="resize-none" placeholder="Breve descripción..." data-testid="landingpageform-textarea-breve-descripci-n" />
+                              <Textarea {...field} rows={2} className="resize-none" placeholder="Breve descripción..." data-testid="landingpageform-5-textarea" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -625,10 +625,10 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Imagen de la Amenidad</FormLabel>
                             <FormControl>
-                              <MediaUpload 
-                                value={field.value || ''} 
-                                onChange={field.onChange} 
-                                path="amenities" 
+                              <MediaUpload
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                path="amenities"
                                 type="image"
                               />
                             </FormControl>
@@ -647,7 +647,7 @@ export default function LandingPageForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Explore Lujo (Galería)
+              <Layout className="h-5 w-5" /> Sección: Explore Lujo (Galería)
             </CardTitle>
             <CardDescription>
               Gestione las imágenes que aparecen en la galería de la página principal.
@@ -662,7 +662,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 1 (Blanco)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: EXPLORE" data-testid="landingpageform-input-ej-explore" />
+                      <Input {...field} placeholder="Ej: EXPLORE" data-testid="landingpageform-9-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -675,7 +675,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: LUJO" data-testid="landingpageform-input-ej-lujo" />
+                      <Input {...field} placeholder="Ej: LUJO" data-testid="landingpageform-10-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -690,7 +690,7 @@ export default function LandingPageForm() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendGallery({ id: Date.now().toString(), url: '', alt: '' })} data-testid="landingpageform-button-a-adir-imagen"
+                  onClick={() => appendGallery({ id: Date.now().toString(), url: '', alt: '' })} data-testid="landingpageform-add-button"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Imagen
                 </Button>
@@ -705,11 +705,11 @@ export default function LandingPageForm() {
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 text-destructive hover:text-destructive/80"
-                        onClick={() => handleRemoveMedia(index, 'images')} data-testid="landingpageform-button-delete"
+                        onClick={() => handleRemoveMedia(index, 'images')} data-testid="landingpageform-delete-button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                      
+
                       <FormField
                         control={form.control}
                         name={`gallerySection.images.${index}.url`}
@@ -717,10 +717,10 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Archivo de Imagen</FormLabel>
                             <FormControl>
-                              <MediaUpload 
-                                value={field.value || ''} 
-                                onChange={field.onChange} 
-                                path="gallery" 
+                              <MediaUpload
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                path="gallery"
                                 type="image"
                               />
                             </FormControl>
@@ -736,7 +736,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Descripción (Alt)</FormLabel>
                             <FormControl>
-                              <Input {...field} className="h-9 px-3" placeholder="Ej: Vista del exterior" data-testid="landingpageform-input-ej-vista-del" />
+                              <Input {...field} className="h-9 px-3" placeholder="Ej: Vista del exterior" data-testid="landingpageform-11-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -763,7 +763,7 @@ export default function LandingPageForm() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendVideo({ id: Date.now().toString(), url: '', alt: '' })} data-testid="landingpageform-button-a-adir-video"
+                  onClick={() => appendVideo({ id: Date.now().toString(), url: '', alt: '' })} data-testid="landingpageform-add-button"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Video
                 </Button>
@@ -778,11 +778,11 @@ export default function LandingPageForm() {
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 text-destructive hover:text-destructive/80"
-                        onClick={() => handleRemoveMedia(index, 'videos')} data-testid="landingpageform-button-delete"
+                        onClick={() => handleRemoveMedia(index, 'videos')} data-testid="landingpageform-delete-button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                      
+
                       <FormField
                         control={form.control}
                         name={`gallerySection.videos.${index}.url`}
@@ -790,10 +790,10 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Archivo de Video</FormLabel>
                             <FormControl>
-                              <MediaUpload 
-                                value={field.value || ''} 
-                                onChange={field.onChange} 
-                                path="gallery" 
+                              <MediaUpload
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                path="gallery"
                                 type="video"
                                 maxSizeMB={100}
                               />
@@ -810,7 +810,7 @@ export default function LandingPageForm() {
                           <FormItem>
                             <FormLabel className="text-xs">Título del Video</FormLabel>
                             <FormControl>
-                              <Input {...field} className="h-9 px-3" placeholder="Ej: Recorrido por Suite" data-testid="landingpageform-input-ej-recorrido-por" />
+                              <Input {...field} className="h-9 px-3" placeholder="Ej: Recorrido por Suite" data-testid="landingpageform-12-input" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -832,7 +832,7 @@ export default function LandingPageForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Resumen Quiénes Somos
+              <Layout className="h-5 w-5" /> Sección: Resumen Quiénes Somos
             </CardTitle>
             <CardDescription>
               Gestione el título y descripción que invita a los usuarios a conocer la historia del motel.
@@ -847,7 +847,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 1 (Blanco)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: MÁS DE 15 AÑOS DE" data-testid="landingpageform-input-ej-m-s-de" />
+                      <Input {...field} placeholder="Ej: MÁS DE 15 AÑOS DE" data-testid="landingpageform-13-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -860,7 +860,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Título Línea 2 (Color Primario)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: EXCELENCIA" data-testid="landingpageform-input-ej-excelencia" />
+                      <Input {...field} placeholder="Ej: EXCELENCIA" data-testid="landingpageform-14-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -875,7 +875,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Texto Etiqueta (Pastilla pequeña)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: Nuestra Historia" data-testid="landingpageform-input-ej-nuestra-historia" />
+                      <Input {...field} placeholder="Ej: Nuestra Historia" data-testid="landingpageform-15-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -888,7 +888,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Texto del Botón</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: Conozca Quiénes Somos" data-testid="landingpageform-input-ej-conozca-qui-nes" />
+                      <Input {...field} placeholder="Ej: Conozca Quiénes Somos" data-testid="landingpageform-16-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -902,7 +902,7 @@ export default function LandingPageForm() {
                 <FormItem>
                   <FormLabel>Descripción de la sección</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} placeholder="Ingrese la historia resumida..." data-testid="landingpageform-textarea-ingrese-la-historia" />
+                    <Textarea {...field} rows={3} placeholder="Ingrese la historia resumida..." data-testid="landingpageform-6-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -914,7 +914,7 @@ export default function LandingPageForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Layout className="h-5 w-5" /> Sección: Pie de Página (Footer)
+              <Layout className="h-5 w-5" /> Sección: Pie de Página (Footer)
             </CardTitle>
             <CardDescription>
               Gestione la información de contacto y redes sociales que aparece en la parte inferior.
@@ -928,7 +928,7 @@ export default function LandingPageForm() {
                 <FormItem>
                   <FormLabel>Descripción del Motel (Footer)</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} placeholder="Ingrese una breve descripción para el pie de página..." data-testid="landingpageform-textarea-ingrese-una-breve-1" />
+                    <Textarea {...field} rows={3} placeholder="Ingrese una breve descripción para el pie de página..." data-testid="landingpageform-7-textarea" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -943,7 +943,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Dirección Física</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: San José, Costa Rica..." data-testid="landingpageform-input-ej-san-jos" />
+                      <Input {...field} placeholder="Ej: San José, Costa Rica..." data-testid="landingpageform-17-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -956,7 +956,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Número de Teléfono</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: +506 2222-2222" data-testid="landingpageform-input-ej-506-2222-2222" />
+                      <Input {...field} placeholder="Ej: +506 2222-2222" data-testid="landingpageform-18-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -969,7 +969,7 @@ export default function LandingPageForm() {
                   <FormItem>
                     <FormLabel>Número de WhatsApp</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ej: +506 8888-8888" data-testid="landingpageform-input-ej-506-8888-8888" />
+                      <Input {...field} placeholder="Ej: +506 8888-8888" data-testid="landingpageform-19-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -984,7 +984,7 @@ export default function LandingPageForm() {
                 <FormItem>
                   <FormLabel>Enlace de Google Maps (Ubicación)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="https://www.google.com/maps/..." data-testid="landingpageform-input-https-www-google-com-maps" />
+                    <Input {...field} placeholder="https://www.google.com/maps/..." data-testid="landingpageform-20-input" />
                   </FormControl>
                   <FormDescription>
                     Este enlace se usará para generar los botones de navegación (Google Maps y Waze).
@@ -1001,7 +1001,7 @@ export default function LandingPageForm() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendSocial({ platform: 'Instagram', url: '' })} data-testid="landingpageform-button-a-adir-red-social"
+                  onClick={() => appendSocial({ platform: 'Instagram', url: '' })} data-testid="landingpageform-add-button"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Red Social
                 </Button>
@@ -1017,7 +1017,7 @@ export default function LandingPageForm() {
                         <FormItem className="w-1/3">
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger data-testid="landingpageform-selecttrigger-2">
+                              <SelectTrigger data-testid="landingpageform-2-select">
                                 <SelectValue placeholder="Plataforma" />
                               </SelectTrigger>
                             </FormControl>
@@ -1039,7 +1039,7 @@ export default function LandingPageForm() {
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
-                            <Input {...field} placeholder="URL del perfil (https://...)" data-testid="landingpageform-input-url-del-perfil" />
+                            <Input {...field} placeholder="URL del perfil (https://...)" data-testid="landingpageform-21-input" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1050,7 +1050,7 @@ export default function LandingPageForm() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive h-10 w-10 shrink-0"
-                      onClick={() => removeSocial(index)} data-testid="landingpageform-button-delete"
+                      onClick={() => removeSocial(index)} data-testid="landingpageform-delete-button"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1065,7 +1065,7 @@ export default function LandingPageForm() {
         </Card>
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isPending} size="lg" data-testid="landingpageform-button-submit">
+          <Button type="submit" disabled={isPending} size="lg" data-testid="landingpageform-submit-button">
             {isPending ? 'Guardando...' : 'Guardar Todos los Cambios'}
           </Button>
         </div>

@@ -29,7 +29,7 @@ export default function RoomActionsMenu({ room }: { room: Room }) {
                                 handleInteraction(e);
                                 setIsEditDialogOpen(true);
                             }} 
-                            id="roomcard-edit-button" data-testid="roomactionsmenu-button-edit"
+                            id="roomcard-edit-button" data-testid="roomactionsmenu-edit-button"
                         >
                             <Edit className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
                             <span className="sr-only">Editar habitación</span>

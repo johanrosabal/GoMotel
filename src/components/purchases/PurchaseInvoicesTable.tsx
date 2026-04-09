@@ -38,7 +38,7 @@ function ActionsMenu({ purchase, onView }: { purchase: PurchaseInvoice, onView: 
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={isPending} id="purchaseinvoicestable-button-1" data-testid="purchaseinvoicestable-button-1"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={isPending} id="purchaseinvoicestable-button-1" data-testid="purchaseinvoicestable-action-button"><MoreHorizontal className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>

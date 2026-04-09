@@ -41,13 +41,13 @@ const registerSchema = z.object({
   email: z.string().email('Por favor ingrese un correo electrónico válido.'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
 }).refine(data => {
-    if (data.whatsappNumber && data.whatsappNumber.length > 0) {
-        return data.whatsappNumber.length === 15;
-    }
-    return true;
+  if (data.whatsappNumber && data.whatsappNumber.length > 0) {
+    return data.whatsappNumber.length === 15;
+  }
+  return true;
 }, {
-    message: 'Formato de WhatsApp inválido. Use (506) XXXX-XXXX.',
-    path: ['whatsappNumber'],
+  message: 'Formato de WhatsApp inválido. Use (506) XXXX-XXXX.',
+  path: ['whatsappNumber'],
 });
 
 export default function RegisterPage() {
@@ -80,7 +80,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (birthDay && birthMonth && birthYear) {
       const day = parseInt(birthDay, 10);
-      const month = parseInt(birthMonth, 10) - 1; 
+      const month = parseInt(birthMonth, 10) - 1;
       const year = parseInt(birthYear, 10);
       const date = new Date(year, month, day);
 
@@ -115,7 +115,7 @@ export default function RegisterPage() {
     }
     fieldOnChange(maskedValue);
   };
-  
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
     let numbers = e.target.value.replace(/\D/g, '');
     if (numbers.startsWith('506')) numbers = numbers.substring(3);
@@ -136,7 +136,7 @@ export default function RegisterPage() {
   const handleVerify = async () => {
     const idCard = form.getValues('idCard');
     const cleanId = idCard.replace(/\D/g, '');
-    
+
     if (cleanId.length < 9) {
       toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 9 dígitos de la cédula.', variant: 'destructive' });
       return;
@@ -179,7 +179,7 @@ export default function RegisterPage() {
         toast({ title: 'No encontrado', description: 'No se encontró información para esta cédula.', variant: 'destructive' });
       }
     } catch (error) {
-       toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
+      toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }
@@ -204,9 +204,9 @@ export default function RegisterPage() {
           router.push('/dashboard');
         } catch (error: any) {
           toast({
-              title: 'Error de Inicio de Sesión',
-              description: 'Ocurrió un error al iniciar sesión después del registro.',
-              variant: 'destructive',
+            title: 'Error de Inicio de Sesión',
+            description: 'Ocurrió un error al iniciar sesión después del registro.',
+            variant: 'destructive',
           });
         }
       }
@@ -229,12 +229,12 @@ export default function RegisterPage() {
 
       <div className="container relative z-10 px-6 flex flex-col items-center">
         {/* Header/Logo */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-10 flex items-center gap-4"
         >
-          <Link href="/login" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="register-link-login">
+          <Link href="/login" className="group flex items-center gap-2 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all" data-testid="register-back-link">
             <ChevronLeft className="h-4 w-4 text-white/40 group-hover:text-primary transition-colors" />
             <span className="text-xs font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Volver a Login</span>
           </Link>
@@ -247,20 +247,20 @@ export default function RegisterPage() {
           className="w-full max-w-[800px] bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-black/50"
         >
           <div className="mb-12 text-center">
-             <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Nueva Cuenta</h2>
-             </div>
-             <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic mb-4 text-white">
-                Únete a la <span className="text-primary italic border-b-2 border-primary/30">Elite</span>
-             </h1>
-             <p className="text-white/40 text-sm font-medium">Complete el formulario para formar parte de nuestro equipo.</p>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-tighter italic text-white/90">Nueva Cuenta</h2>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic mb-4 text-white">
+              Únete a la <span className="text-primary italic border-b-2 border-primary/30">Elite</span>
+            </h1>
+            <p className="text-white/40 text-sm font-medium">Complete el formulario para formar parte de nuestro equipo.</p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="register-form-main">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="register-main-form">
               {/* Name Section */}
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
@@ -271,7 +271,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Nombre</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-juan" />
+                          <Input placeholder="Juan" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-name-input" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -287,7 +287,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Primer Apellido</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-p-rez" />
+                          <Input placeholder="Pérez" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-lastname-input" />
                           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                     <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Segundo Apellido (Opcional)</FormLabel>
                     <FormControl>
                       <div className="relative group">
-                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-garc-a" />
+                        <Input placeholder="García" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-second-lastname-input" />
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
                     </FormControl>
@@ -321,39 +321,39 @@ export default function RegisterPage() {
                   name="idCard"
                   render={({ field }) => (
                     <FormItem className="space-y-2">
-                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1 flex items-center justify-between">
-                         <span>Cédula de Identidad</span>
-                         {isValidated && (
-                           <motion.span 
-                             initial={{ opacity: 0, x: -10 }} 
-                             animate={{ opacity: 1, x: 0 }} 
-                             className="flex items-center gap-1 text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20"
-                           >
-                             <ShieldCheck className="h-2.5 w-2.5" /> Verificada
-                           </motion.span>
-                         )}
-                       </FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1 flex items-center justify-between">
+                        <span>Cédula de Identidad</span>
+                        {isValidated && (
+                          <motion.span
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex items-center gap-1 text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20"
+                          >
+                            <ShieldCheck className="h-2.5 w-2.5" /> Verificada
+                          </motion.span>
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <div className="space-y-2">
                           <div className="flex gap-2">
                             <div className="relative group flex-1">
-                              <Input 
-                                placeholder="0-0000-0000" 
-                                {...field} 
+                              <Input
+                                placeholder="0-0000-0000"
+                                {...field}
                                 onChange={(e) => {
-                                    handleIdCardChange(e, field.onChange);
-                                    setIsValidated(false);
-                                }} 
-                                className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-0-0000-0000"
+                                  handleIdCardChange(e, field.onChange);
+                                  setIsValidated(false);
+                                }}
+                                className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-id-card-input"
                               />
                               <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                             </div>
-                            <Button 
-                              type="button" 
-                              variant="secondary" 
-                              onClick={handleVerify} 
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={handleVerify}
                               disabled={isVerifying}
-                              className="h-14 px-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/80 font-bold uppercase tracking-widest text-[10px] shrink-0" data-testid="register-button-1"
+                              className="h-14 px-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/80 font-bold uppercase tracking-widest text-[10px] shrink-0" data-testid="register-action-verify-button"
                             >
                               {isVerifying ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : 'Verificar'}
                             </Button>
@@ -370,7 +370,7 @@ export default function RegisterPage() {
                   <div className="flex gap-2">
                     <Select onValueChange={setBirthDay} value={birthDay}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-1">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-birth-day-select">
                           <SelectValue placeholder="Día" />
                         </SelectTrigger>
                       </FormControl>
@@ -380,7 +380,7 @@ export default function RegisterPage() {
                     </Select>
                     <Select onValueChange={setBirthMonth} value={birthMonth}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-2">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-birth-month-select">
                           <SelectValue placeholder="Mes" />
                         </SelectTrigger>
                       </FormControl>
@@ -390,7 +390,7 @@ export default function RegisterPage() {
                     </Select>
                     <Select onValueChange={setBirthYear} value={birthYear}>
                       <FormControl>
-                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-selecttrigger-3">
+                        <SelectTrigger className="h-14 bg-white/[0.03] border-white/5 rounded-2xl focus:ring-primary/20 text-white/80" data-testid="register-birth-year-select">
                           <SelectValue placeholder="Año" />
                         </SelectTrigger>
                       </FormControl>
@@ -405,7 +405,7 @@ export default function RegisterPage() {
 
               {/* Contact Section */}
               <div className="grid md:grid-cols-2 gap-6">
-                 <FormField
+                <FormField
                   control={form.control}
                   name="phoneNumber"
                   render={({ field }) => (
@@ -413,11 +413,11 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Teléfono</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input 
-                            placeholder="(506) 8888-8888" 
-                            {...field} 
-                            onChange={(e) => handlePhoneChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-input-506-8888-8888"
+                          <Input
+                            placeholder="(506) 8888-8888"
+                            {...field}
+                            onChange={(e) => handlePhoneChange(e, field.onChange)}
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-phone-input"
                           />
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
@@ -434,11 +434,11 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">WhatsApp (Opcional)</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input 
-                            placeholder="(506) 8888-8888" 
-                            {...field} 
-                            onChange={(e) => handlePhoneChange(e, field.onChange)} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-input-506-8888-8888-1"
+                          <Input
+                            placeholder="(506) 8888-8888"
+                            {...field}
+                            onChange={(e) => handlePhoneChange(e, field.onChange)}
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10" data-testid="register-whatsapp-input"
                           />
                           <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
@@ -459,7 +459,7 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Correo Electrónico</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-admin-gomotel-com" />
+                          <Input placeholder="admin@gomotel.com" {...field} className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-email-input" />
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         </div>
                       </FormControl>
@@ -475,11 +475,11 @@ export default function RegisterPage() {
                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Contraseña</FormLabel>
                       <FormControl>
                         <div className="relative group">
-                          <Input 
-                            type={showPassword ? 'text' : 'password'} 
-                            placeholder="••••••••" 
-                            {...field} 
-                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-input-1" 
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            {...field}
+                            className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="register-8-input"
                           />
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                           <Button
@@ -487,7 +487,7 @@ export default function RegisterPage() {
                             variant="ghost"
                             size="icon"
                             className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 text-white/20 hover:text-white hover:bg-transparent"
-                            onClick={() => setShowPassword((prev) => !prev)} data-testid="register-button-2"
+                            onClick={() => setShowPassword((prev) => !prev)} data-testid="register-password-show-button"
                           >
                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                           </Button>
@@ -499,10 +499,10 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-16 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative mt-8" 
-                disabled={isPending} data-testid="register-button-submit"
+              <Button
+                type="submit"
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative mt-8"
+                disabled={isPending} data-testid="register-submit-button"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isPending ? 'Procesando...' : (
@@ -518,14 +518,14 @@ export default function RegisterPage() {
 
           <div className="mt-12 text-center pt-8 border-t border-white/5">
             <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿Ya tiene una cuenta?</p>
-            <Link href="/login" data-testid="register-link-login-1">
+            <Link href="/login" data-testid="register-login-link">
               <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Iniciar Sesión</span>
             </Link>
           </div>
         </motion.div>
 
         {/* Branding Footer */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}

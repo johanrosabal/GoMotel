@@ -11,7 +11,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<'tex
           className
         )}
         ref={ref}
-        {...props} data-testid="textarea-textarea-1"
+        {...props}
       />
     );
   }

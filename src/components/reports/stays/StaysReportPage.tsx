@@ -43,15 +43,15 @@ export default function StaysReportPage() {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-start sm:items-center gap-4">
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <Input
                         placeholder="Buscar por huésped o habitación..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="max-w-xs" id="staysreportpage-input-buscar-por-hu-sped" data-testid="staysreportpage-input-buscar-por-hu-sped"
+                        className="max-w-xs" id="staysreportpage-input-buscar-por-hu-sped" data-testid="staysreportpage-search-input"
                     />
                     <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-                        <SelectTrigger className="w-full sm:w-[180px]" id="staysreportpage-selecttrigger-1" data-testid="staysreportpage-selecttrigger-1">
+                        <SelectTrigger className="w-full sm:w-[180px]" id="staysreportpage-selecttrigger-1" data-testid="staysreportpage-status-filter-select">
                             <SelectValue placeholder="Filtrar por estado" />
                         </SelectTrigger>
                         <SelectContent>

@@ -1,32 +1,32 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from '@/components/ui/table';
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
-    DialogHeader, 
-    DialogTitle 
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-    Plus, 
-    Pencil, 
-    Trash2, 
-    Video, 
-    ExternalLink, 
-    Save, 
+import {
+    Plus,
+    Pencil,
+    Trash2,
+    Video,
+    ExternalLink,
+    Save,
     Loader2,
     ShieldAlert,
     Info as InfoIcon
@@ -64,7 +64,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Está seguro de eliminar este tutorial?')) return;
-        
+
         const result = await deleteTutorial(id);
         if (result.success) {
             setTutorials(prev => prev.filter(t => t.id !== id));
@@ -86,7 +86,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
             if (result.success) {
                 toast({ title: '¡Guardado!', description: 'El tutorial se ha actualizado correctamente.' });
                 setIsOpen(false);
-                window.location.reload(); 
+                window.location.reload();
             } else {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             }
@@ -94,7 +94,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
     };
 
     if (isLoading) return <div className="h-40 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-    
+
     if (userProfile?.role !== 'Administrador') {
         return (
             <div className="flex flex-col items-center justify-center p-12 bg-white/5 rounded-[2.5rem] border border-white/10 text-center space-y-4">
@@ -105,7 +105,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest max-w-sm">
                     Solo los administradores pueden gestionar el contenido del centro de aprendizaje.
                 </p>
-                <Button variant="outline" onClick={() => window.location.href = '/dashboard'} className="rounded-2xl uppercase tracking-widest text-[10px] font-bold h-12 px-8" data-testid="tutorialmanager-button-volver-al-inicio">
+                <Button variant="outline" onClick={() => window.location.href = '/dashboard'} className="rounded-2xl uppercase tracking-widest text-[10px] font-bold h-12 px-8" data-testid="tutorialmanager-back-button">
                     Volver al Inicio
                 </Button>
             </div>
@@ -122,7 +122,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                     </h2>
                     <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Cree y organice el centro de aprendizaje</p>
                 </div>
-                <Button onClick={() => handleEdit(null)} className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px]" data-testid="tutorialmanager-button-nuevo-tutorial">
+                <Button onClick={() => handleEdit(null)} className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px]" data-testid="tutorialmanager-new-button">
                     <Plus className="h-4 w-4" /> Nuevo Tutorial
                 </Button>
             </div>
@@ -151,15 +151,15 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <a href={t.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-primary flex items-center gap-1 transition-colors" data-testid="tutorialmanager-a-ver-archivo">
+                                    <a href={t.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-primary flex items-center gap-1 transition-colors" data-testid="tutorialmanager-action-link">
                                         <ExternalLink className="h-3 w-3" /> Ver Archivo
                                     </a>
                                 </TableCell>
                                 <TableCell className="text-right px-8 space-x-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(t)} className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all" data-testid="tutorialmanager-button-edit">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(t)} className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all" data-testid="tutorialmanager-edit-button">
                                         <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)} className="h-9 w-9 rounded-xl hover:bg-rose-500/10 hover:text-rose-500 transition-all" data-testid="tutorialmanager-button-delete">
+                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)} className="h-9 w-9 rounded-xl hover:bg-rose-500/10 hover:text-rose-500 transition-all" data-testid="tutorialmanager-delete-button">
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </TableCell>
@@ -187,24 +187,24 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-6 pt-4" data-testid="tutorialmanager-form-main">
+                    <form onSubmit={handleSubmit} className="space-y-6 pt-4" data-testid="tutorialmanager-main-form">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Título del Tutorial</Label>
-                                <Input 
-                                    value={editingTutorial?.title || ''} 
+                                <Input
+                                    value={editingTutorial?.title || ''}
                                     onChange={e => setEditingTutorial(prev => ({ ...prev, title: e.target.value }))}
                                     className="h-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold"
-                                    placeholder="Ej: Cómo realizar un Check-out" data-testid="tutorialmanager-input-ej-c-mo-realizar"
+                                    placeholder="Ej: Cómo realizar un Check-out" data-testid="tutorialmanager-1-input"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</Label>
-                                <Input 
-                                    value={editingTutorial?.category || ''} 
+                                <Input
+                                    value={editingTutorial?.category || ''}
                                     onChange={e => setEditingTutorial(prev => ({ ...prev, category: e.target.value }))}
                                     className="h-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold"
-                                    placeholder="Ej: Operaciones" data-testid="tutorialmanager-input-ej-operaciones"
+                                    placeholder="Ej: Operaciones" data-testid="tutorialmanager-2-input"
                                 />
                             </div>
                         </div>
@@ -214,7 +214,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                                 <Video className="h-4 w-4 text-primary" />
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-white italic">Archivo de Video (Subida Directa)</Label>
                             </div>
-                            <MediaUpload 
+                            <MediaUpload
                                 value={editingTutorial?.videoUrl || ''}
                                 onChange={url => setEditingTutorial(prev => ({ ...prev, videoUrl: url }))}
                                 type="video"
@@ -230,13 +230,13 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                         </div>
 
                         <div className="grid grid-cols-1 gap-6">
-                             <div className="space-y-2">
+                            <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Orden de Aparición</Label>
-                                <Input 
+                                <Input
                                     type="number"
-                                    value={editingTutorial?.order ?? 0} 
+                                    value={editingTutorial?.order ?? 0}
                                     onChange={e => setEditingTutorial(prev => ({ ...prev, order: parseInt(e.target.value) }))}
-                                    className="h-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold" data-testid="tutorialmanager-input-1"
+                                    className="h-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold" data-testid="tutorialmanager-3-input"
                                 />
                             </div>
                         </div>
@@ -244,18 +244,18 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Instrucciones / Descripción (Texto Enriquecido)</Label>
                             <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 min-h-[300px]">
-                                <RichTextEditor 
-                                    content={editingTutorial?.description || ''} 
+                                <RichTextEditor
+                                    content={editingTutorial?.description || ''}
                                     onChange={content => setEditingTutorial(prev => ({ ...prev, description: content }))}
                                 />
                             </div>
                         </div>
 
                         <DialogFooter className="pt-4 border-t border-white/10">
-                            <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="rounded-2xl uppercase tracking-widest text-[10px] font-bold h-12 px-6" data-testid="tutorialmanager-button-cancelar">
+                            <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="rounded-2xl uppercase tracking-widest text-[10px] font-bold h-12 px-6" data-testid="tutorialmanager-cancel-button">
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={isPending} className="rounded-2xl gap-2 h-12 px-8 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" data-testid="tutorialmanager-button-guardar-tutorial">
+                            <Button type="submit" disabled={isPending} className="rounded-2xl gap-2 h-12 px-8 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" data-testid="tutorialmanager-save-button">
                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                 Guardar Tutorial
                             </Button>

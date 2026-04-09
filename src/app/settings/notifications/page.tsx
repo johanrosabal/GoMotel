@@ -2,53 +2,53 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  Search, 
-  Bell, 
-  BellOff, 
-  Clock, 
-  AlertCircle, 
+import {
+  Plus,
+  Trash2,
+  Search,
+  Bell,
+  BellOff,
+  Clock,
+  AlertCircle,
   CheckCircle2,
   MoreHorizontal,
   Pencil
 } from 'lucide-react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from '@/components/ui/tabs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,10 +57,10 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  getNotifications, 
-  saveNotification, 
-  deleteNotification 
+import {
+  getNotifications,
+  saveNotification,
+  deleteNotification
 } from '@/lib/actions/notification.actions';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
@@ -170,8 +170,8 @@ export default function NotificationsPage() {
                     <TableCell>
                       <Badge variant="outline" className={cn(
                         notif.priority === 'High' ? 'text-red-500 border-red-500' :
-                        notif.priority === 'Medium' ? 'text-amber-500 border-amber-500' :
-                        'text-blue-500 border-blue-500'
+                          notif.priority === 'Medium' ? 'text-amber-500 border-amber-500' :
+                            'text-blue-500 border-blue-500'
                       )}>
                         {notif.priority}
                       </Badge>
@@ -184,7 +184,7 @@ export default function NotificationsPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" data-testid="notifications-button-1">
+                          <Button variant="ghost" className="h-8 w-8 p-0" data-testid="notifications-action-button">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -232,7 +232,7 @@ export default function NotificationsPage() {
             endDate: (Date.now() + 86400000) as any // +1 day
           });
           setIsOpen(true);
-        }} className="font-bold" data-testid="notifications-button-nueva-notificaci-n">
+        }} className="font-bold" data-testid="notifications-add-button">
           <Plus className="mr-2 h-4 w-4" /> Nueva Notificación
         </Button>
       </div>
@@ -245,16 +245,16 @@ export default function NotificationsPage() {
               Configure el contenido y el periodo de vigencia de su mensaje.
             </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleSave} className="grid gap-6 py-4" data-testid="notifications-form-main">
+
+          <form onSubmit={handleSave} className="grid gap-6 py-4" data-testid="notifications-main-form">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Aviso</Label>
-                <Select 
-                  value={editingNotif?.type} 
-                  onValueChange={(val: NotificationType) => setEditingNotif({...editingNotif, type: val})}
+                <Select
+                  value={editingNotif?.type}
+                  onValueChange={(val: NotificationType) => setEditingNotif({ ...editingNotif, type: val })}
                 >
-                  <SelectTrigger data-testid="notifications-selecttrigger-1">
+                  <SelectTrigger data-testid="notifications-type-select">
                     <SelectValue placeholder="Seleccione tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,11 +265,11 @@ export default function NotificationsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Prioridad / Color</Label>
-                <Select 
-                  value={editingNotif?.priority} 
-                  onValueChange={(val: NotificationPriority) => setEditingNotif({...editingNotif, priority: val})}
+                <Select
+                  value={editingNotif?.priority}
+                  onValueChange={(val: NotificationPriority) => setEditingNotif({ ...editingNotif, priority: val })}
                 >
-                  <SelectTrigger data-testid="notifications-selecttrigger-2">
+                  <SelectTrigger data-testid="notifications-priority-select">
                     <SelectValue placeholder="Prioridad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -283,46 +283,46 @@ export default function NotificationsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="title">Título del Mensaje</Label>
-              <Input 
-                id="title" 
-                placeholder="Ej: Mantenimiento programado" 
+              <Input
+                id="title"
+                placeholder="Ej: Mantenimiento programado"
                 value={editingNotif?.title || ''}
-                onChange={(e) => setEditingNotif({...editingNotif, title: e.target.value})}
-                required data-testid="notifications-input-ej-mantenimiento-programado"
+                onChange={(e) => setEditingNotif({ ...editingNotif, title: e.target.value })}
+                required data-testid="notifications-title-input"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="message">Contenido del Aviso</Label>
-              <Textarea 
-                id="message" 
-                placeholder="Escriba el detalle de la notificación..." 
+              <Textarea
+                id="message"
+                placeholder="Escriba el detalle de la notificación..."
                 className="min-h-[100px]"
                 value={editingNotif?.message || ''}
-                onChange={(e) => setEditingNotif({...editingNotif, message: e.target.value})}
-                required data-testid="notifications-textarea-escriba-el-detalle"
+                onChange={(e) => setEditingNotif({ ...editingNotif, message: e.target.value })}
+                required data-testid="notifications-message-textarea"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="start">Fecha de Inicio</Label>
-                <Input 
-                  id="start" 
-                  type="datetime-local" 
+                <Input
+                  id="start"
+                  type="datetime-local"
                   value={editingNotif?.startDate ? new Date(typeof editingNotif.startDate === 'number' ? editingNotif.startDate : (editingNotif.startDate as any).toMillis?.() || Date.now()).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setEditingNotif({...editingNotif, startDate: new Date(e.target.value).getTime() as any})}
-                  required data-testid="notifications-input-1"
+                  onChange={(e) => setEditingNotif({ ...editingNotif, startDate: new Date(e.target.value).getTime() as any })}
+                  required data-testid="notifications-start-input"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="end">Fecha de Fin</Label>
-                <Input 
-                  id="end" 
-                  type="datetime-local" 
+                <Input
+                  id="end"
+                  type="datetime-local"
                   value={editingNotif?.endDate ? new Date(typeof editingNotif.endDate === 'number' ? editingNotif.endDate : (editingNotif.endDate as any).toMillis?.() || Date.now()).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setEditingNotif({...editingNotif, endDate: new Date(e.target.value).getTime() as any})}
-                  required data-testid="notifications-input-2"
+                  onChange={(e) => setEditingNotif({ ...editingNotif, endDate: new Date(e.target.value).getTime() as any })}
+                  required data-testid="notifications-end-input"
                 />
               </div>
             </div>
@@ -332,15 +332,15 @@ export default function NotificationsPage() {
                 <Label className="text-base">Notificación Activa</Label>
                 <p className="text-sm text-muted-foreground">Si está desactivado, el aviso no se mostrará independientemente de las fechas.</p>
               </div>
-              <Switch 
-                checked={editingNotif?.isActive} 
-                onCheckedChange={(val) => setEditingNotif({...editingNotif, isActive: val})} data-testid="notifications-switch-1" 
+              <Switch
+                checked={editingNotif?.isActive}
+                onCheckedChange={(val) => setEditingNotif({ ...editingNotif, isActive: val })} data-testid="notifications-active-switch"
               />
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} data-testid="notifications-button-cancelar">Cancelar</Button>
-              <Button type="submit" disabled={isPending} className="font-bold" data-testid="notifications-button-submit">
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} data-testid="notifications-cancel-button">Cancelar</Button>
+              <Button type="submit" disabled={isPending} className="font-bold" data-testid="notifications-submit-button">
                 {isPending ? 'Guardando...' : editingNotif?.id ? 'Actualizar Aviso' : 'Publicar Aviso'}
               </Button>
             </DialogFooter>
@@ -353,7 +353,7 @@ export default function NotificationsPage() {
           <TabsTrigger value="public" className="font-black tracking-widest text-[10px] uppercase">🌍 Notificaciones Públicas</TabsTrigger>
           <TabsTrigger value="internal" className="font-black tracking-widest text-[10px] uppercase">🏢 Notificaciones Internas</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="public">
           <Card className="border-primary/20 bg-primary/[0.01]">
             <CardHeader>
@@ -365,7 +365,7 @@ export default function NotificationsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="internal">
           <Card className="border-indigo-200 bg-indigo-50/10">
             <CardHeader>

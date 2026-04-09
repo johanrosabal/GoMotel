@@ -12,8 +12,8 @@ import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { 
-    Search, ShoppingCart, Plus, Minus, 
+import {
+    Search, ShoppingCart, Plus, Minus,
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
     Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package
@@ -41,10 +41,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const posPaymentSchema = z.object({
-  clientName: z.string().default('Cliente de Contado'),
-  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']),
-  paymentConfirmed: z.boolean().default(false),
-  voucherNumber: z.string().optional(),
+    clientName: z.string().default('Cliente de Contado'),
+    paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']),
+    paymentConfirmed: z.boolean().default(false),
+    voucherNumber: z.string().optional(),
 }).refine(data => {
     if (data.paymentMethod === 'Sinpe Movil') return !!data.paymentConfirmed;
     return true;
@@ -60,9 +60,9 @@ const posPaymentSchema = z.object({
 });
 
 type CartItem = {
-  service: Service;
-  quantity: number;
-  notes?: string;
+    service: Service;
+    quantity: number;
+    notes?: string;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -86,7 +86,7 @@ export default function PosClientPage() {
     const { userProfile } = useUserProfile();
     const [isPending, startTransition] = useTransition();
     const [now, setNow] = useState(new Date());
-    
+
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 60000);
         return () => clearInterval(timer);
@@ -144,16 +144,16 @@ export default function PosClientPage() {
     }, [firestore, selectedCategoryId]);
     const { data: subCategories } = useCollection<ProductSubCategory>(subCategoriesQuery);
 
-    const tablesQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null, 
+    const tablesQuery = useMemoFirebase(() =>
+        firestore ? query(collection(firestore, 'restaurantTables'), orderBy('number')) : null,
         [firestore]
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
     // FIX: Active orders query should be reactive and listen to ALL location changes
-    const unpaidOrdersQuery = useMemoFirebase(() => 
+    const unpaidOrdersQuery = useMemoFirebase(() =>
         firestore ? query(
-            collection(firestore, 'orders'), 
+            collection(firestore, 'orders'),
             or(
                 where('paymentStatus', '==', 'Pendiente'),
                 and(
@@ -161,7 +161,7 @@ export default function PosClientPage() {
                     where('status', 'in', ['Pendiente', 'En preparación', 'Entregado'])
                 )
             )
-        ) : null, 
+        ) : null,
         [firestore]
     );
     const { data: activeOrders } = useCollection<Order>(unpaidOrdersQuery);
@@ -169,8 +169,8 @@ export default function PosClientPage() {
     const taxesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'taxes')) : null, [firestore]);
     const { data: allTaxes } = useCollection<Tax>(taxesQuery);
 
-    const sinpeAccountsQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc')) : null, 
+    const sinpeAccountsQuery = useMemoFirebase(() =>
+        firestore ? query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc')) : null,
         [firestore]
     );
     const { data: activeSinpeAccounts } = useCollection<SinpeAccount>(sinpeAccountsQuery);
@@ -191,7 +191,7 @@ export default function PosClientPage() {
 
     const filteredTables = useMemo(() => {
         if (!allTables || viewMode === 'fast') return [];
-        return allTables.filter(t => t.type === viewMode).sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+        return allTables.filter(t => t.type === viewMode).sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
     }, [allTables, viewMode]);
 
     const currentOrder = useMemo(() => {
@@ -202,12 +202,12 @@ export default function PosClientPage() {
     const filteredServices = useMemo(() => {
         return availableServices.filter(s => {
             const matchesSearch = s.isActive && (
-                s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.code?.toLowerCase().includes(searchTerm.toLowerCase())
             );
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
             const matchesSubCategory = !selectedSubCategoryId || s.subCategoryId === selectedSubCategoryId;
-            
+
             return matchesSearch && matchesCategory && matchesSubCategory;
         });
     }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
@@ -232,22 +232,22 @@ export default function PosClientPage() {
         });
 
         const allItems = [...newItems, ...existingItems];
-        
+
         let totalSub = 0;
         let totalOrderSub = 0;
         let taxTotal = 0;
         let totalGrand = 0;
         const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
-        const serviceTax = allTaxes?.find(t => 
-            t.name.toLowerCase().includes('servicio') || 
+        const serviceTax = allTaxes?.find(t =>
+            t.name.toLowerCase().includes('servicio') ||
             t.name.toLowerCase().includes('service')
         );
 
         allItems.forEach(item => {
             const itemQuantityPrice = item.price * item.quantity;
             const effectiveTaxIds = new Set(item.taxIds || []);
-            
+
             if (viewMode !== 'fast' && serviceTax) {
                 effectiveTaxIds.add(serviceTax.id);
             }
@@ -286,7 +286,7 @@ export default function PosClientPage() {
             matchingTaxes.forEach(taxInfo => {
                 const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
                 taxTotal += taxAmount;
-                
+
                 const existingTax = taxMap.get(taxInfo.id);
                 if (existingTax) {
                     existingTax.amount += taxAmount;
@@ -323,8 +323,8 @@ export default function PosClientPage() {
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
             if (existing) {
-                return prev.map(i => i.service.id === service.id 
-                    ? { ...i, quantity: i.service.source === 'Internal' ? i.quantity + 1 : Math.min(i.quantity + 1, service.stock || 0) } 
+                return prev.map(i => i.service.id === service.id
+                    ? { ...i, quantity: i.service.source === 'Internal' ? i.quantity + 1 : Math.min(i.quantity + 1, service.stock || 0) }
                     : i
                 );
             }
@@ -489,7 +489,7 @@ export default function PosClientPage() {
 
     const handleRemoveExistingItem = () => {
         if (!itemToRemove || !deletionReason) return;
-        
+
         startTransition(async () => {
             const result = await removeItemFromAccount(itemToRemove.orderId, itemToRemove.serviceId, deletionReason, deletionNotes);
             if (result.error) {
@@ -533,12 +533,12 @@ export default function PosClientPage() {
         <div className="flex flex-col h-full w-full overflow-hidden bg-muted/30">
             <div className="mx-2 sm:mx-4 lg:mx-6 mt-2 sm:mt-4 flex flex-col md:flex-row items-center justify-between bg-background border rounded-2xl p-1 md:p-1.5 shadow-sm gap-2">
                 <div id="pos-location-tabs" className="flex gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar w-full md:w-auto">
-                    <button 
+                    <button
                         className={cn(
                             "rounded-xl h-9 sm:h-11 px-3 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest gap-1.5 sm:gap-2 flex items-center transition-all shrink-0",
                             viewMode === 'fast' ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                         )}
-                        onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-para-llevar" data-testid="posclientpage-button-para-llevar"
+                        onClick={() => { setViewMode('fast'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-para-llevar" data-testid="posclientpage-action-takeaway-button"
                     >
                         <PackageCheck className="h-4 w-4" /> Para Llevar
                     </button>
@@ -547,15 +547,15 @@ export default function PosClientPage() {
                         const typeTables = allTables?.filter(t => t.type === type) || [];
                         const hasActiveOrdersType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id));
                         const hasBillRequestType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id && o.billRequested));
-                        
+
                         return (
-                            <button 
+                            <button
                                 key={type}
                                 className={cn(
                                     "rounded-xl h-9 sm:h-11 px-3 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest gap-1.5 sm:gap-2 flex items-center transition-all shrink-0 relative",
                                     viewMode === type ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground"
                                 )}
-                                onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-1" data-testid="posclientpage-button-1"
+                                onClick={() => { setViewMode(type); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-1" data-testid="posclientpage-action-location-button"
                             >
                                 <Icon className="h-4 w-4" /> {getLocationLabel(type)}
                                 {hasBillRequestType ? (
@@ -578,17 +578,17 @@ export default function PosClientPage() {
                             <Badge variant="secondary" className="h-8 font-black uppercase tracking-tighter px-3">
                                 {TYPE_LABELS[selectedTable.type] || selectedTable.type} {selectedTable.number}
                             </Badge>
-                            <button onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors" id="posclientpage-button-2" data-testid="posclientpage-button-close">
+                            <button onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors" id="posclientpage-button-2" data-testid="posclientpage-close-button">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
                     )}
                     {userProfile?.role === 'Administrador' && (
-                        <Button 
-                            variant="outline" 
-                            size="icon" 
+                        <Button
+                            variant="outline"
+                            size="icon"
                             className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl shadow-sm border-2 shrink-0"
-                            onClick={() => setManageTablesOpen(true)} id="posclientpage-button-1-1" data-testid="posclientpage-button-1-1"
+                            onClick={() => setManageTablesOpen(true)} id="posclientpage-button-1-1" data-testid="posclientpage-action-button"
                         >
                             <Settings2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         </Button>
@@ -598,7 +598,7 @@ export default function PosClientPage() {
 
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6">
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
-                    
+
                     {viewMode !== 'fast' && !selectedTable ? (
                         <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
@@ -611,10 +611,10 @@ export default function PosClientPage() {
                                         const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
                                         const hasOrders = tableOrders.length > 0;
                                         const isPublicOrder = tableOrders.some(o => o.source === 'Public');
-                                        const oldestOrder = hasOrders ? [...tableOrders].sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
+                                        const oldestOrder = hasOrders ? [...tableOrders].sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
                                         const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
                                         const Icon = getTypeIcon(table.type);
-                                        
+
                                         return (
                                             <button
                                                 key={table.id}
@@ -623,28 +623,28 @@ export default function PosClientPage() {
                                                     "group relative flex flex-col items-center justify-between min-h-[180px] sm:min-h-[220px] rounded-xl sm:rounded-2xl border-2 transition-all duration-300 p-0 overflow-hidden",
                                                     isPublicOrder
                                                         ? "bg-orange-500/10 border-orange-500 shadow-xl shadow-orange-500/10 ring-4 ring-orange-500/5"
-                                                        : hasOrders 
-                                                            ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5" 
+                                                        : hasOrders
+                                                            ? "bg-primary/[0.08] border-primary shadow-xl shadow-primary/10 ring-4 ring-primary/5"
                                                             : "bg-card border-border hover:border-primary/40 hover:shadow-2xl hover:-translate-y-1.5 active:scale-95"
-                                                )} id="posclientpage-button-3" data-testid="posclientpage-button-3"
+                                                )} id="posclientpage-button-3" data-testid="posclientpage-action-button"
                                             >
                                                 <div className={cn(
                                                     "px-4 py-2 rounded-b-xl border-x border-b border-t-0 transition-all duration-300 shadow-md",
                                                     isPublicOrder
                                                         ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20"
-                                                        : hasOrders 
-                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
+                                                        : hasOrders
+                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20"
                                                             : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
                                                     {isPublicOrder ? <SmartphoneIcon className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                                                 </div>
-                                                
+
                                                 <div className="flex-1 flex flex-col items-center justify-center py-2 relative w-full">
                                                     <span className={cn(
                                                         "font-black text-4xl sm:text-5xl tracking-tighter transition-colors",
                                                         isPublicOrder ? "text-orange-600" : hasOrders ? "text-primary" : "text-foreground"
                                                     )}>{table.number}</span>
-                                                    
+
                                                     {hasOrders && (
                                                         <div className="flex flex-col items-center gap-1 mt-1 animate-in fade-in zoom-in-95 duration-500">
                                                             {tableOrders.some(o => o.billRequested) && (
@@ -655,8 +655,8 @@ export default function PosClientPage() {
                                                             )}
                                                             <div className={cn(
                                                                 "flex items-center gap-1 text-[9px] font-black uppercase px-3 py-1 rounded-full border backdrop-blur-sm",
-                                                                isPublicOrder 
-                                                                    ? "text-orange-700 bg-orange-100 border-orange-200" 
+                                                                isPublicOrder
+                                                                    ? "text-orange-700 bg-orange-100 border-orange-200"
                                                                     : "text-primary/80 bg-primary/10 border-primary/10"
                                                             )}>
                                                                 <Clock className="h-3 w-3" /> {formatDistance(oldestOrder!.createdAt.toDate(), now, { locale: es, addSuffix: false })}
@@ -674,13 +674,13 @@ export default function PosClientPage() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                
+
                                                 <div className={cn(
                                                     "w-full px-4 py-3 rounded-t-none border-x border-t border-b-0 transition-all duration-300 shadow-md flex items-center justify-center min-h-[48px]",
                                                     isPublicOrder
                                                         ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20"
-                                                        : hasOrders 
-                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" 
+                                                        : hasOrders
+                                                            ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20"
                                                             : "bg-secondary text-foreground/30 border-border group-hover:bg-primary/20 group-hover:text-primary group-hover:border-primary/30"
                                                 )}>
                                                     {hasOrders ? (
@@ -711,11 +711,11 @@ export default function PosClientPage() {
                                                     <Separator orientation="vertical" className="h-4 hidden sm:block bg-primary/20" />
                                                     <div className="relative">
                                                         <UserPlus className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary/50" />
-                                                        <Input 
-                                                            placeholder="Identificador de cuenta (opcional)..." 
+                                                        <Input
+                                                            placeholder="Identificador de cuenta (opcional)..."
                                                             value={newAccountLabel}
                                                             onChange={e => setNewAccountLabel(e.target.value)}
-                                                            className="h-8 w-64 pl-8 text-[11px] font-bold rounded-lg border-primary/20 bg-background transition-all focus:border-primary focus:ring-2 focus:ring-primary/5" id="posclientpage-input-identificador-de-cuenta" data-testid="posclientpage-input-identificador-de-cuenta"
+                                                            className="h-8 w-64 pl-8 text-[11px] font-bold rounded-lg border-primary/20 bg-background transition-all focus:border-primary focus:ring-2 focus:ring-primary/5" id="posclientpage-input-identificador-de-cuenta" data-testid="posclientpage-account-name-input"
                                                         />
                                                     </div>
                                                 </div>
@@ -730,25 +730,25 @@ export default function PosClientPage() {
                                             <button
                                                 className={cn(
                                                     "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 gap-3 flex items-center border-2 transition-all shrink-0",
-                                                    selectedOrderId === null 
-                                                        ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                                                    selectedOrderId === null
+                                                        ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
                                                         : "bg-background text-muted-foreground border-input hover:border-primary/30"
                                                 )}
-                                                onClick={() => { setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-nueva-cuenta" data-testid="posclientpage-button-nueva-cuenta"
+                                                onClick={() => { setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-nueva-cuenta" data-testid="posclientpage-action-new-account-button"
                                             >
                                                 <UserPlus className="h-4 w-4" /> Nueva Cuenta
                                             </button>
-                                            
+
                                             {activeOrders?.filter(o => o.locationId === selectedTable.id).map(order => (
                                                 <div key={order.id} className="relative group/account shrink-0">
                                                     <button
                                                         className={cn(
                                                             "rounded-2xl font-black text-[11px] uppercase tracking-widest h-14 px-6 pr-20 gap-3 flex items-center border-2 transition-all",
-                                                            selectedOrderId === order.id 
-                                                                ? order.source === 'Public' ? "bg-orange-500 text-white border-orange-600 shadow-lg scale-105" : "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                                                            selectedOrderId === order.id
+                                                                ? order.source === 'Public' ? "bg-orange-500 text-white border-orange-600 shadow-lg scale-105" : "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
                                                                 : "bg-background text-muted-foreground border-input hover:border-primary/30"
                                                         )}
-                                                        onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }} id="posclientpage-button-4" data-testid="posclientpage-button-4"
+                                                        onClick={() => { setSelectedOrderId(order.id); handleClearCart(); }} id="posclientpage-button-4" data-testid="posclientpage-action-order-button"
                                                     >
                                                         <div className="flex flex-col items-start leading-none gap-1">
                                                             <span className="truncate max-w-[100px] flex items-center gap-1.5">
@@ -774,7 +774,7 @@ export default function PosClientPage() {
                                                             className={cn(
                                                                 "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
                                                                 selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-white/30" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                                                            )} id="posclientpage-button-5" data-testid="posclientpage-button-edit"
+                                                            )} id="posclientpage-button-5" data-testid="posclientpage-edit-button"
                                                         >
                                                             <Pencil className="h-3 w-3" />
                                                         </button>
@@ -787,7 +787,7 @@ export default function PosClientPage() {
                                                             className={cn(
                                                                 "h-7 w-7 flex items-center justify-center rounded-lg transition-all",
                                                                 selectedOrderId === order.id ? "bg-white/20 text-white hover:bg-red-500" : "bg-muted text-muted-foreground hover:bg-red-100 hover:text-red-600"
-                                                            )} id="posclientpage-button-6" data-testid="posclientpage-button-delete"
+                                                            )} id="posclientpage-button-6" data-testid="posclientpage-delete-button"
                                                         >
                                                             <Trash2 className="h-3 w-3" />
                                                         </button>
@@ -817,7 +817,7 @@ export default function PosClientPage() {
                                                                 <span className="text-[11px] font-black uppercase truncate max-w-[150px]">{order.label}</span>
                                                                 <span className="text-[9px] font-bold text-muted-foreground uppercase">Ticket: {order.id.slice(-5).toUpperCase()}</span>
                                                             </div>
-                                                            <Badge 
+                                                            <Badge
                                                                 className={cn(
                                                                     "text-[9px] font-black uppercase px-2 h-5 border-none",
                                                                     order.status === 'Entregado' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-primary/20 text-primary"
@@ -840,11 +840,11 @@ export default function PosClientPage() {
                                                                 </div>
                                                             </div>
                                                             {order.status === 'Entregado' ? (
-                                                                <Button 
-                                                                    size="sm" 
+                                                                <Button
+                                                                    size="sm"
                                                                     className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-[10px] uppercase h-9 rounded-xl shadow-lg shadow-green-600/20 animate-in zoom-in-95"
                                                                     onClick={() => handleCompleteTakeout(order.id)}
-                                                                    disabled={isPending} data-testid="posclientpage-button-entregar-al-cliente"
+                                                                    disabled={isPending} data-testid="posclientpage-action-complete-takeout-button"
                                                                 >
                                                                     <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Entregar al Cliente
                                                                 </Button>
@@ -868,33 +868,33 @@ export default function PosClientPage() {
                             <div className="p-4 border-b space-y-4 bg-muted/5 shrink-0">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                                    <Input 
-                                        placeholder="Buscar producto por nombre o código..." 
+                                    <Input
+                                        placeholder="Buscar producto por nombre o código..."
                                         className="pl-9 h-11 bg-background rounded-xl border-2 transition-all focus:border-primary"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)} id="posclientpage-input-buscar-producto-por" data-testid="posclientpage-input-buscar-producto-por"
+                                        onChange={(e) => setSearchTerm(e.target.value)} id="posclientpage-input-buscar-producto-por" data-testid="posclientpage-search-input"
                                     />
                                 </div>
 
                                 <ScrollArea className="w-full whitespace-nowrap">
                                     <div id="pos-categories-filter" className="flex gap-2 pb-2">
-                                        <button 
+                                        <button
                                             className={cn(
                                                 "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
                                                 selectedCategoryId === null ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                             )}
-                                            onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }} id="posclientpage-button-todos" data-testid="posclientpage-button-todos"
+                                            onClick={() => { setSelectedCategoryId(null); setSelectedSubCategoryId(null); }} id="posclientpage-button-todos" data-testid="posclientpage-action-all-button"
                                         >
                                             Todos
                                         </button>
                                         {categories?.map(cat => (
-                                            <button 
+                                            <button
                                                 key={cat.id}
                                                 className={cn(
                                                     "h-8 px-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all",
                                                     selectedCategoryId === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
                                                 )}
-                                                onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }} id="posclientpage-button-7" data-testid="posclientpage-button-7"
+                                                onClick={() => { setSelectedCategoryId(cat.id); setSelectedSubCategoryId(null); }} id="posclientpage-button-7" data-testid="posclientpage-action-category-button"
                                             >
                                                 {cat.name}
                                             </button>
@@ -906,23 +906,23 @@ export default function PosClientPage() {
                                 {selectedCategoryId && subCategories && subCategories.length > 0 && (
                                     <ScrollArea className="w-full whitespace-nowrap border-t pt-2">
                                         <div id="pos-subcategories-filter" className="flex gap-2 pb-2">
-                                            <button 
+                                            <button
                                                 className={cn(
                                                     "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
                                                     selectedSubCategoryId === null ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
                                                 )}
-                                                onClick={() => setSelectedSubCategoryId(null)} id="posclientpage-button-ver-todo" data-testid="posclientpage-button-ver-todo"
+                                                onClick={() => setSelectedSubCategoryId(null)} id="posclientpage-button-ver-todo" data-testid="posclientpage-action-all-subcategories-button"
                                             >
                                                 Ver Todo
                                             </button>
                                             {subCategories.map(sub => (
-                                                <button 
+                                                <button
                                                     key={sub.id}
                                                     className={cn(
                                                         "h-7 px-3 rounded-full font-black text-[9px] uppercase tracking-widest transition-all",
                                                         selectedSubCategoryId === sub.id ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50"
                                                     )}
-                                                    onClick={() => setSelectedSubCategoryId(sub.id)} id="posclientpage-button-8" data-testid="posclientpage-button-8"
+                                                    onClick={() => setSelectedSubCategoryId(sub.id)} id="posclientpage-button-8" data-testid="posclientpage-action-subcategory-button"
                                                 >
                                                     {sub.name}
                                                 </button>
@@ -941,7 +941,7 @@ export default function PosClientPage() {
                                             id={`pos-product-${service.id}`}
                                             onClick={() => handleAddToCart(service)}
                                             disabled={service.source !== 'Internal' && (service.stock || 0) <= 0}
-                                            className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all duration-300 text-left relative active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none" data-testid="posclientpage-button-9"
+                                            className="group flex flex-col bg-card border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all duration-300 text-left relative active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none" data-testid="posclientpage-action-button"
                                         >
                                             <div className="aspect-square relative overflow-hidden bg-muted">
                                                 <Avatar className="h-full w-full rounded-none">
@@ -950,7 +950,7 @@ export default function PosClientPage() {
                                                         <ImageIcon className="h-10 w-10 text-neutral-500/20" />
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                
+
                                                 <div className="absolute top-2 right-2 z-10">
                                                     <Badge className="font-black bg-background/90 text-primary dark:text-indigo-300 border-primary/20 shadow-sm backdrop-blur-sm">
                                                         {formatCurrency(service.price)}
@@ -963,11 +963,11 @@ export default function PosClientPage() {
                                                     </h3>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className={cn(
                                                 "w-full py-1.5 px-2 text-center border-t transition-colors mt-auto",
-                                                service.source === 'Internal' 
-                                                    ? "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" 
+                                                service.source === 'Internal'
+                                                    ? "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50"
                                                     : (service.stock || 0) <= (service.minStock || 0)
                                                         ? "bg-amber-50 text-yellow-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50"
                                                         : "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50"
@@ -985,16 +985,16 @@ export default function PosClientPage() {
                 </div>
 
                 <div id="pos-cart-sidebar" className={cn("w-full lg:w-[380px] xl:w-[420px] flex flex-col h-full bg-card border rounded-2xl shadow-xl z-10 overflow-hidden", step === 1 && "hidden lg:flex")}>
-                    
+
                     <div className="p-4 border-b bg-muted/30 flex justify-between items-center h-14 shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2 font-black uppercase tracking-tighter">
-                            <ShoppingCart className="h-4 w-4 text-primary" /> 
+                            <ShoppingCart className="h-4 w-4 text-primary" />
                             {currentOrder ? `Orden: ${currentOrder.label}` : 'Nuevo Pedido'}
                         </CardTitle>
                         {step === 1 && (cart.length > 0 || selectedTable) && (
-                            <button 
-                                onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }} 
-                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg" id="posclientpage-button-9" data-testid="posclientpage-button-10"
+                            <button
+                                onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }}
+                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg" id="posclientpage-button-9" data-testid="posclientpage-action-button"
                             >
                                 {cart.length > 0 ? 'Limpiar' : 'Salir'}
                             </button>
@@ -1008,22 +1008,22 @@ export default function PosClientPage() {
                                     {isCartEmpty ? (
                                         <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-6">
                                             <ShoppingCart className="h-12 w-12 opacity-10" />
-                                            
+
                                             {selectedTable && (
                                                 <div className="px-6 space-y-4 w-full">
                                                     <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 border-dashed animate-in fade-in zoom-in-95 duration-500">
                                                         <p className="text-[11px] font-black text-primary uppercase text-center leading-relaxed">
-                                                            {selectedOrderId === null 
-                                                                ? "Seleccione productos del catálogo para registrar la nueva cuenta" 
+                                                            {selectedOrderId === null
+                                                                ? "Seleccione productos del catálogo para registrar la nueva cuenta"
                                                                 : "Añada productos a la cuenta de " + currentOrder?.label}
                                                         </p>
                                                     </div>
-                                                    
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
+
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         className="rounded-xl font-bold h-10 text-[10px] uppercase tracking-widest text-muted-foreground border border-dashed w-full hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); setNewAccountLabel(''); }} id="posclientpage-button-volver-al-mapa" data-testid="posclientpage-button-volver-al-mapa"
+                                                        onClick={() => { setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); setNewAccountLabel(''); }} id="posclientpage-button-volver-al-mapa" data-testid="posclientpage-back-button"
                                                     >
                                                         Volver al Mapa de Mesas
                                                     </Button>
@@ -1041,7 +1041,7 @@ export default function PosClientPage() {
                                                                 <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.price)}</p>
                                                                 {(() => {
                                                                     const status = item.status || (item.category === 'Food' ? currentOrder.kitchenStatus : currentOrder.barStatus);
-                                                                    
+
                                                                     if (status === 'Entregado') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-green-500/30 text-green-500 bg-green-500/5">ENTREGADO</Badge>;
                                                                     if (status === 'En preparación') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-blue-500/30 text-blue-500 bg-blue-500/5 animate-pulse">COCINANDO</Badge>;
                                                                     return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-amber-500/30 text-amber-500 bg-amber-500/5">PENDIENTE</Badge>;
@@ -1054,12 +1054,12 @@ export default function PosClientPage() {
                                                         <div className="text-right w-16">
                                                             <p className="text-[11px] font-bold text-neutral-500">{formatCurrency(item.price * item.quantity)}</p>
                                                         </div>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
                                                             className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
                                                             onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
-                                                            disabled={isPending} id="posclientpage-button-2-1" data-testid="posclientpage-button-delete"
+                                                            disabled={isPending} id="posclientpage-button-2-1" data-testid="posclientpage-delete-button"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -1078,14 +1078,14 @@ export default function PosClientPage() {
                                                             <div className="flex items-center gap-2 mt-0.5">
                                                                 <p className="text-[10px] text-neutral-500 font-bold">{formatCurrency(item.service.price)}</p>
                                                                 {item.service.source === 'Internal' && (
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => handleOpenNoteDialog(idx)}
                                                                         className={cn(
                                                                             "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md border transition-all flex items-center gap-1 shadow-sm",
-                                                                            item.notes 
-                                                                                ? "bg-primary text-primary-foreground border-primary" 
+                                                                            item.notes
+                                                                                ? "bg-primary text-primary-foreground border-primary"
                                                                                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                                                                        )} id="posclientpage-button-10" data-testid="posclientpage-button-11"
+                                                                        )} id="posclientpage-button-10" data-testid="posclientpage-action-button"
                                                                     >
                                                                         <MessageSquare className="h-2.5 w-2.5" />
                                                                         {item.notes ? "Ver Nota" : "+ Instrucciones"}
@@ -1094,16 +1094,16 @@ export default function PosClientPage() {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5 border">
-                                                            <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)} id="posclientpage-button-3-1" data-testid="posclientpage-button-delete">
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5 rounded-full" onClick={() => handleRemoveFromCart(item.service.id)} id="posclientpage-button-3-1" data-testid="posclientpage-action-button">
                                                                 <Minus className="h-2.5 w-2.5" />
                                                             </Button>
                                                             <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                                                            <Button 
-                                                                size="icon" 
-                                                                variant="ghost" 
-                                                                className="h-5 w-5 rounded-full" 
-                                                                onClick={() => handleAddToCart(item.service)} 
-                                                                disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)} id="posclientpage-button-4-1" data-testid="posclientpage-button-add"
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-5 w-5 rounded-full"
+                                                                onClick={() => handleAddToCart(item.service)}
+                                                                disabled={item.service.source !== 'Internal' && item.quantity >= (item.service.stock || 0)} id="posclientpage-button-4-1" data-testid="posclientpage-add-button"
                                                             >
                                                                 <Plus className="h-2.5 w-2.5" />
                                                             </Button>
@@ -1122,7 +1122,7 @@ export default function PosClientPage() {
                                 </div>
                             ) : (
                                 <Form {...form}>
-                                    <form className="p-4 space-y-5" id="posclientpage-form-main" data-testid="posclientpage-form-main">
+                                    <form className="p-4 space-y-5" id="posclientpage-form-main" data-testid="posclientpage-main-form">
                                         <FormField
                                             control={form.control}
                                             name="clientName"
@@ -1132,7 +1132,7 @@ export default function PosClientPage() {
                                                     <FormControl>
                                                         <div className="relative">
                                                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500" />
-                                                            <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" id="posclientpage-input-1" data-testid="posclientpage-input-1" />
+                                                            <Input {...field} className="pl-9 h-10 font-bold text-xs rounded-xl" id="posclientpage-input-1" data-testid="posclientpage-3-input" />
                                                         </div>
                                                     </FormControl>
                                                     <FormMessage className="text-[10px]" />
@@ -1148,7 +1148,7 @@ export default function PosClientPage() {
                                                     <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Método de Pago</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
-                                                            <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl" id="posclientpage-selecttrigger-1" data-testid="posclientpage-selecttrigger-1">
+                                                            <SelectTrigger className="h-10 font-black uppercase text-[10px] tracking-widest rounded-xl" id="posclientpage-selecttrigger-1" data-testid="posclientpage-1-select">
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                         </FormControl>
@@ -1173,7 +1173,7 @@ export default function PosClientPage() {
                                                         placeholder="₡0.00"
                                                         value={cashTendered}
                                                         onChange={handleCashTenderedChange}
-                                                        className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl" id="posclientpage-input-0-00" data-testid="posclientpage-input-0-00"
+                                                        className="h-12 text-right text-xl font-black bg-background border-primary/20 rounded-xl" id="posclientpage-input-0-00" data-testid="posclientpage-4-input"
                                                     />
                                                 </div>
                                                 {numericCashTendered >= grandTotal && (
@@ -1197,7 +1197,7 @@ export default function PosClientPage() {
                                                             name="paymentConfirmed"
                                                             render={({ field }) => (
                                                                 <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left">
-                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="posclientpage-checkbox-1" data-testid="posclientpage-checkbox-1" /></FormControl>
+                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="posclientpage-checkbox-1" data-testid="posclientpage-1-checkbox" /></FormControl>
                                                                     <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>                                                                </FormItem>
                                                             )}
                                                         />
@@ -1218,7 +1218,7 @@ export default function PosClientPage() {
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-neutral-500 tracking-widest ml-1">Voucher</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" id="posclientpage-input-c-digo-de-voucher" data-testid="posclientpage-input-c-digo-de-voucher" />
+                                                            <Input placeholder="Código de voucher" {...field} className="pl-2 h-10 font-bold font-mono text-center text-sm border-2 rounded-xl" id="posclientpage-input-c-digo-de-voucher" data-testid="posclientpage-5-input" />
                                                         </FormControl>
                                                         <FormMessage className="text-[10px]" />
                                                     </FormItem>
@@ -1267,23 +1267,23 @@ export default function PosClientPage() {
                             {step === 1 ? (
                                 <div className="grid grid-cols-2 gap-2">
                                     {selectedTable && (
-                                        <Button 
+                                        <Button
                                             variant="secondary"
                                             className="h-12 sm:h-14 text-xs font-black uppercase tracking-widest rounded-xl border-primary/20 bg-muted/30 hover:bg-muted/50 transition-all active:scale-95"
                                             disabled={cart.length === 0 || isPending}
-                                            onClick={handleSaveOpenAccount} id="posclientpage-button-guardar-cuenta" data-testid="posclientpage-button-guardar-cuenta"
+                                            onClick={handleSaveOpenAccount} id="posclientpage-button-guardar-cuenta" data-testid="posclientpage-save-button"
                                         >
                                             GUARDAR CUENTA
                                         </Button>
                                     )}
-                                    <Button 
+                                    <Button
                                         className={cn(
                                             "h-12 sm:h-14 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95",
                                             (viewMode === 'fast' || !selectedTable) ? "col-span-2" : "",
                                             (cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
                                         )}
                                         disabled={(cart.length === 0 && (!currentOrder || currentOrder.items.length === 0)) || isPending}
-                                        onClick={() => setStep(2)} id="posclientpage-button-pagar" data-testid="posclientpage-button-5-1"
+                                        onClick={() => setStep(2)} id="posclientpage-button-pagar" data-testid="posclientpage-next-button"
                                     >
                                         <span>PAGAR</span>
                                         <ChevronRight className="ml-2 h-5 w-5" />
@@ -1291,21 +1291,21 @@ export default function PosClientPage() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 gap-2">
-                                    <Button 
+                                    <Button
                                         variant="outline"
                                         className="h-12 sm:h-14 font-black text-xs uppercase tracking-widest rounded-xl border-2 transition-all active:scale-95"
                                         disabled={isPending}
-                                        onClick={() => setStep(1)} id="posclientpage-button-volver" data-testid="posclientpage-button-atr-s"
+                                        onClick={() => setStep(1)} id="posclientpage-button-volver" data-testid="posclientpage-action-button"
                                     >
                                         ATRÁS
                                     </Button>
-                                    <Button 
+                                    <Button
                                         className={cn(
                                             "h-12 sm:h-14 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95",
                                             isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
                                         )}
                                         disabled={isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending}
-                                        onClick={form.handleSubmit(handleProcessSale)} id="posclientpage-button-confirmar-pago" data-testid="posclientpage-button-confirmar"
+                                        onClick={form.handleSubmit(handleProcessSale)} id="posclientpage-button-confirmar-pago" data-testid="posclientpage-action-button"
                                     >
                                         CONFIRMAR
                                     </Button>
@@ -1319,7 +1319,7 @@ export default function PosClientPage() {
             {/* Mobile Cart Summary Floating Bar */}
             {!isCartEmpty && step === 1 && (
                 <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md animate-in slide-in-from-bottom-10 fade-in duration-500 z-50">
-                    <div 
+                    <div
                         className="bg-primary text-primary-foreground p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-white/20 backdrop-blur-md cursor-pointer group active:scale-95 transition-all"
                         onClick={() => setStep(2)}
                     >
@@ -1335,7 +1335,7 @@ export default function PosClientPage() {
                 </div>
             )}
 
-            <InvoiceSuccessDialog 
+            <InvoiceSuccessDialog
                 open={successModalOpen}
                 onOpenChange={setSuccessModalOpen}
                 invoiceId={generatedInvoiceId}
@@ -1351,18 +1351,18 @@ export default function PosClientPage() {
                     </DialogHeader>
                     <div className="py-4">
                         <Label htmlFor="rename-label" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1 mb-2 block">Nombre de la Cuenta</Label>
-                        <Input 
+                        <Input
                             id="rename-label"
-                            placeholder="Ej: Persona 1, Mesa Ventana, etc." 
-                            value={newLabelName} 
+                            placeholder="Ej: Persona 1, Mesa Ventana, etc."
+                            value={newLabelName}
                             onChange={(e) => setNewLabelName(e.target.value)}
                             className="h-12 font-bold text-base rounded-xl border-2"
-                            autoFocus data-testid="posclientpage-input-ej-persona-1"
+                            autoFocus data-testid="posclientpage-6-input"
                         />
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending} id="posclientpage-button-cancelar" data-testid="posclientpage-button-cancelar">Cancelar</Button>
-                        <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()} id="posclientpage-button-7-1" data-testid="posclientpage-button-6-1">
+                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isPending} id="posclientpage-button-cancelar" data-testid="posclientpage-cancel-button">Cancelar</Button>
+                        <Button onClick={handleRenameAccount} disabled={isPending || !newLabelName.trim()} id="posclientpage-button-7-1" data-testid="posclientpage-action-button">
                             {isPending ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
                     </DialogFooter>
@@ -1386,19 +1386,19 @@ export default function PosClientPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="kitchen-note" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Instrucciones Especiales</Label>
-                            <Textarea 
+                            <Textarea
                                 id="kitchen-note"
                                 placeholder="Ej: Con poca sal, sin cebolla, término medio..."
                                 value={currentNoteValue}
                                 onChange={e => setCurrentNoteValue(e.target.value)}
                                 className="min-h-[120px] rounded-xl border-2 resize-none text-sm font-bold"
-                                autoFocus data-testid="posclientpage-textarea-ej-con-poca"
+                                autoFocus data-testid="posclientpage-1-textarea"
                             />
                         </div>
                     </div>
                     <DialogFooter className="gap-2">
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setNoteDialogOpen(false)} id="posclientpage-button-cancelar-1" data-testid="posclientpage-button-cancelar-1">Cancelar</Button>
-                        <Button className="flex-1 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote} id="posclientpage-button-guardar-nota" data-testid="posclientpage-button-guardar-nota">Guardar Nota</Button>
+                        <Button variant="outline" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setNoteDialogOpen(false)} id="posclientpage-button-cancelar-1" data-testid="posclientpage-cancel-button">Cancelar</Button>
+                        <Button className="flex-1 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest" onClick={handleSaveNote} id="posclientpage-button-guardar-nota" data-testid="posclientpage-save-button">Guardar Nota</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -1413,7 +1413,7 @@ export default function PosClientPage() {
                             Confirmación de seguridad para remover <strong>{itemToRemove?.name}</strong>.
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-6 py-4">
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Razón de la eliminación *</Label>
@@ -1426,7 +1426,7 @@ export default function PosClientPage() {
                                             deletionReason === reason ? "border-primary bg-primary/5" : "border-transparent bg-muted/20"
                                         )}
                                     >
-                                        <RadioGroupItem value={reason} id="posclientpage-radiogroupitem-1" data-testid="posclientpage-radiogroupitem-1" />
+                                        <RadioGroupItem value={reason} id="posclientpage-radiogroupitem-1" data-testid="posclientpage-1-radiogroupitem" />
                                         <span className="text-sm font-bold">{reason}</span>
                                     </Label>
                                 ))}
@@ -1435,23 +1435,23 @@ export default function PosClientPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="deletion-notes" className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Notas Especiales (Opcional)</Label>
-                            <Textarea 
+                            <Textarea
                                 id="deletion-notes"
                                 placeholder="Describa el motivo detallado si es necesario..."
                                 value={deletionNotes}
                                 onChange={(e) => setDeletionNotes(e.target.value)}
-                                className="min-h-[100px] rounded-xl border-2 resize-none" data-testid="posclientpage-textarea-describa-el-motivo"
+                                className="min-h-[100px] rounded-xl border-2 resize-none" data-testid="posclientpage-2-textarea"
                             />
                         </div>
                     </div>
 
                     <DialogFooter className="bg-muted/10 p-4 -m-6 mt-2 rounded-b-lg flex gap-2">
-                        <Button variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setRemoveItemDialogOpen(false)} id="posclientpage-button-cancelar-2" data-testid="posclientpage-button-delete">Cancelar</Button>
-                        <Button 
-                            variant="destructive" 
+                        <Button variant="outline" className="flex-1 h-12 font-bold rounded-xl" onClick={() => setRemoveItemDialogOpen(false)} id="posclientpage-button-cancelar-2" data-testid="posclientpage-cancel-button">Cancelar</Button>
+                        <Button
+                            variant="destructive"
                             className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg"
                             disabled={!deletionReason || isPending}
-                            onClick={handleRemoveExistingItem} id="posclientpage-button-8-1" data-testid="posclientpage-button-delete"
+                            onClick={handleRemoveExistingItem} id="posclientpage-button-8-1" data-testid="posclientpage-action-button"
                         >
                             {isPending ? 'PROCESANDO...' : 'CONFIRMAR ELIMINACIÓN'}
                         </Button>
@@ -1471,8 +1471,8 @@ export default function PosClientPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleCancelEntireAccount} 
+                        <AlertDialogAction
+                            onClick={handleCancelEntireAccount}
                             disabled={isPending}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
@@ -1483,10 +1483,10 @@ export default function PosClientPage() {
             </AlertDialog>
 
             {allTables && (
-                <TableManagementDialog 
-                    open={manageTablesOpen} 
-                    onOpenChange={setManageTablesOpen} 
-                    tables={allTables} 
+                <TableManagementDialog
+                    open={manageTablesOpen}
+                    onOpenChange={setManageTablesOpen}
+                    tables={allTables}
                 />
             )}
         </div>
