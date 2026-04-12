@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import UserFormDialog from './UserFormDialog';
-import { toggleUserStatus } from '@/lib/actions/user.actions';
+import { toggleUserStatus, updateUserRole } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 
 type SerializedUserProfile = Omit<UserProfile, 'createdAt' | 'birthDate'> & {
@@ -72,6 +72,7 @@ function ActionsMenu({ user }: { user: SerializedUserProfile }) {
 }
 
 export default function UsersTable({ users }: { users: SerializedUserProfile[] }) {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
@@ -105,6 +106,8 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
             <SelectItem value="Recepcion">Recepción</SelectItem>
             <SelectItem value="Conserje">Conserje</SelectItem>
             <SelectItem value="Contador">Contador</SelectItem>
+            <SelectItem value="Vendedor POS">Vendedor POS</SelectItem>
+            <SelectItem value="Cocina">Cocina</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -132,7 +135,29 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
                   </div>
                 </TableCell>
                 <TableCell>
-                    <Badge variant="secondary" className="font-bold">{user.role}</Badge>
+                    <Select 
+                      defaultValue={user.role} 
+                      onValueChange={async (newRole) => {
+                        const result = await updateUserRole(user.id, newRole as UserRole);
+                        if (result.error) {
+                          toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                        } else {
+                          toast({ title: 'Rol Actualizado', description: `El usuario ahora es ${newRole}.` });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[140px] font-bold text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Administrador">Administrador</SelectItem>
+                        <SelectItem value="Recepcion">Recepción</SelectItem>
+                        <SelectItem value="Conserje">Conserje</SelectItem>
+                        <SelectItem value="Contador">Contador</SelectItem>
+                        <SelectItem value="Vendedor POS">Vendedor POS</SelectItem>
+                        <SelectItem value="Cocina">Cocina</SelectItem>
+                      </SelectContent>
+                    </Select>
                 </TableCell>
                 <TableCell>
                    <Badge variant="outline" className={cn(user.status === 'Active' 

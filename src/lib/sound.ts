@@ -54,13 +54,13 @@ const playBip = (context: AudioContext) => {
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
 
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(660, context.currentTime); // E5 note
-    gainNode.gain.setValueAtTime(0.3, context.currentTime);
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(880, context.currentTime); // A5 note (sharper)
+    gainNode.gain.setValueAtTime(1.0, context.currentTime);
 
     oscillator.start(context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.5);
-    oscillator.stop(context.currentTime + 0.5);
+    gainNode.gain.linearRampToValueAtTime(0.001, context.currentTime + 0.4);
+    oscillator.stop(context.currentTime + 0.4);
 };
 
 const playBell = (context: AudioContext) => {
@@ -72,14 +72,14 @@ const playBell = (context: AudioContext) => {
     oscillator2.connect(gainNode);
     gainNode.connect(context.destination);
 
-    oscillator1.type = 'sine';
-    oscillator2.type = 'triangle';
+    oscillator1.type = 'square';
+    oscillator2.type = 'square';
 
     oscillator1.frequency.setValueAtTime(960, context.currentTime);
     oscillator2.frequency.setValueAtTime(480, context.currentTime);
 
-    gainNode.gain.setValueAtTime(0.3, context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.5);
+    gainNode.gain.setValueAtTime(1.0, context.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.001, context.currentTime + 1.2);
 
     oscillator1.start(context.currentTime);
     oscillator2.start(context.currentTime);
@@ -95,7 +95,7 @@ const playDigitalAlarm = (context: AudioContext) => {
     gainNode.connect(context.destination);
 
     oscillator.type = 'square';
-    gainNode.gain.setValueAtTime(0.2, context.currentTime);
+    gainNode.gain.setValueAtTime(1.0, context.currentTime);
 
     oscillator.frequency.setValueAtTime(880, context.currentTime);
     oscillator.frequency.setValueAtTime(1046.5, context.currentTime + 0.1);
@@ -107,15 +107,23 @@ const playDigitalAlarm = (context: AudioContext) => {
 
 // --- Main player function ---
 
-export const playNotificationSound = (forceSound?: AlarmSound) => {
+export const playNotificationSound = async (forceSound?: AlarmSound) => {
   const context = getAudioContext();
   if (!context) {
-    console.warn('AudioContext is not available.');
     return;
   }
   
+  // If the context is suspended, try to resume it and wait for it.
+  if (context.state === 'suspended') {
+    try {
+      await context.resume();
+    } catch (err) {
+      console.warn('Could not resume audio context:', err);
+    }
+  }
+
+  // Double check state before playing
   if (context.state !== 'running') {
-    console.warn('AudioContext is suspended. Sound was blocked by the browser. Requires user interaction to enable audio.');
     return;
   }
   

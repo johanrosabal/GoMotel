@@ -170,7 +170,7 @@ export interface Order {
   billRequestedAt?: Timestamp;
 }
 
-export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador';
+export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador' | 'Vendedor POS' | 'Cocina';
 
 export interface UserProfile {
   id: string;

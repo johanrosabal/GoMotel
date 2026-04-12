@@ -134,7 +134,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
           "bg-slate-950/40 backdrop-blur-2xl border border-white/10",
           "rounded-[2rem] shadow-2xl shadow-black/50",
           glow, hoverGlow, border,
-          isOverdue && "animate-pulse border-rose-500/50"
+          isOverdue && "border-rose-500 shadow-[0_0_25px_rgba(251,113,133,0.3)]"
         )}>
           {/* Subtle status glow band */}
           <div className={cn("absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-30", color)} />
@@ -148,7 +148,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                   )}>
                     {room.number}
                   </CardTitle>
-                  <Zap className={cn("h-4 w-4 animate-pulse fill-current opacity-20", color)} />
+                  <Zap className={cn("h-4 w-4 fill-current opacity-30", color)} />
                 </div>
                 <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName || room.type}</CardDescription>
             </div>

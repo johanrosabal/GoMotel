@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import UserMenu from './UserMenu';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
@@ -14,6 +15,7 @@ import type { CompanyProfile } from '@/types';
 
 export default function TopNav() {
   const { user, firestore } = useFirebase();
+  const { userProfile } = useUserProfile();
   const pathname = usePathname();
   
   const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
@@ -59,7 +61,7 @@ export default function TopNav() {
             </div>
             
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
-              {user && <Notifications />}
+              {user && !['Cocina', 'Vendedor POS', 'Contador'].includes(userProfile?.role || '') && <Notifications />}
               <ThemeToggle />
               <UserMenu />
             </div>

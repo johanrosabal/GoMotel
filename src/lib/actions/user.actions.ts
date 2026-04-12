@@ -68,6 +68,19 @@ export async function updateUserProfile(values: any) {
   }
 }
 
+export async function updateUserRole(userId: string, newRole: UserRole) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { role: newRole });
+    
+    revalidatePath('/users');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating user role:', error);
+    return { error: 'No se pudo actualizar el rol del usuario.' };
+  }
+}
+
 export async function toggleUserStatus(userId: string, currentStatus: string) {
   try {
     const newStatus = currentStatus === 'Active' ? 'Paused' : 'Active';

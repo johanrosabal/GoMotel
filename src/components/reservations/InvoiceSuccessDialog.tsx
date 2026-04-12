@@ -254,11 +254,11 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+            <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-md shadow-2xl will-change-transform">
                 <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
                     <DialogHeader className="items-center text-center space-y-2">
                         <div className="relative">
-                            <div className="absolute inset-0 bg-green-500/20 blur-2xl rounded-full scale-150 animate-pulse" />
+                            <div className="absolute inset-0 bg-green-500/20 blur-2xl rounded-full scale-150 shadow-[0_0_30px_rgba(34,197,94,0.2)]" />
                             <CheckCircle className="h-20 w-20 text-green-500 relative mb-4" />
                         </div>
                         <DialogTitle className="text-3xl sm:text-4xl font-black tracking-tighter uppercase leading-none">¡PAGO COMPLETADO!</DialogTitle>
@@ -266,7 +266,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                             Venta finalizada exitosamente.
                         </DialogDescription>
                     </DialogHeader>
-                    {isLoading ? <p className="text-center animate-pulse py-12">Generando comprobante...</p> : invoice && (
+                    {isLoading ? <p className="text-center py-12 text-slate-500 font-bold uppercase tracking-widest italic">Generando comprobante...</p> : invoice && (
                         <>
                             <div className="py-8 sm:py-10 text-center bg-muted/30 rounded-3xl border-2 border-dashed border-primary/20 relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />

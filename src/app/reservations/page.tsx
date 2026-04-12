@@ -40,7 +40,7 @@ export default function ReservationsPage() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] p-4 sm:p-8 lg:p-12 shadow-2xl relative overflow-hidden group">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[3rem] p-4 sm:p-8 lg:p-12 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
                 
                 <div className="relative z-10">

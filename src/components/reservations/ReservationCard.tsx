@@ -120,14 +120,12 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
         });
     };
 
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        setMousePos({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        });
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+        e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
     };
 
     const isFinalState = ['Completed', 'Cancelled', 'No-show'].includes(reservation.status);
@@ -139,10 +137,9 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 key={reservation.id}
                 id={`reservation-card-${reservation.id}`}
                 className={cn(
-                    "flex flex-col relative border-t-0 border-r-0 border-b-0 border-l-[6px] transition-all duration-500 h-full group bg-white/5 backdrop-blur-xl border-white/5 rounded-[2.5rem] overflow-hidden",
+                    "flex flex-col relative border-t-0 border-r-0 border-b-0 border-l-[6px] transition-all duration-500 h-full group bg-white/5 backdrop-blur-md border-white/5 rounded-[2.5rem] overflow-hidden",
                     "hover:scale-[1.02] hover:bg-white/[0.08] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]",
-                    isOverdue ? 'border-rose-500 shadow-rose-500/20 hover:shadow-rose-500/30' : cn(statusColorStyles[reservation.status], "hover:border-opacity-100"),
-                    isOverdue && 'animate-overdue-pulse'
+                    isOverdue ? 'border-rose-500 shadow-rose-500/20 hover:shadow-rose-500/30 shadow-[0_0_20px_rgba(251,113,133,0.3)]' : cn(statusColorStyles[reservation.status], "hover:border-opacity-100")
                 )}
                 onMouseMove={handleMouseMove}
             >
@@ -150,7 +147,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                 <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
                     style={{
-                        background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)`
+                        background: `radial-gradient(600px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255,255,255,0.06), transparent 40%)`
                     }}
                 />
 
@@ -276,7 +273,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                             </Button>
                         )}
                         {isOverdue && reservation.status === 'Checked-in' && (
-                            <Button asChild variant="destructive" className="w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse shadow-rose-500/30 shadow-2xl transition-all" id="reservationcard-button-3" data-testid="reservationcard-action-checkout-button">
+                            <Button asChild variant="destructive" className="w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 font-black text-[10px] uppercase tracking-[0.2em] shadow-rose-500/30 shadow-2xl transition-all" id="reservationcard-button-3" data-testid="reservationcard-action-checkout-button">
                                 <Link href={`/rooms/${reservation.roomId}`} id="reservationcard-link-check-out-pendiente" data-testid="reservationcard-action-link">
                                     <AlertTriangle className="mr-2 h-4 w-4" />
                                     Check-out Pendiente

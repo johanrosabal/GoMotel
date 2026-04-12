@@ -47,7 +47,7 @@ export default function ReservationsTable({ reservations }: { reservations: Proc
                         return (
                             <Card key={res.id} className={cn(
                                 "bg-white/5 backdrop-blur-xl border-white/10 rounded-[2.5rem] overflow-hidden transition-all",
-                                res.isOverdue && 'border-rose-500 shadow-lg shadow-rose-500/20 animate-pulse'
+                                res.isOverdue && 'border-rose-500 shadow-lg shadow-rose-500/20 shadow-[0_0_15px_rgba(251,113,133,0.3)]'
                             )}>
                                 <CardHeader className="pb-4 pt-6">
                                     <div className="flex justify-between items-start">

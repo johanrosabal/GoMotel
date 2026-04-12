@@ -243,7 +243,7 @@ export default function RoomDetailsPage() {
 
                         {isOverdue && stay && (
                             <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
-                                <Button variant="destructive" className="w-full h-12 text-base sm:text-sm animate-pulse" id="page-button-gestionar-estancia-vencida" data-testid="id-action-checkout-expired-button">
+                                <Button variant="destructive" className="w-full h-12 text-base sm:text-sm" id="page-button-gestionar-estancia-vencida" data-testid="id-action-checkout-expired-button">
                                     <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Estancia Vencida
                                 </Button>
                             </ExtendStayDialog>
@@ -285,7 +285,7 @@ export default function RoomDetailsPage() {
             </div>
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-1 space-y-6">
-                    <Card className={cn(isOverdue && 'animate-overdue-pulse')}>
+                    <Card className={cn(isOverdue && 'border-rose-500 shadow-[0_0_20px_rgba(251,113,133,0.2)]')}>
                         <CardHeader>
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between items-start">

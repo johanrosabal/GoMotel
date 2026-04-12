@@ -30,7 +30,7 @@ export default function StatusBadge({ status, className, isOverdue = false }: St
             variant="outline"
             className={cn(
               'font-black uppercase tracking-widest text-[9px] px-3 py-1 rounded-full',
-              'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse shadow-[0_0_15px_rgba(251,113,133,0.3)]',
+              'bg-rose-500/20 text-rose-400 border-rose-500/30 shadow-[0_0_15px_rgba(251,113,133,0.3)]',
               className
             )}
           >
@@ -49,7 +49,7 @@ export default function StatusBadge({ status, className, isOverdue = false }: St
         className
       )}
     >
-      <Circle className="h-1.5 w-1.5 fill-current animate-pulse" />
+      <Circle className="h-1.5 w-1.5 fill-current" />
       {statusMap[status] || status}
     </Badge>
   );

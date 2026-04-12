@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, query, where } from 'firebase/firestore';
 import type { Room, Reservation } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Bell, BedDouble, Sparkles, VolumeX } from 'lucide-react';
+import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle, Loader2, Volume2, Bell, BedDouble, Sparkles, VolumeX } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +16,28 @@ import { ScrollArea } from './ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { playNotificationSound } from '@/lib/sound';
 import { ToastAction } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 
 export default function Notifications() {
   const { firestore } = useFirebase();
   const { toast, dismiss } = useToast();
+  const { userProfile } = useUserProfile();
+  const pathname = usePathname();
   const [now, setNow] = useState(new Date());
   const [isAlarmSilenced, setIsAlarmSilenced] = useState(false);
+  const [isVisualPulseActive, setIsVisualPulseActive] = useState(false);
+
+  // Disable alerts on specific pages: Landing, POS, and Public Screens
+  // OR for specific roles like Vendedor POS, Cocina, and Contador
+  const isAlertDisabled = useMemo(() => {
+    const restrictedRoles: UserRole[] = ['Vendedor POS', 'Cocina', 'Contador'];
+    return (
+      pathname === '/' || 
+      pathname === '/pos' || 
+      pathname?.startsWith('/public/') ||
+      (userProfile?.role && restrictedRoles.includes(userProfile.role))
+    );
+  }, [pathname, userProfile?.role]);
 
   const alarmToastId = useRef<string | null>(null);
   const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -58,11 +76,14 @@ export default function Notifications() {
   useEffect(() => {
     const hasOverdue = overdueReservations.length > 0;
 
-    if (hasOverdue && !isAlarmSilenced) {
+    if (hasOverdue && !isAlarmSilenced && !isAlertDisabled) {
       if (!soundIntervalRef.current) {
+        // Start a persistent interval that won't be cleared unless the condition changes
         soundIntervalRef.current = setInterval(() => {
           playNotificationSound();
-        }, 3000);
+          setIsVisualPulseActive(true);
+          setTimeout(() => setIsVisualPulseActive(false), 1000);
+        }, 6000); 
       }
     } else {
       if (soundIntervalRef.current) {
@@ -72,16 +93,18 @@ export default function Notifications() {
     }
 
     return () => {
+      // Only clear on component unmount or when dependencies change (hasOverdue/isAlarmSilenced/isAlertDisabled)
       if (soundIntervalRef.current) {
         clearInterval(soundIntervalRef.current);
+        soundIntervalRef.current = null;
       }
     };
-  }, [overdueReservations.length, isAlarmSilenced]);
+  }, [overdueReservations.length > 0, isAlarmSilenced, isAlertDisabled]);
 
   useEffect(() => {
     const hasOverdue = overdueReservations.length > 0;
 
-    if (hasOverdue) {
+    if (hasOverdue && !isAlertDisabled) {
       if (!alarmToastId.current) {
         const newToastId = `alarm-${Date.now()}`;
         alarmToastId.current = newToastId;
@@ -105,22 +128,31 @@ export default function Notifications() {
         alarmToastId.current = null;
       }
       // Reset silence state when there are no more overdue rooms
-      if (isAlarmSilenced) {
+      if (isAlarmSilenced && !isAlertDisabled) {
         setIsAlarmSilenced(false);
       }
     }
-  }, [overdueReservations.length, toast, dismiss, isAlarmSilenced]);
+  }, [overdueReservations.length, toast, dismiss, isAlarmSilenced, isAlertDisabled]);
   // --- END: Alarm Logic ---
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" id="notifications-button-1" data-testid="notifications-action-button">
-          <Bell className="h-5 w-5" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn(
+            "relative transition-all duration-300",
+            isVisualPulseActive && "scale-125 ring-4 ring-destructive/50 bg-destructive/20"
+          )} 
+          id="notifications-button-1" 
+          data-testid="notifications-action-button"
+        >
+          <Bell className={cn("h-5 w-5", isVisualPulseActive && "animate-bounce text-destructive")} />
           {totalNotifications > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-xs animate-pulse"
+              className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-xs shadow-lg shadow-destructive/20"
             >
               {totalNotifications}
             </Badge>
@@ -180,6 +212,34 @@ export default function Notifications() {
               </div>
             </ScrollArea>
           )}
+
+          <div className="pt-4 border-t border-white/5 space-y-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 rounded-xl bg-white/5 border-white/10 hover:bg-primary/20 hover:text-primary font-black uppercase tracking-widest text-[9px] transition-all"
+              onClick={() => {
+                playNotificationSound('digital');
+                setIsVisualPulseActive(true);
+                setTimeout(() => setIsVisualPulseActive(false), 800);
+              }}
+              id="notifications-button-test-sound"
+              data-testid="notifications-test-sound-button"
+            >
+              <Volume2 className="mr-2 h-3.5 w-3.5" />
+              Probar Sonido de Alerta
+            </Button>
+            {overdueReservations.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full h-8 text-xs opacity-50 hover:opacity-100"
+                onClick={() => setIsAlarmSilenced(!isAlarmSilenced)}
+              >
+                {isAlarmSilenced ? 'Reactivar Alerta' : 'Silenciar Alerta'}
+              </Button>
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

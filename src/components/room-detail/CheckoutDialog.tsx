@@ -156,7 +156,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
+            <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-md shadow-2xl will-change-transform">
                 <div className="p-6">
                     <DialogHeader>
                         <DialogTitle>{step === 1 ? 'Resumen de Check-Out' : 'Procesar Pago'}</DialogTitle>

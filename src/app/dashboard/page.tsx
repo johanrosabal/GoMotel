@@ -154,7 +154,7 @@ export default function DashboardPage() {
       value: lowStockItems,
       description: 'Artículos por debajo del punto de reorden.',
       icon: TriangleAlert,
-      visible: ['Administrador', 'Contador', 'Recepcion'].includes(userRole),
+      visible: ['Administrador', 'Contador'].includes(userRole),
     },
   ];
 
@@ -163,7 +163,7 @@ export default function DashboardPage() {
       title: 'Centros de Preparación',
       scope: 'Gestión de colas de producción en tiempo real.',
       description: 'Pantallas para Cocineros y Bartenders.',
-      roles: ['Administrador', 'Recepcion', 'Conserje', 'Contador'],
+      roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS', 'Cocina'],
       links: [
         {
           href: '/kitchen',
@@ -171,6 +171,7 @@ export default function DashboardPage() {
           description: 'Gestione los pedidos de comida en preparación.',
           icon: Flame,
           badge: 'ENVIVO',
+          roles: ['Administrador', 'Conserje', 'Contador', 'Cocina'],
         },
         {
           href: '/bar',
@@ -178,6 +179,7 @@ export default function DashboardPage() {
           description: 'Gestione los pedidos de bebidas en preparación.',
           icon: GlassWater,
           badge: 'ENVIVO',
+          roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS'],
         },
       ],
     },
@@ -185,7 +187,7 @@ export default function DashboardPage() {
       title: 'Operaciones Principales',
       scope: 'Flujo de trabajo diario y atención al cliente.',
       description: 'Gestión de habitaciones, servicios y inventario.',
-      roles: ['Administrador', 'Recepcion', 'Conserje'],
+      roles: ['Administrador', 'Recepcion', 'Conserje', 'Vendedor POS'],
       links: [
         {
           href: '/pos',
@@ -193,7 +195,7 @@ export default function DashboardPage() {
           description: 'Venda productos sin vincular a una habitación.',
           icon: ShoppingBasket,
           badge: 'NUEVO',
-          roles: ['Administrador', 'Recepcion'],
+          roles: ['Administrador', 'Vendedor POS'],
         },
         {
           href: '/reservations',
@@ -209,6 +211,7 @@ export default function DashboardPage() {
           description: 'Vista y estado interactivo de todas las unidades.',
           icon: LayoutGrid,
           badge: 'SECUNDARIA',
+          roles: ['Administrador', 'Recepcion', 'Conserje'],
         },
         {
           href: '/cleaning',
@@ -223,14 +226,14 @@ export default function DashboardPage() {
           title: 'Gestión de Clientes',
           description: 'Cree y administre la ficha de sus clientes frecuentes.',
           icon: Users,
-          roles: ['Administrador', 'Recepcion'],
+          roles: ['Administrador', 'Recepcion', 'Vendedor POS'],
         },
         {
           href: '/inventory',
           title: 'Gestión de Inventario',
           description: 'Controle los niveles de stock y el valor de sus activos.',
           icon: Package,
-          roles: ['Administrador', 'Recepcion', 'Contador'],
+          roles: ['Administrador', 'Contador'],
         },
       ],
     },
@@ -238,7 +241,7 @@ export default function DashboardPage() {
       title: 'Marketing y Visualización',
       scope: 'Pantallas públicas y promoción.',
       description: 'Configuración de menús digitales y pedidos remotos.',
-      roles: ['Administrador', 'Recepcion'],
+      roles: ['Administrador'],
       links: [
         {
           href: '/public/menu',
@@ -281,6 +284,14 @@ export default function DashboardPage() {
             title: 'Facturación',
             description: 'Consulte el historial de todas las facturas generadas.',
             icon: Receipt,
+            roles: ['Administrador', 'Contador', 'Recepcion'],
+        },
+        {
+            href: '/finance/payments',
+            title: 'Resumen de Pagos',
+            description: 'Historial detallado y saldos por Efectivo, SINPE y Tarjeta.',
+            icon: Wallet,
+            badge: 'NUEVO',
             roles: ['Administrador', 'Contador', 'Recepcion'],
         },
         {
@@ -352,7 +363,7 @@ export default function DashboardPage() {
       title: 'Ayuda y Recursos',
       scope: 'Documentación y asistencia técnica.',
       description: 'Manuales de operación y soporte técnico.',
-      roles: ['Administrador', 'Recepcion', 'Conserje', 'Contador'],
+      roles: ['Administrador', 'Recepcion', 'Conserje', 'Contador', 'Vendedor POS', 'Cocina'],
       links: [
         {
           href: '/manual/operations',
