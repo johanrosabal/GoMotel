@@ -11,7 +11,7 @@ interface StatusBadgeProps {
 
 const statusStyles: Record<RoomStatus, string> = {
   Available: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]',
-  Occupied: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.1)]',
+  Occupied: 'bg-violet-500/20 text-violet-400 border-violet-500/40 shadow-[0_0_15px_rgba(167,139,250,0.3)]',
   Cleaning: 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]',
   Maintenance: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20 shadow-[0_0_10px_rgba(232,121,249,0.1)]',
 };

@@ -1,5 +1,5 @@
 'use client';
-
+import { useMemo } from 'react';
 import RoomGrid from '@/components/dashboard/RoomGrid';
 import SeedDataButton from '@/components/SeedDataButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +7,13 @@ import AddRoomButton from '@/components/dashboard/AddRoomButton';
 import ExportRoomQRButton from '@/components/dashboard/ExportRoomQRButton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, Settings2, Sparkles } from 'lucide-react';
+import { CalendarPlus, Settings2, Sparkles, UserPlus, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
 import type { Room } from '@/types';
+import AddClientDialog from '@/components/clients/AddClientDialog';
 
 export default function DashboardRoomsPage() {
   const { firestore } = useFirebase();
@@ -23,6 +24,29 @@ export default function DashboardRoomsPage() {
   }, [firestore]);
   
   const { data: rooms, isLoading: loading } = useCollection<Room>(roomsQuery);
+
+  const startOfDay = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const invoicesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'invoices'),
+      where('createdAt', '>=', Timestamp.fromDate(startOfDay))
+    );
+  }, [firestore, startOfDay]);
+
+  const { data: dailyInvoices } = useCollection<any>(invoicesQuery);
+
+  const totalSalesToday = useMemo(() => {
+    if (!dailyInvoices) return 0;
+    return dailyInvoices
+      .filter((inv: any) => inv.status === 'Pagada')
+      .reduce((acc: number, inv: any) => acc + (inv.total || 0), 0);
+  }, [dailyInvoices]);
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden">
@@ -44,33 +68,43 @@ export default function DashboardRoomsPage() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="container relative z-10 py-6 sm:py-8 lg:py-12 space-y-8"
       >
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.05)]">
-              <Sparkles className="h-3 w-3" />
-              Vista en Tiempo Real
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                <Sparkles className="h-3 w-3" />
+                Vista en Tiempo Real
+              </div>
+              <div className="flex items-center justify-between gap-8">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3 whitespace-nowrap">
+                  <Settings2 className="h-8 w-8 text-primary shrink-0" />
+                  Control de Habitaciones
+                </h1>
+                <div className="hidden md:flex items-center gap-4 px-7 py-4 rounded-[2.5rem] bg-emerald-500/20 border-2 border-emerald-500/30 shadow-[0_0_25px_-5px_rgba(52,211,153,0.4)] backdrop-blur-2xl transition-all hover:scale-105 hover:bg-emerald-500/25 group/sales cursor-default">
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/30 border border-emerald-500/40 shadow-inner group-hover/sales:animate-pulse">
+                    <TrendingUp className="h-6 w-6 text-emerald-300" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] leading-none mb-1.5 opacity-80">Ventas Hoy</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(52,211,153,1)]">
+                        ₡{totalSalesToday.toLocaleString()}
+                      </span>
+                      <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest italic ml-1 underline decoration-emerald-500/30 underline-offset-4">Hoy</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
-                <Settings2 className="h-8 w-8 text-primary" />
-                Control de Habitaciones
-              </h1>
-              <p className="text-slate-400 mt-2 max-w-xl text-lg font-medium leading-relaxed">
-                Gestione la disponibilidad y el estado de sus suites desde un centro de mando unificado y elegante.
-              </p>
+
+            <div className="hidden md:block">
+              <ExportRoomQRButton rooms={rooms || []} />
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border border-white/10 shadow-xl" id="page-button-1" data-testid="rooms-action-button">
-              <Link href="/reservations" id="page-link-ir-a-reservaciones" data-testid="rooms-reservations-link">
-                <CalendarPlus className="mr-2 h-4 w-4 text-primary" />
-                Ir a Reservaciones
-              </Link>
-            </Button>
-            <ExportRoomQRButton rooms={rooms || []} />
-            <AddRoomButton />
-          </div>
+          <p className="text-slate-400 max-w-xl text-lg font-medium leading-relaxed">
+            Gestione la disponibilidad y el estado de sus suites desde un centro de mando unificado y elegante.
+          </p>
         </div>
 
         <Card className="bg-slate-950/40 backdrop-blur-3xl border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] rounded-[2.5rem] overflow-hidden border-t-white/20">
@@ -82,6 +116,22 @@ export default function DashboardRoomsPage() {
                   Haga clic en una habitación para ver detalles y administrar su estado actual.
                 </CardDescription>
               </div>
+
+              <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+                <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-11 px-6 border border-white/10 shadow-xl" id="page-button-1" data-testid="rooms-action-button">
+                  <Link href="/reservations" id="page-link-ir-a-reservaciones" data-testid="rooms-reservations-link">
+                    <CalendarPlus className="mr-2 h-4 w-4 text-primary" />
+                    Ir a Reservaciones
+                  </Link>
+                </Button>
+                <AddClientDialog>
+                  <Button variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-11 px-6 border border-white/10 shadow-xl">
+                    <UserPlus className="mr-2 h-4 w-4 text-emerald-400" />
+                    Añadir Huésped
+                  </Button>
+                </AddClientDialog>
+                <AddRoomButton />
+              </div>
             </div>
           </CardHeader>
           
@@ -92,7 +142,7 @@ export default function DashboardRoomsPage() {
                   <div key={i} className="h-32 rounded-2xl bg-white/5 animate-pulse" />
                 ))}
               </div>
-            ) : rooms.length === 0 ? (
+            ) : !rooms || rooms.length === 0 ? (
               <div className="text-center py-20 bg-black/20 rounded-[2rem] border border-white/5">
                 <h3 className="text-xl font-bold text-slate-300">No hay suites configuradas</h3>
                 <p className="text-sm text-slate-500 mt-2 mb-8">

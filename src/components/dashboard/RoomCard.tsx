@@ -20,6 +20,7 @@ interface RoomCardProps {
   room: Room;
   stay?: Stay;
   isOverdue?: boolean;
+  dailyIncome?: number;
 }
 
 const statusConfig = {
@@ -32,10 +33,10 @@ const statusConfig = {
     },
     Occupied: { 
       icon: User, 
-      color: 'text-cyan-400', 
-      glow: 'shadow-[0_0_20px_-5px_rgba(34,211,238,0.3)]',
-      hoverGlow: 'group-hover/card:shadow-[0_0_30px_-5px_rgba(34,211,238,0.5)]',
-      border: 'border-cyan-500/30'
+      color: 'text-violet-400', 
+      glow: 'shadow-[0_0_25px_-2px_rgba(167,139,250,0.4)]',
+      hoverGlow: 'group-hover/card:shadow-[0_0_40px_-2px_rgba(167,139,250,0.6)]',
+      border: 'border-violet-500/50'
     },
     Cleaning: { 
       icon: Sparkles, 
@@ -60,7 +61,7 @@ const statusConfig = {
     }
 }
 
-export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProps) {
+export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 0 }: RoomCardProps) {
   const { userProfile } = useUserProfile();
   const currentStatus = isOverdue ? 'Overdue' : room.status;
   const { icon: Icon, color, glow, hoverGlow, border } = statusConfig[currentStatus];
@@ -150,7 +151,9 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                   </CardTitle>
                   <Zap className={cn("h-4 w-4 fill-current opacity-30", color)} />
                 </div>
-                <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName || room.type}</CardDescription>
+                <div className="flex flex-col gap-0.5">
+                  <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName || room.type}</CardDescription>
+                </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className={cn("p-2 rounded-xl bg-white/5 border border-white/5", color)}>
@@ -185,7 +188,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
-                          className={cn("h-full bg-gradient-to-r transition-all", progress > 90 ? "from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.5)]" : "from-cyan-500 to-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]")}
+                          className={cn("h-full bg-gradient-to-r transition-all", progress > 90 ? "from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.5)]" : "from-violet-600 to-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.5)]")}
                         />
                       </div>
                     </div>
@@ -194,7 +197,7 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                     </Button>
                 </div>
             ) : (
-                <div className="flex justify-between items-center gap-2">
+                <div className="flex flex-col items-start gap-2">
                     <StatusBadge status={room.status} isOverdue={isOverdue} />
                     {room.status === 'Cleaning' && timeInStatus && (
                         <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5" title={`Iniciado el ${room.statusUpdatedAt?.toDate().toLocaleString()}`}>
@@ -205,6 +208,18 @@ export default function RoomCard({ room, stay, isOverdue = false }: RoomCardProp
                 </div>
             )}
           </CardContent>
+
+          {dailyIncome > 0 && (
+            <div className="mt-auto bg-emerald-500/10 border-t border-emerald-500/20 py-3 px-6 flex items-center justify-between backdrop-blur-md group-hover/card:bg-emerald-500/20 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Ingreso Hoy</span>
+              </div>
+              <span className="text-sm font-black text-emerald-400 italic tracking-tighter drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+                ₡{dailyIncome.toLocaleString()}
+              </span>
+            </div>
+          )}
         </Card>
       </Link>
     </motion.div>

@@ -35,6 +35,7 @@ const reservationActionSchema = z.object({
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).nullable().optional(),
   paymentConfirmed: z.boolean().optional(),
   voucherNumber: z.string().nullable().optional(),
+  remoteControlDelivered: z.boolean().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -68,7 +69,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber, remoteControlDelivered } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -147,6 +148,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
       paymentMethod,
       paymentAmount,
       voucherNumber: voucherNumber || null,
+      remoteControlDelivered: remoteControlDelivered || false,
     };
     batch.set(reservationRef, reservationPayload);
 
@@ -223,6 +225,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
             total: pricePlanAmount,
             paymentMethod: paymentMethod,
             voucherNumber: voucherNumber || null,
+            roomId: roomId,
+            roomNumber: roomData.number,
         };
         batch.set(invoiceRef, newInvoice);
     }
@@ -246,6 +250,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           paymentMethod,
           paymentAmount,
           voucherNumber: voucherNumber || null,
+          remoteControlDelivered: remoteControlDelivered || false,
         };
         batch.set(stayRef, newStay);
         
@@ -337,6 +342,7 @@ export async function checkInFromReservation(reservationId: string) {
       paymentMethod: reservation.paymentMethod,
       paymentAmount: reservation.paymentAmount,
       voucherNumber: reservation.voucherNumber || null,
+      remoteControlDelivered: reservation.remoteControlDelivered || false,
     };
     batch.set(stayRef, newStay);
 

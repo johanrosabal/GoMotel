@@ -251,6 +251,8 @@ export async function checkOut(
       total: Math.max(0, totalDueAtCheckout),
       paymentMethod: paymentDetails?.paymentMethod || 'Efectivo',
       voucherNumber: paymentDetails?.voucherNumber || null,
+      roomId: roomId,
+      roomNumber: room.number,
   };
   batch.set(invoiceRef, finalInvoice);
 
@@ -567,6 +569,8 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
               total: newPlan.price,
               paymentMethod: paymentMethod!,
               voucherNumber: voucherNumber || null,
+              roomId: stayData.roomId,
+              roomNumber: roomData.number,
           };
           batch.set(invoiceRef, newInvoice);
   

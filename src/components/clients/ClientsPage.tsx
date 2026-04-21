@@ -9,6 +9,8 @@ import { useMemo, useState } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Ban, UserCheck } from "lucide-react";
 
 export default function ClientsPage() {
     const { firestore } = useFirebase();
@@ -29,6 +31,9 @@ export default function ClientsPage() {
         if (!clients) return [];
         return [...clients].sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
     }, [clients]);
+
+    const activeClients = useMemo(() => sortedClients.filter(c => !c.isBlacklisted), [sortedClients]);
+    const blacklistedClients = useMemo(() => sortedClients.filter(c => c.isBlacklisted), [sortedClients]);
 
     return (
         <div className="space-y-12">
@@ -59,7 +64,34 @@ export default function ClientsPage() {
                     ))}
                 </div>
             ) : (
-                <ClientsTable clients={sortedClients} searchTerm={searchTerm} />
+                <Tabs defaultValue="active" className="space-y-8">
+                    <TabsList className="bg-white/5 border border-white/10 p-1 rounded-2xl h-auto">
+                        <TabsTrigger 
+                            value="active" 
+                            className="rounded-xl px-6 py-3 data-[state=active]:bg-white data-[state=active]:text-black font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
+                        >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Huéspedes Activos
+                            <span className="ml-2 py-0.5 px-2 bg-black/10 rounded-full text-[8px]">{activeClients.length}</span>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="blacklist" 
+                            className="rounded-xl px-6 py-3 data-[state=active]:bg-rose-500 data-[state=active]:text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
+                        >
+                            <Ban className="h-3.5 w-3.5" />
+                            Lista Negra
+                            <span className="ml-2 py-0.5 px-2 bg-black/10 rounded-full text-[8px]">{blacklistedClients.length}</span>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="active" className="mt-0">
+                        <ClientsTable clients={activeClients} searchTerm={searchTerm} />
+                    </TabsContent>
+                    
+                    <TabsContent value="blacklist" className="mt-0">
+                        <ClientsTable clients={blacklistedClients} searchTerm={searchTerm} />
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );

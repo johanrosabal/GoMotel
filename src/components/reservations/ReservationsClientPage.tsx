@@ -31,7 +31,7 @@ export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
     const [view, setView] = useState<'list' | 'grid' | 'timeline'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
+    const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('Confirmed');
     const [now, setNow] = useState(new Date());
     const notifiedOverdueReservations = useRef(new Set<string>());
     const { toast } = useToast();
@@ -123,13 +123,13 @@ export default function ReservationsClientPage() {
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <AddClientDialog>
-                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all" id="reservationsclientpage-button-1" data-testid="reservationsclientpage-add-client-button">
+                            <Button variant="outline" className="flex-1 md:flex-none h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-black uppercase tracking-widest text-[10px] px-8 transition-all hover:scale-105 active:scale-95" id="reservationsclientpage-button-1" data-testid="reservationsclientpage-add-client-button">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 <span className="hidden sm:inline">Nuevo Cliente</span>
                             </Button>
                         </AddClientDialog>
                         <CreateReservationDialog>
-                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-add-reservation-button">
+                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/95 text-black hover:text-white font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-105" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-add-reservation-button">
                                 <PlusCircle className="mr-2 h-5 w-5" />
                                 Nueva Reservación
                             </Button>
@@ -146,7 +146,7 @@ export default function ReservationsClientPage() {
                                 className={cn(
                                     "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
                                     statusFilter === f.value
-                                        ? "bg-primary text-black border-primary shadow-lg shadow-primary/10 scale-105"
+                                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/10 scale-105"
                                         : "bg-white/5 text-slate-400 border-white/5 hover:border-white/20"
                                 )} id="reservationsclientpage-button-1-1" data-testid="reservationsclientpage-filter-button"
                             >

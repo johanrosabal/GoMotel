@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Client } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Edit, Trash2, Star, ShieldCheck, ShieldX } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Star, ShieldCheck, ShieldX, Ban, UserX, Skull, RotateCcw } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddClientDialog from './AddClientDialog';
-import { deleteClient } from '@/lib/actions/client.actions';
+import { deleteClient, toggleClientBlacklist, toggleClientValidation } from '@/lib/actions/client.actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { cn } from '@/lib/utils';
@@ -21,9 +23,12 @@ import { Phone, Mail, CreditCard, Calendar, UserCheck } from 'lucide-react';
 
 function ActionsMenu({ client }: { client: Client }) {
     const { toast } = useToast();
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isBlacklistDialogOpen, setIsBlacklistDialogOpen] = useState(false);
+    const [tempReason, setTempReason] = useState('');
 
     const handleDelete = () => {
         setIsDeleteDialogOpen(false);
@@ -52,15 +57,133 @@ function ActionsMenu({ client }: { client: Client }) {
                         <Edit className="mr-3 h-4 w-4" />
                         <span className="font-bold text-xs uppercase tracking-widest">Editar Perfil</span>
                     </DropdownMenuItem>
+
                     <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-rose-500 focus:bg-rose-500/10 focus:text-rose-500 cursor-pointer transition-colors px-4 py-3">
+                    <DropdownMenuItem 
+                        onSelect={(e) => {
+                            e.preventDefault();
+                            startTransition(async () => {
+                                const result = await toggleClientValidation(client.id, !client.isValidated);
+                                if (result.success) {
+                                    router.refresh();
+                                    toast({ 
+                                        title: client.isValidated ? 'Validación Removida' : 'Identidad Validada', 
+                                        description: `El estado de identidad ha sido actualizado.` 
+                                    });
+                                }
+                            });
+                        }} 
+                        className="focus:bg-white/5 focus:text-primary cursor-pointer transition-colors px-4 py-3"
+                    >
+                        {client.isValidated ? <ShieldX className="mr-3 h-4 w-4 text-rose-400" /> : <ShieldCheck className="mr-3 h-4 w-4 text-emerald-400" />}
+                        <span className="font-bold text-xs uppercase tracking-widest">
+                            {client.isValidated ? 'Quitar Validación' : 'Validar Identidad'}
+                        </span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-white/5" />
+
+                    {client.isBlacklisted ? (
+                        <DropdownMenuItem 
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                startTransition(async () => {
+                                    const result = await toggleClientBlacklist(client.id, false);
+                                    if (result.success) {
+                                        router.refresh();
+                                        toast({ title: 'Huésped Restaurado', description: 'El cliente ha sido movido de nuevo a la lista activa.' });
+                                    }
+                                });
+                            }} 
+                            className="focus:bg-emerald-500/10 focus:text-emerald-500 cursor-pointer transition-colors px-4 py-3 text-emerald-500"
+                        >
+                            <RotateCcw className="mr-3 h-4 w-4" />
+                            <span className="font-bold text-xs uppercase tracking-widest">Restaurar Huésped</span>
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem 
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                setIsBlacklistDialogOpen(true);
+                            }} 
+                            className="focus:bg-rose-500/10 focus:text-rose-500 cursor-pointer transition-colors px-4 py-3 text-rose-500"
+                        >
+                            <Ban className="mr-3 h-4 w-4" />
+                            <span className="font-bold text-xs uppercase tracking-widest">Mover a Lista Negra</span>
+                        </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuSeparator className="bg-white/5" />
+                    <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-slate-500 focus:bg-rose-500/10 focus:text-rose-500 cursor-pointer transition-colors px-4 py-3 opacity-50 hover:opacity-100">
                         <Trash2 className="mr-3 h-4 w-4" />
                         <span className="font-bold text-xs uppercase tracking-widest">Eliminar Registro</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             
-            <AddClientDialog client={client} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+            {/* Blacklist Confirmation Dialog */}
+            <Dialog open={isBlacklistDialogOpen} onOpenChange={setIsBlacklistDialogOpen}>
+                <DialogContent className="bg-[#0f0f0f] border-white/10 text-white rounded-[2.5rem] p-8 max-w-md shadow-2xl shadow-rose-500/10 overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-transparent shadow-[0_0_20px_rgba(244,63,94,0.5)]" />
+                    
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black italic tracking-tighter flex items-center gap-3 text-rose-500">
+                            <Skull className="h-7 w-7" />
+                            Mover a Lista Negra
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 font-medium text-xs uppercase tracking-widest mt-2 leading-relaxed">
+                            Confirme el motivo del bloqueo. Esto advertirá a todo el personal en futuras reservaciones.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Motivo del Bloqueo</label>
+                            <textarea 
+                                value={tempReason}
+                                onChange={(e) => setTempReason(e.target.value)}
+                                placeholder="Describa el incidente (ej. Daños a la suite, impago...)"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all min-h-[100px] resize-none placeholder:text-slate-600"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-3">
+                        <DialogClose asChild>
+                            <Button variant="ghost" className="rounded-xl font-bold uppercase tracking-widest text-[10px] opacity-50 hover:opacity-100 h-10 border border-white/10">
+                                Cancelar
+                            </Button>
+                        </DialogClose>
+                        <Button 
+                            disabled={!tempReason.trim() || isPending}
+                            onClick={() => {
+                                startTransition(async () => {
+                                    const result = await toggleClientBlacklist(client.id, true, tempReason);
+                                    if (result.success) {
+                                        router.refresh();
+                                        setIsBlacklistDialogOpen(false);
+                                        toast({ 
+                                            title: 'Huésped Bloqueado', 
+                                            description: `El cliente ha sido movido a la Lista Negra.`,
+                                            variant: 'destructive'
+                                        });
+                                        setTempReason('');
+                                    }
+                                });
+                            }}
+                            className="bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] h-10 px-6 shadow-lg shadow-rose-500/20"
+                        >
+                            {isPending ? 'Procesando...' : 'Confirmar Bloqueo'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <AddClientDialog 
+                open={isEditDialogOpen} 
+                onOpenChange={setIsEditDialogOpen} 
+                client={client} 
+            />
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
@@ -137,10 +260,16 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
                                 <CardTitle className="text-xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors flex items-center gap-2">
                                     {client.firstName} {client.lastName}
                                     {client.isVip && <Star className="h-4 w-4 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />}
+                                    {client.isBlacklisted && <Skull className="h-4 w-4 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />}
                                 </CardTitle>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mt-1 italic">
                                     <Mail className="h-3 w-3" /> {client.email}
                                 </p>
+                                {client.isBlacklisted && client.blacklistReason && (
+                                    <p className="text-[8px] font-black text-rose-500/70 uppercase tracking-tighter mt-1 bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 w-fit">
+                                        Motivo: {client.blacklistReason}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <ActionsMenu client={client} />
@@ -163,7 +292,12 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
 
                     <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center relative z-10">
                         <div className="flex items-center gap-3">
-                            {client.isValidated ? (
+                            {client.isBlacklisted ? (
+                                <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20 shadow-lg shadow-rose-500/10">
+                                    <Ban className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Lista Negra</span>
+                                </div>
+                            ) : client.isValidated ? (
                                 <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
                                     <ShieldCheck className="h-3.5 w-3.5" />
                                     <span className="text-[9px] font-black uppercase tracking-widest">Verificado</span>
@@ -216,8 +350,12 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
                                 <div className="font-black text-white uppercase italic tracking-tighter text-sm flex items-center gap-2 group-hover:text-primary transition-colors">
                                     {client.firstName} {client.lastName}
                                     {client.isVip && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />}
+                                    {client.isBlacklisted && <Skull className="h-3.5 w-3.5 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]" />}
                                 </div>
-                                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic mt-0.5">{client.email}</div>
+                                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic mt-0.5">
+                                    {client.email}
+                                    {client.isBlacklisted && client.blacklistReason && <span className="text-rose-500/60 ml-2">— {client.blacklistReason}</span>}
+                                </div>
                             </div>
                         </div>
                         </TableCell>

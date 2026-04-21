@@ -39,6 +39,8 @@ const clientSchema = z.object({
   notes: z.string().optional(),
   isVip: z.boolean().optional(),
   isValidated: z.boolean().default(false),
+  isBlacklisted: z.boolean().optional(),
+  blacklistReason: z.string().optional(),
 });
 
 
@@ -88,6 +90,49 @@ export async function deleteClient(clientId: string) {
     } catch (error) {
         console.error('Failed to delete client:', error);
         return { error: 'No se pudo eliminar el cliente.' };
+    }
+}
+
+export async function toggleClientBlacklist(clientId: string, isBlacklisted: boolean, reason?: string) {
+    console.log('--- toggleClientBlacklist called ---');
+    console.log('Client ID:', clientId);
+    console.log('Is Blacklisted:', isBlacklisted);
+    console.log('Reason:', reason);
+    
+    if (!clientId) {
+        console.error('Error: Invalid Client ID');
+        return { error: 'ID de cliente no válido.' };
+    }
+
+    try {
+        const clientRef = doc(db, 'clients', clientId);
+        console.log('Updating document...');
+        await updateDoc(clientRef, {
+            isBlacklisted,
+            blacklistReason: reason || null,
+        });
+        console.log('Update successful. Revalidating path...');
+        revalidatePath('/clients');
+        return { success: true };
+    } catch (error) {
+        console.error('Error toggling client blacklist in Firestore:', error);
+        return { error: 'No se pudo actualizar el estado de lista negra.' };
+    }
+}
+
+export async function toggleClientValidation(clientId: string, isValidated: boolean) {
+    if (!clientId) return { error: 'ID de cliente no válido.' };
+
+    try {
+        const clientRef = doc(db, 'clients', clientId);
+        await updateDoc(clientRef, {
+            isValidated
+        });
+        revalidatePath('/clients');
+        return { success: true };
+    } catch (error) {
+        console.error('Error toggling client validation:', error);
+        return { error: 'No se pudo actualizar el estado de validación.' };
     }
 }
 

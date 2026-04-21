@@ -134,7 +134,7 @@ export default function ExportRoomQRButton({ rooms }: ExportRoomQRButtonProps) {
                 ) : (
                     <Download className="mr-2 h-4 w-4 text-primary" />
                 )}
-                {isExporting ? 'Generando...' : 'Exportar QR (PDF)'}
+                {isExporting ? 'Generando...' : 'QRs'}
             </Button>
         </>
     );

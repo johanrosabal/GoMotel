@@ -17,13 +17,14 @@ import DateTimePicker from './DateTimePicker';
 import { createReservation } from '@/lib/actions/reservation.actions';
 import { addMinutes, addHours, addDays, addWeeks, addMonths, format, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Check, Star, Clock, CheckCircle, User, BedDouble, CalendarDays, Wallet, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Check, Star, Clock, CheckCircle, User, BedDouble, CalendarDays, Wallet, ChevronRight, ChevronLeft, Skull, AlertCircle, Ban } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '../ui/separator';
+import { motion } from 'framer-motion';
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 
 const Stepper = ({ currentStep }: { currentStep: number }) => {
@@ -75,10 +76,11 @@ const reservationSchema = z.object({
     checkInDate: z.date(),
     guestId: z.string().nullable().optional(),
     checkInNow: z.boolean().default(false),
-    isOpenAccount: z.boolean().default(true),
+    isOpenAccount: z.boolean().default(false),
     paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).nullable().optional(),
     paymentConfirmed: z.boolean().default(false),
     voucherNumber: z.string().nullable().optional(),
+    remoteControlDelivered: z.boolean().default(false),
 }).refine(data => data.isOpenAccount || !!data.paymentMethod, {
     message: "Debe seleccionar un método de pago.",
     path: ["paymentMethod"],
@@ -150,14 +152,16 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             pricePlanName: undefined,
             checkInNow: isWalkIn,
             checkInDate: new Date(),
-            isOpenAccount: true,
+            isOpenAccount: false,
             paymentMethod: null,
             paymentConfirmed: false,
             voucherNumber: null,
+            remoteControlDelivered: false,
         },
     });
 
     const guestNameValue = form.watch('guestName');
+    const guestIdValue = form.watch('guestId');
 
     const sortedClients = useMemo(() => {
         if (!clients) return [];
@@ -175,6 +179,11 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             `${client.firstName} ${client.lastName}`.toLowerCase().includes(lowercasedQuery)
         );
     }, [guestNameValue, sortedClients]);
+
+    const selectedClient = useMemo(() => {
+        if (!guestIdValue || !clients) return null;
+        return clients.find(c => c.id === guestIdValue);
+    }, [guestIdValue, clients]);
 
 
     const selectedRoomId = form.watch('roomId');
@@ -222,10 +231,11 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             pricePlanName: undefined,
             checkInNow: isWalkIn,
             checkInDate: new Date(),
-            isOpenAccount: true,
+            isOpenAccount: false,
             paymentMethod: null,
             paymentConfirmed: false,
             voucherNumber: null,
+            remoteControlDelivered: false,
         });
         setCurrentStep(1);
         setCalculatedCheckOut(null);
@@ -262,6 +272,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
             else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
             else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
+            // Add 5 minutes grace period
+            newCheckOutDate = addMinutes(newCheckOutDate, 5);
             setCalculatedCheckOut(newCheckOutDate);
         }
     }, [checkInDateValue, selectedPlanName, availablePlans, checkInNow]);
@@ -382,13 +394,21 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                                                         form.setValue('guestId', client.id);
                                                                                         setShowSuggestions(false);
                                                                                     }}
-                                                                                    className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-accent transition-colors" id="createreservationdialog-button-1" data-testid="createreservationdialog-select-client-button"
+                                                                                    className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-primary transition-colors group" id="createreservationdialog-button-1" data-testid="createreservationdialog-select-client-button"
                                                                                 >
                                                                                     <div className="flex items-center gap-3">
                                                                                         {client.isVip && <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />}
-                                                                                        <span className="font-semibold">{client.firstName} {client.lastName}</span>
+                                                                                        {client.isBlacklisted && <Skull className="h-4 w-4 text-rose-500" />}
+                                                                                        <span className={cn("font-semibold transition-colors", client.isBlacklisted ? "text-rose-500" : "text-slate-200 group-hover:text-slate-900")}>
+                                                                                            {client.firstName} {client.lastName}
+                                                                                        </span>
+                                                                                        {client.isBlacklisted && (
+                                                                                            <span className="text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-lg shadow-rose-500/20">
+                                                                                                Lista Negra
+                                                                                            </span>
+                                                                                        )}
                                                                                     </div>
-                                                                                    <span className="text-[10px] text-muted-foreground font-mono">{client.idCard}</span>
+                                                                                    <span className="text-[10px] text-muted-foreground group-hover:text-slate-900 font-mono transition-colors">{client.idCard}</span>
                                                                                 </button>
                                                                             ))
                                                                         ) : (
@@ -404,6 +424,32 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                     </FormItem>
                                                 )}
                                             />
+
+                                            {/* Blacklist Warning */}
+                                            {selectedClient?.isBlacklisted && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="p-5 bg-rose-500/10 border-2 border-rose-500/30 rounded-[2rem] flex items-start gap-4 shadow-xl shadow-rose-500/5 backdrop-blur-xl"
+                                                >
+                                                    <div className="h-12 w-12 rounded-2xl bg-rose-500 flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/50">
+                                                        <Ban className="h-6 w-6 text-white" />
+                                                    </div>
+                                                    <div className="space-y-1.5 flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-xs font-black text-rose-500 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                                                HUÉSPED EN LISTA NEGRA
+                                                                <AlertCircle className="h-3 w-3 animate-pulse" />
+                                                            </p>
+                                                            <span className="text-[10px] font-black bg-rose-500/20 text-rose-500 px-2 py-0.5 rounded-full border border-rose-500/30">BLOQUEADO</span>
+                                                        </div>
+                                                        <p className="text-xs text-rose-300 font-bold italic leading-relaxed">
+                                                            Este cliente ha sido marcado anteriormente por conducta no permitida. <br />
+                                                            <span className="text-white bg-rose-500/20 px-2 py-1 rounded inline-block mt-2 border border-rose-500/10 not-italic">Motivo: {selectedClient.blacklistReason || 'Sin motivo especificado'}</span>
+                                                        </p>
+                                                    </div>
+                                                </motion.div>
+                                            )}
 
                                             <FormField
                                                 control={form.control}
@@ -471,37 +517,52 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                 )}
                                             />
 
-                                            <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="checkInNow"
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-center justify-between">
-                                                            <div className="space-y-0.5">
-                                                                <FormLabel className="font-bold text-sm">Ingreso Inmediato</FormLabel>
-                                                                <p className="text-xs text-muted-foreground">El tiempo empieza a correr ahora.</p>
-                                                            </div>
-                                                            <FormControl>
-                                                                <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} id="createreservationdialog-switch-1" data-testid="createreservationdialog-check-in-now-switch" />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                {!checkInNow && (
-                                                    <div className="pt-2">
-                                                        <Controller
-                                                            control={form.control}
-                                                            name="checkInDate"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Fecha y Hora de Entrada</FormLabel>
-                                                                    <DateTimePicker date={field.value} setDate={field.onChange} />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    </div>
+                                            <FormField
+                                                control={form.control}
+                                                name="remoteControlDelivered"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-xl border bg-muted/20 p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="font-bold text-sm">Se entregó control remoto</FormLabel>
+                                                            <p className="text-xs text-muted-foreground">Confirmar la entrega física del dispositivo.</p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-switch-remote" data-testid="createreservationdialog-remote-switch" />
+                                                        </FormControl>
+                                                    </FormItem>
                                                 )}
-                                            </div>
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="checkInNow"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-xl border bg-muted/20 p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="font-bold text-sm">Ingreso Inmediato</FormLabel>
+                                                            <p className="text-xs text-muted-foreground">El tiempo empieza a correr en 5 min. mientras se hace el registro.</p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} id="createreservationdialog-switch-1" data-testid="createreservationdialog-check-in-now-switch" />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            {!checkInNow && (
+                                                <div className="rounded-xl border bg-muted/20 p-4 animate-in slide-in-from-top-2 duration-200">
+                                                    <Controller
+                                                        control={form.control}
+                                                        name="checkInDate"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Fecha y Hora de Entrada</FormLabel>
+                                                                <DateTimePicker date={field.value} setDate={field.onChange} />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                            )}
 
                                             {calculatedCheckOut && (
                                                 <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-3">
@@ -564,10 +625,15 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                                         control={form.control}
                                                                         name="paymentConfirmed"
                                                                         render={({ field }) => (
-                                                                            <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
-                                                                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" data-testid="createreservationdialog-payment-confirmed-checkbox" /></FormControl>
-                                                                                <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
-                                                                            </FormItem>
+                                                                            <div className="space-y-3">
+                                                                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
+                                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" data-testid="createreservationdialog-payment-confirmed-checkbox" /></FormControl>
+                                                                                    <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
+                                                                                </FormItem>
+                                                                                <p className="text-[9px] text-muted-foreground px-1 leading-tight italic text-left">
+                                                                                    * Es responsabilidad del colaborador verificar manualmente que el pago por SINPE Móvil se haya recibido correctamente en la cuenta bancaria antes de finalizar.
+                                                                                </p>
+                                                                            </div>
                                                                         )}
                                                                     />
                                                                 </div>
@@ -617,8 +683,19 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                     </div>
                                     <div className='flex items-center gap-2 flex-1 sm:flex-none'>
                                         {currentStep < 3 ? (
-                                            <Button type="button" onClick={handleNext} disabled={isPending} className="w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg" id="createreservationdialog-button-siguiente" data-testid="createreservationdialog-next-button">
-                                                Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+                                            <Button 
+                                                type="button" 
+                                                onClick={handleNext} 
+                                                disabled={isPending || (currentStep === 1 && selectedClient?.isBlacklisted)} 
+                                                className={cn(
+                                                    "w-full sm:w-auto h-12 px-8 font-black uppercase tracking-widest shadow-lg",
+                                                    selectedClient?.isBlacklisted && "opacity-50 cursor-not-allowed bg-slate-800 text-slate-500"
+                                                )}
+                                                id="createreservationdialog-button-siguiente" 
+                                                data-testid="createreservationdialog-next-button"
+                                            >
+                                                {selectedClient?.isBlacklisted ? 'Huésped Bloqueado' : 'Siguiente'}
+                                                {!selectedClient?.isBlacklisted && <ChevronRight className="ml-2 h-4 w-4" />}
                                             </Button>
                                         ) : (
                                             <Button

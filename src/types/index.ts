@@ -109,6 +109,7 @@ export interface Stay {
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
   voucherNumber?: string | null;
+  remoteControlDelivered?: boolean;
 }
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
@@ -130,6 +131,7 @@ export interface Reservation {
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentAmount?: number;
   voucherNumber?: string | null;
+  remoteControlDelivered?: boolean;
 }
 
 export interface OrderItem {
@@ -204,6 +206,8 @@ export interface Client {
   isVip?: boolean;
   isValidated?: boolean;
   visitCount?: number;
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
   createdAt: Timestamp;
 }
 
@@ -244,6 +248,8 @@ export interface Invoice {
     paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
     voucherNumber?: string | null;
     orderId?: string;
+    roomId?: string | null;
+    roomNumber?: string | null;
 }
 
 export interface SinpeAccount {
