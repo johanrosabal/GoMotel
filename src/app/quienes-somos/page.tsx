@@ -10,12 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AboutPage() {
   const { firestore } = useFirebase();
-  
+
   const contentRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'publicPages', 'about');
   }, [firestore]);
-  
+
   const { data: content, isLoading } = useDoc<AboutPageContent>(contentRef);
 
   return (
@@ -68,7 +68,7 @@ export default function AboutPage() {
             <Skeleton className="h-4 w-4/5" />
           </div>
         ) : content?.content ? (
-          <div 
+          <div
             className="prose prose-sm sm:prose-base md:prose-lg dark:prose-invert max-w-none prose-headings:font-black prose-headings:uppercase prose-headings:italic prose-headings:tracking-tight prose-a:text-primary hover:prose-a:text-primary/80 prose-img:rounded-3xl prose-img:shadow-2xl mx-auto"
             dangerouslySetInnerHTML={{ __html: content.content }}
           />

@@ -30,6 +30,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   // While loading auth state, show a loading screen to prevent flicker
   if (isUserLoading) {
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/invoices/');
+    
+    // For public routes, let the page handle its own loading/splash state
+    if (isPublicRoute) {
+      return <>{children}</>;
+    }
+
     return (
         <div className="flex flex-col min-h-screen">
             <header className="sticky top-0 z-30 w-full border-b bg-background">

@@ -190,6 +190,7 @@ export default function LandingPage() {
 
   const heroMobileImage = cmsContent?.heroSection?.mobileImageUrl || "/hero_bg_mural.png";
   const heroDesktopImage = cmsContent?.heroSection?.desktopImageUrl || "/hotel_du_manolo_hero.jpg";
+
   const heroTitle1 = cmsContent?.heroSection?.title1 || "Exclusividad";
   const heroTitle2 = cmsContent?.heroSection?.title2 || "Sin Límites";
   const heroDesktopSubtitle = cmsContent?.heroSection?.desktopSubtitle || "Discreción absoluta y confort premium.";
@@ -273,6 +274,18 @@ export default function LandingPage() {
             }}
             className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 overflow-hidden"
           >
+            {/* Splash Background Image */}
+            <div className="absolute inset-0 z-0">
+              <Image
+                src="/Elvis.jpg"
+                alt="Splash Background"
+                fill
+                className="object-cover opacity-50 brightness-[0.6] grayscale-[0.3]"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
+            </div>
+
             {/* Ambient Background Glow */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -285,24 +298,24 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="relative flex flex-col items-center gap-8"
+              className="relative flex flex-col items-center gap-6"
             >
-              <div className="relative w-24 h-24 md:w-32 md:h-32 mb-4">
+              <div className="relative w-64 h-32 md:w-[450px] md:h-[225px] mb-2">
                 <Image
-                  src="/logo_manolo.png"
+                  src="/logo-original.png"
                   alt="Hotel Du Manolo Logo"
                   fill
-                  className="object-contain drop-shadow-[0_0_25px_rgba(179,153,255,0.4)]"
+                  className="object-contain drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]"
                   priority
                 />
               </div>
 
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-4">
                 <motion.h1
                   initial={{ opacity: 0, letterSpacing: '0.4em' }}
                   animate={{ opacity: 1, letterSpacing: '0.2em' }}
                   transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
-                  className="text-2xl md:text-5xl font-black uppercase italic tracking-[0.2em] text-white"
+                  className="text-2xl md:text-6xl font-black uppercase italic tracking-[0.2em] text-white text-center"
                 >
                   Hotel Du Manolo
                 </motion.h1>
@@ -317,7 +330,7 @@ export default function LandingPage() {
               </div>
 
               {/* Progress Bar Container */}
-              <div className="mt-8 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
+              <div className="mt-4 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
                 <motion.div
                   initial={{ x: "-100%" }}
                   animate={{ x: "0%" }}
@@ -328,20 +341,22 @@ export default function LandingPage() {
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
                 />
               </div>
+
+              {/* Status text */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.4 }}
+                transition={{ delay: 1.5, duration: 1 }}
+                className="flex items-center gap-3 mt-2"
+              >
+                <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/50 italic">
+                  Cargando Experiencia...
+                </span>
+              </motion.div>
             </motion.div>
 
-            {/* Bottom Status */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5, duration: 1 }}
-              className="absolute bottom-12 flex items-center gap-3"
-            >
-              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/30 italic">
-                Cargando Experiencia...
-              </span>
-            </motion.div>
+
           </motion.div>
         )}
       </AnimatePresence>
@@ -433,10 +448,10 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="hidden md:block absolute top-40 right-12 w-28 h-28 z-20 pointer-events-none"
+              className="hidden md:block absolute top-32 right-12 w-[450px] h-[450px] z-20 pointer-events-none"
             >
               <Image
-                src="/logo_manolo.png"
+                src="/logo-original.png"
                 alt="Hotel Du Manolo Logo"
                 fill
                 className="object-contain drop-shadow-2xl opacity-80"

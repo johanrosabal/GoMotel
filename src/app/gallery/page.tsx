@@ -4,11 +4,11 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  Play, 
-  Image as ImageIcon, 
-  Video as VideoIcon, 
+import {
+  ArrowLeft,
+  Play,
+  Image as ImageIcon,
+  Video as VideoIcon,
   Maximize2,
   X,
   ChevronRight,
@@ -24,8 +24,8 @@ type MediaType = 'all' | 'image' | 'video';
 
 export default function GalleryPage() {
   const [filter, setFilter] = useState<MediaType>('all');
-  const [selectedMedia, setSelectedMedia] = useState<{url: string, type: 'image' | 'video', alt?: string} | null>(null);
-  
+  const [selectedMedia, setSelectedMedia] = useState<{ url: string, type: 'image' | 'video', alt?: string } | null>(null);
+
   const { firestore } = useFirebase();
   const contentRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -67,7 +67,7 @@ export default function GalleryPage() {
             </div>
             <span className="text-xs font-black uppercase tracking-[0.3em] hidden sm:block">Volver al Inicio</span>
           </Link>
-          
+
           <div className="flex items-center gap-2">
             <div className="relative w-8 h-8">
               <Image src="/logo_manolo.png" alt="Logo" fill className="object-contain" />
@@ -81,7 +81,7 @@ export default function GalleryPage() {
 
       <main className="pt-32 pb-20 container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-7xl font-black tracking-tighter italic uppercase mb-6 leading-none"
@@ -89,7 +89,7 @@ export default function GalleryPage() {
             {cmsContent?.gallerySection?.title1 || "EXPLORE"} <br />
             <span className="text-primary italic">{cmsContent?.gallerySection?.title2 || "LUJO"}</span>
           </motion.h2>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -105,8 +105,8 @@ export default function GalleryPage() {
                 onClick={() => setFilter(t.id as MediaType)}
                 className={cn(
                   "px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all duration-300 flex items-center gap-2",
-                  filter === t.id 
-                    ? "bg-primary border-primary text-black shadow-lg shadow-primary/20 scale-105" 
+                  filter === t.id
+                    ? "bg-primary border-primary text-black shadow-lg shadow-primary/20 scale-105"
                     : "bg-white/5 border-white/10 text-white/60 hover:border-primary/50"
                 )} data-testid="gallery-action-button"
               >
@@ -143,8 +143,8 @@ export default function GalleryPage() {
                   />
                 ) : (
                   <div className="relative w-full h-full bg-slate-900 pointer-events-none">
-                    <video 
-                      src={`${item.url}#t=0.1`} 
+                    <video
+                      src={`${item.url}#t=0.1`}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       muted
                       playsInline
@@ -157,9 +157,9 @@ export default function GalleryPage() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors pointer-events-none" />
-                
+
                 <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/50">{item.type === 'image' ? 'Fotografía' : 'Video'}</p>
@@ -184,14 +184,14 @@ export default function GalleryPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center px-6"
           >
-            <button 
+            <button
               onClick={() => setSelectedMedia(null)}
               className="absolute top-8 right-8 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 transition-colors z-[110]" data-testid="gallery-close-button"
             >
               <X className="h-6 w-6" />
             </button>
 
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -214,16 +214,16 @@ export default function GalleryPage() {
                       allowFullScreen
                     />
                   ) : (
-                    <video 
-                      src={selectedMedia.url} 
-                      controls 
-                      autoPlay 
+                    <video
+                      src={selectedMedia.url}
+                      controls
+                      autoPlay
                       className="w-full h-full"
                     />
                   )}
                 </div>
               )}
-              
+
               <div className="absolute bottom-10 left-10 p-6 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl hidden md:block">
                 <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">{selectedMedia.type === 'image' ? 'Captura Real' : 'Experiencia Visual'}</p>
                 <h3 className="text-2xl font-black uppercase italic tracking-tighter">{selectedMedia.alt || 'Hotel Du Manolo Experience'}</h3>

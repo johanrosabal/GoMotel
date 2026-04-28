@@ -26,7 +26,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
     const servicesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
-            collection(firestore, 'products'), 
+            collection(firestore, 'products'),
             where('isActive', '==', true),
             where('isPublic', '==', true)
         );
@@ -66,7 +66,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
         return (
             <div className="h-screen bg-black flex items-center justify-center">
                 <div className="relative">
-                    <motion.div 
+                    <motion.div
                         animate={{ rotate: 360, scale: [1, 1.1, 1] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         className="h-32 w-32 border-2 border-primary/30 rounded-full blur-md"
@@ -89,7 +89,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
         <div className={cn("h-screen w-full overflow-hidden flex font-sans select-none relative transition-colors duration-1000", isDarkMode ? "bg-slate-950 text-slate-50" : "bg-slate-50 text-slate-900")}>
             {/* Background Layer: Fullscreen Ken Burns Image */}
             <AnimatePresence mode="wait">
-                <motion.div 
+                <motion.div
                     key={featuredProduct?.id || currentType}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -99,11 +99,11 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                 >
                     {featuredProduct?.imageUrl ? (
                         <>
-                            <motion.img 
+                            <motion.img
                                 initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 1.5, ease: "easeOut" }}
-                                src={featuredProduct.imageUrl} 
+                                src={featuredProduct.imageUrl}
                                 className="h-full w-full object-contain opacity-100 py-32 px-16"
                                 alt=""
                             />
@@ -150,7 +150,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                     listServices.length > 0 ? "max-w-[30%]" : "pr-24"
                 )}>
                     <AnimatePresence mode="wait">
-                        <motion.div 
+                        <motion.div
                             key={featuredProduct?.id}
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -171,8 +171,8 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                             <div className="flex flex-col transition-all duration-1000 px-0 overflow-visible">
                                 <h2 className={cn(
                                     "font-black leading-[0.95] tracking-tighter uppercase italic transition-all duration-1000 mb-8",
-                                    listServices.length > 0 
-                                        ? cn(isDarkMode ? "drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" : "text-slate-900 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]", "text-7xl") 
+                                    listServices.length > 0
+                                        ? cn(isDarkMode ? "drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" : "text-slate-900 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]", "text-7xl")
                                         : cn(isDarkMode ? "drop-shadow-[0_0_20px_rgba(0,0,0,0.9)]" : "drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]", "text-[5vw] leading-[0.9] text-primary")
                                 )}>
                                     {featuredProduct?.name}
@@ -207,78 +207,78 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                 <AnimatePresence>
                     {listServices.length > 0 && (
                         <div className="w-[30%] shrink-0 h-full py-12 pr-12 flex flex-col justify-center">
-                            <motion.div 
+                            <motion.div
                                 initial={{ x: 100, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 exit={{ x: 100, opacity: 0 }}
                                 transition={{ duration: 1.2, ease: "circOut" }}
                                 className={cn("backdrop-blur-[40px] border rounded-[4rem] h-full flex flex-col overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.05)] transition-colors duration-1000", isDarkMode ? "bg-slate-900/80 border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.3)]" : "bg-white/80 border-black/5 shadow-[0_30px_60px_rgba(0,0,0,0.05)]")}
                             >
-                        {/* Panel Header */}
-                        <div className={cn("p-16 pb-8 flex items-center justify-between border-b transition-colors duration-1000", isDarkMode ? "border-white/5" : "border-black/5")}>
-                            <div>
-                                <div className="text-[10px] font-black text-primary uppercase tracking-[0.6em] mb-2 italic">Menú Gourmet</div>
-                                <h3 className={cn("text-4xl font-black uppercase tracking-tighter italic transition-colors duration-1000", isDarkMode ? "text-slate-50" : "text-slate-900")}>
-                                    {categoryNames[currentType as keyof typeof categoryNames] || currentType}
-                                </h3>
-                            </div>
-                            <AppLogo className="h-10 w-10 text-primary opacity-20" />
-                        </div>
+                                {/* Panel Header */}
+                                <div className={cn("p-16 pb-8 flex items-center justify-between border-b transition-colors duration-1000", isDarkMode ? "border-white/5" : "border-black/5")}>
+                                    <div>
+                                        <div className="text-[10px] font-black text-primary uppercase tracking-[0.6em] mb-2 italic">Menú Gourmet</div>
+                                        <h3 className={cn("text-4xl font-black uppercase tracking-tighter italic transition-colors duration-1000", isDarkMode ? "text-slate-50" : "text-slate-900")}>
+                                            {categoryNames[currentType as keyof typeof categoryNames] || currentType}
+                                        </h3>
+                                    </div>
+                                    <AppLogo className="h-10 w-10 text-primary opacity-20" />
+                                </div>
 
-                        {/* List Items */}
-                        <div className="flex-1 p-16 space-y-12 overflow-hidden">
-                            <AnimatePresence mode="wait">
-                                <motion.div 
-                                    key={currentType}
-                                    className="space-y-10"
-                                >
-                                    {listServices.length > 0 ? (
-                                        listServices.map((s: Service, idx: number) => (
-                                            <motion.div 
-                                                key={s.id}
-                                                initial={{ opacity: 0, x: 20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: 0.1 * idx, duration: 0.8 }}
-                                                className="flex justify-between items-start group"
-                                            >
-                                                <div className="space-y-1">
-                                                    <span className={cn("text-2xl font-black uppercase tracking-tight group-hover:text-primary transition-colors duration-300 block italic", isDarkMode ? "text-slate-100" : "text-slate-800")}>{s.name}</span>
-                                                    <span className={cn("text-xs font-bold uppercase tracking-[0.2em] block", isDarkMode ? "text-slate-500" : "text-slate-400")}>{s.description || "Especialidad"}</span>
+                                {/* List Items */}
+                                <div className="flex-1 p-16 space-y-12 overflow-hidden">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentType}
+                                            className="space-y-10"
+                                        >
+                                            {listServices.length > 0 ? (
+                                                listServices.map((s: Service, idx: number) => (
+                                                    <motion.div
+                                                        key={s.id}
+                                                        initial={{ opacity: 0, x: 20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.1 * idx, duration: 0.8 }}
+                                                        className="flex justify-between items-start group"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <span className={cn("text-2xl font-black uppercase tracking-tight group-hover:text-primary transition-colors duration-300 block italic", isDarkMode ? "text-slate-100" : "text-slate-800")}>{s.name}</span>
+                                                            <span className={cn("text-xs font-bold uppercase tracking-[0.2em] block", isDarkMode ? "text-slate-500" : "text-slate-400")}>{s.description || "Especialidad"}</span>
+                                                        </div>
+                                                        <div className={cn("text-2xl font-black tabular-nums tracking-tighter group-hover:text-primary transition-colors duration-300", isDarkMode ? "text-slate-300" : "text-slate-600")}>
+                                                            {formatCurrency(s.price)}
+                                                        </div>
+                                                    </motion.div>
+                                                ))
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center pt-8 opacity-10">
+                                                    <Star className="h-24 w-24 text-primary" />
                                                 </div>
-                                                <div className={cn("text-2xl font-black tabular-nums tracking-tighter group-hover:text-primary transition-colors duration-300", isDarkMode ? "text-slate-300" : "text-slate-600")}>
-                                                    {formatCurrency(s.price)}
-                                                </div>
-                                            </motion.div>
-                                        ))
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center pt-8 opacity-10">
-                                            <Star className="h-24 w-24 text-primary" />
+                                            )}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Panel Footer - LIGHT THEME */}
+                                <div className="p-16 pt-8 border-t border-black/5 bg-slate-50/50">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <Clock className="h-5 w-5 text-primary" />
+                                            <span className="text-sm font-black uppercase tracking-widest text-slate-400">Disponible 24/7</span>
                                         </div>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Panel Footer - LIGHT THEME */}
-                        <div className="p-16 pt-8 border-t border-black/5 bg-slate-50/50">
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-4">
-                                    <Clock className="h-5 w-5 text-primary" />
-                                    <span className="text-sm font-black uppercase tracking-widest text-slate-400">Disponible 24/7</span>
+                                        <div className="text-right leading-none">
+                                            <div className="text-[32px] font-black tabular-nums tracking-tighter text-slate-900">{format(currentTime, 'HH:mm')}</div>
+                                            <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">{format(currentTime, 'EEEE dd', { locale: es })}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-8 bg-primary rounded-[2.5rem] text-white shadow-xl shadow-primary/20 border-t border-white/20">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none text-white/60 mb-1">Pedido Directo</span>
+                                            <span className="text-xl font-black uppercase italic leading-none">Llamar Habitación</span>
+                                        </div>
+                                        <div className="text-4xl font-black italic tracking-tighter">Ext. 100</div>
+                                    </div>
                                 </div>
-                                <div className="text-right leading-none">
-                                    <div className="text-[32px] font-black tabular-nums tracking-tighter text-slate-900">{format(currentTime, 'HH:mm')}</div>
-                                    <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">{format(currentTime, 'EEEE dd', { locale: es })}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between p-8 bg-primary rounded-[2.5rem] text-white shadow-xl shadow-primary/20 border-t border-white/20">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none text-white/60 mb-1">Pedido Directo</span>
-                                    <span className="text-xl font-black uppercase italic leading-none">Llamar Habitación</span>
-                                </div>
-                                <div className="text-4xl font-black italic tracking-tighter">Ext. 100</div>
-                            </div>
-                        </div>
                             </motion.div>
                         </div>
                     )}
@@ -287,7 +287,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
 
             {/* Bottom Global Progress Bar */}
             <div className="absolute bottom-0 left-0 w-full h-2 bg-slate-200 z-50">
-                <motion.div 
+                <motion.div
                     key={currentType}
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
