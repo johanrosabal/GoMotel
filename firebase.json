@@ -2,5 +2,22 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
-  }
+  },
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  },
+  "storage": [
+    {
+      "bucket": "hotel-du-manolo-cr.firebasestorage.app",
+      "rules": "storage.rules"
+    }
+  ]
 }

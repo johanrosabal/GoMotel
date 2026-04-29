@@ -212,10 +212,10 @@ export default function LandingPage() {
   const aboutBtnText = cmsContent?.aboutSection?.buttonText || "Conozca Quiénes Somos";
 
   const footerDescription = cmsContent?.footerSection?.description || "El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.";
-  const footerAddress = cmsContent?.footerSection?.address || "San José, Costa Rica. Del cruce de Escazú 2km Sur.";
-  const footerPhone = cmsContent?.footerSection?.phone || "+506 2222-2222";
+  const footerAddress = cmsContent?.footerSection?.address || "Heredia, Costa Rica. De la entrada principal de Heredia, 400m Oeste.";
+  const footerPhone = cmsContent?.footerSection?.phone || "22613508";
   const whatsappNumber = cmsContent?.footerSection?.whatsapp || "+506 8888-8888";
-  const googleMapsUrl = cmsContent?.footerSection?.googleMapsUrl || "https://www.google.com/maps/place/Hotel+Dumanolo/@9.9940155,-84.1208675,17z/data=!3m1!4b1!4m6!3m5!1s0x8fa0fadcbd8621e1:0xb7a02eafc5c90ebf!8m2!3d9.9940102!4d-84.1182926!16s%2Fg%2F11cm6fkg8p?entry=ttu&g_ep=EgoyMDI2MDMxNy4wIKXMDSoASAFQAw%3D%3D";
+  const googleMapsUrl = cmsContent?.footerSection?.googleMapsUrl || "https://www.google.com/maps/place/Hotel+Dumanolo/@9.9940102,-84.1182926,17z/data=!3m1!4b1!4m6!3m5!1s0x8fa0fadcbd8621e1:0xb7a02eafc5c90ebf!8m2!3d9.9940102!4d-84.1182926!16s%2Fg%2F11cm6fkg8p?entry=ttu";
 
   const socialLinks = cmsContent?.footerSection?.socialMedia || [
     { platform: 'Instagram', url: '#' },
@@ -431,14 +431,14 @@ export default function LandingPage() {
           <div className="absolute inset-0 z-0 flex items-center justify-center">
             <Image
               src={heroMobileImage}
-              alt="Hotel Du Manolo Hero Mobile"
+              alt="Hotel Du Manolo - Experiencia de Lujo y Discreción en Costa Rica (Vista Móvil)"
               fill
               className="object-contain opacity-70 brightness-[0.5] md:hidden"
               priority
             />
             <Image
               src={heroDesktopImage}
-              alt="Hotel Du Manolo Hero Desktop"
+              alt="Hotel Du Manolo - Suite de Lujo Premium con Jacuzzi y Privacidad Total"
               fill
               className="object-cover opacity-70 brightness-[0.5] hidden md:block"
               priority
@@ -452,7 +452,7 @@ export default function LandingPage() {
             >
               <Image
                 src="/logo-original.png"
-                alt="Hotel Du Manolo Logo"
+                alt="Logotipo Oficial Hotel Du Manolo"
                 fill
                 className="object-contain drop-shadow-2xl opacity-80"
               />
@@ -703,7 +703,7 @@ export default function LandingPage() {
                 >
                   <Image
                     src={amenitiesList[activeAmenityIndex]?.imageUrl || amenityPlaceholders[activeAmenityIndex % amenityPlaceholders.length]}
-                    alt={amenitiesList[activeAmenityIndex]?.title || "Amenity"}
+                    alt={`Amenidad Premium: ${amenitiesList[activeAmenityIndex]?.title || "Suite de Lujo"}`}
                     fill
                     className="object-cover transition-transform duration-[2000ms] hover:scale-110"
                   />

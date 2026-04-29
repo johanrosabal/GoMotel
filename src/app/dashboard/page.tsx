@@ -51,6 +51,7 @@ import type { CompanyProfile, UserRole, Room, Service } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getActiveNotifications } from '@/lib/actions/notification.actions';
@@ -440,9 +441,25 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:py-8 space-y-8">
       <div className="space-y-1.5 text-center md:text-left">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Bienvenido a {company?.tradeName || 'Go Motel'}
-        </h1>
+        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Bienvenido a {company?.tradeName || 'Go Motel'}
+          </h1>
+          <div className={cn(
+            "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border flex items-center gap-1.5",
+            process.env.NODE_ENV === 'production' 
+              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+          )}>
+            <div className={cn(
+              "w-1.5 h-1.5 rounded-full animate-pulse",
+              process.env.NODE_ENV === 'production' ? "bg-emerald-500" : "bg-amber-500"
+            )} />
+            {process.env.NODE_ENV === 'production' ? 'Ambiente PROD' : 'Ambiente DEV'}
+            <span className="opacity-40">|</span>
+            <span className="opacity-60">{firebaseConfig.projectId}</span>
+          </div>
+        </div>
         <p className="text-muted-foreground max-w-3xl">
           Resumen ejecutivo de métricas clave, estado de habitaciones y accesos directos a los procesos críticos del motel.
         </p>

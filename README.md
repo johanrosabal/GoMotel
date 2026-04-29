@@ -106,6 +106,33 @@ La organización del código está diseñada para ser intuitiva y escalable:
     - **Rastreo**: El cliente puede ver desde su teléfono el estado de cada producto en tiempo real (Pendiente -> Cocinando -> Entregado).
     - **Pago**: El cajero visualiza el consumo acumulado en el POS (`/pos`) y procesa el pago final. Al completarse el pago, la cuenta se cierra y la mesa queda disponible.
 
+## 🌐 Gestión de Ambientes (DEV / PROD)
+
+El proyecto utiliza un sistema de alias de Firebase y archivos de entorno para separar el desarrollo de la producción.
+
+### 1. Cambio de Proyecto (Firebase CLI)
+Utilice los alias configurados en `.firebaserc` para alternar entre proyectos:
+- **Desarrollo (Personal)**: `firebase use dev` (ID: `studio-860739249-376ef`)
+- **Producción (Hotel Du Manolo)**: `firebase use prod` (ID: `hotel-du-manolo-cr`)
+
+### 2. Variables de Entorno y Despliegue
+Next.js utiliza diferentes archivos `.env` según el ambiente. Para despliegues:
+
+- **Despliegue a Producción (Cliente)**:
+  1. Asegúrese de que **NO exista** el archivo `.env.production.local`.
+  2. Ejecute: `firebase use prod` -> `firebase deploy`.
+  3. Esto usará los valores de `.env.production`.
+
+- **Despliegue a Desarrollo (Pruebas)**:
+  1. Cree o active el archivo **`.env.production.local`** (copiando el contenido de `.env.development.local`).
+  2. Ejecute: `firebase use dev` -> `firebase deploy`.
+  3. Esto sobreescribirá temporalmente la configuración de build para usar las llaves de desarrollo.
+
+### 3. Sincronización de Reglas e Índices
+Al realizar cambios en la base de datos, recuerde sincronizar:
+- **Reglas**: `firebase deploy --only firestore:rules`
+- **Índices**: `firebase deploy --only firestore:indexes` (Verifique `firestore.indexes.json` para paridad).
+
 ## 🏁 Cómo Empezar
 
 Este es un proyecto de Firebase Studio. Para ejecutarlo localmente:

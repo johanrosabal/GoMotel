@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "studio-860739249-376ef"
+    "dev": "studio-860739249-376ef",
+    "prod": "hotel-du-manolo-cr"
   }
 }

@@ -105,7 +105,7 @@ export default function AddRoomDialog({ children, room, open: controlledOpen, on
           return !isNaN(num) && num > max ? num : max;
         }, 0) || 0;
 
-        const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '101';
+        const nextNumber = lastRoomNumber > 0 ? String(lastRoomNumber + 1) : '1';
         form.reset({ number: nextNumber, roomTypeId: undefined, id: undefined });
       }
     }
