@@ -118,7 +118,7 @@ function OrderCard({ order, type, items }: { order: Order, type: 'Kitchen' | 'Ba
                                             <Button
                                                 variant="outline"
                                                 className="w-full h-12 font-black text-xs uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white border-none shadow-lg"
-                                                onClick={() => handleUpdateItemStatus(item.id, 'Entregado')}
+                                                onClick={() => handleUpdateItemStatus(item.id, 'Listo')}
                                                 disabled={isUpdating} data-testid="orderqueuepage-action-finish-button"
                                             >
                                                 <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Listo

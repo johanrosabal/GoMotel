@@ -90,7 +90,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
 
     const form = useForm<z.infer<typeof extendStaySchema>>({
         resolver: zodResolver(extendStaySchema),
-        defaultValues: { newPlanName: undefined, payNow: false, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined },
+        defaultValues: { newPlanName: undefined, payNow: true, paymentConfirmed: false, voucherNumber: '', paymentMethod: undefined },
     });
 
     const selectedPlanName = form.watch('newPlanName');

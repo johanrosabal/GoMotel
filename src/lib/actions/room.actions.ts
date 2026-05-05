@@ -256,6 +256,15 @@ export async function checkOut(
   };
   batch.set(invoiceRef, finalInvoice);
 
+  // --- Order Cleanup Logic ---
+  // Ensure all orders associated with this stay are marked as paid and requested bills are cleared
+  ordersSnapshot.docs.forEach(orderDoc => {
+      batch.update(orderDoc.ref, { 
+          billRequested: false,
+          paymentStatus: 'Pagado'
+      });
+  });
+
   // --- SINPE Balance Update ---
   if (paymentDetails?.paymentMethod === 'Sinpe Movil') {
       const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));

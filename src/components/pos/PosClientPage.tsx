@@ -6,7 +6,8 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, doc, onSnapshot, or, and } from 'firebase/firestore';
 import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
 import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder, completeTakeoutOrder } from '@/lib/actions/restaurant.actions';
+import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder, completeTakeoutOrder, completeTableOrderDelivery } from '@/lib/actions/restaurant.actions';
+import { completeOrderDelivery } from '@/lib/actions/order.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
     Search, ShoppingCart, Plus, Minus,
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package, BedDouble, Bell
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -68,7 +69,8 @@ type CartItem = {
 const TYPE_LABELS: Record<string, string> = {
     'Table': 'Mesa',
     'Bar': 'Barra',
-    'Terraza': 'Terraza'
+    'Terraza': 'Terraza',
+    'Stay': 'Hab.'
 };
 
 const DELETION_REASONS = [
@@ -150,6 +152,12 @@ export default function PosClientPage() {
     );
     const { data: allTables } = useCollection<RestaurantTable>(tablesQuery);
 
+    const activeStaysQuery = useMemoFirebase(() =>
+        firestore ? query(collection(firestore, 'stays'), where('checkOut', '==', null), orderBy('roomNumber')) : null,
+        [firestore]
+    );
+    const { data: activeStays } = useCollection<Stay>(activeStaysQuery);
+
     // FIX: Active orders query should be reactive and listen to ALL location changes
     const unpaidOrdersQuery = useMemoFirebase(() =>
         firestore ? query(
@@ -158,8 +166,9 @@ export default function PosClientPage() {
                 where('paymentStatus', '==', 'Pendiente'),
                 and(
                     where('locationType', '==', 'Takeout'),
-                    where('status', 'in', ['Pendiente', 'En preparación', 'Entregado'])
-                )
+                    where('status', 'in', ['Pendiente', 'En preparación', 'Listo', 'Entregado'])
+                ),
+                where('status', '==', 'Listo')
             )
         ) : null,
         [firestore]
@@ -176,10 +185,11 @@ export default function PosClientPage() {
     const { data: activeSinpeAccounts } = useCollection<SinpeAccount>(sinpeAccountsQuery);
 
     const locationTypes = useMemo(() => {
-        if (!allTables) return [];
-        const types = Array.from(new Set(allTables.map(t => t.type)));
-        const order = ['Table', 'Bar', 'Terraza'];
-        return types.sort((a, b) => {
+        const baseTypes = allTables ? Array.from(new Set(allTables.map(t => t.type))) : [];
+        if (!baseTypes.includes('Stay')) baseTypes.push('Stay');
+        
+        const order = ['Table', 'Bar', 'Terraza', 'Stay'];
+        return baseTypes.sort((a, b) => {
             const idxA = order.indexOf(a);
             const idxB = order.indexOf(b);
             if (idxA !== -1 && idxB !== -1) return idxA - idxB;
@@ -190,9 +200,19 @@ export default function PosClientPage() {
     }, [allTables]);
 
     const filteredTables = useMemo(() => {
-        if (!allTables || viewMode === 'fast') return [];
+        if (viewMode === 'fast') return [];
+        if (viewMode === 'Stay') {
+            return (activeStays || []).map(stay => ({
+                id: stay.id,
+                number: stay.roomNumber,
+                type: 'Stay',
+                status: 'Occupied',
+                label: stay.guestName,
+            })) as unknown as RestaurantTable[];
+        }
+        if (!allTables) return [];
         return allTables.filter(t => t.type === viewMode).sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
-    }, [allTables, viewMode]);
+    }, [allTables, activeStays, viewMode]);
 
     const currentOrder = useMemo(() => {
         if (!selectedOrderId || !activeOrders) return null;
@@ -207,8 +227,9 @@ export default function PosClientPage() {
             );
             const matchesCategory = !selectedCategoryId || s.categoryId === selectedCategoryId;
             const matchesSubCategory = !selectedSubCategoryId || s.subCategoryId === selectedSubCategoryId;
+            const hasStock = s.source === 'Internal' || (s.stock || 0) > 0;
 
-            return matchesSearch && matchesCategory && matchesSubCategory;
+            return matchesSearch && matchesCategory && matchesSubCategory && hasStock;
         });
     }, [availableServices, searchTerm, selectedCategoryId, selectedSubCategoryId]);
 
@@ -513,10 +534,25 @@ export default function PosClientPage() {
         });
     };
 
+    const handleCompleteDelivery = async (orderId: string, locationType: string) => {
+        startTransition(async () => {
+            const result = locationType === 'Stay' 
+                ? await completeOrderDelivery(orderId)
+                : await completeTableOrderDelivery(orderId);
+            
+            if (result.success) {
+                toast({ title: "¡Entregado!", description: "El pedido ha sido marcado como entregado." });
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        });
+    };
+
     const getTypeIcon = (type: string) => {
         if (type === 'Table') return Utensils;
         if (type === 'Bar') return Beer;
         if (type === 'Terraza') return Sun;
+        if (type === 'Stay') return BedDouble;
         return MapPin;
     };
 
@@ -524,6 +560,7 @@ export default function PosClientPage() {
         if (type === 'Table') return 'Mesas Salón';
         if (type === 'Bar') return 'Barra';
         if (type === 'Terraza') return 'Terraza';
+        if (type === 'Stay') return 'Habitaciones';
         return type;
     };
 
@@ -600,7 +637,7 @@ export default function PosClientPage() {
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
 
                     {viewMode !== 'fast' && !selectedTable ? (
-                        <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
+                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
                                 <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
                                 <Badge variant="outline" className="h-8 px-4 font-black uppercase tracking-widest bg-muted/30 w-fit">{filteredTables.length} Unidades</Badge>
@@ -643,7 +680,10 @@ export default function PosClientPage() {
                                                     <span className={cn(
                                                         "font-black text-4xl sm:text-5xl tracking-tighter transition-colors",
                                                         isPublicOrder ? "text-orange-600" : hasOrders ? "text-primary" : "text-foreground"
-                                                    )}>{table.number}</span>
+                                                    )}>
+                                                        {table.type === 'Stay' && <span className="text-sm opacity-50 mr-1 italic">H</span>}
+                                                        {table.number}
+                                                    </span>
 
                                                     {hasOrders && (
                                                         <div className="flex flex-col items-center gap-1 mt-1 animate-in fade-in zoom-in-95 duration-500">
@@ -700,7 +740,7 @@ export default function PosClientPage() {
                             </ScrollArea>
                         </div>
                     ) : (
-                        <div className="flex-1 flex flex-col min-0">
+                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                             {selectedTable && (
                                 <div className="bg-primary/5 border-b p-4 space-y-3 shrink-0">
                                     <div className="flex items-center justify-between px-1">
@@ -800,6 +840,59 @@ export default function PosClientPage() {
                                 </div>
                             )}
 
+                            {/* Ready Orders Global Notification */}
+                            {activeOrders && activeOrders.some(o => o.status === 'Listo' && o.locationType !== 'Takeout') && (
+                                <div className="px-4 pt-4 shrink-0 animate-in fade-in slide-in-from-top-4 duration-700">
+                                    <div className="flex items-center justify-between mb-3 px-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-emerald-500/20 p-1.5 rounded-lg border border-emerald-500/30">
+                                                <Bell className="h-4 w-4 text-emerald-500 animate-pulse" />
+                                            </div>
+                                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500">
+                                                Pedidos Listos para Entregar
+                                            </h3>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full shadow-inner">
+                                            {activeOrders.filter(o => o.status === 'Listo' && o.locationType !== 'Takeout').length} DISPONIBLES
+                                        </Badge>
+                                    </div>
+                                    <ScrollArea className="w-full whitespace-nowrap pb-3">
+                                        <div className="flex gap-4 px-1">
+                                            {activeOrders
+                                                .filter(o => o.status === 'Listo' && o.locationType !== 'Takeout')
+                                                .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+                                                .map(order => (
+                                                    <div key={order.id} className="min-w-[260px] bg-gradient-to-br from-emerald-600/10 to-emerald-900/10 border-2 border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.1)] rounded-[2rem] overflow-hidden shrink-0 transition-all hover:scale-[1.02] hover:border-emerald-500/60 group">
+                                                        <div className="p-4 border-b border-emerald-500/20 flex items-center justify-between bg-emerald-500/5 backdrop-blur-sm">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-black uppercase truncate max-w-[170px] text-emerald-50 tracking-tight">{order.locationLabel}</span>
+                                                                <span className="text-[9px] font-bold text-emerald-400/60 uppercase tracking-widest mt-0.5">Ticket: {order.id.slice(-5).toUpperCase()}</span>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:rotate-12 transition-transform">
+                                                                <CheckCircle2 className="h-4 w-4" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3 bg-emerald-500/5">
+                                                            <Button
+                                                                size="sm"
+                                                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-[11px] uppercase h-11 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                                onClick={() => handleCompleteDelivery(order.id, order.locationType)}
+                                                                disabled={isPending}
+                                                            >
+                                                                <PackageCheck className="h-4 w-4" />
+                                                                <span>MARCAR ENTREGADO</span>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                        <ScrollBar orientation="horizontal" />
+                                    </ScrollArea>
+                                    <Separator className="mt-2 opacity-10" />
+                                </div>
+                            )}
+
                             {viewMode === 'fast' && activeOrders && activeOrders.some(o => o.locationType === 'Takeout' && o.status !== 'Completado' && o.status !== 'Cancelado') && (
                                 <div className="px-4 pt-4 shrink-0 animate-in fade-in slide-in-from-top-2 duration-500">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3 flex items-center gap-2">
@@ -820,26 +913,26 @@ export default function PosClientPage() {
                                                             <Badge
                                                                 className={cn(
                                                                     "text-[9px] font-black uppercase px-2 h-5 border-none",
-                                                                    order.status === 'Entregado' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-primary/20 text-primary"
+                                                                    (order.status === 'Entregado' || order.status === 'Listo') ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-primary/20 text-primary"
                                                                 )}
                                                             >
-                                                                {order.status === 'Entregado' ? 'LISTO' : order.status}
+                                                                {order.status === 'Entregado' || order.status === 'Listo' ? 'LISTO' : order.status}
                                                             </Badge>
                                                         </div>
                                                         <div className="p-3 space-y-3">
                                                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tighter">
                                                                 <div className="flex items-center gap-1.5">
-                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", order.kitchenStatus === 'Entregado' ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", (order.kitchenStatus === 'Entregado' || order.kitchenStatus === 'Listo') ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
                                                                     <span className="text-muted-foreground/60">Cocina:</span>
-                                                                    <span className={order.kitchenStatus === 'Entregado' ? "text-green-600" : "text-orange-600"}>{order.kitchenStatus || 'N/A'}</span>
+                                                                    <span className={(order.kitchenStatus === 'Entregado' || order.kitchenStatus === 'Listo') ? "text-green-600" : "text-orange-600"}>{order.kitchenStatus || 'N/A'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-1.5">
-                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", order.barStatus === 'Entregado' ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
+                                                                    <div className={cn("h-1.5 w-1.5 rounded-full", (order.barStatus === 'Entregado' || order.barStatus === 'Listo') ? "bg-green-500" : "bg-orange-500 animate-pulse")} />
                                                                     <span className="text-muted-foreground/60">Bar:</span>
-                                                                    <span className={order.barStatus === 'Entregado' ? "text-green-600" : "text-orange-600"}>{order.barStatus || 'N/A'}</span>
+                                                                    <span className={(order.barStatus === 'Entregado' || order.barStatus === 'Listo') ? "text-green-600" : "text-orange-600"}>{order.barStatus || 'N/A'}</span>
                                                                 </div>
                                                             </div>
-                                                            {order.status === 'Entregado' ? (
+                                                            {(order.status === 'Entregado' || order.status === 'Listo') ? (
                                                                 <Button
                                                                     size="sm"
                                                                     className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-[10px] uppercase h-9 rounded-xl shadow-lg shadow-green-600/20 animate-in zoom-in-95"

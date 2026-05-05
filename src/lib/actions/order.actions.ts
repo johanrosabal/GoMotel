@@ -111,9 +111,6 @@ export async function createOrder(
           transaction.update(detail.ref, { stock: increment(-detail.quantity) });
         }
 
-        const itemSubtotal = detail.service.price * detail.quantity;
-        orderSubtotal += itemSubtotal;
-
         if (detail.service.category === 'Food') hasKitchen = true;
         if (detail.service.category === 'Beverage') hasBar = true;
 
@@ -130,21 +127,36 @@ export async function createOrder(
           createdAt: itemCreatedAt
         });
 
+        const isTaxIncluded = detail.service.taxIncluded || false;
+        const lineTotal = detail.service.price * detail.quantity;
+
         // Calculate item taxes
         const effectiveTaxIds = new Set(detail.service.taxIds || []);
         if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
 
-        effectiveTaxIds.forEach(taxId => {
-            const taxInfo = allTaxes.find(t => t.id === taxId);
-            if (taxInfo) {
-                const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
-                const existing = taxMap.get(taxId);
-                if (existing) {
-                    existing.amount += taxAmount;
-                } else {
-                    taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
-                }
-            }
+        const activeTaxes = Array.from(effectiveTaxIds)
+            .map(id => allTaxes.find(t => t.id === id))
+            .filter(Boolean) as Tax[];
+
+        const totalPercentage = activeTaxes.reduce((sum, t) => sum + t.percentage, 0);
+
+        let itemSubtotal = 0;
+        if (isTaxIncluded) {
+            itemSubtotal = lineTotal / (1 + totalPercentage / 100);
+        } else {
+            itemSubtotal = lineTotal;
+        }
+        
+        orderSubtotal += itemSubtotal;
+
+        activeTaxes.forEach(t => {
+            const amt = isTaxIncluded 
+                ? lineTotal * (t.percentage / (100 + totalPercentage))
+                : itemSubtotal * (t.percentage / 100);
+            
+            const existing = taxMap.get(t.id);
+            if (existing) existing.amount += amt;
+            else taxMap.set(t.id, { taxId: t.id, name: t.name, percentage: t.percentage, amount: amt });
         });
       }
 
@@ -154,6 +166,7 @@ export async function createOrder(
 
       const newOrder: Omit<Order, 'id'> = {
         stayId,
+        roomId: stayData.roomId,
         locationType: 'Stay',
         locationId: stayId,
         locationLabel: `Hab. ${stayData.roomNumber}`,
@@ -248,10 +261,12 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
             updates.status = status;
         }
 
-        const newKitchen = area === 'Kitchen' ? status : (data.kitchenStatus || 'Entregado');
-        const newBar = area === 'Bar' ? status : (data.barStatus || 'Entregado');
+        const newKitchen = area === 'Kitchen' ? status : (data.kitchenStatus || 'Listo');
+        const newBar = area === 'Bar' ? status : (data.barStatus || 'Listo');
         
-        if (newKitchen === 'Entregado' && newBar === 'Entregado') {
+        if (newKitchen === 'Listo' && newBar === 'Listo') {
+            updates.status = 'Listo';
+        } else if (newKitchen === 'Entregado' && newBar === 'Entregado') {
             updates.status = 'Entregado';
         } else if (newKitchen === 'En preparación' || newBar === 'En preparación') {
             updates.status = 'En preparación';
@@ -290,10 +305,14 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
             const bItems = updatedItems.filter(i => i.category === 'Beverage');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
-                if (items.length === 0) return 'Entregado'; 
+                if (items.length === 0) return 'Listo'; 
+                const allListo = items.every(i => i.status === 'Listo' || i.status === 'Entregado');
                 const allDelivered = items.every(i => i.status === 'Entregado');
                 const anyPrepping = items.some(i => i.status === 'En preparación');
-                return allDelivered ? 'Entregado' : (anyPrepping ? 'En preparación' : 'Pendiente');
+                
+                if (allDelivered) return 'Entregado';
+                if (allListo) return 'Listo';
+                return anyPrepping ? 'En preparación' : 'Pendiente';
             };
 
             const kStatus = getAreaStatus(kItems, orderData.kitchenStatus);
@@ -304,6 +323,8 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             if (kStatus === 'Entregado' && bStatus === 'Entregado') {
                 updates.status = 'Entregado';
+            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+                updates.status = 'Listo';
             } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
                 updates.status = 'En preparación';
             } else {
@@ -360,7 +381,8 @@ export async function cancelOrder(orderId: string) {
         transaction.update(orderRef, { 
             status: 'Cancelado',
             kitchenStatus: 'Cancelado',
-            barStatus: 'Cancelado'
+            barStatus: 'Cancelado',
+            billRequested: false
         });
     });
 
@@ -371,4 +393,23 @@ export async function cancelOrder(orderId: string) {
     console.error('Failed to cancel order:', error);
     return { error: error.message || 'Ocurrió un error inesperado al cancelar el pedido.' };
   }
+}
+
+export async function completeOrderDelivery(orderId: string) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, {
+            status: 'Entregado',
+            kitchenStatus: 'Entregado',
+            barStatus: 'Entregado',
+            // Also update all items to Entregado
+            items: (await getDoc(orderRef)).data()?.items.map((i: any) => ({ ...i, status: 'Entregado' }))
+        });
+        revalidatePath('/pos');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || "Error al completar la entrega." };
+    }
 }

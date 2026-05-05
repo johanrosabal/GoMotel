@@ -146,7 +146,7 @@ export interface OrderItem {
   createdAt: Timestamp;
 }
 
-export type PrepStatus = 'Pendiente' | 'En preparación' | 'Entregado' | 'Cancelado' | 'Completado';
+export type PrepStatus = 'Pendiente' | 'En preparación' | 'Listo' | 'Entregado' | 'Cancelado' | 'Completado';
 
 export interface Order {
   id: string;
@@ -167,6 +167,7 @@ export interface Order {
   invoiceId?: string;
   voucherNumber?: string | null;
   stayId?: string; // For compatibility with older code
+  roomId?: string; // New field for direct room linking
   source?: 'POS' | 'Public';
   billRequested?: boolean;
   billRequestedAt?: Timestamp;

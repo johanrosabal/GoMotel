@@ -5,8 +5,9 @@ import { useState, useEffect, useTransition, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import type { RestaurantTable, Service, Order, ProductCategory, ProductSubCategory, Tax } from '@/types';
-import { openTableAccount, addToTableAccount, requestBill, cancelOrderItem } from '@/lib/actions/restaurant.actions';
+import type { RestaurantTable, Service, Order, ProductCategory, ProductSubCategory, Tax, Room, Stay } from '@/types';
+import { openTableAccount, addToTableAccount, requestBill, requestStayBill, cancelOrderItem } from '@/lib/actions/restaurant.actions';
+import { createOrder } from '@/lib/actions/order.actions';
 import { getServices } from '@/lib/actions/service.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
 function OrderPageContent() {
     const searchParams = useSearchParams();
     const tableId = searchParams.get('tableId');
+    const roomId = searchParams.get('roomId');
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -62,23 +64,65 @@ function OrderPageContent() {
     const tableRef = useMemoFirebase(() => tableId ? doc(firestore!, 'restaurantTables', tableId) : null, [firestore, tableId]);
     const { data: table, isLoading: isLoadingTable } = useDoc<RestaurantTable>(tableRef);
 
-    const allTablesQuery = useMemoFirebase(() => !tableId && firestore ? query(collection(firestore, 'restaurantTables')) : null, [firestore, tableId]);
+    const roomRef = useMemoFirebase(() => roomId ? doc(firestore!, 'rooms', roomId) : null, [firestore, roomId]);
+    const { data: room, isLoading: isLoadingRoom } = useDoc<Room>(roomRef);
+
+    const [activeStay, setActiveStay] = useState<Stay | null>(null);
+    useEffect(() => {
+        if (!roomId || !firestore) return;
+        const q = query(collection(firestore, 'stays'), where('roomId', '==', roomId), where('checkOut', '==', null));
+        return onSnapshot(q, (snap) => {
+            if (!snap.empty) {
+                setActiveStay({ id: snap.docs[0].id, ...snap.docs[0].data() } as Stay);
+            } else {
+                setActiveStay(null);
+            }
+        });
+    }, [roomId, firestore]);
+
+    const allTablesQuery = useMemoFirebase(() => !tableId && !roomId && firestore ? query(collection(firestore, 'restaurantTables')) : null, [firestore, tableId, roomId]);
     const { data: allTables } = useCollection<RestaurantTable>(allTablesQuery);
 
     // 2. Fetch Active Order for this table
     const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
     useEffect(() => {
-        if (!tableId || !firestore) return;
-        const q = query(collection(firestore, 'orders'), where('locationId', '==', tableId), where('paymentStatus', '==', 'Pendiente'));
+        if (!firestore) return;
+        
+        let q;
+        if (tableId) {
+            q = query(collection(firestore, 'orders'), where('locationId', '==', tableId), where('paymentStatus', '==', 'Pendiente'));
+        } else if (activeStay) {
+            q = query(collection(firestore, 'orders'), where('stayId', '==', activeStay.id), where('paymentStatus', '==', 'Pendiente'));
+        } else {
+            setCurrentOrder(null);
+            return;
+        }
+
         return onSnapshot(q, (snap) => {
             if (!snap.empty) {
                 const orders = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-                setCurrentOrder(orders[0]); // Take the first active order
+                
+                if (tableId) {
+                    setCurrentOrder(orders[0]); // Take the first active order for tables
+                } else {
+                    // For stays, merge all items into a single "virtual" order for the account view
+                    const allItems = orders.flatMap(o => o.items.map(item => ({ ...item, parentOrderId: o.id })));
+                    const mergedOrder: any = {
+                        ...orders[0],
+                        id: 'stay-account-summary',
+                        items: allItems,
+                        // Determine overall status
+                        status: orders.some(o => o.status === 'En preparación') ? 'En preparación' : 
+                                (orders.every(o => o.status === 'Entregado') ? 'Entregado' : 'Pendiente'),
+                        billRequested: orders.some(o => o.billRequested)
+                    };
+                    setCurrentOrder(mergedOrder);
+                }
             } else {
                 setCurrentOrder(null);
             }
         });
-    }, [tableId, firestore]);
+    }, [tableId, activeStay, firestore]);
 
     // 3. Fetch Menu Data
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
@@ -101,39 +145,58 @@ function OrderPageContent() {
     // Financial Calculations
     const billing = useMemo(() => {
         const orderItems = currentOrder?.items || [];
-        const sub = orderItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-
+        let subtotal = 0;
         let taxTotal = 0;
         const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
 
         if (allTaxes && currentOrder) {
             orderItems.forEach(item => {
-                const itemTotal = item.price * item.quantity;
                 const service = availableServices.find(s => s.id === item.serviceId);
                 const taxIds = service?.taxIds || [];
+                const isTaxIncluded = service?.taxIncluded || false;
 
                 // Add restaurant service tax if applicable
-                const serviceTax = allTaxes.find(t => t.name.toLowerCase().includes('servicio'));
+                const serviceTaxInfo = allTaxes.find(t => t.name.toLowerCase().includes('servicio'));
                 const effectiveTaxIds = new Set(taxIds);
-                if (serviceTax) effectiveTaxIds.add(serviceTax.id);
+                if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
 
-                effectiveTaxIds.forEach(tId => {
-                    const tInfo = allTaxes.find(t => t.id === tId);
-                    if (tInfo) {
-                        const amt = itemTotal * (tInfo.percentage / 100);
-                        taxTotal += amt;
-                        const existing = taxMap.get(tId);
+                const activeTaxes = Array.from(effectiveTaxIds)
+                    .map(id => allTaxes.find(t => t.id === id))
+                    .filter(Boolean) as Tax[];
+
+                const totalPercentage = activeTaxes.reduce((sum, t) => sum + t.percentage, 0);
+                const lineTotal = item.price * item.quantity;
+
+                if (isTaxIncluded && totalPercentage > 0) {
+                    const lineBase = lineTotal / (1 + totalPercentage / 100);
+                    const lineTaxes = lineTotal - lineBase;
+                    
+                    subtotal += lineBase;
+                    taxTotal += lineTaxes;
+
+                    activeTaxes.forEach(t => {
+                        const amt = lineTotal * (t.percentage / (100 + totalPercentage));
+                        const existing = taxMap.get(t.id);
                         if (existing) existing.amount += amt;
-                        else taxMap.set(tId, { name: tInfo.name, percentage: tInfo.percentage, amount: amt });
-                    }
-                });
+                        else taxMap.set(t.id, { name: t.name, percentage: t.percentage, amount: amt });
+                    });
+                } else {
+                    subtotal += lineTotal;
+                    activeTaxes.forEach(t => {
+                        const amt = lineTotal * (t.percentage / 100);
+                        taxTotal += amt;
+                        const existing = taxMap.get(t.id);
+                        if (existing) existing.amount += amt;
+                        else taxMap.set(t.id, { name: t.name, percentage: t.percentage, amount: amt });
+                    });
+                }
             });
         }
 
         return {
-            subtotal: sub,
+            subtotal,
             taxes: Array.from(taxMap.values()),
-            total: sub + taxTotal
+            total: subtotal + taxTotal
         };
     }, [currentOrder, allTaxes, availableServices]);
 
@@ -171,14 +234,25 @@ function OrderPageContent() {
     };
 
     const handleSendOrder = () => {
-        if (!tableId || cart.length === 0) return;
+        if (!tableId && !roomId) return;
+        if (roomId && !activeStay) {
+            toast({ title: "Acceso denegado", description: "No hay una estancia activa en esta habitación.", variant: 'destructive' });
+            return;
+        }
+        if (cart.length === 0) return;
 
         startTransition(async () => {
             let result;
-            if (currentOrder) {
-                result = await addToTableAccount(currentOrder.id, cart);
+            if (roomId && activeStay) {
+                result = await createOrder(activeStay.id, cart);
+            } else if (tableId && table) {
+                if (currentOrder) {
+                    result = await addToTableAccount(currentOrder.id, cart);
+                } else {
+                    result = await openTableAccount(tableId, cart, `Cliente ${TYPE_LABELS[table.type]} ${table.number}`, 'Public');
+                }
             } else {
-                result = await openTableAccount(tableId, cart, `Cliente ${TYPE_LABELS[table!.type]} ${table!.number}`, 'Public');
+                result = { error: "Ubicación no identificada." };
             }
 
             if (result.error) {
@@ -193,9 +267,11 @@ function OrderPageContent() {
     };
 
     const handleRequestBill = () => {
-        if (!currentOrder) return;
+        if (!currentOrder || !activeStay && !tableId) return;
         startTransition(async () => {
-            const result = await requestBill(currentOrder.id);
+            const result = (roomId && activeStay) 
+                ? await requestStayBill(activeStay.id) 
+                : await requestBill(currentOrder.id);
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
@@ -207,12 +283,13 @@ function OrderPageContent() {
         });
     };
 
-    const handleCancelItem = (itemId: string) => {
+    const handleCancelItem = (item: any) => {
         if (!currentOrder) return;
         if (!confirm("¿Seguro que desea cancelar este producto?")) return;
 
         startTransition(async () => {
-            const result = await cancelOrderItem(currentOrder.id, itemId);
+            const orderId = item.parentOrderId || currentOrder.id;
+            const result = await cancelOrderItem(orderId, item.id);
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
@@ -224,11 +301,11 @@ function OrderPageContent() {
         });
     };
 
-    if (isLoadingTable && tableId) {
-        return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white font-bold animate-pulse">CARGANDO MENÚ...</div>;
+    if ((isLoadingTable && tableId) || (isLoadingRoom && roomId)) {
+        return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white font-bold animate-pulse uppercase tracking-[0.2em]">CARGANDO...</div>;
     }
 
-    if (!table) {
+    if (!table && !room) {
         const uniqueTypes = Array.from(new Set((allTables || []).map(t => t.type))).sort();
         const filteredTabs = (allTables || []).filter(t => t.type === selectedLocationType);
 
@@ -302,9 +379,12 @@ function OrderPageContent() {
                             <Utensils className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-black text-lg tracking-tighter uppercase leading-none">AUTO-SERVICIO</h1>
+                            <h1 className="font-black text-lg tracking-tighter uppercase leading-none">
+                                {room ? "SERVICIO A SUITE" : "AUTO-SERVICIO"}
+                            </h1>
                             <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
-                                {TYPE_LABELS[table.type] || table.type} {table.number}
+                                {room ? `SUITE ${room.number}` : `${TYPE_LABELS[table!.type] || table!.type} ${table!.number}`}
+                                {activeStay && room && ` - ${activeStay.guestName}`}
                             </p>
                         </div>
                     </div>
@@ -340,7 +420,7 @@ function OrderPageContent() {
                 <TabsContent value="menu" className="flex-1 overflow-hidden mt-0">
                     <div className="flex flex-col h-full">
                         <div className="p-4 border-b border-neutral-900 bg-neutral-900/20">
-                            <ScrollArea className="w-full whitespace-nowrap">
+                        <ScrollArea className="w-full whitespace-nowrap">
                                 <div className="flex gap-2 pb-2">
                                     <button
                                         onClick={() => setSelectedCategoryId(null)}
@@ -363,44 +443,53 @@ function OrderPageContent() {
                             </ScrollArea>
                         </div>
 
+                        {room && !activeStay && (
+                            <div className="mx-4 mb-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <Info className="h-4 w-4 text-amber-500 shrink-0" />
+                                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-tight">
+                                    Menú en modo lectura. Para realizar pedidos debe tener una estancia activa en la suite.
+                                </p>
+                            </div>
+                        )}
+
                         <ScrollArea className="flex-1 p-4">
                             <div className="space-y-4 pb-32">
-                                {filteredServices.map(service => (
-                                    <div key={service.id} className="flex gap-4 p-3 rounded-2xl bg-neutral-900/50 border border-neutral-800/50 hover:border-primary/30 transition-all">
-                                        <Avatar className="h-24 w-24 rounded-xl border border-neutral-800 shrink-0">
-                                            <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
-                                            <AvatarFallback className="bg-neutral-800 text-neutral-600"><Utensils className="h-8 w-8" /></AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 flex flex-col justify-between py-1">
-                                            <div className="flex flex-col gap-0.5">
-                                                <h3 className="font-black text-sm uppercase tracking-tight line-clamp-1">{service.name}</h3>
-                                                <p className="text-[10px] text-neutral-500 line-clamp-2 leading-tight">{service.description || 'Sin descripción disponible.'}</p>
-                                                {cart.some(i => i.service.id === service.id) && (
+                                    {filteredServices.map(service => (
+                                        <div key={service.id} className="flex gap-4 p-3 rounded-2xl bg-neutral-900/50 border border-neutral-800/50 hover:border-primary/30 transition-all">
+                                            <Avatar className="h-24 w-24 rounded-xl border border-neutral-800 shrink-0">
+                                                <AvatarImage src={service.imageUrl || undefined} className="object-cover" />
+                                                <AvatarFallback className="bg-neutral-800 text-neutral-600"><Utensils className="h-8 w-8" /></AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 flex flex-col justify-between py-1">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <h3 className="font-black text-sm uppercase tracking-tight line-clamp-1">{service.name}</h3>
+                                                    <p className="text-[10px] text-neutral-500 line-clamp-2 leading-tight">{service.description || 'Sin descripción disponible.'}</p>
+                                                    {cart.some(i => i.service.id === service.id) && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
+                                                            className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg" data-testid="order-action-button"
+                                                        >
+                                                            <MessageSquare className="h-3.5 w-3.5" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">Instrucciones</span>
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between items-center mt-2">
+                                                    <span className="font-black text-primary text-base">{formatCurrency(service.price)}</span>
                                                     <Button
                                                         size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => handleOpenNoteDialog(cart.findIndex(i => i.service.id === service.id))}
-                                                        className="h-7 px-2 w-fit -ml-2 text-primary hover:text-white hover:bg-primary/80 flex items-center gap-1.5 mt-0.5 transition-all duration-300 rounded-lg" data-testid="order-action-button"
+                                                        className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
+                                                        onClick={() => handleAddToCart(service)} id="page-button-a-adir" data-testid="order-add-button"
                                                     >
-                                                        <MessageSquare className="h-3.5 w-3.5" />
-                                                        <span className="text-[9px] font-black uppercase tracking-widest">Instrucciones</span>
+                                                        AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
                                                     </Button>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between items-center mt-2">
-                                                <span className="font-black text-primary text-base">{formatCurrency(service.price)}</span>
-                                                <Button
-                                                    size="sm"
-                                                    className="rounded-lg h-8 px-3 font-black text-[10px] uppercase bg-neutral-800 hover:bg-primary"
-                                                    onClick={() => handleAddToCart(service)} id="page-button-a-adir" data-testid="order-add-button"
-                                                >
-                                                    AÑADIR <Plus className="ml-1 h-3.5 w-3.5" />
-                                                </Button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
                         </ScrollArea>
                     </div>
                 </TabsContent>
@@ -412,7 +501,9 @@ function OrderPageContent() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between px-1">
                                         <h2 className="font-black text-xs uppercase tracking-widest text-neutral-500">Consumo Acumulado</h2>
-                                        {currentOrder.status === 'Entregado' ? (
+                                        {currentOrder.paymentStatus === 'Pagado' ? (
+                                            <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase bg-emerald-500/10">PAGADO / SALDO AL DÍA</Badge>
+                                        ) : currentOrder.status === 'Entregado' ? (
                                             <Badge variant="outline" className="border-green-500/30 text-green-500 text-[10px] font-black uppercase">LISTO / ENTREGADO</Badge>
                                         ) : currentOrder.status === 'En preparación' ? (
                                             <Badge variant="outline" className="border-blue-500/30 text-blue-500 text-[10px] font-black uppercase animate-pulse">EN PREPARACIÓN</Badge>
@@ -424,42 +515,46 @@ function OrderPageContent() {
                                         {currentOrder.items.map((item, idx) => (
                                             <div key={item.id || idx} className="p-4 border-b border-neutral-800/50 flex justify-between items-center group hover:bg-neutral-800/10 transition-colors">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        <div className="h-10 w-10 rounded-xl bg-neutral-800 flex items-center justify-center font-black text-primary border border-neutral-700">
-                                                            {item.quantity}
-                                                        </div>
-                                                        <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-neutral-900 rounded-full border border-neutral-800 flex items-center justify-center">
-                                                            {item.category === 'Food' ? <Utensils className="h-2 w-2 text-orange-500" /> : <GlassWater className="h-2 w-2 text-blue-500" />}
-                                                        </div>
-                                                    </div>
                                                     <div className="flex flex-col">
-                                                        <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-[10px] font-bold text-neutral-500">{formatCurrency(item.price)} c/u</span>
-                                                            {(item.status === 'Entregado' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Entregado' : currentOrder.barStatus === 'Entregado'))) && (
-                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border-green-500/20">Entregado</Badge>
-                                                            )}
-                                                            {(item.status === 'En preparación' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'En preparación' : currentOrder.barStatus === 'En preparación'))) && (
-                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse">
-                                                                    {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
-                                                                </Badge>
-                                                            )}
-                                                            {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
-                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">Pendiente</Badge>
-                                                            )}
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-10 w-10 rounded-xl bg-neutral-800 flex items-center justify-center font-black text-primary border border-neutral-700">
+                                                                {item.quantity}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-black text-sm uppercase tracking-tight">{item.name}</span>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className="text-[10px] font-bold text-neutral-500">{formatCurrency(item.price)} c/u</span>
+                                                                    {(item.status === 'Entregado' || item.status === 'Listo' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Entregado' : currentOrder.barStatus === 'Entregado'))) && (
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border-green-500/20">
+                                                                            {item.status === 'Listo' ? 'Listo para entregar' : 'Entregado'}
+                                                                        </Badge>
+                                                                    )}
+                                                                    {(item.status === 'En preparación' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'En preparación' : currentOrder.barStatus === 'En preparación'))) && (
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse">
+                                                                            {item.category === 'Beverage' ? 'Preparando' : 'Cocinando'}
+                                                                        </Badge>
+                                                                    )}
+                                                                    {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border-amber-500/20">Pendiente</Badge>
+                                                                    )}
+                                                                    {item.status === 'Cancelado' && (
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 border-red-500/20 line-through">Cancelado</Badge>
+                                                                    )}
+                                                                </div>
+                                                                {item.notes && (
+                                                                    <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
+                                                                        "{item.notes}"
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        {item.notes && (
-                                                            <p className="text-[10px] text-primary font-bold mt-1 uppercase leading-tight italic">
-                                                                "{item.notes}"
-                                                            </p>
-                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 shrink-0">
                                                     {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
                                                         <button
                                                             key={item.id}
-                                                            onClick={() => handleCancelItem(item.id)}
+                                                            onClick={() => handleCancelItem(item)}
                                                             disabled={isPending}
                                                             className="h-8 w-8 flex items-center justify-center text-red-500 hover:bg-neutral-800 rounded-full transition-colors" data-testid="order-delete-button"
                                                         >
@@ -486,8 +581,12 @@ function OrderPageContent() {
                                                 </div>
                                             ))}
                                             <div className="pt-2 border-t border-neutral-800 flex justify-between items-center">
-                                                <span className="text-sm font-black uppercase tracking-tighter text-primary">Total a Pagar</span>
-                                                <span className="text-xl font-black text-white">{formatCurrency(billing.total)}</span>
+                                                <span className="text-sm font-black uppercase tracking-tighter text-primary">
+                                                    {currentOrder.paymentStatus === 'Pagado' ? 'Saldo Cancelado' : 'Total a Pagar'}
+                                                </span>
+                                                <span className={cn("text-xl font-black italic tracking-tighter", currentOrder.paymentStatus === 'Pagado' ? "text-emerald-500" : "text-white")}>
+                                                    {formatCurrency(billing.total)}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -495,11 +594,16 @@ function OrderPageContent() {
                                         <div className="flex gap-3 items-start">
                                             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                             <p className="text-[11px] text-primary/80 font-bold leading-tight">
-                                                Puede seguir pidiendo del menú. El personal vendrá a su mesa periódicamente para retirar platos vacíos.
+                                                {room ? "El personal procesará tu pedido." : "Puede seguir pidiendo del menú. El personal vendrá a su mesa periódicamente para retirar platos vacíos."}
                                             </p>
                                         </div>
 
-                                        {!currentOrder.billRequested ? (
+                                        {currentOrder.paymentStatus === 'Pagado' ? (
+                                            <div className="w-full p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-3">
+                                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                                <span className="font-black text-emerald-500 text-xs uppercase tracking-widest">Cuenta Pagada - ¡Gracias!</span>
+                                            </div>
+                                        ) : !currentOrder.billRequested ? (
                                             <Button
                                                 onClick={handleRequestBill}
                                                 disabled={isPending}
@@ -515,9 +619,12 @@ function OrderPageContent() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-20 opacity-20 flex flex-col items-center">
-                                    <ReceiptText className="h-16 w-16 mb-4" />
-                                    <p className="font-black uppercase text-sm tracking-widest">Sin consumos aún</p>
+                                <div className="text-center py-20 flex flex-col items-center animate-in fade-in zoom-in duration-700">
+                                    <div className="h-20 w-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 border border-emerald-500/20">
+                                        <CheckCircle className="h-10 w-10 text-emerald-500" />
+                                    </div>
+                                    <p className="font-black uppercase text-lg tracking-tighter text-emerald-500 mb-1">¡Todo al día!</p>
+                                    <p className="font-bold uppercase text-[10px] tracking-[0.2em] text-neutral-500">No tiene saldos pendientes</p>
                                 </div>
                             )}
                         </div>

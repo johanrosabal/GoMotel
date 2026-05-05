@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types';
-import { saveClient } from '@/lib/actions/client.actions';
+import { saveClient, checkClientByIdCard } from '@/lib/actions/client.actions';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,8 +33,8 @@ const clientSchema = z.object({
   lastName: z.string().min(1, 'El apellido es requerido.').max(50, 'El apellido no debe exceder los 50 caracteres.'),
   secondLastName: z.string().max(50, 'El segundo apellido no debe exceder los 50 caracteres.').optional(),
   idCard: z.string().min(1, 'La cédula es requerida.'),
-  email: z.string().email('Correo electrónico inválido.'),
-  phoneNumber: z.string().min(1, 'El teléfono es requerido.'),
+  email: z.string().email('Correo electrónico inválido.').optional().or(z.literal('')),
+  phoneNumber: z.string().optional(),
   whatsappNumber: z.string().optional(),
   birthDate: z.coerce.date().optional(),
   address: z.string().optional(),
@@ -48,6 +48,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  const [duplicateClient, setDuplicateClient] = useState<any | null>(null);
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -80,6 +81,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
 
   useEffect(() => {
     if (open) {
+      setDuplicateClient(null);
       const defaultValues = client ? {
         ...client,
         birthDate: client.birthDate?.toDate(),
@@ -208,7 +210,16 @@ export default function AddClientDialog({ children, client, open: controlledOpen
     }
 
     setIsVerifying(true);
+    setDuplicateClient(null);
     try {
+      // 1. Check if client already exists in local database
+      const existingClient = await checkClientByIdCard(idCard);
+      if (existingClient) {
+        setDuplicateClient(existingClient);
+        setIsVerifying(false);
+        return;
+      }
+
       const settings = await getSystemSettings();
       const domain = settings.verificationApiDomain || 'api-krdy3op4ma-uc.a.run.app';
       const response = await fetch(`https://${domain}/verify?cedula=${cleanId}`);
@@ -278,6 +289,29 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="addclientdialog-form-main" data-testid="addclientdialog-main-form">
+            {duplicateClient && (
+              <Alert className="bg-orange-500/10 border-orange-500/30 text-orange-500 animate-in fade-in zoom-in duration-300">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <div className="flex flex-col gap-3 w-full">
+                  <div>
+                    <AlertTitle className="font-black uppercase tracking-[0.2em] text-[10px] mb-1">Cliente ya existe</AlertTitle>
+                    <AlertDescription className="text-xs font-bold leading-relaxed">
+                      El cliente <span className="text-white underline">{duplicateClient.firstName} {duplicateClient.lastName}</span> ya está registrado con la cédula <span className="font-mono">{duplicateClient.idCard}</span>.
+                    </AlertDescription>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setOpen(false)}
+                    className="w-fit border-orange-500/20 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400 font-black uppercase text-[10px] tracking-widest"
+                  >
+                    Cerrar Ventana
+                  </Button>
+                </div>
+              </Alert>
+            )}
+
             <FormField control={form.control} name="idCard" render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
@@ -387,10 +421,10 @@ export default function AddClientDialog({ children, client, open: controlledOpen
 
             <div className="grid md:grid-cols-2 gap-4">
               <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" placeholder="juan@perez.com" {...field} id="addclientdialog-input-juan-perez-com" data-testid="addclientdialog-email-input" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Correo Electrónico (Opcional)</FormLabel><FormControl><Input type="email" placeholder="juan@perez.com" {...field} id="addclientdialog-input-juan-perez-com" data-testid="addclientdialog-email-input" /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="addclientdialog-input-506-8888-8888" data-testid="addclientdialog-phonenumber-input" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Teléfono (Opcional)</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="addclientdialog-input-506-8888-8888" data-testid="addclientdialog-phonenumber-input" /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
             <FormField control={form.control} name="notes" render={({ field }) => (

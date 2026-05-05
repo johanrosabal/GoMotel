@@ -5,6 +5,7 @@ import SeedDataButton from '@/components/SeedDataButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AddRoomButton from '@/components/dashboard/AddRoomButton';
 import ExportRoomQRButton from '@/components/dashboard/ExportRoomQRButton';
+import ExportRoomMenuQRButton from '@/components/dashboard/ExportRoomMenuQRButton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CalendarPlus, Settings2, Sparkles, UserPlus, TrendingUp } from 'lucide-react';
@@ -98,7 +99,10 @@ export default function DashboardRoomsPage() {
             </div>
 
             <div className="hidden md:block">
+            <div className="flex gap-2">
               <ExportRoomQRButton rooms={rooms || []} />
+              <ExportRoomMenuQRButton rooms={rooms || []} />
+            </div>
             </div>
           </div>
           

@@ -19,7 +19,7 @@ import { checkOut } from '@/lib/actions/room.actions';
 import type { Room, Stay, Order, SinpeAccount } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
-import { formatDistance } from 'date-fns';
+import { format, formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -85,7 +85,10 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
 
         const roomTotal = stay.pricePlanAmount || 0;
         const unpaidOrders = orders.filter(o => o.status !== 'Cancelado' && o.paymentStatus !== 'Pagado');
+        
+        // Use the final total from each order (includes taxes if they were saved correctly)
         const servicesTotal = unpaidOrders.reduce((sum, o) => sum + o.total, 0);
+        
         const upfrontPaid = stay.paymentAmount || 0;
         const totalDue = (roomTotal + servicesTotal) - upfrontPaid;
 

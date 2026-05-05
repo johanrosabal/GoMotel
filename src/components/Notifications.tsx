@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, query, where } from 'firebase/firestore';
-import type { Room, Reservation } from '@/types';
+import type { Room, Reservation, Order } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle, Loader2, Volume2, Bell, BedDouble, Sparkles, VolumeX } from 'lucide-react';
+import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle, Loader2, Volume2, Bell, BedDouble, Sparkles, VolumeX, Soup, Receipt } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,8 @@ export default function Notifications() {
 
   const alarmToastId = useRef<string | null>(null);
   const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevOrdersCount = useRef(0);
+
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000); // Rerender every 30s
@@ -69,8 +71,57 @@ export default function Notifications() {
     return checkedInReservations.filter(res => res.checkOutDate.toDate() < now);
   }, [checkedInReservations, now]);
 
-  const totalNotifications = (overdueReservations?.length || 0) + (cleaningRooms?.length || 0);
-  const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn;
+  // Query for pending orders from rooms (Room Service)
+  const pendingOrdersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'orders'), 
+      where('status', '==', 'Pendiente'),
+      where('locationType', '==', 'Stay')
+    );
+  }, [firestore]);
+  const { data: pendingOrders, isLoading: isLoadingPendingOrders } = useCollection<Order>(pendingOrdersQuery);
+
+  // Query for requested bills from rooms
+  const requestedBillsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'orders'),
+      where('billRequested', '==', true),
+      where('locationType', '==', 'Stay'),
+      where('paymentStatus', '==', 'Pendiente'),
+      where('status', '!=', 'Cancelado')
+    );
+  }, [firestore]);
+  const { data: requestedBills, isLoading: isLoadingRequestedBills } = useCollection<Order>(requestedBillsQuery);
+  
+  // Group requested bills by room to avoid duplicates in the UI
+  const uniqueRequestedBills = useMemo(() => {
+    if (!requestedBills) return [];
+    const unique = new Map<string, Order>();
+    requestedBills.forEach(o => {
+      // Use locationId (which is the stayId or tableId) as the key
+      if (!unique.has(o.locationId)) {
+        unique.set(o.locationId, o);
+      }
+    });
+    return Array.from(unique.values());
+  }, [requestedBills]);
+
+  // Trigger sound/pulse when a NEW room service order arrives
+  useEffect(() => {
+    if (pendingOrders && pendingOrders.length > prevOrdersCount.current) {
+      if (!isAlertDisabled) {
+        playNotificationSound('digital');
+        setIsVisualPulseActive(true);
+        setTimeout(() => setIsVisualPulseActive(false), 1000);
+      }
+    }
+    prevOrdersCount.current = pendingOrders?.length || 0;
+  }, [pendingOrders?.length, isAlertDisabled]);
+
+  const totalNotifications = (overdueReservations?.length || 0) + (cleaningRooms?.length || 0) + (pendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
+  const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn || isLoadingPendingOrders || isLoadingRequestedBills;
 
   // --- START: Alarm Logic ---
   useEffect(() => {
@@ -175,6 +226,70 @@ export default function Notifications() {
           ) : (
             <ScrollArea className="max-h-80">
               <div className="space-y-4">
+                {uniqueRequestedBills && uniqueRequestedBills.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-orange-600 flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Cuentas Solicitadas ({uniqueRequestedBills.length})
+                    </p>
+                    <div className="space-y-1">
+                      {uniqueRequestedBills.map(order => (
+                        <Link 
+                          key={order.id} 
+                          href={order.locationType === 'Stay' ? `/rooms/${order.roomId || order.locationId}` : `/pos?tableId=${order.locationId}`} 
+                          passHref 
+                          id="notifications-link-bills" 
+                          data-testid="notifications-action-bill-link"
+                        >
+                          <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer flex justify-between items-center border-l-4 border-orange-500">
+                            <span className="font-bold">{order.locationLabel || 'Habitación'}</span>
+                            <span className="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase">Cobrar</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pendingOrders && pendingOrders.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-blue-400 flex items-center gap-2">
+                      <Soup className="h-4 w-4" />
+                      Pedidos de Habitación ({pendingOrders.length})
+                    </p>
+                    <div className="space-y-2">
+                      {pendingOrders.map(order => (
+                        <div key={order.id} className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-all group/order">
+                          <Link 
+                            href={order.locationType === 'Stay' ? `/rooms/${order.roomId || order.locationId}` : `/pos?tableId=${order.locationId}`} 
+                            className="flex justify-between items-center mb-2"
+                          >
+                            <span className="font-bold text-slate-200">{order.locationLabel || 'Habitación'}</span>
+                            <span className="text-[9px] font-black opacity-30 tracking-widest group-hover/order:opacity-100 transition-opacity">#{order.id.slice(-4).toUpperCase()}</span>
+                          </Link>
+                          
+                          <div className="flex gap-2">
+                            {(order.kitchenStatus === 'Pendiente' || order.kitchenStatus === 'En preparación') && (
+                              <Link 
+                                href="/kitchen" 
+                                className="text-[8px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                              >
+                                Cocina
+                              </Link>
+                            )}
+                            {(order.barStatus === 'Pendiente' || order.barStatus === 'En preparación') && (
+                              <Link 
+                                href="/bar" 
+                                className="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                              >
+                                Bar
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {overdueReservations.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">

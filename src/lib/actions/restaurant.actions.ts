@@ -16,6 +16,7 @@ import {
   addDoc,
   deleteDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
@@ -102,9 +103,6 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             );
 
             for (const item of items) {
-                const itemSubtotal = item.service.price * item.quantity;
-                orderSubtotal += itemSubtotal;
-
                 if (item.service.category === 'Food') hasKitchen = true;
                 if (item.service.category === 'Beverage') hasBar = true;
 
@@ -131,9 +129,26 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     createdAt: itemCreatedAt
                 });
 
-                // Calculate item taxes
+                // Calculate item taxes and subtotal correctly
                 const effectiveTaxIds = new Set(item.service.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                let cumulativePercentage = 0;
+                effectiveTaxIds.forEach(taxId => {
+                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                    if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                });
+
+                let itemSubtotal = 0;
+                const itemQuantityPrice = item.service.price * item.quantity;
+
+                if (item.service.taxIncluded) {
+                    itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                } else {
+                    itemSubtotal = itemQuantityPrice;
+                }
+
+                orderSubtotal += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
@@ -218,9 +233,6 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
 
             const itemCreatedAt = Timestamp.now();
             for (const item of items) {
-                const itemSubtotal = item.service.price * item.quantity;
-                newSubtotalAddition += itemSubtotal;
-
                 if (item.service.category === 'Food') hasNewKitchen = true;
                 if (item.service.category === 'Beverage') hasNewBar = true;
 
@@ -242,9 +254,26 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                     transaction.update(sRef, { stock: increment(-item.quantity) });
                 }
 
-                // Add new taxes
+                // Calculate item taxes and subtotal addition
                 const effectiveTaxIds = new Set(item.service.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                let cumulativePercentage = 0;
+                effectiveTaxIds.forEach(taxId => {
+                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                    if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                });
+
+                let itemSubtotal = 0;
+                const itemQuantityPrice = item.service.price * item.quantity;
+
+                if (item.service.taxIncluded) {
+                    itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                } else {
+                    itemSubtotal = itemQuantityPrice;
+                }
+
+                newSubtotalAddition += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
@@ -328,7 +357,6 @@ export async function payRestaurantAccount(
 
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
-            const tableRef = doc(db, 'restaurantTables', tableId);
             
             // Create Invoice
             const invoiceRef = doc(collection(db, 'invoices'));
@@ -364,23 +392,27 @@ export async function payRestaurantAccount(
                 kitchenStatus: 'Entregado',
                 barStatus: 'Entregado',
                 paymentStatus: 'Pagado', 
-                invoiceId: invoiceIdForReturn 
+                invoiceId: invoiceIdForReturn,
+                billRequested: false
             });
             
-            // Check if there are other pending orders for this table
-            const ordersCollection = collection(db, 'orders');
-            const otherOrdersQuery = query(
-                ordersCollection, 
-                where('locationId', '==', tableId), 
-                where('paymentStatus', '==', 'Pendiente')
-            );
-            const otherOrdersSnap = await getDocs(otherOrdersQuery);
-            
-            const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
-            if (remainingOrders.length === 0) {
-                transaction.update(tableRef, { status: 'Available', currentOrderId: null });
-            } else {
-                transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+            if (orderData.locationType !== 'Stay') {
+                const tableRef = doc(db, 'restaurantTables', tableId);
+                // Check if there are other pending orders for this table
+                const ordersCollection = collection(db, 'orders');
+                const otherOrdersQuery = query(
+                    ordersCollection, 
+                    where('locationId', '==', tableId), 
+                    where('paymentStatus', '==', 'Pendiente')
+                );
+                const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                
+                const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
+                if (remainingOrders.length === 0) {
+                    transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                } else {
+                    transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+                }
             }
 
             // Update SINPE balance if applies
@@ -434,10 +466,14 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
             const bItems = updatedItems.filter(i => i.category === 'Beverage');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
-                if (items.length === 0) return 'Entregado'; // If no items for this area, it's "done"
+                if (items.length === 0) return 'Listo'; // If no items for this area, it's "done"
+                const allListo = items.every(i => i.status === 'Listo' || i.status === 'Entregado');
                 const allDelivered = items.every(i => i.status === 'Entregado');
                 const anyPrepping = items.some(i => i.status === 'En preparación');
-                return allDelivered ? 'Entregado' : (anyPrepping ? 'En preparación' : 'Pendiente');
+                
+                if (allDelivered) return 'Entregado';
+                if (allListo) return 'Listo';
+                return anyPrepping ? 'En preparación' : 'Pendiente';
             };
 
             const kStatus = getAreaStatus(kItems, orderData.kitchenStatus);
@@ -448,6 +484,8 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             if (kStatus === 'Entregado' && bStatus === 'Entregado') {
                 updates.status = 'Entregado';
+            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+                updates.status = 'Listo';
             } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
                 updates.status = 'En preparación';
             } else {
@@ -569,46 +607,65 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
  */
 export async function cancelRestaurantOrder(orderId: string) {
     try {
+        // 1. Pre-fetch basic data needed for the transaction logic
+        const orderRef = doc(db, 'orders', orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+        const orderData = orderSnap.data() as Order;
+
+        // 2. Check for other pending orders for this location to handle table status
+        let nextOrderId: string | null = null;
+        let hasOtherOrders = false;
+
+        if (orderData.locationId) {
+            const ordersCollection = collection(db, 'orders');
+            const otherOrdersQuery = query(
+                ordersCollection, 
+                where('locationId', '==', orderData.locationId), 
+                where('paymentStatus', '==', 'Pendiente')
+            );
+            const otherOrdersSnap = await getDocs(otherOrdersQuery);
+            const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
+            
+            hasOtherOrders = remainingOrders.length > 0;
+            if (hasOtherOrders) {
+                nextOrderId = remainingOrders[0].id;
+            }
+        }
+
+        // 3. Start Transaction
         await runTransaction(db, async (transaction) => {
-            const orderRef = doc(db, 'orders', orderId);
-            const orderSnap = await transaction.get(orderRef);
-            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
-            
-            const orderData = orderSnap.data() as Order;
-            
-            // 1. Restore Stock for all items
+            // A. ALL READS FIRST
+            const serviceSnapshots = [];
             for (const item of orderData.items) {
                 const serviceRef = doc(db, 'products', item.serviceId);
                 const serviceSnap = await transaction.get(serviceRef);
-                if (serviceSnap.exists()) {
-                    const serviceData = serviceSnap.data() as Service;
+                serviceSnapshots.push({ ref: serviceRef, snap: serviceSnap, quantity: item.quantity });
+            }
+
+            let tableRef = null;
+            if (orderData.locationId) {
+                tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                await transaction.get(tableRef); // Read table
+            }
+
+            // B. ALL WRITES AFTER
+            for (const { ref, snap, quantity } of serviceSnapshots) {
+                if (snap.exists()) {
+                    const serviceData = snap.data() as Service;
                     if (serviceData.source !== 'Internal') {
-                        transaction.update(serviceRef, { stock: increment(item.quantity) });
+                        transaction.update(ref, { stock: increment(quantity) });
                     }
                 }
             }
 
-            // 2. Delete the order
             transaction.delete(orderRef);
 
-            // 3. Update table status if it was the last pending order
-            if (orderData.locationId) {
-                const tableRef = doc(db, 'restaurantTables', orderData.locationId);
-                
-                // Get other pending orders for this location
-                const ordersCollection = collection(db, 'orders');
-                const otherOrdersQuery = query(
-                    ordersCollection, 
-                    where('locationId', '==', orderData.locationId), 
-                    where('paymentStatus', '==', 'Pendiente')
-                );
-                const otherOrdersSnap = await getDocs(otherOrdersQuery);
-                
-                const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== orderId);
-                if (remainingOrders.length === 0) {
+            if (tableRef) {
+                if (!hasOtherOrders) {
                     transaction.update(tableRef, { status: 'Available', currentOrderId: null });
                 } else {
-                    transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+                    transaction.update(tableRef, { currentOrderId: nextOrderId });
                 }
             }
         });
@@ -639,6 +696,44 @@ export async function requestBill(orderId: string) {
     } catch (e: any) {
         console.error("Request bill error:", e);
         return { error: e.message || "Error al solicitar la cuenta." };
+    }
+}
+
+/**
+ * Marks all orders and the stay itself as bill requested.
+ */
+export async function requestStayBill(stayId: string) {
+    try {
+        const batch = writeBatch(db);
+        
+        // 1. Find all active orders for this stay
+        const q = query(collection(db, 'orders'), where('stayId', '==', stayId), where('status', '!=', 'Cancelado'));
+        const snap = await getDocs(q);
+        
+        snap.docs.forEach(d => {
+            batch.update(d.ref, { 
+                billRequested: true,
+                billRequestedAt: Timestamp.now()
+            });
+        });
+        
+        // 2. Update the stay itself
+        const stayRef = doc(db, 'stays', stayId);
+        batch.update(stayRef, {
+            billRequested: true,
+            billRequestedAt: Timestamp.now()
+        });
+
+        await batch.commit();
+        
+        revalidatePath('/pos');
+        revalidatePath('/public/order');
+        revalidatePath(`/rooms/${stayId}`);
+        
+        return { success: true };
+    } catch (e: any) {
+        console.error("Request stay bill error:", e);
+        return { error: e.message || "Error al solicitar la cuenta de la habitación." };
     }
 }
 
@@ -680,31 +775,43 @@ export async function cancelOrderItem(orderId: string, itemId: string) {
                 }
             }
 
-            // Remove item
-            const newItems = items.filter(i => i.id !== itemId);
+            // Mark as Cancelled instead of removing
+            const newItems = items.map(i => i.id === itemId ? { ...i, status: 'Cancelado' as PrepStatus } : i);
             
-            // Recalculate totals
+            // Recalculate totals (excluding Cancelled items)
             let newSubtotal = 0;
+            const activeItems = newItems.filter(i => i.status !== 'Cancelado');
             const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
             let hasKitchen = false;
             let hasBar = false;
 
-            for (const item of newItems) {
-                const itemSubtotal = item.price * item.quantity;
-                newSubtotal += itemSubtotal;
-                
+            for (const item of activeItems) {
                 if (item.category === 'Food') hasKitchen = true;
                 if (item.category === 'Beverage') hasBar = true;
 
-                // We need the service to know its taxes. 
-                // Since fetching all services in a loop is bad, let's fetch only those needed or assume standard taxes if not found.
-                // However, we can fetch all services first.
                 const sRef = doc(db, 'products', item.serviceId);
                 const sSnap = await transaction.get(sRef);
                 const serviceData = sSnap.data() as Service;
 
                 const effectiveTaxIds = new Set(serviceData?.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                let cumulativePercentage = 0;
+                effectiveTaxIds.forEach(taxId => {
+                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                    if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                });
+
+                let itemSubtotal = 0;
+                const itemQuantityPrice = item.price * item.quantity;
+
+                if (serviceData?.taxIncluded) {
+                    itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                } else {
+                    itemSubtotal = itemQuantityPrice;
+                }
+
+                newSubtotal += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
                     const taxInfo = allTaxes.find(t => t.id === taxId);
@@ -757,5 +864,26 @@ export async function completeTakeoutOrder(orderId: string) {
     } catch (e: any) {
         console.error("Complete takeout order error:", e);
         return { error: e.message || "Error al completar pedido." };
+    }
+}
+
+export async function completeTableOrderDelivery(orderId: string) {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+        
+        await updateDoc(orderRef, {
+            status: 'Entregado',
+            kitchenStatus: 'Entregado',
+            barStatus: 'Entregado',
+            items: orderSnap.data().items.map((i: any) => ({ ...i, status: 'Entregado' }))
+        });
+        revalidatePath('/pos');
+        revalidatePath('/kitchen');
+        revalidatePath('/bar');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message || "Error al completar la entrega." };
     }
 }

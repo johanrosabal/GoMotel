@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { collection, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { revalidatePath } from 'next/cache';
 import { Client } from '@/types';
@@ -31,8 +31,8 @@ const clientSchema = z.object({
   lastName: z.string().min(1, 'El apellido es requerido.').max(50, 'El apellido no debe exceder los 50 caracteres.'),
   secondLastName: z.string().max(50, 'El segundo apellido no debe exceder los 50 caracteres.').optional(),
   idCard: z.string().min(1, 'La cédula es requerida.'),
-  email: z.string().email('Correo electrónico inválido.'),
-  phoneNumber: z.string().min(1, 'El teléfono es requerido.'),
+  email: z.string().email('Correo electrónico inválido.').optional().or(z.literal('')),
+  phoneNumber: z.string().optional(),
   whatsappNumber: z.string().optional(),
   birthDate: z.coerce.date().optional(),
   address: z.string().optional(),
@@ -133,6 +133,28 @@ export async function toggleClientValidation(clientId: string, isValidated: bool
     } catch (error) {
         console.error('Error toggling client validation:', error);
         return { error: 'No se pudo actualizar el estado de validación.' };
+    }
+}
+
+export async function checkClientByIdCard(idCard: string): Promise<any | null> {
+    try {
+        const q = query(collection(db, 'clients'), where('idCard', '==', idCard), limit(1));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) return null;
+        
+        const clientDoc = querySnapshot.docs[0];
+        const data = clientDoc.data();
+        
+        return { 
+            id: clientDoc.id, 
+            ...data,
+            birthDate: data.birthDate ? { seconds: data.birthDate.seconds, nanoseconds: data.birthDate.nanoseconds } : null,
+            createdAt: data.createdAt ? { seconds: data.createdAt.seconds, nanoseconds: data.createdAt.nanoseconds } : null,
+        };
+    } catch (error) {
+        console.error('Error checking client by idCard:', error);
+        return null;
     }
 }
 

@@ -10,14 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv } from 'lucide-react'
+import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useUserProfile } from '@/hooks/use-user-profile'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
+import AddClientDialog from '@/components/clients/AddClientDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
 import CheckoutDialog from '@/components/room-detail/CheckoutDialog'
+import PayOrderDialog from '@/components/room-detail/PayOrderDialog'
 import { getServices } from '@/lib/actions/service.actions'
 import { updateRoomStatus, checkOut } from '@/lib/actions/room.actions'
-import { cancelOrder } from '@/lib/actions/order.actions'
+import { cancelOrder, completeOrderDelivery } from '@/lib/actions/order.actions'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -55,10 +58,12 @@ export default function RoomDetailsPage() {
 
     const [availableServices, setAvailableServices] = useState<Service[]>([])
     const { toast } = useToast()
+    const { userProfile } = useUserProfile()
     const [timeInStatus, setTimeInStatus] = useState('');
     const [isOverdue, setIsOverdue] = useState(false);
     const [progress, setProgress] = useState(0);
     const [isCancelling, startCancelTransition] = useTransition();
+    const [isDelivering, startDeliveryTransition] = useTransition();
 
     const [successInvoiceId, setSuccessInvoiceId] = useState<string | null>(null);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -116,14 +121,20 @@ export default function RoomDetailsPage() {
         if (!stay) return null;
         const roomTotal = stay.pricePlanAmount || 0;
         const unpaidOrders = activeOrders.filter(o => o.paymentStatus !== 'Pagado');
+        
+        // Sum of final totals (what the client actually pays)
+        const servicesTotal = unpaidOrders.reduce((sum, o) => sum + o.total, 0);
+        
+        // Breakdown for the UI
         const servicesSubtotal = unpaidOrders.reduce((sum, o) => sum + (o.subtotal || o.total), 0);
         const servicesTaxes = unpaidOrders.reduce((sum, o) => sum + (o.total - (o.subtotal || o.total)), 0);
+        
         const upfrontPaid = stay.paymentAmount || 0;
 
-        const totalStay = roomTotal + servicesSubtotal + servicesTaxes;
+        const totalStay = roomTotal + servicesTotal;
         const netDue = Math.max(0, totalStay - upfrontPaid);
 
-        return { roomTotal, servicesSubtotal, servicesTaxes, totalStay, upfrontPaid, netDue };
+        return { roomTotal, servicesSubtotal, servicesTaxes, totalStay, upfrontPaid, netDue, servicesTotal };
     }, [stay, activeOrders]);
 
     const loading = isLoadingRoom || (!!room && !!room.currentStayId ? (isLoadingStay || isLoadingOrders) : false);
@@ -201,6 +212,13 @@ export default function RoomDetailsPage() {
         const result = await updateRoomStatus(room.id, 'Available')
         if (result.success) {
             toast({ title: 'Éxito', description: 'La habitación ahora está disponible.' })
+            
+            // Role-based redirection
+            if (userProfile?.role === 'Conserje') {
+                router.push('/cleaning')
+            } else {
+                router.push('/dashboard/rooms')
+            }
         } else {
             toast({ title: 'Error', description: result.error, variant: 'destructive' })
         }
@@ -213,6 +231,17 @@ export default function RoomDetailsPage() {
                 toast({ title: 'Error al cancelar', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Pedido Cancelado', description: 'El pedido ha sido removido de la cuenta.' });
+            }
+        });
+    };
+
+    const handleCompleteDelivery = (orderId: string) => {
+        startDeliveryTransition(async () => {
+            const result = await completeOrderDelivery(orderId);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Pedido Entregado', description: 'Se ha confirmado la entrega del pedido.' });
             }
         });
     };
@@ -537,22 +566,18 @@ export default function RoomDetailsPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-6 p-8 pt-0">
-                                        <div className="space-y-3 text-[10px] font-bold uppercase tracking-widest">
+                                        <div className="space-y-4 text-[10px] font-bold uppercase tracking-widest">
                                             <div className="flex justify-between text-slate-500">
                                                 <span>Subtotal Suite:</span>
                                                 <span className="text-slate-200">{formatCurrency(financialSummary.roomTotal)}</span>
                                             </div>
                                             <div className="flex justify-between text-slate-500">
                                                 <span>Consumos y Pedidos:</span>
-                                                <span className="text-slate-200">{formatCurrency(financialSummary.servicesSubtotal)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-slate-500">
-                                                <span>Tasas de Servicio:</span>
-                                                <span className="text-slate-200">{formatCurrency(financialSummary.servicesTaxes)}</span>
+                                                <span className="text-slate-200">{formatCurrency(financialSummary.servicesTotal)}</span>
                                             </div>
                                             
                                             {financialSummary.upfrontPaid > 0 && (
-                                                <div className="flex justify-between text-emerald-500 pt-2">
+                                                <div className="flex justify-between text-emerald-500 pt-2 border-t border-white/5 mt-4">
                                                     <span>Pagos Anticipados:</span>
                                                     <span className="font-black">-{formatCurrency(financialSummary.upfrontPaid)}</span>
                                                 </div>
@@ -616,23 +641,44 @@ export default function RoomDetailsPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pedido #{format(order.createdAt.toDate(), 'HH:mm')}</p>
-                                                                    <div className="flex gap-2 items-center mt-1">
-                                                                        <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className={cn("text-[9px] h-5 px-2 font-bold uppercase", order.status === 'Entregado' ? 'bg-emerald-500' : 'bg-slate-700/50')}>{order.status}</Badge>
-                                                                        {order.paymentStatus === 'Pagado' && <Badge className="text-[9px] h-5 px-2 bg-blue-600 font-bold uppercase">Pagado</Badge>}
+                                                                    <div className="flex flex-wrap gap-3 items-center mt-2">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.1em]">Pedido:</span>
+                                                                            <Badge variant={order.status === 'Entregado' ? 'default' : 'secondary'} className={cn("text-[9px] h-5 px-2 font-bold uppercase", order.status === 'Entregado' ? 'bg-emerald-500 text-white' : 'bg-slate-700/50 text-slate-300')}>{order.status}</Badge>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.1em]">Pago:</span>
+                                                                            <Badge className={cn("text-[9px] h-5 px-2 font-bold uppercase", order.paymentStatus === 'Pagado' ? "bg-blue-600 text-white" : "bg-rose-500/20 text-rose-500 border border-rose-500/20")}>
+                                                                                {order.paymentStatus || 'Pendiente'}
+                                                                            </Badge>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                onClick={() => handleCancelOrder(order.id)} 
-                                                                disabled={isCancelling} 
-                                                                className="h-9 px-4 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 font-black uppercase text-[10px] tracking-widest rounded-full opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0" 
-                                                                id="page-button-3" 
-                                                                data-testid="id-action-is-cancel-button"
-                                                            >
-                                                                {isCancelling ? '...' : 'Remover'}
-                                                            </Button>
+                                                            <div className="flex items-center gap-3">
+                                                                {order.status === 'Listo' && (
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        onClick={() => handleCompleteDelivery(order.id)} 
+                                                                        disabled={isDelivering} 
+                                                                        className="h-9 px-4 bg-emerald-500 hover:bg-emerald-600 text-black font-black uppercase text-[10px] tracking-widest rounded-full shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                                                                    >
+                                                                        <Package className="h-3.5 w-3.5" />
+                                                                        {isDelivering ? '...' : 'Marcar Entregado'}
+                                                                    </Button>
+                                                                )}
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    onClick={() => handleCancelOrder(order.id)} 
+                                                                    disabled={isCancelling} 
+                                                                    className="h-9 px-4 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 font-black uppercase text-[10px] tracking-widest rounded-full opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0" 
+                                                                    id="page-button-3" 
+                                                                    data-testid="id-action-is-cancel-button"
+                                                                >
+                                                                    {isCancelling ? '...' : 'Remover'}
+                                                                </Button>
+                                                            </div>
                                                         </div>
                                                         
                                                         <ul className="space-y-3 mb-6">
@@ -658,8 +704,24 @@ export default function RoomDetailsPage() {
                                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">Total Pedido</span>
                                                                 <span className="text-xl font-black text-white tracking-tighter">{formatCurrency(order.total)}</span>
                                                             </div>
-                                                            <div className="opacity-30 group-hover:opacity-100 transition-opacity">
-                                                                <ArrowLeft className="h-4 w-4 text-primary rotate-180" />
+                                                            <div className="flex items-center gap-4">
+                                                                {order.paymentStatus === 'Pendiente' && order.status !== 'Cancelado' ? (
+                                                                    <PayOrderDialog order={order}>
+                                                                        <Button 
+                                                                            size="sm"
+                                                                            className="h-11 px-6 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group/pay"
+                                                                        >
+                                                                            <Wallet className="h-4 w-4" />
+                                                                            Cobrar Monto
+                                                                            <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover/pay:translate-x-1" />
+                                                                        </Button>
+                                                                    </PayOrderDialog>
+                                                                ) : order.paymentStatus === 'Pagado' ? (
+                                                                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                                                                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Pagado</span>
+                                                                    </div>
+                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     </motion.li>
@@ -689,12 +751,38 @@ export default function RoomDetailsPage() {
                                         )}
                                     </AnimatePresence>
                                 ) : (
-                                    <div className="flex h-full flex-col items-center justify-center text-center p-12 border-2 border-dashed border-white/5 rounded-[2.5rem] bg-black/10">
-                                        <div className="h-16 w-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center mb-6">
-                                            <Bed className="h-8 w-8 text-slate-600" />
+                                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center p-12 border-2 border-dashed border-white/10 rounded-[3rem] bg-slate-900/40 backdrop-blur-md relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                        
+                                        <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10 mb-10">
+                                            <CreateReservationDialog isWalkIn initialRoomId={room.id}>
+                                                <Button className="rounded-full h-16 px-10 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[11px] shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all hover:scale-105 active:scale-95 flex items-center gap-3" id="page-button-iniciar-estancia" data-testid="id-action-start-stay-button">
+                                                    <LogIn className="h-5 w-5" />
+                                                    Iniciar Estancia
+                                                </Button>
+                                            </CreateReservationDialog>
+
+                                            <AddClientDialog>
+                                                <Button variant="outline" className="rounded-full h-16 px-10 border-white/10 text-white font-black uppercase tracking-widest text-[11px] hover:bg-white/5 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 backdrop-blur-sm" id="page-button-registrar-cliente-crm" data-testid="id-action-register-client-crm-button">
+                                                    <UserPlus className="h-5 w-5 text-primary" />
+                                                    Registrar Cliente
+                                                </Button>
+                                            </AddClientDialog>
                                         </div>
-                                        <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-400">Sin Estancia Activa</h3>
-                                        <p className="text-slate-600 text-xs font-bold uppercase tracking-widest mt-2">La suite está lista para una nueva reservación</p>
+
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 blur-3xl bg-primary/20 animate-pulse" />
+                                            <div className="relative h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
+                                                <Bed className="h-12 w-12 text-primary/40" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 relative z-10">
+                                            <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Suite Disponible</h3>
+                                            <p className="text-slate-500 max-w-xs mx-auto text-sm font-medium leading-relaxed uppercase tracking-widest text-[10px]">
+                                                La suite está lista para recibir a un nuevo huésped
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </CardContent>

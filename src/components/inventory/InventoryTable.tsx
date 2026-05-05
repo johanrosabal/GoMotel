@@ -196,6 +196,7 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
                                 <TableHead>Nombre del Producto</TableHead>
                                 <TableHead>Categoría</TableHead>
                                 <TableHead className="text-right">Precio Venta</TableHead>
+                                <TableHead className="text-center">Impuestos</TableHead>
                                 <TableHead className="text-right">Stock Actual</TableHead>
                                 <TableHead className="text-center">Estado</TableHead>
                                 <TableHead className="text-right w-[50px]">
@@ -226,6 +227,14 @@ export default function InventoryTable({ initialServices }: InventoryTableProps)
                                         </TableCell>
                                         <TableCell className="text-right font-black">
                                             {formatCurrency(service.price)}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant={service.taxIncluded ? "outline" : "secondary"} className={cn(
+                                                "text-[9px] font-black uppercase tracking-widest",
+                                                service.taxIncluded ? "border-emerald-500/50 text-emerald-500 bg-emerald-500/5" : "opacity-30"
+                                            )}>
+                                                {service.taxIncluded ? 'Incluidos' : 'Más Imp.'}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex flex-col items-end">
