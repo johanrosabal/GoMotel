@@ -39,11 +39,18 @@ const reservationActionSchema = z.object({
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
-}).refine(data => data.isOpenAccount || !!data.paymentMethod, {
+}).refine(data => {
+    // Si es check-in inmediato, requiere método de pago o cuenta abierta
+    if (data.checkInNow) {
+        return data.isOpenAccount || !!data.paymentMethod;
+    }
+    return true;
+}, {
     message: "Se requiere un método de pago si no es cuenta abierta.",
     path: ["paymentMethod"],
 }).refine(data => {
-    if (!data.isOpenAccount && data.paymentMethod === 'Sinpe Movil') {
+    // Solo validar pago SINPE si es check-in inmediato y no es cuenta abierta
+    if (data.checkInNow && !data.isOpenAccount && data.paymentMethod === 'Sinpe Movil') {
         return data.paymentConfirmed === true;
     }
     return true;
@@ -51,7 +58,8 @@ const reservationActionSchema = z.object({
     message: "El pago SINPE debe ser confirmado.",
     path: ["paymentConfirmed"],
 }).refine(data => {
-    if (!data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
+    // Solo validar voucher si es check-in inmediato y no es cuenta abierta
+    if (data.checkInNow && !data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
         return data.voucherNumber && data.voucherNumber.trim() !== '';
     }
     return true;
@@ -123,9 +131,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const batch = writeBatch(db);
     let invoiceIdForReturn: string | undefined;
 
-    const isUpfrontPayment = !isOpenAccount;
-    const paymentStatus = isUpfrontPayment ? 'Pagado' : 'Pendiente';
-    const paymentMethod = isUpfrontPayment ? upfrontPaymentMethod! : 'Por Definir';
+    const isUpfrontPayment = checkInNow && !isOpenAccount;
+    const paymentStatus = checkInNow ? (isOpenAccount ? 'Pendiente' : 'Pagado') : 'Pendiente';
+    const paymentMethod = checkInNow ? (isOpenAccount ? 'Por Definir' : upfrontPaymentMethod!) : 'Por Definir';
     const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
     
     // --- Get Stay Ref if it's a direct check-in ---
@@ -274,7 +282,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     if (guestId) revalidatePath('/clients');
     if (paymentMethod === 'Sinpe Movil') revalidatePath('/settings/sinpe-accounts');
 
-    return { success: true, invoiceId: invoiceIdForReturn };
+    return { success: true, invoiceId: invoiceIdForReturn, reservationId: reservationRef.id };
   } catch (error) {
     console.error("Error creating reservation/check-in: ", error);
     return { error: 'No se pudo procesar la solicitud.' };
@@ -295,7 +303,14 @@ export async function cancelReservation(reservationId: string) {
     }
 }
 
-export async function checkInFromReservation(reservationId: string) {
+export interface CheckInPaymentData {
+    paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+    isOpenAccount: boolean;
+    paymentConfirmed?: boolean;
+    voucherNumber?: string | null;
+}
+
+export async function checkInFromReservation(reservationId: string, paymentData?: CheckInPaymentData) {
     if (!reservationId) return { error: 'ID de reservación no válido.' };
     
     const reservationRef = doc(db, 'reservations', reservationId);
@@ -321,9 +336,94 @@ export async function checkInFromReservation(reservationId: string) {
     }
 
     const batch = writeBatch(db);
+    let invoiceIdForReturn: string | undefined;
+
+    // Determine payment info
+    const needsPayment = reservation.paymentStatus !== 'Pagado' && paymentData && !paymentData.isOpenAccount;
+    
+    const isPaid = reservation.paymentStatus === 'Pagado' || (paymentData && !paymentData.isOpenAccount);
+    const paymentStatus = isPaid ? 'Pagado' : 'Pendiente';
+    const paymentMethod = reservation.paymentStatus === 'Pagado' ? reservation.paymentMethod : (paymentData?.isOpenAccount ? 'Por Definir' : (paymentData?.paymentMethod || 'Por Definir'));
+    const paymentAmount = needsPayment ? reservation.pricePlanAmount : (reservation.paymentStatus === 'Pagado' ? (reservation.paymentAmount || 0) : 0);
+    const voucherNumber = reservation.paymentStatus === 'Pagado' ? (reservation.voucherNumber || null) : (paymentData?.voucherNumber || null);
 
     // Create new stay from reservation
     const stayRef = doc(collection(db, 'stays'));
+    
+    if (needsPayment) {
+        if (paymentMethod === 'Sinpe Movil') {
+            const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+            const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+
+            let targetAccountRef: DocumentReference | null = null;
+            let targetAccountData: SinpeAccount | null = null;
+
+            for (const doc of sinpeAccountsSnapshot.docs) {
+                const account = { id: doc.id, ...doc.data() } as SinpeAccount;
+                const limit = account.limitAmount || Infinity;
+                if ((account.balance + paymentAmount) <= limit) {
+                    targetAccountRef = doc.ref;
+                    targetAccountData = account;
+                    break;
+                }
+            }
+            
+            if (!targetAccountRef || !targetAccountData) {
+                return { error: "No hay cuentas SINPE Móvil disponibles o todas han alcanzado su límite de saldo." };
+            }
+
+            batch.update(targetAccountRef, { balance: increment(paymentAmount) });
+            const newBalance = targetAccountData.balance + paymentAmount;
+            if (targetAccountData.limitAmount && newBalance >= targetAccountData.limitAmount) {
+                batch.update(targetAccountRef, { isActive: false });
+            }
+        }
+
+        // --- Invoice Generation ---
+        const invoicesRef = collection(db, 'invoices');
+        const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+        const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+
+        let nextInvoiceNumberInt = 1;
+        if (!lastInvoiceSnap.empty) {
+            const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+            if (lastInvoiceData.invoiceNumber) {
+                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastNumber)) {
+                    nextInvoiceNumberInt = lastNumber + 1;
+                }
+            }
+        }
+        const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+        
+        const invoiceRef = doc(collection(db, 'invoices'));
+        invoiceIdForReturn = invoiceRef.id;
+
+        const newInvoice: Omit<Invoice, 'id'> = {
+            invoiceNumber: newInvoiceNumber,
+            reservationId: reservationId,
+            stayId: stayRef.id,
+            clientId: reservation.guestId || null,
+            clientName: reservation.guestName,
+            createdAt: Timestamp.now(),
+            status: 'Pagada',
+            items: [{
+                description: `Check-in (Reserva): ${reservation.pricePlanName} para Hab. ${reservation.roomNumber}`,
+                quantity: 1,
+                unitPrice: (reservation.pricePlanAmount || 0),
+                total: (reservation.pricePlanAmount || 0)
+            }],
+            subtotal: (reservation.pricePlanAmount || 0),
+            taxes: [], 
+            total: (reservation.pricePlanAmount || 0),
+            paymentMethod: paymentMethod as any,
+            voucherNumber: voucherNumber,
+            roomId: reservation.roomId,
+            roomNumber: reservation.roomNumber,
+        };
+        batch.set(invoiceRef, newInvoice);
+    }
+
     const newStay: Omit<Stay, 'id'> = {
       roomId: reservation.roomId,
       roomNumber: reservation.roomNumber,
@@ -332,16 +432,16 @@ export async function checkInFromReservation(reservationId: string) {
       expectedCheckOut: reservation.checkOutDate,
       checkOut: null,
       total: 0,
-      isPaid: reservation.paymentStatus === 'Pagado',
+      isPaid: isPaid,
       reservationId: reservationId,
       guestId: reservation.guestId || null,
       pricePlanName: reservation.pricePlanName,
       pricePlanAmount: reservation.pricePlanAmount,
       renewalCount: 0,
-      paymentStatus: reservation.paymentStatus,
-      paymentMethod: reservation.paymentMethod,
-      paymentAmount: reservation.paymentAmount,
-      voucherNumber: reservation.voucherNumber || null,
+      paymentStatus: paymentStatus,
+      paymentMethod: paymentMethod,
+      paymentAmount: paymentAmount,
+      voucherNumber: voucherNumber,
       remoteControlDelivered: reservation.remoteControlDelivered || false,
     };
     batch.set(stayRef, newStay);
@@ -361,7 +461,13 @@ export async function checkInFromReservation(reservationId: string) {
     batch.update(roomRef, { status: 'Occupied', currentStayId: stayRef.id });
 
     // Update reservation
-    batch.update(reservationRef, { status: 'Checked-in' });
+    batch.update(reservationRef, { 
+        status: 'Checked-in',
+        paymentStatus,
+        paymentMethod,
+        paymentAmount,
+        voucherNumber
+    });
 
     if (guestId) {
         const clientRef = doc(db, 'clients', guestId);
@@ -377,7 +483,7 @@ export async function checkInFromReservation(reservationId: string) {
         revalidatePath(`/rooms/${reservation.roomId}`);
         revalidatePath('/dashboard/rooms');
         if (guestId) revalidatePath('/clients');
-        return { success: true };
+        return { success: true, invoiceId: invoiceIdForReturn };
     } catch (error) {
         console.error("Check-in from reservation failed: ", error);
         return { error: 'Ocurrió un error inesperado.' };

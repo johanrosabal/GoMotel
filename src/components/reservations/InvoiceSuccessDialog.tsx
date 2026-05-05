@@ -1,8 +1,8 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, Printer, FileText, ChevronRight } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { CheckCircle, Download, Printer, FileText, ChevronRight, Share2 } from 'lucide-react';
+import { formatCurrency, getBaseUrl } from '@/lib/utils';
 import React, { useRef, useState } from 'react';
 import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -216,7 +216,7 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
     const handleShareViaWhatsApp = () => {
         if (!invoice) return;
         const cleanPhone = phoneNumber.replace(/\D/g, '');
-        const publicUrl = `${window.location.origin}/invoices/${invoice.id}`;
+        const publicUrl = `${getBaseUrl()}/invoices/${invoice.id}`;
         const whatsappMessage = encodeURIComponent(
             `¡Hola! Puedes ver y descargar tu factura #${invoice.invoiceNumber} por un monto de ${formatCurrency(invoice.total)} en el siguiente enlace: ${publicUrl}`
         );
@@ -372,7 +372,24 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
                                     <Download className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                                     PDF
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors" id="invoicesuccessdialog-button-close-manual" data-testid="invoicesuccessdialog-close-button">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-primary/30 text-primary hover:bg-primary hover:text-white shadow-sm group"
+                                    disabled={isLoading || !invoice}
+                                    onClick={() => window.open(`${window.location.origin}/invoices/${invoiceId}`, '_blank')}
+                                >
+                                    <Share2 className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                                    Vista Previa
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => onOpenChange(false)} 
+                                    className="h-16 rounded-2xl font-black uppercase text-[10px] tracking-widest text-foreground hover:bg-white hover:text-black border-2 transition-all duration-300" 
+                                    id="invoicesuccessdialog-button-close-manual" 
+                                    data-testid="invoicesuccessdialog-close-button"
+                                >
                                     Cerrar
                                 </Button>
                             </div>

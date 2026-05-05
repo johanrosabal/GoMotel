@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '../ui/separator';
 import { motion } from 'framer-motion';
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
+import ReservationSuccessDialog from './ReservationSuccessDialog';
 
 const Stepper = ({ currentStep }: { currentStep: number }) => {
     const steps = [
@@ -81,11 +82,16 @@ const reservationSchema = z.object({
     paymentConfirmed: z.boolean().default(false),
     voucherNumber: z.string().nullable().optional(),
     remoteControlDelivered: z.boolean().default(false),
-}).refine(data => data.isOpenAccount || !!data.paymentMethod, {
+}).refine(data => {
+    if (data.checkInNow) {
+        return data.isOpenAccount || !!data.paymentMethod;
+    }
+    return true;
+}, {
     message: "Debe seleccionar un método de pago.",
     path: ["paymentMethod"],
 }).refine(data => {
-    if (!data.isOpenAccount && data.paymentMethod === 'Sinpe Movil') {
+    if (data.checkInNow && !data.isOpenAccount && data.paymentMethod === 'Sinpe Movil') {
         return !!data.paymentConfirmed;
     }
     return true;
@@ -93,7 +99,7 @@ const reservationSchema = z.object({
     message: 'Debe confirmar que el pago fue recibido.',
     path: ['paymentConfirmed'],
 }).refine(data => {
-    if (!data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
+    if (data.checkInNow && !data.isOpenAccount && data.paymentMethod === 'Tarjeta') {
         return data.voucherNumber && data.voucherNumber.trim() !== '';
     }
     return true;
@@ -117,7 +123,9 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     const [canFinalize, setCanFinalize] = useState(false);
 
     const [successModalOpen, setSuccessModalOpen] = useState(false);
+    const [reservationSuccessModalOpen, setReservationSuccessModalOpen] = useState(false);
     const [invoiceId, setInvoiceId] = useState<string | null>(null);
+    const [reservationId, setReservationId] = useState<string | null>(null);
 
     const roomsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -329,14 +337,18 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                // Obtenemos el ID antes de cerrar por si acaso
-                const id = result.invoiceId;
+                // Obtenemos los IDs antes de cerrar por si acaso
+                const invId = result.invoiceId;
+                const resId = result.reservationId;
+                
                 setOpen(false);
 
-                if (id) {
-                    setInvoiceId(id);
-                    // Pequeño delay para permitir que el modal anterior se limpie de la UI (Radix fix)
+                if (invId) {
+                    setInvoiceId(invId);
                     setTimeout(() => setSuccessModalOpen(true), 200);
+                } else if (resId) {
+                    setReservationId(resId);
+                    setTimeout(() => setReservationSuccessModalOpen(true), 200);
                 } else {
                     toast({ title: '¡Éxito!', description: `La operación se ha completado.` });
                 }
@@ -574,91 +586,111 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-
-                                    {currentStep === 3 && (
+                                     )}
+ 
+                                     {currentStep === 3 && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                            <FormField
-                                                control={form.control}
-                                                name="isOpenAccount"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/10">
-                                                        <div className="space-y-0.5">
-                                                            <FormLabel className="font-bold text-sm">Manejar como Cuenta Abierta</FormLabel>
-                                                            <p className="text-xs text-muted-foreground">Se liquida el saldo total al salir.</p>
-                                                        </div>
-                                                        <FormControl>
-                                                            <Switch checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-switch-2" data-testid="createreservationdialog-open-account-switch" />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-
-                                            {!isOpenAccount && (
-                                                <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm border-primary/20">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="paymentMethod"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                                    <FormControl><SelectTrigger className="h-11" id="createreservationdialog-selecttrigger-3" data-testid="createreservationdialog-payment-method-select"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="Efectivo">Efectivo</SelectItem>
-                                                                        <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
-                                                                        <SelectItem value="Tarjeta">Tarjeta (Voucher)</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    {paymentMethod === 'Sinpe Movil' && (
-                                                        <div className='pt-4 border-t space-y-3'>
-                                                            {targetSinpeAccount ? (
-                                                                <div className='p-4 bg-primary/5 rounded-xl text-center border-2 border-dashed border-primary/20'>
-                                                                    <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Enviar {formatCurrency(selectedPlan?.price || 0)} a:</p>
-                                                                    <p className='text-2xl font-black font-mono text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
-                                                                    <p className='text-[10px] font-black uppercase text-muted-foreground'>{targetSinpeAccount.accountHolder}</p>
-                                                                    <FormField
-                                                                        control={form.control}
-                                                                        name="paymentConfirmed"
-                                                                        render={({ field }) => (
-                                                                            <div className="space-y-3">
-                                                                                <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
-                                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" data-testid="createreservationdialog-payment-confirmed-checkbox" /></FormControl>
-                                                                                    <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
-                                                                                </FormItem>
-                                                                                <p className="text-[9px] text-muted-foreground px-1 leading-tight italic text-left">
-                                                                                    * Es responsabilidad del colaborador verificar manualmente que el pago por SINPE Móvil se haya recibido correctamente en la cuenta bancaria antes de finalizar.
-                                                                                </p>
-                                                                            </div>
-                                                                        )}
-                                                                    />
-                                                                </div>
-                                                            ) : <div className='p-3 bg-destructive/5 text-destructive rounded-lg text-xs font-bold text-center border uppercase'>Límite excedido</div>}
-                                                        </div>
-                                                    )}
-                                                    {paymentMethod === 'Tarjeta' && (
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="voucherNumber"
-                                                            render={({ field }) => (
-                                                                <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-11 font-mono" id="createreservationdialog-input-1" data-testid="createreservationdialog-voucher-number-input" /></FormControl><FormMessage /></FormItem>
-                                                            )}
-                                                        />
-                                                    )}
-                                                    {paymentMethod === 'Efectivo' && (
-                                                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                                                            <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" id="createreservationdialog-input-2" data-testid="createreservationdialog-cash-tendered-input" /></FormControl></FormItem>
-                                                            {numericCashTendered >= (selectedPlan?.price || 0) && (
-                                                                <div className="text-right"><span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span><p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</p></div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                             {checkInNow ? (
+                                                 <>
+                                                     <FormField
+                                                         control={form.control}
+                                                         name="isOpenAccount"
+                                                         render={({ field }) => (
+                                                             <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/10">
+                                                                 <div className="space-y-0.5">
+                                                                     <FormLabel className="font-bold text-sm">Manejar como Cuenta Abierta</FormLabel>
+                                                                     <p className="text-xs text-muted-foreground">Se liquida el saldo total al salir.</p>
+                                                                 </div>
+                                                                 <FormControl>
+                                                                     <Switch checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-switch-2" data-testid="createreservationdialog-open-account-switch" />
+                                                                 </FormControl>
+                                                             </FormItem>
+                                                         )}
+                                                     />
+ 
+                                                     {!isOpenAccount && (
+                                                         <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm border-primary/20">
+                                                             <FormField
+                                                                 control={form.control}
+                                                                 name="paymentMethod"
+                                                                 render={({ field }) => (
+                                                                     <FormItem>
+                                                                         <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Método de Pago Adelantado</FormLabel>
+                                                                         <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                                             <FormControl><SelectTrigger className="h-11" id="createreservationdialog-selecttrigger-3" data-testid="createreservationdialog-payment-method-select"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
+                                                                             <SelectContent>
+                                                                                 <SelectItem value="Efectivo">Efectivo</SelectItem>
+                                                                                 <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
+                                                                                 <SelectItem value="Tarjeta">Tarjeta (Voucher)</SelectItem>
+                                                                             </SelectContent>
+                                                                         </Select>
+                                                                         <FormMessage />
+                                                                     </FormItem>
+                                                                 )}
+                                                             />
+                                                             {paymentMethod === 'Sinpe Movil' && (
+                                                                 <div className='pt-4 border-t space-y-3'>
+                                                                     {targetSinpeAccount ? (
+                                                                         <div className='p-4 bg-primary/5 rounded-xl text-center border-2 border-dashed border-primary/20'>
+                                                                             <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Enviar {formatCurrency(selectedPlan?.price || 0)} a:</p>
+                                                                             <p className='text-2xl font-black font-mono text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                                             <p className='text-[10px] font-black uppercase text-muted-foreground'>{targetSinpeAccount.accountHolder}</p>
+                                                                             <FormField
+                                                                                 control={form.control}
+                                                                                 name="paymentConfirmed"
+                                                                                 render={({ field }) => (
+                                                                                     <div className="space-y-3">
+                                                                                         <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border bg-background p-3 mt-4 text-left">
+                                                                                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="createreservationdialog-checkbox-1" data-testid="createreservationdialog-payment-confirmed-checkbox" /></FormControl>
+                                                                                             <FormLabel className="text-xs font-bold">Pago verificado</FormLabel>
+                                                                                         </FormItem>
+                                                                                         <p className="text-[9px] text-muted-foreground px-1 leading-tight italic text-left">
+                                                                                             * Es responsabilidad del colaborador verificar manualmente que el pago por SINPE Móvil se haya recibido correctamente en la cuenta bancaria antes de finalizar.
+                                                                                         </p>
+                                                                                     </div>
+                                                                                 )}
+                                                                             />
+                                                                         </div>
+                                                                     ) : <div className='p-3 bg-destructive/5 text-destructive rounded-lg text-xs font-bold text-center border uppercase'>Límite excedido</div>}
+                                                                 </div>
+                                                             )}
+                                                             {paymentMethod === 'Tarjeta' && (
+                                                                 <FormField
+                                                                     control={form.control}
+                                                                     name="voucherNumber"
+                                                                     render={({ field }) => (
+                                                                         <FormItem><FormLabel className="text-xs font-bold">N° Voucher</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-11 font-mono" id="createreservationdialog-input-1" data-testid="createreservationdialog-voucher-number-input" /></FormControl><FormMessage /></FormItem>
+                                                                     )}
+                                                                 />
+                                                             )}
+                                                             {paymentMethod === 'Efectivo' && (
+                                                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                                                                     <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" id="createreservationdialog-input-2" data-testid="createreservationdialog-cash-tendered-input" /></FormControl></FormItem>
+                                                                     {numericCashTendered >= (selectedPlan?.price || 0) && (
+                                                                         <div className="text-right"><span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span><p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.price || 0))}</p></div>
+                                                                     )}
+                                                                 </div>
+                                                             )}
+                                                         </div>
+                                                     )}
+                                                 </>
+                                             ) : (
+                                                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4 bg-primary/5 rounded-[2rem] border border-dashed border-primary/20">
+                                                     <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                                                         <CalendarDays className="h-8 w-8 text-primary" />
+                                                     </div>
+                                                     <div className="space-y-1">
+                                                         <h3 className="text-lg font-black uppercase italic tracking-tighter">Reservación Confirmada</h3>
+                                                         <p className="text-xs text-slate-400 font-medium max-w-[280px]">
+                                                             El pago se procesará físicamente cuando el cliente se presente al local para su ingreso.
+                                                         </p>
+                                                     </div>
+                                                     <div className="flex items-center gap-2 px-4 py-2 bg-black/20 rounded-xl border border-white/5">
+                                                         <Clock className="h-4 w-4 text-primary" />
+                                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Pendiente de Cobro</span>
+                                                     </div>
+                                                 </div>
+                                             )}
 
                                             <div className="p-4 rounded-xl border border-dashed bg-muted/5">
                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Resumen Final</h4>
@@ -720,6 +752,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                 </DialogContent>
             </Dialog>
             <InvoiceSuccessDialog open={successModalOpen} onOpenChange={setSuccessModalOpen} invoiceId={invoiceId} />
+            <ReservationSuccessDialog open={reservationSuccessModalOpen} onOpenChange={setReservationSuccessModalOpen} reservationId={reservationId} />
         </>
     );
 }

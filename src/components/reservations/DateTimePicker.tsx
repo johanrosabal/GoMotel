@@ -14,7 +14,10 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     const month = String(selectedDate.getMonth() + 1);
     const year = String(selectedDate.getFullYear());
     const hour = String(selectedDate.getHours()).padStart(2, '0');
-    const minute = String(selectedDate.getMinutes()).padStart(2, '0');
+    const minuteVal = selectedDate.getMinutes();
+    const roundedMinute = Math.round(minuteVal / 5) * 5;
+    const finalMinute = roundedMinute >= 60 ? 55 : roundedMinute;
+    const minute = String(finalMinute).padStart(2, '0');
 
     const handleValueChange = (part: 'day' | 'month' | 'year' | 'hour' | 'minute', value: string) => {
         const newDate = new Date(selectedDate);
@@ -57,7 +60,7 @@ export default function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     const days = year && month ? Array.from({ length: daysInMonth(parseInt(year, 10), parseInt(month, 10)) }, (_, i) => String(i + 1)) : [];
 
     const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-    const minutes = ['00', '15', '30', '45'];
+    const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
     const formatHourForDisplay = (hour24: string) => {
         const hourVal = parseInt(hour24, 10);

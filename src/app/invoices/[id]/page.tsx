@@ -26,12 +26,14 @@ function serializeInvoice(invoice: Invoice) {
 }
 
 
-export default async function PublicInvoiceRootPage({ params }: { params: { id: string } }) {
-    if (!params.id) {
+export default async function PublicInvoiceRootPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+
+    if (!id) {
         notFound();
     }
     
-    const invoice = await getInvoice(params.id);
+    const invoice = await getInvoice(id);
 
     if (!invoice) {
         notFound();

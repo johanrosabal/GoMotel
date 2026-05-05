@@ -15,3 +15,18 @@ export function formatCurrency(amount: number) {
   }).format(amount);
   return `₡${formatted}`;
 }
+
+export function getBaseUrl() {
+  if (typeof window !== 'undefined') {
+    // Si estamos en localhost, intentamos usar el dominio de firebase para que WhatsApp lo reconozca
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+      if (authDomain) {
+        return `https://${authDomain}`;
+      }
+      return 'https://hotel-du-manolo-cr.web.app'; 
+    }
+    return window.location.origin;
+  }
+  return '';
+}

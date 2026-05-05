@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { checkInFromReservation, cancelReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import CheckInFromReservationDialog from './CheckInFromReservationDialog';
 
 export default function ReservationActionsMenu({ reservation, className }: { reservation: Reservation, className?: string }) {
     const { toast } = useToast();
@@ -80,10 +81,19 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                     <DropdownMenuSeparator />
                     {reservation.status === 'Confirmed' && (
                         <>
-                            <DropdownMenuItem onClick={handleCheckIn} disabled={isPending}>
-                                <LogIn className="mr-2 h-4 w-4" />
-                                <span>Hacer Check-in</span>
-                            </DropdownMenuItem>
+                            {reservation.paymentStatus === 'Pagado' ? (
+                                <DropdownMenuItem onClick={handleCheckIn} disabled={isPending}>
+                                    <LogIn className="mr-2 h-4 w-4" />
+                                    <span>Hacer Check-in</span>
+                                </DropdownMenuItem>
+                            ) : (
+                                <CheckInFromReservationDialog reservation={reservation}>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                        <LogIn className="mr-2 h-4 w-4" />
+                                        <span>Hacer Check-in</span>
+                                    </DropdownMenuItem>
+                                </CheckInFromReservationDialog>
+                            )}
                             <DropdownMenuItem onSelect={() => setIsCancelAlertOpen(true)} className="text-destructive focus:text-destructive">
                                 <XCircle className="mr-2 h-4 w-4" />
                                 <span>Cancelar Reservación</span>
