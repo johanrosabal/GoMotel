@@ -72,7 +72,7 @@ export async function deleteTutorial(id: string) {
 export async function getTutorials() {
     try {
         const tutorialsRef = collection(db, 'tutorials');
-        const q = query(tutorialsRef, orderBy('order', 'asc'), orderBy('createdAt', 'desc'));
+        const q = query(tutorialsRef, orderBy('order', 'asc'));
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map(toTutorialObject);
@@ -94,5 +94,29 @@ export async function getTutorialById(id: string) {
     } catch (error) {
         console.error('Error fetching tutorial by id:', error);
         return null;
+    }
+}
+
+export async function importTutorials(tutorials: Tutorial[]) {
+    try {
+        const now = Timestamp.now();
+        const batch = tutorials.map(async (t) => {
+            const tutorialRef = doc(db, 'tutorials', t.id || doc(collection(db, 'tutorials')).id);
+            const data = {
+                ...t,
+                id: t.id || tutorialRef.id,
+                updatedAt: now,
+                createdAt: t.createdAt ? (typeof t.createdAt === 'object' && 'seconds' in t.createdAt ? new Timestamp(t.createdAt.seconds, t.createdAt.nanoseconds) : now) : now,
+            };
+            return setDoc(tutorialRef, data, { merge: true });
+        });
+
+        await Promise.all(batch);
+        revalidatePath('/manual/tutorials');
+        revalidatePath('/dashboard/tutorials/manage');
+        return { success: true, count: tutorials.length };
+    } catch (error: any) {
+        console.error('Error importing tutorials:', error);
+        return { success: false, error: error.message };
     }
 }

@@ -50,17 +50,16 @@ const checkInSchema = z.object({
 interface CheckInFromReservationDialogProps {
     reservation: Reservation;
     children: React.ReactNode;
+    onCheckInSuccess?: (invoiceId: string | null) => void;
 }
 
-export default function CheckInFromReservationDialog({ reservation, children }: CheckInFromReservationDialogProps) {
+export default function CheckInFromReservationDialog({ reservation, children, onCheckInSuccess }: CheckInFromReservationDialogProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const { firestore } = useFirebase();
 
     const [cashTendered, setCashTendered] = useState('');
-    const [successModalOpen, setSuccessModalOpen] = useState(false);
-    const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
     const sinpeAccountsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -104,9 +103,11 @@ export default function CheckInFromReservationDialog({ reservation, children }: 
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
-                const id = result.invoiceId;
+                const id = result.invoiceId || null;
                 setOpen(false);
-                if (id) {
+                if (onCheckInSuccess) {
+                    onCheckInSuccess(id);
+                } else if (id) {
                     setInvoiceId(id);
                     setTimeout(() => setSuccessModalOpen(true), 200);
                 } else {
@@ -258,7 +259,6 @@ export default function CheckInFromReservationDialog({ reservation, children }: 
                     </div>
                 </DialogContent>
             </Dialog>
-            <InvoiceSuccessDialog open={successModalOpen} onOpenChange={setSuccessModalOpen} invoiceId={invoiceId} />
         </>
     );
 }

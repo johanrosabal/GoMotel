@@ -29,15 +29,21 @@ import {
     Save,
     Loader2,
     ShieldAlert,
-    Info as InfoIcon
+    Play,
+    Info as InfoIcon,
+    Download,
+    Upload
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveTutorial, deleteTutorial } from '@/lib/actions/tutorial.actions';
+import { saveTutorial, deleteTutorial, importTutorials } from '@/lib/actions/tutorial.actions';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { VideoPlayer } from '@/components/dashboard/VideoPlayer';
 import { Badge } from '@/components/ui/badge';
 import type { Tutorial } from '@/types';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { MediaUpload } from '@/components/ui/media-upload';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface TutorialManagerProps {
     initialTutorials: Tutorial[];
@@ -48,6 +54,7 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
     const [tutorials, setTutorials] = useState<Tutorial[]>(initialTutorials);
     const [isPending, startTransition] = useTransition();
     const [isOpen, setIsOpen] = useState(false);
+    const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
     const [editingTutorial, setEditingTutorial] = useState<Partial<Tutorial> | null>(null);
     const { toast } = useToast();
 
@@ -93,6 +100,48 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
         });
     };
 
+    const handleExport = () => {
+        const dataStr = JSON.stringify(tutorials, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = `tutoriales_export_${new Date().toISOString().split('T')[0]}.json`;
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+        
+        toast({ title: 'Exportación Lista', description: 'Se ha descargado el archivo JSON con los tutoriales.' });
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const importedData = JSON.parse(event.target?.result as string);
+                if (!Array.isArray(importedData)) {
+                    throw new Error('El archivo no tiene el formato correcto (debe ser un array).');
+                }
+
+                startTransition(async () => {
+                    const result = await importTutorials(importedData);
+                    if (result.success) {
+                        toast({ title: 'Importación Exitosa', description: `Se han procesado ${result.count} tutoriales.` });
+                        window.location.reload();
+                    } else {
+                        toast({ title: 'Error en Importación', description: result.error, variant: 'destructive' });
+                    }
+                });
+            } catch (err: any) {
+                toast({ title: 'Error de Lectura', description: err.message, variant: 'destructive' });
+            }
+        };
+        reader.readAsText(file);
+    };
+
     if (isLoading) return <div className="h-40 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
     if (userProfile?.role !== 'Administrador') {
@@ -122,9 +171,36 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                     </h2>
                     <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Cree y organice el centro de aprendizaje</p>
                 </div>
-                <Button onClick={() => handleEdit(null)} className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px]" data-testid="tutorialmanager-new-button">
-                    <Plus className="h-4 w-4" /> Nuevo Tutorial
-                </Button>
+                <div className="flex gap-2">
+                    <Button 
+                        variant="outline" 
+                        onClick={handleExport}
+                        className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px] border-white/10 hover:bg-white/10"
+                        data-testid="tutorialmanager-export-button"
+                    >
+                        <Download className="h-4 w-4" /> Exportar
+                    </Button>
+                    <div className="relative">
+                        <input
+                            type="file"
+                            id="import-tutorials"
+                            className="hidden"
+                            accept=".json"
+                            onChange={handleImport}
+                        />
+                        <Button 
+                            variant="outline" 
+                            onClick={() => document.getElementById('import-tutorials')?.click()}
+                            className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px] border-white/10 hover:bg-white/10"
+                            data-testid="tutorialmanager-import-button"
+                        >
+                            <Upload className="h-4 w-4" /> Importar
+                        </Button>
+                    </div>
+                    <Button onClick={() => handleEdit(null)} className="rounded-2xl gap-2 h-12 px-6 font-bold uppercase tracking-widest text-[10px]" data-testid="tutorialmanager-new-button">
+                        <Plus className="h-4 w-4" /> Nuevo Tutorial
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-[2.5rem] overflow-hidden backdrop-blur-xl">
@@ -151,9 +227,33 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <a href={t.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-primary flex items-center gap-1 transition-colors" data-testid="tutorialmanager-action-link">
-                                        <ExternalLink className="h-3 w-3" /> Ver Archivo
-                                    </a>
+                                    <div className="flex items-center gap-4">
+                                        <button 
+                                            onClick={() => setPreviewTutorial(t)}
+                                            className="relative h-14 w-24 rounded-xl overflow-hidden bg-black border border-white/10 group-hover:border-primary/50 transition-all shadow-2xl group/thumb"
+                                        >
+                                            <video 
+                                                src={t.videoUrl} 
+                                                className="h-full w-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                preload="metadata"
+                                                muted
+                                                onMouseOver={e => (e.target as HTMLVideoElement).play()}
+                                                onMouseOut={e => {
+                                                    const v = e.target as HTMLVideoElement;
+                                                    v.pause();
+                                                    v.currentTime = 0;
+                                                }}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                                                <div className="h-6 w-6 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/10 group-hover/thumb:scale-110 transition-transform">
+                                                    <Play className="h-2 w-2 text-white fill-white" />
+                                                </div>
+                                            </div>
+                                        </button>
+                                        <a href={t.videoUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary flex items-center gap-1 transition-colors" data-testid="tutorialmanager-action-link">
+                                            <ExternalLink className="h-3 w-3" /> Ver Original
+                                        </a>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-right px-8 space-x-2">
                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(t)} className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all" data-testid="tutorialmanager-edit-button">
@@ -261,6 +361,68 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!previewTutorial} onOpenChange={open => !open && setPreviewTutorial(null)}>
+                <DialogContent className="max-w-6xl h-[90vh] lg:h-auto lg:max-h-[85vh] bg-neutral-950 border-white/10 rounded-[2.5rem] overflow-hidden p-0 flex flex-col lg:flex-row shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)]">
+                    {previewTutorial && (
+                        <>
+                            <DialogHeader className="sr-only">
+                                <DialogTitle>{previewTutorial.title}</DialogTitle>
+                                <DialogDescription>Previsualización del video tutorial</DialogDescription>
+                            </DialogHeader>
+                            
+                            {/* Video Section */}
+                            <div className="w-full lg:w-[65%] bg-black flex items-center justify-center p-2 lg:p-4">
+                                <div className="w-full h-full rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+                                    <VideoPlayer url={previewTutorial.videoUrl} title={previewTutorial.title} className="h-full w-full aspect-auto" />
+                                </div>
+                            </div>
+
+                            {/* Content Section */}
+                            <div className="w-full lg:w-[35%] flex flex-col border-t lg:border-t-0 lg:border-l border-white/10 bg-neutral-900/50 backdrop-blur-xl">
+                                <ScrollArea className="flex-1">
+                                    <div className="p-8 space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-black uppercase tracking-widest rounded-lg px-3 py-1">
+                                                    {previewTutorial.category}
+                                                </Badge>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Tutorial Oficial</span>
+                                            </div>
+                                            <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-tight">
+                                                {previewTutorial.title}
+                                            </h3>
+                                        </div>
+
+                                        <Separator className="bg-white/5" />
+
+                                        <div className="space-y-4">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-primary/80 flex items-center gap-2">
+                                                <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                                                Instrucciones del Proceso
+                                            </div>
+                                            <div 
+                                                className="prose prose-invert prose-sm max-w-none text-slate-400 font-medium leading-relaxed
+                                                prose-headings:uppercase prose-headings:italic prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-white
+                                                prose-p:mb-4 prose-strong:text-white prose-strong:font-black prose-li:text-slate-400 prose-blockquote:border-primary
+                                                prose-ol:pl-4 prose-ul:pl-4"
+                                                dangerouslySetInnerHTML={{ __html: previewTutorial.description }} 
+                                            />
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                                
+                                {/* Footer Info */}
+                                <div className="p-6 border-t border-white/5 bg-black/20 text-center">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-600">
+                                        Go Motel - Sistema de Gestión de Operaciones
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

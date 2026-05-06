@@ -52,6 +52,7 @@ const registerSchema = z.object({
     idCard: z.string().length(11, 'Formato de Cédula de Identidad inválido. Use 0-0000-0000.'),
     phoneNumber: z.string().length(15, 'Formato de teléfono inválido. Use (506) XXXX-XXXX.'),
     whatsappNumber: z.string().optional(),
+    role: z.enum(['Administrador', 'Recepcion', 'Conserje', 'Contador']).optional(),
 }).refine(data => {
     if (data.whatsappNumber && data.whatsappNumber.length > 0) {
         return data.whatsappNumber.length === 15;
@@ -69,37 +70,50 @@ export async function register(values: z.infer<typeof registerSchema>) {
              const errorMessages = Object.values(validatedFields.error.flatten().fieldErrors).join(' ');
             return { error: errorMessages || 'Campos inválidos.' };
         }
-        const { email, password } = validatedFields.data;
+        const { email, password, firstName, lastName, secondLastName, birthDate, idCard, phoneNumber, whatsappNumber, role } = validatedFields.data;
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
         const user = userCredential.user;
 
-        // Check if this is the first user to assign roles
-        const adminRolesQuery = await getDocs(collection(db, 'roles_admin'));
-        const isFirstUser = adminRolesQuery.empty;
-        const userRole = isFirstUser ? 'Administrador' : 'Recepcion';
+        try {
+            // Check if this is the first user to assign roles
+            const adminRolesQuery = await getDocs(collection(db, 'roles_admin'));
+            const isFirstUser = adminRolesQuery.empty;
+            const userRole = role || (isFirstUser ? 'Administrador' : 'Recepcion');
 
-        if (isFirstUser) {
-            // This is the first user, make them an admin.
-            await setDoc(doc(db, 'roles_admin', user.uid), { admin: true });
+            if (isFirstUser) {
+                // This is the first user, make them an admin.
+                await setDoc(doc(db, 'roles_admin', user.uid), { admin: true });
+            }
+
+            // Create user profile in Firestore
+            await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                secondLastName: secondLastName || '',
+                birthDate: Timestamp.fromDate(birthDate),
+                idCard: idCard,
+                phoneNumber: phoneNumber,
+                whatsappNumber: whatsappNumber || '',
+                createdAt: Timestamp.now(),
+                role: userRole,
+                status: 'Active',
+                photoURL: user.photoURL || '',
+            });
+        } catch (firestoreError) {
+            // If Firestore fails, we should ideally delete the Auth user to allow retries
+            // but since we are using the client SDK on the server without admin privileges,
+            // this might not always work as expected depending on current session.
+            // However, we'll try to delete it.
+            try {
+                await user.delete();
+            } catch (deleteError) {
+                console.error('Failed to cleanup auth user after firestore failure:', deleteError);
+            }
+            throw firestoreError;
         }
-
-        // Create user profile in Firestore
-        await setDoc(doc(db, 'users', user.uid), {
-            uid: user.uid,
-            email: values.email,
-            firstName: values.firstName,
-            lastName: values.lastName,
-            secondLastName: values.secondLastName || '',
-            birthDate: Timestamp.fromDate(values.birthDate),
-            idCard: values.idCard,
-            phoneNumber: values.phoneNumber,
-            whatsappNumber: values.whatsappNumber || '',
-            createdAt: Timestamp.now(),
-            role: userRole,
-            status: 'Active',
-            photoURL: user.photoURL || '',
-        });
         
 
     } catch (error: any) {

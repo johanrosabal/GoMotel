@@ -141,7 +141,7 @@ export default function LoginPage() {
                     <FormControl>
                       <div className="relative group">
                         <Input
-                          placeholder="admin@gomotel.com"
+                          placeholder="Ingresar correo"
                           {...field}
                           className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-email-input"
                         />
@@ -165,7 +165,7 @@ export default function LoginPage() {
                       <div className="relative group">
                         <Input
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
+                          placeholder=""
                           {...field}
                           className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-password-input"
                         />

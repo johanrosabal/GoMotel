@@ -188,8 +188,9 @@ export interface UserProfile {
   whatsappNumber?: string;
   createdAt: Timestamp;
   role: UserRole;
-  status: 'Active' | 'Paused';
+  status: 'Active' | 'Paused' | 'Deleted';
   photoURL?: string;
+  deletedAt?: Timestamp;
 }
 
 export interface Client {

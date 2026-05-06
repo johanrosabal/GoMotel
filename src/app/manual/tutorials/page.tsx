@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getTutorials } from '@/lib/actions/tutorial.actions';
+import { cn } from '@/lib/utils';
 import { VideoPlayer } from '@/components/dashboard/VideoPlayer';
 import {
     BookOpen,

@@ -25,6 +25,8 @@ const statusColorStyles: Record<Reservation['status'], string> = {
     Completed: 'border-slate-500/50 shadow-slate-500/10',
 };
 
+import InvoiceSuccessDialog from './InvoiceSuccessDialog';
+
 const statusBadgeStyles: Record<Reservation['status'], string> = {
     Confirmed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     'Checked-in': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -51,6 +53,8 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
+    const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
     useEffect(() => {
         if (reservation.status !== 'Checked-in') {
@@ -92,7 +96,12 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
             if (result?.error) {
                 toast({ title: 'Error en Check-in', description: result.error, variant: 'destructive' });
             } else {
-                toast({ title: 'Check-in Exitoso', description: `¡Huésped ${reservation.guestName} registrado!` });
+                if (result?.invoiceId) {
+                    setInvoiceId(result.invoiceId);
+                    setTimeout(() => setSuccessModalOpen(true), 200);
+                } else {
+                    toast({ title: 'Check-in Exitoso', description: `¡Huésped ${reservation.guestName} registrado!` });
+                }
             }
         });
     };
@@ -244,7 +253,17 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                                     )}
                                 </Button>
                             ) : (
-                                <CheckInFromReservationDialog reservation={reservation}>
+                                <CheckInFromReservationDialog 
+                                    reservation={reservation}
+                                    onCheckInSuccess={(id) => {
+                                        if (id) {
+                                            setInvoiceId(id);
+                                            setTimeout(() => setSuccessModalOpen(true), 200);
+                                        } else {
+                                            toast({ title: '¡Éxito!', description: `El ingreso de ${reservation.guestName} se ha registrado.` });
+                                        }
+                                    }}
+                                >
                                     <Button
                                         disabled={isPending}
                                         className="w-full h-14 rounded-2xl bg-white text-black hover:bg-primary hover:text-black font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all group-hover:translate-y-[-2px] active:translate-y-0" id="reservationcard-button-1" data-testid="reservationcard-action-checkin-button"
@@ -267,7 +286,17 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                                         Ingresar Huésped
                                     </Button>
                                 ) : (
-                                    <CheckInFromReservationDialog reservation={reservation}>
+                                    <CheckInFromReservationDialog 
+                                        reservation={reservation}
+                                        onCheckInSuccess={(id) => {
+                                            if (id) {
+                                                setInvoiceId(id);
+                                                setTimeout(() => setSuccessModalOpen(true), 200);
+                                            } else {
+                                                toast({ title: '¡Éxito!', description: `El ingreso de ${reservation.guestName} se ha registrado.` });
+                                            }
+                                        }}
+                                    >
                                         <Button
                                             disabled={isPending}
                                             className="h-14 rounded-2xl bg-white text-black hover:bg-primary font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all group-hover:translate-y-[-2px] active:translate-y-0" id="reservationcard-button-ingresar" data-testid="reservationcard-action-checkin-button"
@@ -353,6 +382,12 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <InvoiceSuccessDialog 
+                open={successModalOpen} 
+                onOpenChange={setSuccessModalOpen} 
+                invoiceId={invoiceId} 
+            />
         </>
     );
 }

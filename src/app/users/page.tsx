@@ -12,6 +12,7 @@ export default async function UsersPage() {
       ...user,
       createdAt: user.createdAt.toDate().toISOString(),
       birthDate: user.birthDate?.toDate().toISOString() || '',
+      deletedAt: user.deletedAt ? user.deletedAt.toDate().toISOString() : null,
   }));
 
   return (

@@ -6,15 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Eye, Edit, UserX, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, UserX, UserCheck, Trash2 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import UserFormDialog from './UserFormDialog';
-import { toggleUserStatus, updateUserRole } from '@/lib/actions/user.actions';
+import { toggleUserStatus, updateUserRole, deleteUser } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 
 type SerializedUserProfile = Omit<UserProfile, 'createdAt' | 'birthDate'> & {
@@ -24,6 +25,7 @@ type SerializedUserProfile = Omit<UserProfile, 'createdAt' | 'birthDate'> & {
 
 function ActionsMenu({ user }: { user: SerializedUserProfile }) {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
@@ -34,6 +36,17 @@ function ActionsMenu({ user }: { user: SerializedUserProfile }) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {
                 toast({ title: 'Estado Actualizado', description: `La cuenta ahora está ${result.newStatus === 'Active' ? 'Activa' : 'Pausada'}.` });
+            }
+        });
+    };
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const result = await deleteUser(user.id);
+            if (result.error) {
+                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Usuario Eliminado', description: 'El perfil ha sido removido del sistema.' });
             }
         });
     };
@@ -64,8 +77,37 @@ function ActionsMenu({ user }: { user: SerializedUserProfile }) {
                             <><UserCheck className="mr-2 h-4 w-4" /> Activar Cuenta</>
                         )}
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                        onSelect={() => setIsDeleteDialogOpen(true)}
+                        className="text-destructive focus:text-destructive"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar Usuario
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="rounded-[2rem] border-white/10 bg-slate-950/90 backdrop-blur-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-white">¿Confirmar Eliminación?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400">
+                            Esta acción eliminará el perfil de <span className="font-bold text-white">{user.firstName} {user.lastName}</span> permanentemente del sistema. No se podrá deshacer.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 pt-4">
+                        <AlertDialogCancel className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px]">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDelete}
+                            className="rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-rose-500/20"
+                        >
+                            Eliminar Permanentemente
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <UserFormDialog user={user} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
         </>
     );
@@ -78,6 +120,7 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
+      if (user.status === 'Deleted') return false;
       if (!user.firstName || !user.lastName || !user.email) return false;
       const searchMatch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||

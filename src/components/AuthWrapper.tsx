@@ -5,7 +5,7 @@ import { useFirebase } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const publicRoutes = ['/', '/login', '/register', '/public/menu', '/public/order'];
+const publicRoutes = ['/', '/login', '/register', '/public/menu', '/public/order', '/manual/tutorials'];
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useFirebase();
