@@ -300,9 +300,9 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             const updates: Record<string, any> = { items: updatedItems };
 
-            // Recalculate area statuses
-            const kItems = updatedItems.filter(i => i.category === 'Food');
-            const bItems = updatedItems.filter(i => i.category === 'Beverage');
+            // Recalculate area statuses - ignore cancelled items
+            const kItems = updatedItems.filter(i => i.category === 'Food' && i.status !== 'Cancelado');
+            const bItems = updatedItems.filter(i => i.category === 'Beverage' && i.status !== 'Cancelado');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
                 if (items.length === 0) return 'Listo'; 

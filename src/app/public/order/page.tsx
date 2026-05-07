@@ -26,7 +26,18 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle } from 'lucide-react';
 
 type CartItem = {
     service: Service;
@@ -59,6 +70,9 @@ function OrderPageContent() {
     const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
     const [currentNoteValue, setCurrentNoteValue] = useState('');
     const [selectedLocationType, setSelectedLocationType] = useState<string>('Table');
+    const [itemToCancel, setItemToCancel] = useState<any>(null);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
     // 1. Fetch Table Data
     const tableRef = useMemoFirebase(() => tableId ? doc(firestore!, 'restaurantTables', tableId) : null, [firestore, tableId]);
@@ -150,7 +164,7 @@ function OrderPageContent() {
         const taxMap = new Map<string, { name: string; percentage: number; amount: number }>();
 
         if (allTaxes && currentOrder) {
-            orderItems.forEach(item => {
+            orderItems.filter(item => item.status !== 'Cancelado').forEach(item => {
                 const service = availableServices.find(s => s.id === item.serviceId);
                 const taxIds = service?.taxIds || [];
                 const isTaxIncluded = service?.taxIncluded || false;
@@ -284,12 +298,16 @@ function OrderPageContent() {
     };
 
     const handleCancelItem = (item: any) => {
-        if (!currentOrder) return;
-        if (!confirm("¿Seguro que desea cancelar este producto?")) return;
+        setItemToCancel(item);
+        setCancelDialogOpen(true);
+    };
+
+    const onConfirmCancel = () => {
+        if (!currentOrder || !itemToCancel) return;
 
         startTransition(async () => {
-            const orderId = item.parentOrderId || currentOrder.id;
-            const result = await cancelOrderItem(orderId, item.id);
+            const orderId = itemToCancel.parentOrderId || currentOrder.id;
+            const result = await cancelOrderItem(orderId, itemToCancel.id, 'Cancelado por el cliente');
             if (result.error) {
                 toast({ title: "Error", description: result.error, variant: 'destructive' });
             } else {
@@ -298,6 +316,8 @@ function OrderPageContent() {
                     description: "El producto ha sido eliminado de su cuenta.",
                 });
             }
+            setCancelDialogOpen(false);
+            setItemToCancel(null);
         });
     };
 
@@ -497,7 +517,7 @@ function OrderPageContent() {
                 <TabsContent value="account" className="flex-1 overflow-hidden mt-0 p-4">
                     <ScrollArea className="h-full">
                         <div className="space-y-6 pb-24">
-                            {currentOrder ? (
+                            {currentOrder && currentOrder.items.some(i => i.status !== 'Cancelado') ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between px-1">
                                         <h2 className="font-black text-xs uppercase tracking-widest text-neutral-500">Consumo Acumulado</h2>
@@ -512,7 +532,7 @@ function OrderPageContent() {
                                         )}
                                     </div>
                                     <div className="rounded-2xl border border-neutral-800 bg-neutral-900/30 overflow-hidden">
-                                        {currentOrder.items.map((item, idx) => (
+                                        {currentOrder.items.filter(item => item.status !== 'Cancelado').map((item, idx) => (
                                             <div key={item.id || idx} className="p-4 border-b border-neutral-800/50 flex justify-between items-center group hover:bg-neutral-800/10 transition-colors">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex flex-col">
@@ -551,7 +571,7 @@ function OrderPageContent() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 shrink-0">
-                                                    {(item.status === 'Pendiente' || (!item.status && (item.category === 'Food' ? currentOrder.kitchenStatus === 'Pendiente' : currentOrder.barStatus === 'Pendiente'))) && (
+                                                    {item.status !== 'Entregado' && (
                                                         <button
                                                             key={item.id}
                                                             onClick={() => handleCancelItem(item)}
@@ -638,10 +658,16 @@ function OrderPageContent() {
                     <div className="flex gap-3">
                         <Button
                             variant="outline"
-                            className="bg-neutral-800 border-none h-14 w-14 rounded-2xl shrink-0"
-                            onClick={() => setCart([])} id="page-button-1-1" data-testid="order-action-button"
+                            size="icon"
+                            className="h-12 w-12 rounded-xl bg-neutral-800 border-neutral-700 shrink-0 relative"
+                            onClick={() => setOrderDialogOpen(true)} data-testid="order-view-cart-button"
                         >
-                            <ShoppingCart className="h-6 w-6 text-neutral-400" />
+                            <ShoppingCart className="h-5 w-5 text-neutral-400" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-white shadow-lg animate-in zoom-in duration-300">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Button>
                         <Button
                             className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
@@ -680,6 +706,115 @@ function OrderPageContent() {
                     <DialogFooter className="gap-2">
                         <Button variant="ghost" onClick={() => setNoteDialogOpen(false)} className="text-neutral-400 hover:text-white" id="page-button-cancelar" data-testid="order-cancel-button">CANCELAR</Button>
                         <Button onClick={handleSaveNote} className="font-black uppercase text-xs tracking-widest h-11 rounded-xl" id="page-button-guardar-nota" data-testid="order-save-button">GUARDAR NOTA</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Cancellation Confirmation Dialog */}
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                <AlertDialogContent className="bg-neutral-950 border-neutral-900 text-white max-w-[calc(100vw-2rem)] sm:max-w-[400px] rounded-2xl shadow-2xl">
+
+                    <AlertDialogHeader>
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                                <AlertTriangle className="h-6 w-6 text-red-500" />
+                            </div>
+                            <div>
+                                <AlertDialogTitle className="text-xl font-black uppercase tracking-tighter italic">¿Eliminar Producto?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-neutral-500 text-xs font-bold uppercase tracking-widest mt-0.5">Esta acción no se puede deshacer.</AlertDialogDescription>
+                            </div>
+                        </div>
+                        {itemToCancel && (
+                            <div className="mt-4 p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Producto a cancelar</span>
+                                    <span className="font-black text-sm uppercase text-white">{itemToCancel.name}</span>
+                                </div>
+                                <span className="font-black text-primary">{formatCurrency(itemToCancel.price * itemToCancel.quantity)}</span>
+                            </div>
+                        )}
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6 flex-row gap-2">
+                        <AlertDialogCancel 
+                            className="flex-1 bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-xl"
+                            onClick={() => {
+                                setCancelDialogOpen(false);
+                                setItemToCancel(null);
+                            }}
+                        >
+                            No, Volver
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={onConfirmCancel}
+                            disabled={isPending}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-xl border-none"
+                        >
+                            {isPending ? "CANCELANDO..." : "SÍ, ELIMINAR"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Order Review Dialog (Cart) */}
+            <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
+                <DialogContent className="bg-neutral-950 border-neutral-900 text-white max-w-md mx-auto h-[80vh] flex flex-col p-0 overflow-hidden rounded-t-3xl sm:rounded-2xl">
+                    <DialogHeader className="p-6 border-b border-neutral-900 shrink-0">
+                        <DialogTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-2">
+                            <ShoppingCart className="h-5 w-5 text-primary" />
+                            Tu Pedido
+                        </DialogTitle>
+                        <DialogDescription className="text-neutral-500 font-bold uppercase text-[10px] tracking-widest">
+                            Revisa y confirma los productos antes de enviarlos.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <ScrollArea className="flex-1 p-6">
+                        <div className="space-y-4">
+                            {cart.map((item, idx) => (
+                                <div key={item.service.id} className="flex gap-4 p-3 rounded-2xl bg-neutral-900/50 border border-neutral-800/50">
+                                    <Avatar className="h-16 w-16 rounded-xl border border-neutral-800 shrink-0">
+                                        <AvatarImage src={item.service.imageUrl || undefined} className="object-cover" />
+                                        <AvatarFallback className="bg-neutral-800 text-neutral-600 font-black italic">{item.service.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 flex flex-col justify-center gap-1">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="font-black text-sm uppercase tracking-tight">{item.service.name}</h4>
+                                            <button 
+                                                onClick={() => setCart(prev => prev.filter(i => i.service.id !== item.service.id))}
+                                                className="text-neutral-600 hover:text-red-500 transition-colors"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <div className="flex items-center gap-3 bg-neutral-800 rounded-lg p-1 px-2 border border-neutral-700">
+                                                <button onClick={() => handleRemoveFromCart(item.service.id)} className="text-neutral-400 hover:text-primary"><Minus className="h-3 w-3" /></button>
+                                                <span className="font-black text-xs text-primary min-w-[12px] text-center">{item.quantity}</span>
+                                                <button onClick={() => handleAddToCart(item.service)} className="text-neutral-400 hover:text-primary"><Plus className="h-3 w-3" /></button>
+                                            </div>
+                                            <span className="font-black text-neutral-200">{formatCurrency(item.service.price * item.quantity)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+
+                    <DialogFooter className="p-6 border-t border-neutral-900 bg-neutral-900/20 shrink-0 flex flex-col gap-4">
+                        <div className="flex justify-between items-center w-full px-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">Subtotal del Pedido</span>
+                            <span className="text-xl font-black text-white italic">{formatCurrency(cartTotal)}</span>
+                        </div>
+                        <Button 
+                            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
+                            onClick={() => {
+                                setOrderDialogOpen(false);
+                                handleSendOrder();
+                            }}
+                            disabled={isPending}
+                        >
+                            {isPending ? "ENVIANDO..." : `PEDIR AHORA`}
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

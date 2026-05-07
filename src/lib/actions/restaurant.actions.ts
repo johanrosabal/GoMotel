@@ -21,6 +21,7 @@ import {
 import { revalidatePath } from 'next/cache';
 import { db } from '../firebase';
 import type { Order, Service, AppliedTax, RestaurantTable, Tax, OrderItem, Invoice, PrepStatus } from '@/types';
+import { logCancellationAudit } from './audit.actions';
 
 /**
  * Creates a new restaurant table or bar spot.
@@ -88,6 +89,23 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             const tableSnap = await transaction.get(tableRef);
             if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
             
+            // A. PRE-READ ALL PRODUCTS (Unique IDs only to save bandwidth)
+            const uniqueProductIds = Array.from(new Set(items.map(i => i.service.id)));
+            const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+            
+            for (const sId of uniqueProductIds) {
+                const itemRef = items.find(i => i.service.id === sId);
+                const sRef = doc(db, 'products', sId);
+                const sSnap = await transaction.get(sRef);
+                productSnapshots.push({ 
+                    ref: sRef, 
+                    data: sSnap.exists() ? sSnap.data() : null, 
+                    sId,
+                    name: itemRef?.service.name || 'Producto'
+                });
+            }
+
+            // B. LOGIC & CALCULATIONS
             const tableData = tableSnap.data() as RestaurantTable;
             const locationLabel = `${TYPE_LABELS[tableData.type] || tableData.type} ${tableData.number}`;
 
@@ -103,18 +121,13 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             );
 
             for (const item of items) {
+                const ps = productSnapshots.find(p => p.sId === item.service.id);
+                if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                    throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                }
+
                 if (item.service.category === 'Food') hasKitchen = true;
                 if (item.service.category === 'Beverage') hasBar = true;
-
-                if (item.service.source !== 'Internal') {
-                    const sRef = doc(db, 'products', item.service.id);
-                    const sSnap = await transaction.get(sRef);
-                    const currentStock = sSnap.data()?.stock || 0;
-                    if (currentStock < item.quantity) {
-                        throw new Error(`Stock insuficiente para ${item.service.name}.`);
-                    }
-                    transaction.update(sRef, { stock: increment(-item.quantity) });
-                }
 
                 const itemCreatedAt = Timestamp.now();
                 orderItems.push({
@@ -129,7 +142,6 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     createdAt: itemCreatedAt
                 });
 
-                // Calculate item taxes and subtotal correctly
                 const effectiveTaxIds = new Set(item.service.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
 
@@ -141,13 +153,11 @@ export async function openTableAccount(tableId: string, items: { service: Servic
 
                 let itemSubtotal = 0;
                 const itemQuantityPrice = item.service.price * item.quantity;
-
                 if (item.service.taxIncluded) {
                     itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
                 } else {
                     itemSubtotal = itemQuantityPrice;
                 }
-
                 orderSubtotal += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
@@ -155,11 +165,8 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                     if (taxInfo) {
                         const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
                         const existing = taxMap.get(taxId);
-                        if (existing) {
-                            existing.amount += taxAmount;
-                        } else {
-                            taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
-                        }
+                        if (existing) existing.amount += taxAmount;
+                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
                     }
                 });
             }
@@ -188,9 +195,17 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                 source: source
             };
 
+            // C. BATCHED WRITES AT THE END
+            for (const ps of productSnapshots) {
+                if (ps.data && ps.data.source !== 'Internal') {
+                    const totalQty = items.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                    transaction.update(ps.ref, { stock: increment(-totalQty) });
+                }
+            }
             transaction.set(orderRef, newOrder);
             transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
         });
+
 
         revalidatePath('/pos');
         revalidatePath('/public/order');
@@ -213,13 +228,29 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             const orderSnap = await transaction.get(orderRef);
             if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
             
+            // A. PRE-READ ALL PRODUCTS (Unique IDs only)
+            const uniqueProductIds = Array.from(new Set(items.map(i => i.service.id)));
+            const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+            
+            for (const sId of uniqueProductIds) {
+                const itemRef = items.find(i => i.service.id === sId);
+                const sRef = doc(db, 'products', sId);
+                const sSnap = await transaction.get(sRef);
+                productSnapshots.push({ 
+                    ref: sRef, 
+                    data: sSnap.exists() ? sSnap.data() : null, 
+                    sId,
+                    name: itemRef?.service.name || 'Producto'
+                });
+            }
+
+            // B. LOGIC & CALCULATIONS
             const orderData = orderSnap.data() as Order;
             const updatedItems = [...orderData.items];
             let hasNewKitchen = false;
             let hasNewBar = false;
             
             const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
-            // Initialize taxMap with existing order taxes if they exist
             if (orderData.taxes) {
                 orderData.taxes.forEach(t => taxMap.set(t.taxId, { ...t }));
             }
@@ -230,13 +261,17 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             );
 
             let newSubtotalAddition = 0;
-
             const itemCreatedAt = Timestamp.now();
+
             for (const item of items) {
+                const ps = productSnapshots.find(p => p.sId === item.service.id);
+                if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                    throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                }
+
                 if (item.service.category === 'Food') hasNewKitchen = true;
                 if (item.service.category === 'Beverage') hasNewBar = true;
 
-                // IMPORTANT: Stop merging items to track status per order batch
                 updatedItems.push({
                     id: Math.random().toString(36).substring(2, 9),
                     serviceId: item.service.id,
@@ -249,12 +284,6 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                     createdAt: itemCreatedAt
                 });
 
-                if (item.service.source !== 'Internal') {
-                    const sRef = doc(db, 'products', item.service.id);
-                    transaction.update(sRef, { stock: increment(-item.quantity) });
-                }
-
-                // Calculate item taxes and subtotal addition
                 const effectiveTaxIds = new Set(item.service.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
 
@@ -266,13 +295,11 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
 
                 let itemSubtotal = 0;
                 const itemQuantityPrice = item.service.price * item.quantity;
-
                 if (item.service.taxIncluded) {
                     itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
                 } else {
                     itemSubtotal = itemQuantityPrice;
                 }
-
                 newSubtotalAddition += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
@@ -280,18 +307,15 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                     if (taxInfo) {
                         const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
                         const existing = taxMap.get(taxId);
-                        if (existing) {
-                            existing.amount += taxAmount;
-                        } else {
-                            taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
-                        }
+                        if (existing) existing.amount += taxAmount;
+                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
                     }
                 });
             }
 
-            const appliedTaxes = Array.from(taxMap.values());
             const currentSubtotal = orderData.subtotal || orderData.total;
             const finalSubtotal = currentSubtotal + newSubtotalAddition;
+            const appliedTaxes = Array.from(taxMap.values());
             const finalTotalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
             const finalTotal = finalSubtotal + finalTotalTax;
 
@@ -311,8 +335,16 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                 updates.status = 'Pendiente';
             }
 
+            // C. BATCHED WRITES AT THE END
+            for (const ps of productSnapshots) {
+                if (ps.data && ps.data.source !== 'Internal') {
+                    const totalQty = items.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                    transaction.update(ps.ref, { stock: increment(-totalQty) });
+                }
+            }
             transaction.update(orderRef, updates);
         });
+
 
         revalidatePath('/pos');
         revalidatePath('/public/order');
@@ -393,7 +425,8 @@ export async function payRestaurantAccount(
                 barStatus: 'Entregado',
                 paymentStatus: 'Pagado', 
                 invoiceId: invoiceIdForReturn,
-                billRequested: false
+                billRequested: false,
+                items: (orderData.items || []).map(i => i.status === 'Cancelado' ? i : { ...i, status: 'Entregado' })
             });
             
             if (orderData.locationType !== 'Stay') {
@@ -461,9 +494,9 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             const updates: Record<string, any> = { items: updatedItems };
 
-            // Recalculate area statuses
-            const kItems = updatedItems.filter(i => i.category === 'Food');
-            const bItems = updatedItems.filter(i => i.category === 'Beverage');
+            // Recalculate area statuses - ignoring cancelled items
+            const kItems = updatedItems.filter(i => i.category === 'Food' && i.status !== 'Cancelado');
+            const bItems = updatedItems.filter(i => i.category === 'Beverage' && i.status !== 'Cancelado');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
                 if (items.length === 0) return 'Listo'; // If no items for this area, it's "done"
@@ -535,6 +568,21 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
             
             const item = orderData.items[itemIndex];
             const itemPrice = item.price * item.quantity;
+
+            // 0. Audit check: if it was already in prep or ready, log it as a loss
+            if (item.status === 'En preparación' || item.status === 'Listo') {
+                await logCancellationAudit({
+                    orderId,
+                    serviceId: item.serviceId,
+                    serviceName: item.name,
+                    quantity: item.quantity,
+                    previousStatus: item.status,
+                    reason,
+                    notes: notes || '',
+                    locationLabel: orderData.locationLabel || 'Unknown',
+                    area: item.category === 'Food' ? 'Kitchen' : item.category === 'Beverage' ? 'Bar' : 'Other'
+                });
+            }
 
             // 1. Restore Stock
             const serviceRef = doc(db, 'products', serviceId);
@@ -740,7 +788,7 @@ export async function requestStayBill(stayId: string) {
 /**
  * Cancels a specific item from an order, only if it's still 'Pendiente'.
  */
-export async function cancelOrderItem(orderId: string, itemId: string) {
+export async function cancelOrderItem(orderId: string, itemId: string, reason: string = 'Sin razón especificada', notes?: string) {
     try {
         const taxesSnap = await getDocs(collection(db, 'taxes'));
         const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
@@ -761,38 +809,47 @@ export async function cancelOrderItem(orderId: string, itemId: string) {
             
             if (itemIndex === -1) throw new Error("Producto no encontrado en la orden.");
             const itemToCancel = items[itemIndex];
+
+            // 1. Audit check: if it was already in prep or ready, log it as a loss
+            if (itemToCancel.status === 'En preparación' || itemToCancel.status === 'Listo') {
+                await logCancellationAudit({
+                    orderId,
+                    serviceId: itemToCancel.serviceId,
+                    serviceName: itemToCancel.name,
+                    quantity: itemToCancel.quantity,
+                    previousStatus: itemToCancel.status,
+                    reason,
+                    notes: notes || '',
+                    locationLabel: orderData.locationLabel || 'Unknown',
+                    area: itemToCancel.category === 'Food' ? 'Kitchen' : itemToCancel.category === 'Beverage' ? 'Bar' : 'Other'
+                });
+            }
             
-            if (itemToCancel.status !== 'Pendiente') {
-                throw new Error("No se puede cancelar un producto que ya está en preparación o entregado.");
-            }
+            // We now allow cancelling even if delivered to allow corrections
 
-            // Restore stock if applicable
-            if (itemToCancel.serviceId) {
-                const sRef = doc(db, 'products', itemToCancel.serviceId);
-                const sSnap = await transaction.get(sRef);
-                if (sSnap.exists() && sSnap.data().source !== 'Internal') {
-                    transaction.update(sRef, { stock: increment(itemToCancel.quantity) });
-                }
-            }
+            // A. PRE-READ ALL PRODUCTS FOR TAX RECALCULATION & STOCK RESTORE
+            const canceledServiceRef = doc(db, 'products', itemToCancel.serviceId);
+            const canceledServiceSnap = await transaction.get(canceledServiceRef);
 
-            // Mark as Cancelled instead of removing
+            // Mark the specific item as Cancelado
             const newItems = items.map(i => i.id === itemId ? { ...i, status: 'Cancelado' as PrepStatus } : i);
-            
-            // Recalculate totals (excluding Cancelled items)
-            let newSubtotal = 0;
             const activeItems = newItems.filter(i => i.status !== 'Cancelado');
+
+            // Fetch product data for all active items to recalculate taxes
+            const productSnapshots: { id: string, data: any }[] = [];
+            const uniqueActiveIds = Array.from(new Set(activeItems.map(i => i.serviceId)));
+            for (const sId of uniqueActiveIds) {
+                const sRef = doc(db, 'products', sId);
+                const sSnap = await transaction.get(sRef);
+                productSnapshots.push({ id: sId, data: sSnap.exists() ? sSnap.data() : null });
+            }
+
+            // B. LOGIC & CALCULATIONS
+            let newSubtotal = 0;
             const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
-            let hasKitchen = false;
-            let hasBar = false;
 
             for (const item of activeItems) {
-                if (item.category === 'Food') hasKitchen = true;
-                if (item.category === 'Beverage') hasBar = true;
-
-                const sRef = doc(db, 'products', item.serviceId);
-                const sSnap = await transaction.get(sRef);
-                const serviceData = sSnap.data() as Service;
-
+                const serviceData = productSnapshots.find(s => s.id === item.serviceId)?.data;
                 const effectiveTaxIds = new Set(serviceData?.taxIds || []);
                 if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
 
@@ -804,13 +861,11 @@ export async function cancelOrderItem(orderId: string, itemId: string) {
 
                 let itemSubtotal = 0;
                 const itemQuantityPrice = item.price * item.quantity;
-
                 if (serviceData?.taxIncluded) {
                     itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
                 } else {
                     itemSubtotal = itemQuantityPrice;
                 }
-
                 newSubtotal += itemSubtotal;
 
                 effectiveTaxIds.forEach(taxId => {
@@ -828,15 +883,57 @@ export async function cancelOrderItem(orderId: string, itemId: string) {
             const totalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
             const newTotal = newSubtotal + totalTax;
 
-            transaction.update(orderRef, {
+            // Recalculate area statuses
+            const getAreaStatus = (areaItems: OrderItem[]) => {
+                if (areaItems.length === 0) return 'Listo';
+                const allListo = areaItems.every(i => i.status === 'Listo' || i.status === 'Entregado');
+                const allDelivered = areaItems.every(i => i.status === 'Entregado');
+                const anyPrepping = areaItems.some(i => i.status === 'En preparación');
+                if (allDelivered) return 'Entregado';
+                if (allListo) return 'Listo';
+                return anyPrepping ? 'En preparación' : 'Pendiente';
+            };
+
+            const kStatus = getAreaStatus(activeItems.filter(i => i.category === 'Food'));
+            const bStatus = getAreaStatus(activeItems.filter(i => i.category === 'Beverage'));
+
+            const updates: Record<string, any> = {
                 items: newItems,
                 subtotal: newSubtotal,
                 taxes: appliedTaxes,
                 total: newTotal,
-                kitchenStatus: hasKitchen ? orderData.kitchenStatus : 'Entregado',
-                barStatus: hasBar ? orderData.barStatus : 'Entregado'
-            });
+                kitchenStatus: kStatus,
+                barStatus: bStatus
+            };
+
+            if (activeItems.length === 0) {
+                updates.status = 'Cancelado';
+                updates.subtotal = 0;
+                updates.total = 0;
+                updates.taxes = [];
+
+                // Liberar la mesa si ya no hay productos activos
+                if (orderData.locationId && orderData.locationType === 'RestaurantTable') {
+                    const tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                    transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                }
+            } else if (kStatus === 'Entregado' && bStatus === 'Entregado') {
+                updates.status = 'Entregado';
+            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+                updates.status = 'Listo';
+            } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
+                updates.status = 'En preparación';
+            } else {
+                updates.status = 'Pendiente';
+            }
+
+            // C. ALL WRITES AT THE END
+            if (canceledServiceSnap.exists() && canceledServiceSnap.data().source !== 'Internal') {
+                transaction.update(canceledServiceRef, { stock: increment(itemToCancel.quantity) });
+            }
+            transaction.update(orderRef, updates);
         });
+
 
         revalidatePath('/pos');
         revalidatePath('/public/order');

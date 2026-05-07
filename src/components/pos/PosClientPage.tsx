@@ -17,7 +17,8 @@ import {
     Search, ShoppingCart, Plus, Minus,
     Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft,
     ImageIcon, User, Layers, Filter, Utensils, Beer, PackageCheck, Clock, CheckCircle, Settings2, X, Sun, MapPin, UserPlus,
-    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package, BedDouble, Bell
+    Pencil, Trash2, AlertCircle, MessageSquare, Printer, SmartphoneIcon, Receipt, CheckCircle2, Package, BedDouble, Bell,
+    XCircle
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -241,16 +242,18 @@ export default function PosClientPage() {
             taxIncluded: i.service.taxIncluded || false
         }));
 
-        const existingItems = (currentOrder?.items || []).map(i => {
-            const service = availableServices.find(s => s.id === i.serviceId);
-            return {
-                price: i.price,
-                quantity: i.quantity,
-                taxIds: service?.taxIds || [],
-                taxIncluded: service?.taxIncluded || false,
-                isExisting: true
-            };
-        });
+        const existingItems = (currentOrder?.items || [])
+            .filter(i => i.status !== 'Cancelado')
+            .map(i => {
+                const service = availableServices.find(s => s.id === i.serviceId);
+                return {
+                    price: i.price,
+                    quantity: i.quantity,
+                    taxIds: service?.taxIds || [],
+                    taxIncluded: service?.taxIncluded || false,
+                    isExisting: true
+                };
+            });
 
         const allItems = [...newItems, ...existingItems];
 
@@ -608,6 +611,26 @@ export default function PosClientPage() {
                             </button>
                         );
                     })}
+                    <button
+                        className={cn(
+                            "rounded-xl h-9 sm:h-11 px-3 sm:px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest gap-1.5 sm:gap-2 flex items-center transition-all shrink-0 relative border-2",
+                            viewMode === 'ready' ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/20" : "hover:bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        )}
+                        onClick={() => { setViewMode('ready'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-entregas" data-testid="posclientpage-action-ready-tab"
+                    >
+                        <Bell className={cn("h-4 w-4", viewMode === 'ready' ? "animate-none" : "animate-bounce")} /> Entregas
+                        {activeOrders?.filter(o => 
+                            o.locationType !== 'Takeout' &&
+                            o.items?.some(i => i.status === 'Listo')
+                        ).length > 0 && (
+                            <Badge className="ml-1 bg-emerald-500 text-white border-none h-5 min-w-[20px] px-1 justify-center font-black">
+                                {activeOrders.filter(o => 
+                                    o.locationType !== 'Takeout' &&
+                                    o.items?.some(i => i.status === 'Listo')
+                                ).length}
+                            </Badge>
+                        )}
+                    </button>
                 </div>
                 <div className="flex items-center gap-2">
                     {selectedTable && (
@@ -636,7 +659,74 @@ export default function PosClientPage() {
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden p-2 sm:p-4 lg:p-6 gap-4 lg:gap-6">
                 <div className={cn("flex-1 flex flex-col min-w-0 bg-background border rounded-2xl shadow-sm overflow-hidden", step === 2 && "hidden lg:flex")}>
 
-                    {viewMode !== 'fast' && !selectedTable ? (
+                    {viewMode === 'ready' ? (
+                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
+                                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-emerald-600 flex items-center gap-3">
+                                    <Bell className="h-6 w-6 animate-pulse" /> Pedidos Listos para Entregar
+                                </h2>
+                                <Badge className="h-8 px-4 font-black uppercase tracking-widest bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 border-none">
+                                    {activeOrders?.filter(o => 
+                                        o.locationType !== 'Takeout' &&
+                                        o.items?.some(i => i.status === 'Listo')
+                                    ).length || 0} Disponibles
+                                </Badge>
+                            </div>
+                            <ScrollArea className="flex-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 p-2 pb-10">
+                                    {activeOrders
+                                        ?.filter(o => 
+                                            o.locationType !== 'Takeout' &&
+                                            o.items?.some(i => i.status === 'Listo')
+                                        )
+                                        .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+                                        .map(order => (
+                                            <div key={order.id} className="bg-gradient-to-br from-emerald-600/10 to-emerald-900/10 border-2 border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.15)] rounded-[2.5rem] overflow-hidden flex flex-col transition-all hover:scale-[1.02] hover:border-emerald-500/60 group">
+                                                <div className="p-5 border-b border-emerald-500/20 flex items-center justify-between bg-emerald-500/5 backdrop-blur-sm shrink-0">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-lg font-black uppercase truncate max-w-[170px] text-emerald-50 tracking-tight">{order.locationLabel}</span>
+                                                        <span className="text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest mt-0.5">Ticket: {order.id.slice(-5).toUpperCase()}</span>
+                                                    </div>
+                                                    <div className="h-10 w-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:rotate-12 transition-transform">
+                                                        <CheckCircle2 className="h-5 w-5" />
+                                                    </div>
+                                                </div>
+                                                
+                                                <ScrollArea className="flex-1 p-5 min-h-[120px]">
+                                                    <div className="space-y-2">
+                                                        {order.items.filter(i => i.status !== 'Cancelado').map((item, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center text-[11px] font-black uppercase tracking-tight text-emerald-100/90 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/10">
+                                                                <span className="truncate flex-1">{item.name}</span>
+                                                                <span className="ml-2 bg-emerald-500/20 px-2 rounded text-emerald-400">x{item.quantity}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </ScrollArea>
+
+                                                <div className="p-5 bg-emerald-500/5 shrink-0">
+                                                    <Button
+                                                        size="lg"
+                                                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs uppercase h-14 rounded-3xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+                                                        onClick={() => handleCompleteDelivery(order.id, order.locationType)}
+                                                        disabled={isPending}
+                                                    >
+                                                        <PackageCheck className="h-5 w-5" />
+                                                        <span>MARCAR ENTREGADO</span>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    }
+                                    {(!activeOrders || activeOrders.filter(o => o.locationType !== 'Takeout' && o.items?.some(i => i.status === 'Listo')).length === 0) && (
+                                        <div className="col-span-full py-20 flex flex-col items-center justify-center text-muted-foreground/30 animate-in fade-in duration-1000">
+                                            <PackageCheck className="h-24 w-24 mb-4 opacity-10" />
+                                            <p className="font-black text-lg uppercase tracking-widest">No hay pedidos pendientes de entrega</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    ) : viewMode !== 'fast' && !selectedTable ? (
                         <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 sm:p-6 lg:p-10 animate-in fade-in duration-300">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
                                 <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-primary">Seleccione Ubicación: {getLocationLabel(viewMode)}</h2>
@@ -645,7 +735,12 @@ export default function PosClientPage() {
                             <ScrollArea className="flex-1">
                                 <div id="pos-tables-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2 pb-10">
                                     {filteredTables.map(table => {
-                                        const tableOrders = activeOrders?.filter(o => o.locationId === table.id) || [];
+                                        const tableOrders = activeOrders?.filter(o => 
+                                            o.locationId === table.id && 
+                                            o.status !== 'Cancelado' && 
+                                            o.total > 0 &&
+                                            o.items?.some(i => i.status !== 'Cancelado')
+                                        ) || [];
                                         const hasOrders = tableOrders.length > 0;
                                         const isPublicOrder = tableOrders.some(o => o.source === 'Public');
                                         const oldestOrder = hasOrders ? [...tableOrders].sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis())[0] : null;
@@ -840,58 +935,6 @@ export default function PosClientPage() {
                                 </div>
                             )}
 
-                            {/* Ready Orders Global Notification */}
-                            {activeOrders && activeOrders.some(o => o.status === 'Listo' && o.locationType !== 'Takeout') && (
-                                <div className="px-4 pt-4 shrink-0 animate-in fade-in slide-in-from-top-4 duration-700">
-                                    <div className="flex items-center justify-between mb-3 px-1">
-                                        <div className="flex items-center gap-2">
-                                            <div className="bg-emerald-500/20 p-1.5 rounded-lg border border-emerald-500/30">
-                                                <Bell className="h-4 w-4 text-emerald-500 animate-pulse" />
-                                            </div>
-                                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500">
-                                                Pedidos Listos para Entregar
-                                            </h3>
-                                        </div>
-                                        <Badge variant="outline" className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full shadow-inner">
-                                            {activeOrders.filter(o => o.status === 'Listo' && o.locationType !== 'Takeout').length} DISPONIBLES
-                                        </Badge>
-                                    </div>
-                                    <ScrollArea className="w-full whitespace-nowrap pb-3">
-                                        <div className="flex gap-4 px-1">
-                                            {activeOrders
-                                                .filter(o => o.status === 'Listo' && o.locationType !== 'Takeout')
-                                                .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
-                                                .map(order => (
-                                                    <div key={order.id} className="min-w-[260px] bg-gradient-to-br from-emerald-600/10 to-emerald-900/10 border-2 border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.1)] rounded-[2rem] overflow-hidden shrink-0 transition-all hover:scale-[1.02] hover:border-emerald-500/60 group">
-                                                        <div className="p-4 border-b border-emerald-500/20 flex items-center justify-between bg-emerald-500/5 backdrop-blur-sm">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-black uppercase truncate max-w-[170px] text-emerald-50 tracking-tight">{order.locationLabel}</span>
-                                                                <span className="text-[9px] font-bold text-emerald-400/60 uppercase tracking-widest mt-0.5">Ticket: {order.id.slice(-5).toUpperCase()}</span>
-                                                            </div>
-                                                            <div className="h-8 w-8 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:rotate-12 transition-transform">
-                                                                <CheckCircle2 className="h-4 w-4" />
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-3 bg-emerald-500/5">
-                                                            <Button
-                                                                size="sm"
-                                                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-[11px] uppercase h-11 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                                                onClick={() => handleCompleteDelivery(order.id, order.locationType)}
-                                                                disabled={isPending}
-                                                            >
-                                                                <PackageCheck className="h-4 w-4" />
-                                                                <span>MARCAR ENTREGADO</span>
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
-                                        <ScrollBar orientation="horizontal" />
-                                    </ScrollArea>
-                                    <Separator className="mt-2 opacity-10" />
-                                </div>
-                            )}
 
                             {viewMode === 'fast' && activeOrders && activeOrders.some(o => o.locationType === 'Takeout' && o.status !== 'Completado' && o.status !== 'Cancelado') && (
                                 <div className="px-4 pt-4 shrink-0 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -1085,12 +1128,17 @@ export default function PosClientPage() {
                             {currentOrder ? `Orden: ${currentOrder.label}` : 'Nuevo Pedido'}
                         </CardTitle>
                         {step === 1 && (cart.length > 0 || selectedTable) && (
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => { handleClearCart(); setSelectedTable(null); setSelectedOrderId(null); setNewAccountLabel(''); }}
-                                className="text-destructive h-8 px-2 font-bold uppercase text-[9px] hover:bg-destructive/10 transition-colors rounded-lg" id="posclientpage-button-9" data-testid="posclientpage-action-button"
+                                className="h-8 text-red-600 hover:text-white hover:bg-red-600 font-black uppercase text-[10px] tracking-widest gap-2 rounded-xl transition-all border border-red-500/20 bg-red-500/5 px-3"
+                                id="posclientpage-button-salir"
+                                data-testid="posclientpage-action-exit-button"
                             >
-                                {cart.length > 0 ? 'Limpiar' : 'Salir'}
-                            </button>
+                                <XCircle className="h-3.5 w-3.5" />
+                                {cart.length > 0 ? 'LIMPIAR' : 'SALIR'}
+                            </Button>
                         )}
                     </div>
 
@@ -1125,7 +1173,7 @@ export default function PosClientPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            {currentOrder && currentOrder.items.map((item, idx) => (
+                                            {currentOrder && currentOrder.items.filter(i => i.status !== 'Cancelado').map((item, idx) => (
                                                 <div key={`existing-${idx}`} className="flex flex-col gap-1 p-2.5 rounded-xl border bg-muted/20 opacity-90 border-dashed group/existing-item">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <div className="flex-1 min-w-0">
@@ -1136,6 +1184,7 @@ export default function PosClientPage() {
                                                                     const status = item.status || (item.category === 'Food' ? currentOrder.kitchenStatus : currentOrder.barStatus);
 
                                                                     if (status === 'Entregado') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-green-500/30 text-green-500 bg-green-500/5">ENTREGADO</Badge>;
+                                                                    if (status === 'Listo') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-emerald-500/30 text-emerald-500 bg-emerald-500/5">LISTO</Badge>;
                                                                     if (status === 'En preparación') return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-blue-500/30 text-blue-500 bg-blue-500/5 animate-pulse">COCINANDO</Badge>;
                                                                     return <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-amber-500/30 text-amber-500 bg-amber-500/5">PENDIENTE</Badge>;
                                                                 })()}
@@ -1150,11 +1199,11 @@ export default function PosClientPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-7 w-7 text-destructive opacity-0 group-hover/existing-item:opacity-100 transition-opacity hover:bg-destructive/10"
+                                                            className="h-9 w-9 text-red-600 bg-red-500/10 border border-red-500/20 opacity-100 hover:bg-red-600 hover:text-white transition-all shadow-sm rounded-xl"
                                                             onClick={() => handleOpenRemoveItemDialog(currentOrder.id, item.serviceId, item.name)}
                                                             disabled={isPending} id="posclientpage-button-2-1" data-testid="posclientpage-delete-button"
                                                         >
-                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            <Trash2 className="h-4.5 w-4.5" />
                                                         </Button>
                                                     </div>
                                                     {item.notes && (

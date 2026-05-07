@@ -2,14 +2,20 @@
 import { db } from './src/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-async function checkOrders() {
-  const q = query(collection(db, 'orders'), where('stayId', '==', 'uGp4vMP8Deji6UhMdjJr'));
-  const snap = await getDocs(q);
-  snap.forEach(doc => {
-    console.log('Order ID:', doc.id);
-    console.log('Total:', doc.data().total);
-    console.log('Items:', JSON.stringify(doc.data().items, null, 2));
-  });
+async function checkGhostOrders() {
+    console.log("Checking for ghost orders for HAB.001...");
+    const q = query(collection(db, 'orders'), where('locationLabel', '==', 'HAB.001'));
+    const snap = await getDocs(q);
+    
+    snap.forEach(doc => {
+        const data = doc.data();
+        console.log(`Order ID: ${doc.id}`);
+        console.log(`Status: ${data.status}`);
+        console.log(`Payment Status: ${data.paymentStatus}`);
+        console.log(`Items: ${data.items.length}`);
+        console.log(`CreatedAt: ${data.createdAt.toDate()}`);
+        console.log("-------------------");
+    });
 }
 
-checkOrders();
+checkGhostOrders();

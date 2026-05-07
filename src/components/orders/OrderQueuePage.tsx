@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Order, OrderItem, PrepStatus } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,25 @@ import { updateOrderStatus, updateOrderItemStatus } from '@/lib/actions/order.ac
 import { updateOrderItemStatus as updateRestaurantOrderItemStatus } from '@/lib/actions/restaurant.actions';
 import { useToast } from '@/hooks/use-toast';
 import { playNotificationSound } from '@/lib/sound';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AlertTriangle, History, Info, Trash2 } from 'lucide-react';
+import { formatDistance } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface CancellationAudit {
+    id: string;
+    orderId: string;
+    serviceId: string;
+    serviceName: string;
+    quantity: number;
+    previousStatus: string;
+    reason: string;
+    notes?: string;
+    locationLabel: string;
+    area: 'Kitchen' | 'Bar' | 'Other';
+    timestamp: any;
+}
 
 interface OrderQueuePageProps {
     type: 'Kitchen' | 'Bar';
@@ -158,8 +177,8 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
             const matchesCategory = (type === 'Kitchen' && item.category === 'Food') ||
                 (type === 'Bar' && item.category === 'Beverage');
 
-            // IMPORTANT: Only show items that are not 'Entregado' in the queue
-            return matchesCategory && item.status !== 'Entregado';
+            // IMPORTANT: Only show items that are not 'Entregado' or 'Cancelado' in the queue
+            return matchesCategory && item.status !== 'Entregado' && item.status !== 'Cancelado';
         });
         return { order, items: relevantItems };
     }).filter(o => o.items.length > 0);
@@ -171,6 +190,18 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
         lastOrderCount.current = filteredOrders.length;
     }, [filteredOrders.length]);
 
+    const auditQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, 'cancellationAudit'),
+            where('area', '==', type),
+            orderBy('timestamp', 'desc'),
+            limit(50)
+        );
+    }, [firestore, type]);
+
+    const { data: cancelledAudits, isLoading: loadingAudit } = useCollection<CancellationAudit>(auditQuery);
+
     if (isLoading) {
         return <div className="flex h-[80vh] items-center justify-center font-black text-2xl uppercase">Cargando Pedidos...</div>;
     }
@@ -178,7 +209,7 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
     return (
         <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-muted/20" data-testid="orderqueuepage-main-div">
             {/* Header Operativo */}
-            <div className="bg-background border-b p-4 flex items-center justify-between shrink-0 shadow-sm">
+            <div className="bg-background border-b p-4 flex flex-col sm:flex-row items-center justify-between shrink-0 shadow-sm gap-4">
                 <div className="flex items-center gap-4">
                     <div className={cn(
                         "p-3 rounded-2xl",
@@ -196,28 +227,108 @@ export default function OrderQueuePage({ type }: OrderQueuePageProps) {
                         </p>
                     </div>
                 </div>
+
+                <Tabs defaultValue="active" className="w-full sm:w-auto">
+                    <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/50 p-1 rounded-xl">
+                        <TabsTrigger value="active" className="rounded-lg font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                            <ChefHat className="h-4 w-4" />
+                            Cola Activa
+                        </TabsTrigger>
+                        <TabsTrigger value="cancelled" className="rounded-lg font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-destructive data-[state=active]:text-white">
+                            <History className="h-4 w-4" />
+                            Cancelados
+                            {cancelledAudits && cancelledAudits.length > 0 && (
+                                <Badge className="ml-1 bg-white text-destructive h-5 min-w-[20px] p-0 flex justify-center">{cancelledAudits.length}</Badge>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="active" className="fixed inset-0 top-[140px] overflow-hidden">
+                        <ScrollArea className="h-full p-4 lg:p-6">
+                            {filteredOrders.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground/30">
+                                    <ChefHat className="h-24 w-24 mb-4" />
+                                    <p className="text-2xl font-black uppercase tracking-[0.2em]">Sin pedidos pendientes</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                                    {filteredOrders.map(({ order, items }) => (
+                                        <OrderCard key={order.id} order={order} type={type} items={items} />
+                                    ))}
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="cancelled" className="fixed inset-0 top-[140px] overflow-hidden">
+                        <ScrollArea className="h-full p-4 lg:p-6">
+                            {!cancelledAudits || cancelledAudits.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground/20">
+                                    <Trash2 className="h-24 w-24 mb-4" />
+                                    <p className="text-2xl font-black uppercase tracking-[0.2em]">No hay registros de cancelados</p>
+                                </div>
+                            ) : (
+                                <div className="max-w-4xl mx-auto space-y-4">
+                                    <div className="bg-destructive/10 border-2 border-destructive/20 p-4 rounded-2xl flex items-center gap-4 mb-6">
+                                        <AlertTriangle className="h-8 w-8 text-destructive animate-pulse" />
+                                        <div>
+                                            <h2 className="font-black uppercase text-destructive tracking-tight">Registro de Pérdidas y Cancelaciones</h2>
+                                            <p className="text-xs font-bold opacity-70 uppercase">Estos productos fueron cancelados mientras estaban en preparación o listos.</p>
+                                        </div>
+                                    </div>
+                                    {cancelledAudits.map((audit) => (
+                                        <Card key={audit.id} className="border-2 border-border/50 hover:border-destructive/30 transition-all shadow-sm overflow-hidden group">
+                                            <div className="flex flex-col sm:flex-row">
+                                                <div className="bg-muted/30 p-4 sm:w-48 flex flex-col justify-center items-center text-center border-b sm:border-b-0 sm:border-r border-border/50">
+                                                    <span className="text-3xl font-black text-primary leading-none">{audit.quantity}</span>
+                                                    <span className="text-[10px] font-bold uppercase text-muted-foreground mt-1">Unidades</span>
+                                                    <Badge variant="outline" className="mt-2 bg-background font-black uppercase text-[9px] border-destructive/30 text-destructive">
+                                                        {audit.previousStatus}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex-1 p-4">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h3 className="text-lg font-black uppercase tracking-tight leading-none group-hover:text-destructive transition-colors">
+                                                            {audit.serviceName}
+                                                        </h3>
+                                                        <span className="text-[10px] font-black tabular-nums opacity-40">
+                                                            {audit.timestamp?.toDate().toLocaleString('es-CR')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Badge className="bg-muted text-muted-foreground border-none font-black text-[9px] uppercase tracking-wider">
+                                                            Mesa: {audit.locationLabel}
+                                                        </Badge>
+                                                        <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest flex items-center gap-1">
+                                                            <Clock className="h-3 w-3" />
+                                                            {audit.timestamp && formatDistance(audit.timestamp.toDate(), new Date(), { locale: es, addSuffix: true })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-destructive/5 border border-destructive/10 p-3 rounded-xl">
+                                                        <p className="text-[10px] font-black text-destructive uppercase mb-1 flex items-center gap-1">
+                                                            <Info className="h-3 w-3" /> Motivo de Cancelación
+                                                        </p>
+                                                        <p className="text-sm font-bold italic leading-tight">
+                                                            "{audit.reason}"
+                                                            {audit.notes && <span className="block not-italic opacity-60 mt-1">— {audit.notes}</span>}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </TabsContent>
+                </Tabs>
+
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="h-10 px-4 text-sm font-black bg-background border-2 tabular-nums shadow-sm">
                         {new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' })}
                     </Badge>
                 </div>
             </div>
-
-            {/* Grid de KDS */}
-            <ScrollArea className="flex-1 p-4 lg:p-6">
-                {filteredOrders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground/30">
-                        <ChefHat className="h-24 w-24 mb-4" />
-                        <p className="text-2xl font-black uppercase tracking-[0.2em]">Sin pedidos pendientes</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                        {filteredOrders.map(({ order, items }) => (
-                            <OrderCard key={order.id} order={order} type={type} items={items} />
-                        ))}
-                    </div>
-                )}
-            </ScrollArea>
         </div>
     );
 }

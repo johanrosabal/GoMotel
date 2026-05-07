@@ -257,12 +257,24 @@ export async function checkOut(
   batch.set(invoiceRef, finalInvoice);
 
   // --- Order Cleanup Logic ---
-  // Ensure all orders associated with this stay are marked as paid and requested bills are cleared
+  // Ensure all orders associated with this stay are marked as paid and delivered to clear queues
   ordersSnapshot.docs.forEach(orderDoc => {
-      batch.update(orderDoc.ref, { 
-          billRequested: false,
-          paymentStatus: 'Pagado'
-      });
+      const orderData = orderDoc.data() as Order;
+      if (orderData.status !== 'Cancelado') {
+          batch.update(orderDoc.ref, { 
+              billRequested: false,
+              paymentStatus: 'Pagado',
+              status: 'Entregado',
+              kitchenStatus: 'Entregado',
+              barStatus: 'Entregado',
+              items: (orderData.items || []).map(i => i.status === 'Cancelado' ? i : { ...i, status: 'Entregado' })
+          });
+      } else {
+          batch.update(orderDoc.ref, { 
+              billRequested: false,
+              paymentStatus: 'Pagado'
+          });
+      }
   });
 
   // --- SINPE Balance Update ---
