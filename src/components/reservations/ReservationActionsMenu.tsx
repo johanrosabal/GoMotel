@@ -22,7 +22,8 @@ export default function ReservationActionsMenu({ reservation, className }: { res
 
     const handleCheckIn = () => {
         startTransition(async () => {
-            const result = await checkInFromReservation(reservation.id);
+            const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Sistema';
+            const result = await checkInFromReservation(reservation.id, undefined, userName);
             if (result?.error) {
                 toast({ title: 'Error en Check-in', description: result.error, variant: 'destructive' });
             } else {

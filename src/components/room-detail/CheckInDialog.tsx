@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { checkIn } from '@/lib/actions/room.actions';
 import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -37,7 +38,8 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [addClientOpen, setAddClientOpen] = useState(false);
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
+  const { userProfile } = useUserProfile();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -118,7 +120,9 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
 
   const onSubmit = (values: z.infer<typeof checkInSchema>) => {
     const formData = new FormData();
+    
     formData.append('guestName', values.guestName);
+    
     if (values.guestId) {
       formData.append('guestId', values.guestId);
     }
@@ -142,9 +146,11 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     formData.append('pricePlanName', plan.name);
     formData.append('pricePlanAmount', String(plan.price));
     formData.append('expectedCheckOut', expectedCheckOutDate.toISOString());
+    
+    formData.append('createdBy', userName);
 
     startTransition(async () => {
-      const result = await checkIn(roomId, formData);
+      const result = await checkIn(roomId, formData, userName);
       if (result?.error) {
         toast({
           title: 'Falló el Check-In',

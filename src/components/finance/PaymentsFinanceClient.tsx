@@ -15,9 +15,11 @@ import {
     ArrowDownRight,
     Calendar,
     Download,
-    PieChart
+    PieChart,
+    FileText
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,21 +28,33 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { getDashboardStats } from '@/lib/actions/report.actions';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
+import { SimpleDateRangeSelector } from './SimpleDateRangeSelector';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { CompanyProfile } from '@/types';
 
 type PaymentMethod = 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
 
 export default function PaymentsFinanceClient() {
+    const { firestore } = useFirebase();
+    const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+    const { data: company } = useDoc<CompanyProfile>(companyRef);
+
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
-    const [daysRange, setDaysRange] = useState(7);
+    const [daysRange, setDaysRange] = useState<number | 'month'>(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'all'>('all');
+    const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
 
     useEffect(() => {
         async function loadStats() {
             setIsLoading(true);
             try {
-                const data = await getDashboardStats(30); // Load last 30 days for flexibility
+                const data = await getDashboardStats(365); // Load more data for month/year flexibility
                 setStats(data);
             } catch (error) {
                 console.error(error);
@@ -54,8 +68,18 @@ export default function PaymentsFinanceClient() {
     const filteredInvoices = useMemo(() => {
         if (!stats?.detailedInvoices) return [];
         
-        const startDate = startOfDay(subDays(new Date(), daysRange - 1));
-        const endDate = endOfDay(new Date());
+        let startDate: Date;
+        let endDate: Date = endOfDay(new Date());
+
+        if (customDateRange?.from) {
+            startDate = startOfDay(customDateRange.from);
+            endDate = customDateRange.to ? endOfDay(customDateRange.to) : endOfDay(customDateRange.from);
+        } else if (daysRange === 'month') {
+            const now = new Date();
+            startDate = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
+        } else {
+            startDate = startOfDay(subDays(new Date(), daysRange - 1));
+        }
 
         return stats.detailedInvoices.filter((inv: any) => {
             const date = new Date(inv.createdAt);
@@ -66,7 +90,7 @@ export default function PaymentsFinanceClient() {
             
             return isInRange && matchesSearch && matchesMethod;
         });
-    }, [stats, daysRange, searchTerm, methodFilter]);
+    }, [stats, daysRange, searchTerm, methodFilter, customDateRange]);
 
     const balances = useMemo(() => {
         const result = {
@@ -86,6 +110,180 @@ export default function PaymentsFinanceClient() {
 
         return result;
     }, [filteredInvoices]);
+
+    const handleExportPDF = async () => {
+        const doc = new jsPDF();
+        
+        // Helper to format currency for PDF
+        const formatPDFCurrency = (amount: number) => {
+            return amount.toLocaleString('en-US', {
+                style: 'decimal',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        };
+
+        // Helper to load image
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = src;
+                img.onload = () => resolve(img);
+                img.onerror = (e) => reject(e);
+            });
+        };
+
+        // Professional Colors
+        const primaryColor = [26, 37, 48]; // Dark Corporate Navy/Charcoal
+        const secondaryColor = [71, 85, 105]; // Slate
+        const accentColor = [139, 92, 246]; // Violet (used sparingly)
+        const lightBg = [248, 250, 252]; // Very light gray/blue
+
+        // Calculate active range text
+        let rangeText = '';
+        if (customDateRange?.from) {
+            const start = format(customDateRange.from, "dd/MM/yyyy");
+            const end = customDateRange.to ? format(customDateRange.to, "dd/MM/yyyy") : start;
+            rangeText = `${start} - ${end}`;
+        } else if (daysRange === 'month') {
+            rangeText = format(new Date(), "MMMM yyyy", { locale: es }).toUpperCase();
+        } else {
+            const start = format(subDays(new Date(), (daysRange as number) - 1), "dd/MM/yyyy");
+            const end = format(new Date(), "dd/MM/yyyy");
+            rangeText = daysRange === 1 ? `HOY (${end})` : `${start} - ${end}`;
+        }
+
+        // Header Background
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, 210, 50, 'F');
+        
+        // Load and Add Real Logo
+        try {
+            const logoToLoad = company?.logoUrl || '/logo_manolo.png';
+            const logoImg = await loadImage(logoToLoad);
+            doc.addImage(logoImg, 'PNG', 14, 10, 25, 25);
+        } catch (error) {
+            console.error("Error loading logo:", error);
+            // Fallback: Draw Stylized Logo if image fails
+            doc.setFillColor(255, 255, 255, 0.1);
+            doc.circle(25, 25, 12, 'F');
+            doc.setFillColor(255, 255, 255);
+            doc.circle(25, 25, 10, 'F');
+            doc.setFontSize(14);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFont("helvetica", "bold");
+            doc.text(company?.tradeName?.charAt(0) || "M", 25, 29.5, { align: 'center' });
+        }
+
+        // Business Name
+        doc.setFontSize(22);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.text(company?.tradeName || "HOTEL DU MANOLO", 45, 24);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(200, 200, 200);
+        doc.setFont("helvetica", "normal");
+        doc.text(company?.legalId ? `CÉD. JURÍDICA: ${company.legalId}` : "SISTEMA DE GESTIÓN HOTELERA", 45, 31);
+        
+        // Document Info (Right Aligned in Header)
+        doc.setFontSize(10);
+        doc.setTextColor(220, 220, 220);
+        doc.text("REPORTE DE INGRESOS", 196, 18, { align: 'right' });
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.text(rangeText, 196, 25, { align: 'right' });
+        doc.setFontSize(7);
+        doc.setTextColor(180, 180, 180);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Generado: ${format(new Date(), "dd/MM/yyyy - hh:mm a")}`, 196, 31, { align: 'right' });
+        
+        // Horizontal separator line in header
+        doc.setDrawColor(255, 255, 255, 0.2);
+        doc.setLineWidth(0.5);
+        doc.line(14, 40, 196, 40);
+        
+        // Summary Title
+        doc.setFontSize(12);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.setFont("helvetica", "bold");
+        doc.text("RESUMEN DE RECAUDACIÓN", 14, 65);
+
+        // Summary Grid
+        const summaryData = [
+            ["EFECTIVO", formatPDFCurrency(balances['Efectivo']), "TARJETA", formatPDFCurrency(balances['Tarjeta'])],
+            ["SINPE MÓVIL", formatPDFCurrency(balances['Sinpe Movil']), "TOTAL GENERAL", formatPDFCurrency(balances.total)]
+        ];
+
+        autoTable(doc, {
+            startY: 70,
+            body: summaryData,
+            theme: 'plain',
+            styles: { fontSize: 10, cellPadding: 3, fontStyle: 'bold' },
+            columnStyles: {
+                0: { cellWidth: 35, textColor: [100, 100, 100] },
+                1: { cellWidth: 50, textColor: [5, 5, 5] },
+                2: { cellWidth: 35, textColor: [100, 100, 100] },
+                3: { cellWidth: 50, textColor: primaryColor }
+            }
+        });
+        
+        // Table Title
+        doc.setFontSize(12);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.setFont("helvetica", "bold");
+        doc.text("DETALLE DE TRANSACCIONES", 14, (doc as any).lastAutoTable.finalY + 15);
+
+        // Add Table
+        const tableData = filteredInvoices.map((inv: any) => [
+            format(new Date(inv.createdAt), 'dd/MM/yyyy HH:mm'),
+            inv.clientName,
+            inv.invoiceNumber,
+            inv.paymentMethod,
+            formatPDFCurrency(inv.total)
+        ]);
+
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 20,
+            head: [['FECHA', 'CLIENTE', 'FACTURA', 'MÉTODO', 'MONTO (CRC)']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { 
+                fillColor: primaryColor, 
+                textColor: [255, 255, 255],
+                fontSize: 9,
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 35 },
+                2: { halign: 'center', cellWidth: 30 },
+                3: { halign: 'center', cellWidth: 30 },
+                4: { halign: 'right', cellWidth: 30 }
+            },
+            alternateRowStyles: { fillColor: lightBg },
+            styles: { fontSize: 8, cellPadding: 3, font: 'helvetica' }
+        });
+
+        // Footer
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            // Bottom line
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.5);
+            doc.line(14, 280, 196, 280);
+            
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Página ${i} de ${pageCount}`, 105, 287, { align: 'center' });
+            doc.text("Documento generado automáticamente por GoMotel", 14, 287);
+        }
+
+        doc.save(`Reporte_Finanzas_HotelDuManolo_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+    };
 
     if (isLoading) {
         return (
@@ -127,72 +325,187 @@ export default function PaymentsFinanceClient() {
                     {[1, 7, 30].map((d) => (
                         <Button
                             key={d}
-                            variant={daysRange === d ? 'secondary' : 'ghost'}
+                            variant={daysRange === d && !customDateRange ? 'secondary' : 'ghost'}
                             size="sm"
-                            onClick={() => setDaysRange(d)}
+                            onClick={() => {
+                                setDaysRange(d);
+                                setCustomDateRange(undefined);
+                            }}
                             className={cn(
                                 "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
-                                daysRange === d ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
+                                daysRange === d && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
                             )}
                         >
                             {d === 1 ? 'Hoy' : `${d} Días`}
                         </Button>
                     ))}
+
+                    <Button
+                        variant={daysRange === 'month' && !customDateRange ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => {
+                            setDaysRange('month');
+                            setCustomDateRange(undefined);
+                        }}
+                        className={cn(
+                            "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
+                            daysRange === 'month' && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
+                        )}
+                    >
+                        Mes Actual
+                    </Button>
+                    
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant={customDateRange ? 'secondary' : 'ghost'}
+                                size="sm"
+                                className={cn(
+                                    "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
+                                    customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
+                                )}
+                            >
+                                <Calendar className="h-3 w-3 mr-2" />
+                                Rango
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2rem] sm:max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                                    <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                                        <CalendarDays className="h-5 w-5" />
+                                    </div>
+                                    Seleccionar Rango Personalizado
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-400 font-medium">
+                                    Defina un periodo específico para consultar los ingresos de la suite.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-6">
+                                <SimpleDateRangeSelector date={customDateRange} setDate={setCustomDateRange} />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
             {/* KPI Balance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-white/5 backdrop-blur-md border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-primary/30 transition-all duration-500 hover:-translate-y-1">
-                    <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                <Wallet className="h-6 w-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Efectivo Card */}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-2">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                            <Wallet className="h-20 w-20 text-emerald-500" />
+                        </div>
+                        <CardHeader className="pb-3 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                                    <Wallet className="h-5 w-5" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/80">Efectivo</span>
                             </div>
-                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">EFECTIVO</div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-black tracking-tighter mb-1 font-mono">
-                            {formatCurrency(balances['Efectivo'])}
-                        </div>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Recaudación física en caja</p>
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="flex flex-col">
+                                <div className="text-4xl font-black tracking-tighter mb-2 font-mono bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                                    {formatCurrency(balances['Efectivo'])}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                    <p className="text-[9px] font-bold uppercase tracking-widest">Físico en caja</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                <Card className="bg-white/5 backdrop-blur-md border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-primary/30 transition-all duration-500 hover:-translate-y-1">
-                    <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                <Smartphone className="h-6 w-6" />
+                {/* SINPE Card */}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-2">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                            <Smartphone className="h-20 w-20 text-blue-500" />
+                        </div>
+                        <CardHeader className="pb-3 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                                    <Smartphone className="h-5 w-5" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500/80">Sinpe Móvil</span>
                             </div>
-                            <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest">SINPE MÓVIL</div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-black tracking-tighter mb-1 font-mono">
-                            {formatCurrency(balances['Sinpe Movil'])}
-                        </div>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Transferencias electrónicas</p>
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="flex flex-col">
+                                <div className="text-4xl font-black tracking-tighter mb-2 font-mono bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                                    {formatCurrency(balances['Sinpe Movil'])}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <div className="h-1 w-1 rounded-full bg-blue-500 animate-pulse" />
+                                    <p className="text-[9px] font-bold uppercase tracking-widest">Transferencias</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                <Card className="bg-white/5 backdrop-blur-md border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-primary/30 transition-all duration-500 hover:-translate-y-1">
-                    <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                                <CreditCard className="h-6 w-6" />
+                {/* Tarjeta Card */}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-2">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                            <CreditCard className="h-20 w-20 text-purple-500" />
+                        </div>
+                        <CardHeader className="pb-3 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)]">
+                                    <CreditCard className="h-5 w-5" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-500/80">Tarjeta</span>
                             </div>
-                            <div className="text-[10px] font-black text-purple-500 uppercase tracking-widest">TARJETA</div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="flex flex-col">
+                                <div className="text-4xl font-black tracking-tighter mb-2 font-mono bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                                    {formatCurrency(balances['Tarjeta'])}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <div className="h-1 w-1 rounded-full bg-purple-500 animate-pulse" />
+                                    <p className="text-[9px] font-bold uppercase tracking-widest">Terminales POS</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Total General Card */}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[2.5rem] blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+                    <Card className="relative bg-black/40 backdrop-blur-2xl border-primary/20 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-2">
+                        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                            <TrendingUp className="h-20 w-20 text-primary" />
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-black tracking-tighter mb-1 font-mono">
-                            {formatCurrency(balances['Tarjeta'])}
-                        </div>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Terminales de punto de venta</p>
-                    </CardContent>
-                </Card>
+                        <CardHeader className="pb-3 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+                                    <TrendingUp className="h-5 w-5" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Total General</span>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="flex flex-col">
+                                <div className="text-4xl font-black tracking-tighter mb-2 font-mono bg-gradient-to-br from-white via-white to-primary/60 bg-clip-text text-transparent">
+                                    {formatCurrency(balances.total)}
+                                </div>
+                                <div className="flex items-center gap-2 text-primary/60">
+                                    <div className="h-1 w-1 rounded-full bg-primary animate-ping" />
+                                    <p className="text-[9px] font-bold uppercase tracking-widest">Suma de todos los flujos</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             {/* Main Content Area */}
@@ -229,9 +542,13 @@ export default function PaymentsFinanceClient() {
                                     </Button>
                                 ))}
                             </div>
-                            <Button variant="outline" className="h-12 px-6 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest">
-                                <Download className="mr-2 h-4 w-4" />
-                                Exportar
+                            <Button 
+                                variant="outline" 
+                                onClick={handleExportPDF}
+                                className="h-12 px-6 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" />
+                                Exportar PDF
                             </Button>
                         </div>
                     </div>

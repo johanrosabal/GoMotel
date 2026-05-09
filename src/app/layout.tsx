@@ -11,6 +11,8 @@ import * as React from 'react';
 import { ToastStateProvider } from '@/components/ToastProvider';
 import Schema from '@/components/Schema';
 
+import NetworkStatusModal from '@/components/NetworkStatusModal';
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
@@ -102,6 +104,7 @@ export default function RootLayout({
               </AuthWrapper>
             </FirebaseClientProvider>
             <Toaster />
+            <NetworkStatusModal />
             <Schema />
           </ToastStateProvider>
         </ThemeProvider>

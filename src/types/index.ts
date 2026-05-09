@@ -34,6 +34,7 @@ export interface Room {
   statusUpdatedAt?: Timestamp;
   isClientConfirmed?: boolean;
   clientConfirmedAt?: Timestamp;
+  lastStayId?: string | null;
 }
 
 export interface RestaurantTable {
@@ -110,7 +111,16 @@ export interface Stay {
   paymentAmount?: number;
   voucherNumber?: string | null;
   remoteControlDelivered?: boolean;
+  createdBy?: string;
+  cleaningReport?: {
+    remoteControlRecovered: boolean;
+    roomCondition: 'Perfecto' | 'Daños' | 'Problemas';
+    notes?: string;
+    reportedAt: Timestamp;
+    reportedBy: string;
+  };
 }
+
 
 export type ReservationStatus = 'Confirmed' | 'Checked-in' | 'Cancelled' | 'No-show' | 'Completed';
 

@@ -27,6 +27,7 @@ import { Separator } from '../ui/separator';
 import { motion } from 'framer-motion';
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 import ReservationSuccessDialog from './ReservationSuccessDialog';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const Stepper = ({ currentStep }: { currentStep: number }) => {
     const steps = [
@@ -114,7 +115,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     const [currentStep, setCurrentStep] = useState(1);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const { firestore } = useFirebase();
+    const { firestore, user } = useFirebase();
+    const { userProfile } = useUserProfile();
 
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [calculatedCheckOut, setCalculatedCheckOut] = useState<Date | null>(null);
@@ -280,8 +282,6 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             else if (unit === 'Days') newCheckOutDate = addDays(newCheckOutDate, duration);
             else if (unit === 'Weeks') newCheckOutDate = addWeeks(newCheckOutDate, duration);
             else if (unit === 'Months') newCheckOutDate = addMonths(newCheckOutDate, duration);
-            // Add 5 minutes grace period
-            newCheckOutDate = addMinutes(newCheckOutDate, 5);
             setCalculatedCheckOut(newCheckOutDate);
         }
     }, [checkInDateValue, selectedPlanName, availablePlans, checkInNow]);
@@ -328,11 +328,14 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
             return;
         }
 
+        const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : (user?.displayName || user?.email || 'Sistema');
+
         startTransition(async () => {
             const result = await createReservation({
                 ...values,
                 checkInDate: finalCheckInDate,
                 checkOutDate: calculatedCheckOut,
+                createdBy: userName,
             });
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -552,7 +555,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                     <FormItem className="flex flex-row items-center justify-between rounded-xl border bg-muted/20 p-4">
                                                         <div className="space-y-0.5">
                                                             <FormLabel className="font-bold text-sm">Ingreso Inmediato</FormLabel>
-                                                            <p className="text-xs text-muted-foreground">El tiempo empieza a correr en 5 min. mientras se hace el registro.</p>
+                                                            <p className="text-xs text-muted-foreground">El tiempo empieza a correr al momento de dar el alta.</p>
                                                         </div>
                                                         <FormControl>
                                                             <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isWalkIn} id="createreservationdialog-switch-1" data-testid="createreservationdialog-check-in-now-switch" />

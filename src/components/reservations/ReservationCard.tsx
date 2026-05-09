@@ -26,6 +26,7 @@ const statusColorStyles: Record<Reservation['status'], string> = {
 };
 
 import InvoiceSuccessDialog from './InvoiceSuccessDialog';
+import { useFirebase } from '@/firebase';
 
 const statusBadgeStyles: Record<Reservation['status'], string> = {
     Confirmed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -55,6 +56,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [invoiceId, setInvoiceId] = useState<string | null>(null);
+    const { user } = useFirebase();
 
     useEffect(() => {
         if (reservation.status !== 'Checked-in') {
@@ -92,7 +94,7 @@ export default function ReservationCard({ reservation, isOverdue = false }: { re
     const handleQuickCheckIn = (e: React.MouseEvent) => {
         e.preventDefault();
         startTransition(async () => {
-            const result = await checkInFromReservation(reservation.id);
+            const result = await checkInFromReservation(reservation.id, undefined, user?.displayName || user?.email || 'Sistema');
             if (result?.error) {
                 toast({ title: 'Error en Check-in', description: result.error, variant: 'destructive' });
             } else {

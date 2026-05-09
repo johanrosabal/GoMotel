@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge'
 import InvoiceSuccessDialog from '@/components/reservations/InvoiceSuccessDialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+import CleaningReportDialog from '@/components/cleaning/CleaningReportDialog'
 
 
 function InfoRow({ label, value, icon: Icon, children }: { label: string; value?: string | null | undefined, icon: React.ElementType, children?: React.ReactNode }) {
@@ -68,6 +69,7 @@ export default function RoomDetailsPage() {
     const [successInvoiceId, setSuccessInvoiceId] = useState<string | null>(null);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [isCheckingOut, startCheckoutTransition] = useTransition();
+    const [isCleaningReportOpen, setIsCleaningReportOpen] = useState(false);
 
     const handleDirectCheckout = () => {
         if (!stay || !room) return;
@@ -105,6 +107,12 @@ export default function RoomDetailsPage() {
         return doc(firestore, 'stays', room.currentStayId);
     }, [firestore, room?.currentStayId]);
     const { data: stay, isLoading: isLoadingStay } = useDoc<Stay>(stayRef);
+
+    const lastStayRef = useMemoFirebase(() => {
+        if (!firestore || !room?.lastStayId || room?.status !== 'Cleaning') return null;
+        return doc(firestore, 'stays', room.lastStayId);
+    }, [firestore, room?.lastStayId, room?.status]);
+    const { data: lastStay } = useDoc<Stay>(lastStayRef);
 
     const ordersQuery = useMemoFirebase(() => {
         if (!firestore || !stay?.id) return null;
@@ -331,7 +339,12 @@ export default function RoomDetailsPage() {
             case 'Cleaning':
             case 'Maintenance':
                 return (
-                    <Button className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={handleSetAvailable} id="page-button-marcar-como-disponible" data-testid="id-action-mark-available-button">
+                    <Button 
+                        className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                        onClick={() => setIsCleaningReportOpen(true)} 
+                        id="page-button-marcar-como-disponible" 
+                        data-testid="id-action-mark-available-button"
+                    >
                         <Check className="mr-2 h-5 w-5" /> Marcar como Disponible
                     </Button>
                 )
@@ -432,7 +445,7 @@ export default function RoomDetailsPage() {
                                     <div className="flex flex-wrap items-center gap-3 px-1">
                                         <StatusBadge status={room.status} isOverdue={isOverdue} />
                                         
-                                        {stay?.remoteControlDelivered && (
+                                        {(stay?.remoteControlDelivered || (room.status === 'Cleaning' && lastStay?.remoteControlDelivered)) && (
                                             <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 whitespace-nowrap">
                                                 <Tv className="h-3 w-3" />
                                                 Control Entregado
@@ -468,6 +481,8 @@ export default function RoomDetailsPage() {
                                                     </span>
                                                 )}
                                             </InfoRow>
+
+                                            <InfoRow label="Registrada Por" value={stay.createdBy || 'N/D'} icon={User} />
 
                                             {stay.paymentStatus === 'Pagado' && (
                                                 <div className="flex items-center gap-2 ml-16 -mt-2">
@@ -731,7 +746,7 @@ export default function RoomDetailsPage() {
                                             <motion.div 
                                                 initial={{ opacity: 0, scale: 0.9 }}
                                                 animate={{ opacity: 1, scale: 1 }}
-                                                className="flex h-full flex-col items-center justify-center text-center p-12 border-2 border-dashed border-white/5 rounded-[2.5rem] bg-black/10"
+                                                className="flex h-full flex-col items-center justify-start text-center p-12 border-2 border-dashed border-white/5 rounded-[2.5rem] bg-black/10"
                                             >
                                                 <div className="relative mb-8">
                                                     <div className="absolute inset-0 blur-3xl bg-primary/20 animate-pulse" />
@@ -750,6 +765,24 @@ export default function RoomDetailsPage() {
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
+                                ) : room.status === 'Cleaning' || room.status === 'Maintenance' ? (
+                                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center p-12 border-2 border-dashed border-white/10 rounded-[3rem] bg-slate-900/40 backdrop-blur-md relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                        
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 blur-3xl bg-amber-500/20 animate-pulse" />
+                                            <div className="relative h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
+                                                <Sparkles className="h-12 w-12 text-amber-500/40" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 relative z-10">
+                                            <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white">Suite en Preparación</h3>
+                                            <p className="text-slate-500 max-w-xs mx-auto text-sm font-medium leading-relaxed uppercase tracking-widest text-[10px]">
+                                                La suite está siendo preparada para el próximo huésped.
+                                            </p>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center p-12 border-2 border-dashed border-white/10 rounded-[3rem] bg-slate-900/40 backdrop-blur-md relative overflow-hidden group">
                                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -790,6 +823,7 @@ export default function RoomDetailsPage() {
                     </div>
                 </div>
                 <InvoiceSuccessDialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen} invoiceId={successInvoiceId} />
+                <CleaningReportDialog open={isCleaningReportOpen} onOpenChange={setIsCleaningReportOpen} room={room} />
             </motion.div>
         </div>
     )

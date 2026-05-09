@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import StatusBadge from './StatusBadge';
 import type { Room, Stay } from '@/types';
-import { BedDouble, Sparkles, Wrench, User, AlertTriangle, Clock, Zap, ShieldCheck } from 'lucide-react';
+import { BedDouble, Sparkles, Wrench, User, AlertTriangle, Clock, Zap, ShieldCheck, Tv } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import RoomActionsMenu from './RoomActionsMenu';
+import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Progress } from '../ui/progress';
 import TimeRemaining from '../reservations/TimeRemaining';
 import { Button } from '../ui/button';
@@ -66,6 +68,13 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
   const currentStatus = isOverdue ? 'Overdue' : room.status;
   const { icon: Icon, color, glow, hoverGlow, border } = statusConfig[currentStatus];
   
+  const { firestore } = useFirebase();
+  const lastStayRef = useMemoFirebase(() => {
+    if (!firestore || !room.lastStayId || room.status !== 'Cleaning') return null;
+    return doc(firestore, 'stays', room.lastStayId);
+  }, [firestore, room.lastStayId, room.status]);
+  const { data: lastStay } = useDoc<Stay>(lastStayRef);
+
   const [timeInStatus, setTimeInStatus] = useState('');
   const [progress, setProgress] = useState(0);
 
@@ -159,6 +168,12 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
               <div className={cn("p-2 rounded-xl bg-white/5 border border-white/5", color)}>
                 <Icon className="h-5 w-5" />
               </div>
+              {(stay?.remoteControlDelivered || (room.status === 'Cleaning' && lastStay?.remoteControlDelivered)) && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_-3px_rgba(52,211,153,0.3)] min-w-fit">
+                  <Tv className="h-3 w-3" />
+                  <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap">Control</span>
+                </div>
+              )}
               {room.status === 'Occupied' && room.isClientConfirmed && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }}

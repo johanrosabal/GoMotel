@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { Reservation, SinpeAccount } from '@/types';
@@ -57,7 +58,8 @@ export default function CheckInFromReservationDialog({ reservation, children, on
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const { firestore } = useFirebase();
+    const { firestore, user } = useFirebase();
+    const { userProfile } = useUserProfile();
 
     const [cashTendered, setCashTendered] = useState('');
 
@@ -99,7 +101,8 @@ export default function CheckInFromReservationDialog({ reservation, children, on
 
     const onSubmit = (values: z.infer<typeof checkInSchema>) => {
         startTransition(async () => {
-            const result = await checkInFromReservation(reservation.id, values);
+            const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : (user?.displayName || user?.email || 'Sistema');
+            const result = await checkInFromReservation(reservation.id, values, userName);
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
             } else {

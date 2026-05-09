@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
 import StaysReportPage from '@/components/reports/stays/StaysReportPage';
 
@@ -14,17 +13,8 @@ export default function StaysReportRootPage() {
           Consulte el historial completo de todas las estancias activas y pasadas en el motel.
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Movimientos</CardTitle>
-          <CardDescription>
-            Listado de todas las estancias registradas en el sistema.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StaysReportPage />
-        </CardContent>
-      </Card>
+      
+      <StaysReportPage />
     </div>
   );
 }

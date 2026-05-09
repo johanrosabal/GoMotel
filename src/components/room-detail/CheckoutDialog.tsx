@@ -61,7 +61,7 @@ const checkoutPaymentSchema = z.object({
 
 export default function CheckoutDialog({ children, stay, room, orders, onCheckoutSuccess }: CheckoutDialogProps) {
     const [open, setOpen] = useState(false);
-    const [step, setStep] = useState(1); // 1: Summary, 2: Payment
+    const [step, setStep] = useState(1); // 1: Summary, 2: Payment, 3: Zero Balance Confirm
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const { firestore } = useFirebase();
@@ -149,11 +149,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
         if (billing.totalDue > 0) {
             setStep(2);
         } else {
-            // Si el total es 0, procesar directamente con valores por defecto
-            handleProcessCheckout({
-                paymentMethod: 'Efectivo',
-                paymentConfirmed: true
-            });
+            setStep(3);
         }
     };
 
@@ -178,7 +174,9 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                             <DialogDescription className="text-slate-400 font-medium leading-relaxed">
                                 {step === 1
                                     ? `Auditoría de cuenta para ${stay?.guestName}.`
-                                    : `Seleccione el método de pago para el saldo pendiente.`}
+                                    : step === 2 
+                                        ? `Seleccione el método de pago para el saldo pendiente.`
+                                        : `Confirmación de salida sin saldo pendiente.`}
                             </DialogDescription>
                         </DialogHeader>
 
@@ -264,7 +262,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                         </div>
                                     )}
                                 </motion.div>
-                            ) : (
+                            ) : step === 2 ? (
                                 <motion.div 
                                     key="payment"
                                     initial={{ opacity: 0, x: 20 }}
@@ -401,10 +399,39 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                         </form>
                                     </Form>
                                 </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="zero-confirm"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="space-y-6 py-4"
+                                >
+                                    <div className="p-8 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/20 text-center space-y-6 shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                        
+                                        <div className="relative mx-auto w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                            <CheckCircle className="h-10 w-10 text-emerald-500" />
+                                            <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse" />
+                                        </div>
+
+                                        <div className="space-y-3 relative">
+                                            <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Sin Saldos Pendientes</h3>
+                                            <p className="text-slate-400 text-sm font-medium leading-relaxed px-4">
+                                                El cliente <span className="text-emerald-400 font-bold">{stay?.guestName}</span> no tiene saldos pendientes. 
+                                                <br/><br/>
+                                                <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">No se generará factura</span>
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-4 flex flex-col gap-2 relative">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">¿Desea finalizar la estancia ahora?</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
                             )}
                         </AnimatePresence>
 
-                        <div className="flex flex-col gap-3 pt-8 border-t border-white/5 mt-8">
                             {step === 1 ? (
                                 <div className="flex gap-3">
                                     <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 h-14 rounded-2xl border border-white/5 font-black uppercase tracking-widest text-[10px] text-slate-400 hover:text-white transition-all" disabled={isPending} id="checkoutdialog-button-cancelar" data-testid="checkoutdialog-cancel-button">Cancelar</Button>
@@ -426,7 +453,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                         )}
                                     </Button>
                                 </div>
-                            ) : (
+                            ) : step === 2 ? (
                                 <div className="flex gap-3">
                                     <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" id="checkoutdialog-button-volver" data-testid="checkoutdialog-back-button">
                                         <ChevronLeft className="mr-2 h-4 w-4 text-primary" /> Volver
@@ -441,8 +468,22 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                         {isPending ? 'Procesando...' : 'Finalizar y Cobrar'}
                                     </Button>
                                 </div>
+                            ) : (
+                                <div className="flex gap-3">
+                                    <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" id="checkoutdialog-button-volver-confirm" data-testid="checkoutdialog-back-button">
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={() => handleProcessCheckout({ paymentMethod: 'Efectivo', paymentConfirmed: true })}
+                                        disabled={isPending}
+                                        className="flex-[2] h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]" id="checkoutdialog-button-confirm-zero" data-testid="checkoutdialog-action-button"
+                                    >
+                                        {isPending ? <Zap className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle className="mr-2 h-5 w-5" />}
+                                        {isPending ? 'Finalizando...' : 'Confirmar Salida'}
+                                    </Button>
+                                </div>
                             )}
-                        </div>
                     </div>
                 </div>
             </DialogContent>

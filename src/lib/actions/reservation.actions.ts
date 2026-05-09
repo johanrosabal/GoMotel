@@ -19,6 +19,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { db } from '../firebase';
 import type { Reservation, Stay, RoomType, Invoice, SinpeAccount } from '@/types';
 import { checkOut } from './room.actions';
@@ -36,6 +37,7 @@ const reservationActionSchema = z.object({
   paymentConfirmed: z.boolean().optional(),
   voucherNumber: z.string().nullable().optional(),
   remoteControlDelivered: z.boolean().optional(),
+  createdBy: z.string().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -77,7 +79,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber, remoteControlDelivered } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber, remoteControlDelivered, createdBy } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -101,6 +103,19 @@ export async function createReservation(values: z.infer<typeof reservationAction
   }
   const pricePlanAmount = plan.price;
 
+  // Si es ingreso inmediato, recalculamos la fecha de salida exacta en el servidor
+  let finalCheckOutDate = checkOutDate;
+  if (checkInNow) {
+    const { duration, unit } = plan;
+    let newDate = new Date(finalCheckInDate);
+    if (unit === 'Minutes') newDate = addMinutes(newDate, duration);
+    else if (unit === 'Hours') newDate = addHours(newDate, duration);
+    else if (unit === 'Days') newDate = addDays(newDate, duration);
+    else if (unit === 'Weeks') newDate = addWeeks(newDate, duration);
+    else if (unit === 'Months') newDate = addMonths(newDate, duration);
+    finalCheckOutDate = newDate;
+  }
+
   // --- Conflict & Availability Check ---
   const reservationsRef = collection(db, 'reservations');
   const conflictQuery = query(
@@ -115,7 +130,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
   const hasConflict = existingReservations.some(res => {
     const oldStart = res.checkInDate.toDate();
     const oldEnd = res.checkOutDate.toDate();
-    return finalCheckInDate < oldEnd && checkOutDate > oldStart;
+    return finalCheckInDate < oldEnd && finalCheckOutDate > oldStart;
   });
 
   if (hasConflict) {
@@ -147,7 +162,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
       roomNumber: roomData.number,
       roomType: roomData.roomTypeName,
       checkInDate: Timestamp.fromDate(finalCheckInDate),
-      checkOutDate: Timestamp.fromDate(checkOutDate),
+      checkOutDate: Timestamp.fromDate(finalCheckOutDate),
       createdAt: Timestamp.now(),
       status: checkInNow ? 'Checked-in' : 'Confirmed',
       pricePlanName,
@@ -245,7 +260,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           roomNumber: roomData.number,
           guestName: guestName,
           checkIn: Timestamp.fromDate(finalCheckInDate),
-          expectedCheckOut: Timestamp.fromDate(checkOutDate),
+          expectedCheckOut: Timestamp.fromDate(finalCheckOutDate),
           checkOut: null,
           total: 0,
           isPaid: paymentStatus === 'Pagado',
@@ -259,6 +274,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           paymentAmount,
           voucherNumber: voucherNumber || null,
           remoteControlDelivered: remoteControlDelivered || false,
+          createdBy: createdBy || 'Sistema',
         };
         batch.set(stayRef, newStay);
         
@@ -310,7 +326,7 @@ export interface CheckInPaymentData {
     voucherNumber?: string | null;
 }
 
-export async function checkInFromReservation(reservationId: string, paymentData?: CheckInPaymentData) {
+export async function checkInFromReservation(reservationId: string, paymentData?: CheckInPaymentData, createdBy?: string) {
     if (!reservationId) return { error: 'ID de reservación no válido.' };
     
     const reservationRef = doc(db, 'reservations', reservationId);
@@ -443,6 +459,7 @@ export async function checkInFromReservation(reservationId: string, paymentData?
       paymentAmount: paymentAmount,
       voucherNumber: voucherNumber,
       remoteControlDelivered: reservation.remoteControlDelivered || false,
+      createdBy: "TEST USER (HARDCODED)",
     };
     batch.set(stayRef, newStay);
 

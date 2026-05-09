@@ -14,11 +14,13 @@ import { formatDistanceToNowStrict, format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
+import CleaningReportDialog from "./CleaningReportDialog";
 
 function CleaningRoomCard({ room }: { room: Room }) {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const [timeInStatus, setTimeInStatus] = useState('');
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined;
@@ -37,71 +39,66 @@ function CleaningRoomCard({ room }: { room: Room }) {
     }, [room.status, room.statusUpdatedAt]);
 
 
-    const handleSetAvailable = () => {
-        startTransition(async () => {
-            const result = await updateRoomStatus(room.id, 'Available');
-            if (result.success) {
-                toast({ title: 'Habitación Lista', description: `La suite ${room.number} ha sido marcada como disponible.` });
-            } else {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            }
-        });
-    }
-
     return (
-        <motion.div 
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="group/card"
-        >
-            <Card className={cn(
-                "relative transition-all duration-300 flex flex-col h-full overflow-hidden truncate",
-                "bg-slate-950/40 backdrop-blur-2xl border border-white/10",
-                "rounded-[2rem] shadow-2xl shadow-black/50 overflow-hidden",
-                "border-amber-500/30 shadow-[0_0_20px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.4)]"
-            )}>
-                {/* Subtle status glow band */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-30" />
-                
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 p-6 shrink-0">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-4xl font-black uppercase italic tracking-tighter text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-                                {room.number}
-                            </CardTitle>
-                            <Zap className="h-4 w-4 fill-amber-400 text-amber-400 opacity-30" />
+        <>
+            <motion.div 
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="group/card"
+            >
+                <Card className={cn(
+                    "relative transition-all duration-300 flex flex-col h-full overflow-hidden truncate",
+                    "bg-slate-950/40 backdrop-blur-2xl border border-white/10",
+                    "rounded-[2rem] shadow-2xl shadow-black/50 overflow-hidden",
+                    "border-amber-500/30 shadow-[0_0_20px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.4)]"
+                )}>
+                    {/* Subtle status glow band */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-30" />
+                    
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 p-6 shrink-0">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-4xl font-black uppercase italic tracking-tighter text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
+                                    {room.number}
+                                </CardTitle>
+                                <Zap className="h-4 w-4 fill-amber-400 text-amber-400 opacity-30" />
+                            </div>
+                            <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName}</CardDescription>
                         </div>
-                        <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 !mt-0">{room.roomTypeName}</CardDescription>
-                    </div>
-                    <div className="p-2 rounded-xl bg-white/5 border border-white/5 text-amber-400">
-                        <Brush className="h-5 w-5" />
-                    </div>
-                </CardHeader>
-
-                <CardContent className="mt-auto space-y-4 p-6 pt-0">
-                    <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
-                            <Clock className="h-3 w-3" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">{timeInStatus || 'Iniciando'}</span>
+                        <div className="p-2 rounded-xl bg-white/5 border border-white/5 text-amber-400">
+                            <Brush className="h-5 w-5" />
                         </div>
-                    </div>
+                    </CardHeader>
 
-                    <Button 
-                        className="w-full h-10 font-black uppercase tracking-widest text-[9px] bg-amber-500 text-black hover:bg-amber-400 transition-all rounded-xl shadow-lg shadow-amber-500/20 active:scale-95" 
-                        onClick={handleSetAvailable} 
-                        disabled={isPending}
-                        id="cleaningroomcard-button-finalizar"
-                        data-testid="cleaningroomcard-finish-button"
-                    >
-                        <Check className="mr-2 h-4 w-4" />
-                        {isPending ? 'Procesando...' : 'Finalizar Limpieza'}
-                    </Button>
-                </CardContent>
-            </Card>
-        </motion.div>
+                    <CardContent className="mt-auto space-y-4 p-6 pt-0">
+                        <div className="flex justify-between items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
+                                <Clock className="h-3 w-3" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">{timeInStatus || 'Iniciando'}</span>
+                            </div>
+                        </div>
+
+                        <Button 
+                            className="w-full h-10 font-black uppercase tracking-widest text-[9px] bg-amber-500 text-black hover:bg-amber-400 transition-all rounded-xl shadow-lg shadow-amber-500/20 active:scale-95" 
+                            onClick={() => setReportDialogOpen(true)} 
+                            disabled={isPending} id="cleaningroomcard-button-finalizar-limpieza" data-testid="cleaningroomcard-finish-button"
+                        >
+                            <Check className="mr-2 h-4 w-4" />
+                            {isPending ? 'Procesando...' : 'Finalizar Limpieza'}
+                        </Button>
+                    </CardContent>
+                </Card>
+            </motion.div>
+            
+            <CleaningReportDialog 
+                open={reportDialogOpen} 
+                onOpenChange={setReportDialogOpen} 
+                room={room} 
+            />
+        </>
     )
 }
 

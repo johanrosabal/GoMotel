@@ -78,7 +78,7 @@ const checkInSchema = z.object({
   expectedCheckOut: z.coerce.date(),
 });
 
-export async function checkIn(roomId: string, formData: FormData) {
+export async function checkIn(roomId: string, formData: FormData, createdBy?: string) {
   const rawData = Object.fromEntries(formData);
   const validatedFields = checkInSchema.safeParse(rawData);
 
@@ -99,6 +99,29 @@ export async function checkIn(roomId: string, formData: FormData) {
 
   const checkInTime = Timestamp.now();
   
+  // Recalculamos la fecha de salida exacta en el servidor para evitar desfases
+  let finalExpectedCheckOut = expectedCheckOut;
+  try {
+      const roomTypeSnap = await getDoc(doc(db, 'roomTypes', room.roomTypeId));
+      if (roomTypeSnap.exists()) {
+          const roomTypeData = roomTypeSnap.data() as RoomType;
+          const plan = roomTypeData.pricePlans?.find(p => p.name === pricePlanName);
+          if (plan) {
+              const { duration, unit } = plan;
+              let newDate = checkInTime.toDate();
+              if (unit === 'Minutes') newDate = addMinutes(newDate, duration);
+              else if (unit === 'Hours') newDate = addHours(newDate, duration);
+              else if (unit === 'Days') newDate = addDays(newDate, duration);
+              else if (unit === 'Weeks') newDate = addWeeks(newDate, duration);
+              else if (unit === 'Months') newDate = addMonths(newDate, duration);
+              finalExpectedCheckOut = newDate;
+          }
+      }
+  } catch (error) {
+      console.error('Error recalculating checkout in checkIn:', error);
+  }
+
+
   if (guestId) {
     const clientRef = doc(db, 'clients', guestId);
     const clientSnap = await getDoc(clientRef);
@@ -109,6 +132,8 @@ export async function checkIn(roomId: string, formData: FormData) {
   }
 
 
+  const createdByValue = "TEST USER (HARDCODED)";
+
   // Create new stay
   const stayRef = doc(collection(db, 'stays'));
   const newStay: Omit<Stay, 'id'> = {
@@ -116,7 +141,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     roomNumber: room.number,
     guestName,
     checkIn: checkInTime,
-    expectedCheckOut: Timestamp.fromDate(expectedCheckOut),
+    expectedCheckOut: Timestamp.fromDate(finalExpectedCheckOut),
     checkOut: null,
     total: 0,
     isPaid: false,
@@ -125,6 +150,7 @@ export async function checkIn(roomId: string, formData: FormData) {
     pricePlanAmount: pricePlanAmount,
     renewalCount: 0,
     extensionHistory: [],
+    createdBy: createdByValue,
   };
   batch.set(stayRef, newStay);
 
@@ -196,65 +222,67 @@ export async function checkOut(
   let invoiceIdForReturn: string | undefined;
   
   // --- Invoice Logic ---
-  const invoicesRef = collection(db, 'invoices');
-  const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
-  const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
-  let nextInvoiceNumberInt = 1;
-  if (!lastInvoiceSnap.empty) {
-      const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
-      if (lastInvoiceData.invoiceNumber) {
-          const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
-          if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
-      }
+  if (totalDueAtCheckout > 0) {
+    const invoicesRef = collection(db, 'invoices');
+    const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+    const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+    let nextInvoiceNumberInt = 1;
+    if (!lastInvoiceSnap.empty) {
+        const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+        if (lastInvoiceData.invoiceNumber) {
+            const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+            if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
+        }
+    }
+    const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+    
+    const invoiceRef = doc(collection(db, 'invoices'));
+    invoiceIdForReturn = invoiceRef.id;
+
+    const invoiceItems: InvoiceItem[] = [];
+    invoiceItems.push({
+        description: `Estancia Hab. ${room.number} (${stay.pricePlanName || 'Tarifa base'})`,
+        quantity: 1,
+        unitPrice: roomTotal,
+        total: roomTotal
+    });
+
+    if (servicesTotal > 0) {
+        invoiceItems.push({
+            description: `Servicios y Consumos Pendientes`,
+            quantity: 1,
+            unitPrice: servicesTotal,
+            total: servicesTotal
+        });
+    }
+
+    if (upfrontPaid > 0) {
+        invoiceItems.push({
+            description: `Pagos Adelantados Recibidos`,
+            quantity: 1,
+            unitPrice: -upfrontPaid,
+            total: -upfrontPaid,
+        });
+    }
+
+    const finalInvoice: Omit<Invoice, 'id'> = {
+        invoiceNumber: newInvoiceNumber,
+        stayId: stayId,
+        clientId: stay.guestId || null,
+        clientName: stay.guestName,
+        createdAt: Timestamp.now(),
+        status: 'Pagada',
+        items: invoiceItems,
+        subtotal: finalTotal,
+        taxes: [], 
+        total: Math.max(0, totalDueAtCheckout),
+        paymentMethod: paymentDetails?.paymentMethod || 'Efectivo',
+        voucherNumber: paymentDetails?.voucherNumber || null,
+        roomId: roomId,
+        roomNumber: room.number,
+    };
+    batch.set(invoiceRef, finalInvoice);
   }
-  const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
-  
-  const invoiceRef = doc(collection(db, 'invoices'));
-  invoiceIdForReturn = invoiceRef.id;
-
-  const invoiceItems: InvoiceItem[] = [];
-  invoiceItems.push({
-      description: `Estancia Hab. ${room.number} (${stay.pricePlanName || 'Tarifa base'})`,
-      quantity: 1,
-      unitPrice: roomTotal,
-      total: roomTotal
-  });
-
-  if (servicesTotal > 0) {
-      invoiceItems.push({
-          description: `Servicios y Consumos Pendientes`,
-          quantity: 1,
-          unitPrice: servicesTotal,
-          total: servicesTotal
-      });
-  }
-
-  if (upfrontPaid > 0) {
-      invoiceItems.push({
-          description: `Pagos Adelantados Recibidos`,
-          quantity: 1,
-          unitPrice: -upfrontPaid,
-          total: -upfrontPaid,
-      });
-  }
-
-  const finalInvoice: Omit<Invoice, 'id'> = {
-      invoiceNumber: newInvoiceNumber,
-      stayId: stayId,
-      clientId: stay.guestId || null,
-      clientName: stay.guestName,
-      createdAt: Timestamp.now(),
-      status: 'Pagada',
-      items: invoiceItems,
-      subtotal: finalTotal,
-      taxes: [], 
-      total: Math.max(0, totalDueAtCheckout),
-      paymentMethod: paymentDetails?.paymentMethod || 'Efectivo',
-      voucherNumber: paymentDetails?.voucherNumber || null,
-      roomId: roomId,
-      roomNumber: room.number,
-  };
-  batch.set(invoiceRef, finalInvoice);
 
   // --- Order Cleanup Logic ---
   // Ensure all orders associated with this stay are marked as paid and delivered to clear queues
@@ -316,6 +344,7 @@ export async function checkOut(
   batch.update(roomRef, { 
     status: 'Cleaning', 
     currentStayId: null, 
+    lastStayId: stayId, // Guardamos la última estancia para reporte de limpieza
     statusUpdatedAt: Timestamp.now(),
     isClientConfirmed: false,
     clientConfirmedAt: null
@@ -362,6 +391,70 @@ export async function updateRoomStatus(roomId: string, status: RoomStatus) {
     console.error('Failed to update room status:', error);
     return { error: 'Ocurrió un error inesperado.' };
   }
+}
+
+export async function finishCleaning(roomId: string, report: {
+    remoteControlRecovered: boolean;
+    roomCondition: 'Perfecto' | 'Daños' | 'Problemas';
+    notes?: string;
+    reportedBy: string;
+    cleanedBy?: string;
+}) {
+    if (!roomId) return { error: 'ID de habitación no válido.' };
+
+    try {
+        const roomRef = doc(db, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) return { error: 'Habitación no encontrada.' };
+        
+        const roomData = roomSnap.data();
+        const lastStayId = roomData.lastStayId;
+
+        const batch = writeBatch(db);
+
+        // Si hay una última estancia, guardamos el reporte ahí
+        if (lastStayId) {
+            const stayRef = doc(db, 'stays', lastStayId);
+            batch.update(stayRef, {
+                cleaningReport: {
+                    ...report,
+                    reportedAt: Timestamp.now(),
+                }
+            });
+        }
+
+        // También guardamos en una colección histórica de reportes
+        const reportRef = doc(collection(db, 'cleaningReports'));
+        batch.set(reportRef, {
+            roomId,
+            roomNumber: roomData.number,
+            lastStayId: lastStayId || null,
+            ...report,
+            createdAt: Timestamp.now(),
+        });
+
+        // Actualizamos el estado de la habitación
+        // Si hay daños o problemas, se mueve a Mantenimiento. Si no, a Disponible.
+        const nextStatus = report.roomCondition === 'Perfecto' ? 'Available' : 'Maintenance';
+        
+        batch.update(roomRef, {
+            status: nextStatus,
+            statusUpdatedAt: Timestamp.now(),
+            lastStayId: null, // Limpiamos la referencia
+        });
+
+        await batch.commit();
+
+        revalidatePath('/');
+        revalidatePath(`/rooms/${roomId}`);
+        revalidatePath('/dashboard/rooms');
+        revalidatePath('/cleaning/queue');
+        
+        return { success: true, nextStatus };
+    } catch (error) {
+        console.error('Error finishing cleaning:', error);
+        return { error: 'No se pudo finalizar la limpieza.' };
+    }
 }
 
 export async function confirmRoomCheckin(roomId: string) {
