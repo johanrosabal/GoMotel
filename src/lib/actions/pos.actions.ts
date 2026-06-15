@@ -1,6 +1,4 @@
-
-'use server';
-
+// 'use server'; // Removido por script
 import {
   collection,
   doc,
@@ -15,7 +13,8 @@ import {
   runTransaction,
   limit,
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import { db } from '../firebase';
 import type { Invoice, InvoiceItem, AppliedTax, Service } from '@/types';
 

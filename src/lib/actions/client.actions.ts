@@ -1,9 +1,10 @@
-'use server';
+// 'use server';
 
 import { z } from 'zod';
 import { collection, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import { Client } from '@/types';
 
 export async function getClient(clientId: string): Promise<any | null> {
@@ -41,6 +42,7 @@ const clientSchema = z.object({
   isValidated: z.boolean().default(false),
   isBlacklisted: z.boolean().optional(),
   blacklistReason: z.string().optional(),
+  isForeigner: z.boolean().optional(),
 });
 
 

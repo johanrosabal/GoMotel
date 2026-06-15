@@ -1,5 +1,4 @@
-'use server';
-
+// 'use server'; // Removido por script
 import {
   collection,
   getDocs,

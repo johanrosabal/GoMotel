@@ -8,6 +8,7 @@ export interface PricePlan {
   duration: number;
   unit: 'Minutes' | 'Hours' | 'Days' | 'Weeks' | 'Months';
   price: number;
+  capacity?: number;
 }
 
 export interface RoomType {
@@ -66,7 +67,7 @@ export interface Service {
   costPrice?: number;
   stock: number;
   minStock?: number;
-  category: 'Food' | 'Beverage' | 'Amenity';
+  category: 'Food' | 'Beverage' | 'Amenity' | 'Article';
   description?: string;
   imageUrl?: string;
   categoryId?: string;
@@ -102,6 +103,7 @@ export interface Stay {
   guestId?: string | null;
   pricePlanName?: string;
   pricePlanAmount?: number;
+  pricePlanCapacity?: number;
   checkOutReason?: string;
   checkOutNotes?: string;
   renewalCount?: number;
@@ -150,7 +152,7 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
-  category?: 'Food' | 'Beverage' | 'Amenity';
+  category?: 'Food' | 'Beverage' | 'Amenity' | 'Article';
   notes?: string | null;
   status: PrepStatus;
   createdAt: Timestamp;
@@ -172,6 +174,7 @@ export interface Order {
   status: PrepStatus; // Global status
   kitchenStatus?: PrepStatus;
   barStatus?: PrepStatus;
+  articlesStatus?: PrepStatus;
   paymentStatus?: 'Pagado' | 'Pendiente';
   paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta' | 'Por Definir';
   invoiceId?: string;
@@ -470,6 +473,7 @@ export interface Tutorial {
   videoUrl: string;
   category: string;
   order: number;
+  allowedRoles?: string[];
   createdAt: Timestamp;
   updatedAt?: Timestamp;
 }

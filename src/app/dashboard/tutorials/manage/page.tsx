@@ -1,12 +1,31 @@
-import { getTutorials } from '@/lib/actions/tutorial.actions';
+'use client';
+
 import TutorialManager from '@/components/dashboard/TutorialManager';
 import { ChevronLeft, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
+import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+import type { Tutorial } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export const dynamic = 'force-dynamic';
+export default function ManageTutorialsPage() {
+    const { firestore } = useFirebase();
 
-export default async function ManageTutorialsPage() {
-    const tutorials = await getTutorials();
+    const tutorialsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'tutorials'), orderBy('order', 'asc'));
+    }, [firestore]);
+
+    const { data: tutorials, isLoading } = useCollection<Tutorial>(tutorialsQuery);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#050505] p-6 lg:p-12 space-y-12">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#050505] p-6 lg:p-12 space-y-12">
@@ -31,7 +50,7 @@ export default async function ManageTutorialsPage() {
             </header>
 
             <main className="max-w-[1600px] mx-auto">
-                <TutorialManager initialTutorials={tutorials} />
+                <TutorialManager initialTutorials={tutorials || []} />
             </main>
         </div>
     );

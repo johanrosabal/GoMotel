@@ -419,7 +419,6 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-4 ml-auto md:ml-0">
-            <ThemeToggle className={isScrolled ? 'text-foreground hover:bg-black/5' : 'text-white'} />
             <Link href="/dashboard" className="hidden sm:block text-[10px] md:text-sm font-black uppercase tracking-widest text-white/80 hover:text-white" data-testid="app-dashboard-link">Dashboard</Link>
           </div>
         </div>

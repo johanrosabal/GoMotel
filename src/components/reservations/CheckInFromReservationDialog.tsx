@@ -14,7 +14,7 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy as fbOrderBy } from 'firebase/firestore';
 import type { Reservation, SinpeAccount } from '@/types';
 import { checkInFromReservation } from '@/lib/actions/reservation.actions';
-import { Check, Wallet, Clock, CheckCircle, ChevronRight, AlertCircle, Ban } from 'lucide-react';
+import { Check, Wallet, Clock, CheckCircle, ChevronRight, AlertCircle, Ban, Smartphone, CreditCard } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -143,56 +143,77 @@ export default function CheckInFromReservationDialog({ reservation, children, on
                                 <span className="font-bold text-white">{reservation.pricePlanName}</span>
                             </div>
                             <Separator className="bg-white/5 my-2" />
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400 uppercase font-black tracking-widest text-[10px]">Subtotal</span>
+                                <span className="font-bold text-white">{formatCurrency(reservation.pricePlanAmount || 0)}</span>
+                            </div>
+                            {(paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') && (
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400 uppercase font-black tracking-widest text-[10px]">Recargo {paymentMethod === 'Sinpe Movil' ? 'SINPE' : 'Tarjeta'}</span>
+                                    <span className="font-bold text-white">{formatCurrency(2000)}</span>
+                                </div>
+                            )}
+                            <Separator className="bg-white/5 my-2" />
                             <div className="flex justify-between items-center">
-                                <span className="text-sm font-black uppercase italic tracking-tighter text-primary">Monto a Cobrar</span>
-                                <span className="text-2xl font-black text-primary">{formatCurrency(reservation.pricePlanAmount || 0)}</span>
+                                <span className="text-sm font-black uppercase italic tracking-tighter text-primary">Monto Total</span>
+                                <span className="text-2xl font-black text-primary">
+                                    {formatCurrency((reservation.pricePlanAmount || 0) + ((paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') ? 2000 : 0))}
+                                </span>
                             </div>
                         </div>
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                <FormField
-                                    control={form.control}
-                                    name="isOpenAccount"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/10 border-white/10">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="font-bold text-sm">Manejar como Cuenta Abierta</FormLabel>
-                                                <p className="text-xs text-muted-foreground">Se liquida el saldo total al salir.</p>
-                                            </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {!isOpenAccount && (
-                                    <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm border-primary/20">
-                                        <FormField
-                                            control={form.control}
-                                            name="paymentMethod"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Método de Pago</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                        <FormControl><SelectTrigger className="h-12 border-white/10"><SelectValue placeholder="Seleccione método" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Efectivo">Efectivo</SelectItem>
-                                                            <SelectItem value="Sinpe Movil">Sinpe Móvil</SelectItem>
-                                                            <SelectItem value="Tarjeta">Tarjeta (Voucher)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                <div className="space-y-4 rounded-xl border p-4 bg-background shadow-sm border-primary/20">
+                                    <FormField
+                                        control={form.control}
+                                        name="paymentMethod"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Método de Pago</FormLabel>
+                                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                                    {[
+                                                        { value: 'Efectivo', label: 'Efectivo', icon: <Wallet className="h-4 w-4" /> },
+                                                        { value: 'Sinpe Movil', label: 'Sinpe Móvil', icon: <Smartphone className="h-4 w-4" /> },
+                                                        { value: 'Tarjeta', label: 'Tarjeta', icon: <CreditCard className="h-4 w-4" /> }
+                                                    ].map(method => (
+                                                        <Button
+                                                            key={method.value}
+                                                            type="button"
+                                                            variant={field.value === method.value ? 'default' : 'outline'}
+                                                            onClick={() => {
+                                                                field.onChange(method.value);
+                                                                if (method.value === "Efectivo") {
+                                                                    form.setValue("voucherNumber", null);
+                                                                    form.setValue("paymentConfirmed", false);
+                                                                } else if (method.value === "Tarjeta") {
+                                                                    setCashTendered("");
+                                                                    form.setValue("paymentConfirmed", false);
+                                                                } else if (method.value === "Sinpe Movil") {
+                                                                    setCashTendered("");
+                                                                    form.setValue("voucherNumber", null);
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "h-14 flex flex-col items-center justify-center gap-1 font-bold",
+                                                                field.value === method.value ? "bg-primary text-white border-primary" : "text-muted-foreground hover:text-white"
+                                                            )}
+                                                        >
+                                                            {method.icon}
+                                                            <span className="text-[10px] uppercase tracking-widest font-black">{method.label}</span>
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
                                         {paymentMethod === 'Sinpe Movil' && (
                                             <div className='pt-4 border-t border-white/5 space-y-3'>
                                                 {targetSinpeAccount ? (
                                                     <div className='p-4 bg-primary/5 rounded-xl text-center border-2 border-dashed border-primary/20'>
-                                                        <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Enviar {formatCurrency(reservation.pricePlanAmount || 0)} a:</p>
+                                                        <p className='text-xs font-bold text-muted-foreground uppercase mb-2'>Enviar {formatCurrency((reservation.pricePlanAmount || 0) + 2000)} a:</p>
                                                         <p className='text-2xl font-black font-mono text-primary'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
                                                         <p className='text-[10px] font-black uppercase text-muted-foreground'>{targetSinpeAccount.accountHolder}</p>
                                                         <FormField
@@ -240,8 +261,7 @@ export default function CheckInFromReservationDialog({ reservation, children, on
                                                 )}
                                             </div>
                                         )}
-                                    </div>
-                                )}
+                                </div>
 
                                 <DialogFooter className='pt-6 border-t border-white/5 mt-6'>
                                     <Button

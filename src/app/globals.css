@@ -66,3 +66,11 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.dark input, .dark select, .dark textarea {
+  color: white !important;
+}
+
+.dark button.bg-primary {
+  color: white !important;
+}

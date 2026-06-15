@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types';
-import { saveClient, checkClientByIdCard } from '@/lib/actions/client.actions';
+import { checkClientByIdCard } from '@/lib/actions/client.actions';
+import { useFirebase } from '@/firebase';
+import { doc, updateDoc, addDoc, collection, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,9 +63,22 @@ export default function AddClientDialog({ children, client, open: controlledOpen
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
     defaultValues: client ? {
+      firstName: '',
+      lastName: '',
+      secondLastName: '',
+      idCard: '',
+      email: '',
+      phoneNumber: '',
+      whatsappNumber: '',
+      address: '',
+      notes: '',
+      isVip: false,
+      isValidated: false,
+      isForeigner: false,
       ...client,
       birthDate: client.birthDate?.toDate(),
       isVip: client.isVip || false,
+      isForeigner: client.isForeigner || false,
     } : {
       firstName: '',
       lastName: '',
@@ -76,6 +91,7 @@ export default function AddClientDialog({ children, client, open: controlledOpen
       notes: '',
       isVip: false,
       isValidated: false,
+      isForeigner: false,
     },
   });
 
@@ -83,6 +99,8 @@ export default function AddClientDialog({ children, client, open: controlledOpen
     if (open) {
       setDuplicateClient(null);
       const defaultValues = client ? {
+        firstName: '', lastName: '', secondLastName: '', idCard: '', email: '', phoneNumber: '',
+        whatsappNumber: '', address: '', notes: '', isVip: false,
         ...client,
         birthDate: client.birthDate?.toDate(),
       } : {
@@ -150,16 +168,35 @@ export default function AddClientDialog({ children, client, open: controlledOpen
   }));
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
-  const onSubmit = (values: z.infer<typeof clientSchema>) => {
-    startTransition(async () => {
-      const result = await saveClient(values);
-      if (result.error) {
-        toast({ title: 'Error al Guardar', description: result.error, variant: 'destructive' });
+  const { firestore } = useFirebase();
+
+  const onSubmit = async (values: z.infer<typeof clientSchema>) => {
+    try {
+      const { id, ...clientData } = values;
+      const dataToSave = {
+        ...clientData,
+        birthDate: clientData.birthDate ? Timestamp.fromDate(clientData.birthDate) : null,
+        isVip: clientData.isVip || false,
+        isValidated: clientData.isValidated || false,
+        isForeigner: clientData.isForeigner || false,
+      };
+
+      if (id) {
+        const clientRef = doc(firestore, 'clients', id);
+        await updateDoc(clientRef, dataToSave);
       } else {
-        toast({ title: '¡Éxito!', description: `El cliente ${values.firstName} ha sido guardado.` });
-        setOpen(false);
+        await addDoc(collection(firestore, 'clients'), {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+          visitCount: 0,
+        });
       }
-    });
+      toast({ title: '¡Éxito!', description: `El cliente ${values.firstName} ha sido guardado.` });
+      setOpen(false);
+    } catch (error) {
+      console.error('Error saving client:', error);
+      toast({ title: 'Error al Guardar', description: 'No se pudo guardar el cliente.', variant: 'destructive' });
+    }
   };
 
   const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
@@ -220,58 +257,12 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         return;
       }
 
-      const settings = await getSystemSettings();
-      const domain = settings.verificationApiDomain || 'api-krdy3op4ma-uc.a.run.app';
-      const response = await fetch(`https://${domain}/verify?cedula=${cleanId}`);
-      const data = await response.json();
+      // 2. Si no existe, se le indica al usuario que lo agregue manualmente
+      form.setValue('isValidated', false);
+      toast({ title: 'Cliente no encontrado', description: 'No se encontró en la base de datos. Por favor ingrese los datos manualmente.', variant: 'default' });
 
-      if (data['person-found']) {
-        // Splitting name: JOHAN MANUEL ROSABAL  BRENES
-        const parts = data.name.trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 3) {
-          const secondLastName = parts.pop() || '';
-          const lastName = parts.pop() || '';
-          const firstName = parts.join(' ');
-          form.setValue('firstName', toTitleCase(firstName));
-          form.setValue('lastName', toTitleCase(lastName));
-          form.setValue('secondLastName', toTitleCase(secondLastName));
-        } else if (parts.length === 2) {
-          form.setValue('firstName', toTitleCase(parts[0]));
-          form.setValue('lastName', toTitleCase(parts[1]));
-        } else {
-          form.setValue('firstName', toTitleCase(parts[0]));
-        }
-
-        // Parse birth-date: 12/11/1982
-        if (data['birth-date']) {
-          const [d, m, y] = data['birth-date'].split('/');
-          const birthDayNum = parseInt(d, 10);
-          const birthMonthNum = parseInt(m, 10);
-          const birthYearNum = parseInt(y, 10);
-
-          setBirthDay(String(birthDayNum));
-          setBirthMonth(String(birthMonthNum));
-          setBirthYear(String(birthYearNum));
-
-          // Calculate age
-          const birthDate = new Date(birthYearNum, birthMonthNum - 1, birthDayNum);
-          const today = new Date();
-          let age = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-          }
-          setCalculatedAge(age);
-        }
-
-        form.setValue('isValidated', true);
-        toast({ title: 'Persona Encontrada', description: `¡Hola ${data.name}! La información ha sido cargada.` });
-      } else {
-        form.setValue('isValidated', false);
-        toast({ title: 'No encontrado', description: 'No se encontró información para esta cédula.', variant: 'destructive' });
-      }
     } catch (error) {
-      toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Error al verificar la cédula en la base de datos.', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }
@@ -445,6 +436,27 @@ export default function AddClientDialog({ children, client, open: controlledOpen
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange} id="addclientdialog-switch-1" data-testid="addclientdialog-isvip-switch"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isForeigner"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Cliente Extranjero</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Marque si el cliente es extranjero (no se puede verificar cédula).
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
                     />
                   </FormControl>
                 </FormItem>

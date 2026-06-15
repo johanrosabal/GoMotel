@@ -1,15 +1,21 @@
-
-'use server';
-
+// 'use server'; // Removido por script
 import { collection, getDocs, query, where, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Invoice, Stay, Order, Service } from '@/types';
 import { startOfDay, endOfDay, subDays, format, eachDayOfInterval, isSameDay } from 'date-fns';
 
-export async function getDashboardStats(days: number = 7) {
+export async function getDashboardStats(days: number = 7, dateRange?: { from: Date, to: Date }) {
   try {
     const now = new Date();
-    const startDate = startOfDay(subDays(now, days - 1));
+    let startDate = startOfDay(subDays(now, days - 1));
+    let endDate = now;
+
+    if (dateRange && dateRange.from && dateRange.to) {
+        startDate = startOfDay(dateRange.from);
+        endDate = endOfDay(dateRange.to);
+    }
+
+    const endTimestamp = Timestamp.fromDate(endDate);
     const startTimestamp = Timestamp.fromDate(startDate);
 
     // 1. Fetch Invoices for Revenue
@@ -17,6 +23,7 @@ export async function getDashboardStats(days: number = 7) {
     const invoicesQuery = query(
       invoicesRef,
       where('createdAt', '>=', startTimestamp),
+      where('createdAt', '<=', endTimestamp),
       orderBy('createdAt', 'asc')
     );
     const invoicesSnap = await getDocs(invoicesQuery);
@@ -24,14 +31,34 @@ export async function getDashboardStats(days: number = 7) {
 
     // 2. Fetch Stays for Occupancy
     const staysRef = collection(db, 'stays');
-    const staysQuery = query(staysRef, where('checkIn', '>=', startTimestamp));
+    const staysQuery = query(
+      staysRef, 
+      where('checkIn', '>=', startTimestamp),
+      where('checkIn', '<=', endTimestamp)
+    );
     const staysSnap = await getDocs(staysQuery);
     const stays = staysSnap.docs.map(d => ({ id: d.id, ...d.data() } as Stay));
 
     // 3. Fetch Products for Stock Alerts
     const productsRef = collection(db, 'products');
     const servicesSnap = await getDocs(productsRef);
-    const services = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
+    const categoriesRef = collection(db, 'productCategories');
+    const categoriesSnap = await getDocs(categoriesRef);
+    const categoriesMap = categoriesSnap.docs.reduce((acc, d) => {
+        acc[d.id] = d.data().name;
+        return acc;
+    }, {} as Record<string, string>);
+
+    const services = servicesSnap.docs.map(d => {
+        const data = d.data();
+        return { 
+            id: d.id, 
+            ...data,
+            categoryName: categoriesMap[data.categoryId] || 'Sin Categoría'
+        } as any;
+    });
+
+
 
     // --- Processing Data for Charts ---
     
@@ -75,6 +102,7 @@ export async function getDashboardStats(days: number = 7) {
         revenueData,
         paymentData,
         allServices: services,
+        debugInfo: services.map((s: any) => ({ name: s.name, catName: s.categoryName, catId: s.categoryId })),
         kpis: {
             totalRevenue: invoices.filter(i => i.status === 'Pagada').reduce((sum, i) => sum + i.total, 0),
             occupancyRate,

@@ -164,6 +164,38 @@ export default function SinpeAccountFormDialog({ open, onOpenChange, account }: 
             />
             <FormField
               control={form.control}
+              name="balance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Saldo Actual (₡)</FormLabel>
+                  <FormControl>
+                     <div className="flex gap-2">
+                         <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={numberToString(field.value || 0)}
+                            onChange={(e) => {
+                                const val = e.target.value.replace(/[^\d]/g, '');
+                                field.onChange(parseInt(val, 10) || 0);
+                            }}
+                            className="text-right flex-grow" id="sinpeaccountformdialog-input-balance" data-testid="sinpeaccountformdialog-balance-input"
+                          />
+                          <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => field.onChange(0)}
+                              className="shrink-0 border-rose-500/50 text-rose-500 hover:bg-rose-500/10"
+                          >
+                              Reset
+                          </Button>
+                     </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="isActive"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">

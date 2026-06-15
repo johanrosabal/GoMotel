@@ -226,6 +226,14 @@
         { "fieldPath": "checkOut", "order": "ASCENDING" },
         { "fieldPath": "roomNumber", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "articlesStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

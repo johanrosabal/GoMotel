@@ -1,5 +1,5 @@
 
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente y evite el error de conexión en el servidor
 
 import {
   collection,
@@ -16,7 +16,9 @@ import {
   limit,
   updateDoc,
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// // import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
+
 import { db } from '../firebase';
 import type { Order, OrderItem, Service, AppliedTax, Invoice, PrepStatus, Stay, Tax } from '@/types';
 
@@ -98,6 +100,7 @@ export async function createOrder(
       const orderItems: OrderItem[] = [];
       let hasKitchen = false;
       let hasBar = false;
+      let hasArticles = false;
       const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
       // 10% Service Tax for restaurant stays
@@ -113,6 +116,7 @@ export async function createOrder(
 
         if (detail.service.category === 'Food') hasKitchen = true;
         if (detail.service.category === 'Beverage') hasBar = true;
+        if (detail.service.category === 'Article') hasArticles = true;
 
         const itemCreatedAt = Timestamp.now();
         orderItems.push({
@@ -179,6 +183,7 @@ export async function createOrder(
         status: 'Pendiente',
         kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
         barStatus: hasBar ? 'Pendiente' : 'Entregado',
+        articlesStatus: hasArticles ? 'Pendiente' : 'Entregado',
         paymentStatus: paymentDetails ? 'Pagado' : 'Pendiente',
         paymentMethod: paymentDetails ? paymentDetails.paymentMethod : 'Por Definir',
         voucherNumber: paymentDetails?.voucherNumber || null,
@@ -284,7 +289,7 @@ export async function updateOrderStatus(orderId: string, status: PrepStatus, are
 /**
  * Updates the status of an individual item in a stay-based order.
  */
-export async function updateOrderItemStatus(orderId: string, itemId: string, status: PrepStatus, area: 'Kitchen' | 'Bar') {
+export async function updateOrderItemStatus(orderId: string, itemId: string, status: PrepStatus, area: 'Kitchen' | 'Bar' | 'Articles') {
     try {
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
@@ -303,6 +308,7 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
             // Recalculate area statuses - ignore cancelled items
             const kItems = updatedItems.filter(i => i.category === 'Food' && i.status !== 'Cancelado');
             const bItems = updatedItems.filter(i => i.category === 'Beverage' && i.status !== 'Cancelado');
+            const aItems = updatedItems.filter(i => i.category === 'Article' && i.status !== 'Cancelado');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
                 if (items.length === 0) return 'Listo'; 
@@ -317,15 +323,17 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             const kStatus = getAreaStatus(kItems, orderData.kitchenStatus);
             const bStatus = getAreaStatus(bItems, orderData.barStatus);
+            const aStatus = getAreaStatus(aItems, orderData.articlesStatus);
 
             updates.kitchenStatus = kStatus;
             updates.barStatus = bStatus;
+            updates.articlesStatus = aStatus;
 
-            if (kStatus === 'Entregado' && bStatus === 'Entregado') {
+            if (kStatus === 'Entregado' && bStatus === 'Entregado' && aStatus === 'Entregado') {
                 updates.status = 'Entregado';
-            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+            } else if (kStatus === 'Listo' && bStatus === 'Listo' && aStatus === 'Listo') {
                 updates.status = 'Listo';
-            } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
+            } else if (kStatus === 'En preparación' || bStatus === 'En preparación' || aStatus === 'En preparación') {
                 updates.status = 'En preparación';
             } else {
                 updates.status = 'Pendiente';
@@ -382,6 +390,7 @@ export async function cancelOrder(orderId: string) {
             status: 'Cancelado',
             kitchenStatus: 'Cancelado',
             barStatus: 'Cancelado',
+            articlesStatus: 'Cancelado',
             billRequested: false
         });
     });
@@ -402,6 +411,7 @@ export async function completeOrderDelivery(orderId: string) {
             status: 'Entregado',
             kitchenStatus: 'Entregado',
             barStatus: 'Entregado',
+            articlesStatus: 'Entregado',
             // Also update all items to Entregado
             items: (await getDoc(orderRef)).data()?.items.map((i: any) => ({ ...i, status: 'Entregado' }))
         });

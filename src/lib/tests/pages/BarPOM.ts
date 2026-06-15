@@ -6,7 +6,7 @@ export const BarPOM: PageObject = {
   route: '/bar',
   iconName: 'GlassWater',
   selectors: {
-    container: '[data-testid="order-queue-container"]',
+    container: '[data-testid="orderqueuepage-main-div"]',
   },
 
   validate: async (): Promise<TestResult[]> => {

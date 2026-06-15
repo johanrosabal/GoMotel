@@ -4,7 +4,7 @@ import { PageObject, TestResult } from '../types';
 export const SystemPOM: PageObject = {
   name: 'Configuración del Sistema',
   selectors: {
-    btnRunDiagnostic: '[data-testid="btn-run-diagnostic"]',
+    btnRunDiagnostic: '[data-testid="stability-action-button"]',
   },
 
   validate: async (): Promise<TestResult[]> => {

@@ -365,44 +365,107 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
 export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
     if (invoices.length === 0) {
         return (
-            <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
-                No se encontraron facturas.
+            <div className="text-center text-slate-500 py-20 bg-slate-900/20 rounded-2xl border border-white/5 border-dashed">
+                <ReceiptText className="h-12 w-12 mx-auto mb-4 text-slate-700" />
+                <p className="font-black uppercase tracking-widest text-xs">No se encontraron facturas</p>
+                <p className="text-sm text-slate-600 mt-1">Intente cambiando los filtros de búsqueda</p>
             </div>
         );
     }
     
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Factura</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {invoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                            <TableCell className="font-mono">
-                                <Badge variant="outline">{invoice.invoiceNumber}</Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">{invoice.clientName}</TableCell>
-                            <TableCell>{format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}</TableCell>
-                            <TableCell>{formatCurrency(invoice.total)}</TableCell>
-                            <TableCell>
-                                <Badge variant={invoice.status === 'Pagada' ? 'default' : 'secondary'} className={cn(invoice.status === 'Pagada' && 'bg-green-600')}>{invoice.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <ActionsMenu invoice={invoice} />
-                            </TableCell>
+        <>
+            {/* Vista para móviles (Tarjetas) */}
+            <div className="md:hidden space-y-4">
+                {invoices.map((invoice) => (
+                    <div key={invoice.id} className="p-5 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 space-y-4 relative transition-all hover:bg-white/10 shadow-lg shadow-black/20">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-black px-2.5 py-1 bg-white/10 rounded-lg text-white border border-white/10">
+                                        {invoice.invoiceNumber}
+                                    </span>
+                                    <span className="font-black text-sm text-white uppercase tracking-tight">{invoice.clientName}</span>
+                                </div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
+                                </p>
+                            </div>
+                            <ActionsMenu invoice={invoice} />
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                            <div>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total:</span>
+                                <span className="ml-2 font-black text-white text-lg tracking-tighter">{formatCurrency(invoice.total)}</span>
+                            </div>
+                            <div>
+                                <Badge 
+                                    variant={invoice.status === 'Pagada' ? 'default' : 'secondary'} 
+                                    className={cn(
+                                        "text-[10px] font-black uppercase tracking-widest h-6",
+                                        invoice.status === 'Pagada' 
+                                            ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
+                                            : 'bg-amber-500/20 text-amber-500 border border-amber-500/20'
+                                    )}
+                                >
+                                    {invoice.status}
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Vista para escritorio (Tabla) */}
+            <div className="hidden md:block overflow-hidden">
+                <Table>
+                    <TableHeader className="bg-slate-950/50">
+                        <TableRow className="border-b border-white/5 hover:bg-transparent">
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Factura</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Cliente</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Fecha Emisión</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Monto Total</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Estado</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14 text-right">Acciones</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                    </TableHeader>
+                    <TableBody>
+                        {invoices.map((invoice) => (
+                            <TableRow key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
+                                <TableCell className="h-16">
+                                    <span className="font-mono text-xs font-black px-2.5 py-1 bg-white/5 rounded-lg text-white border border-white/10">
+                                        {invoice.invoiceNumber}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="font-black text-sm text-white uppercase tracking-tight h-16">{invoice.clientName}</TableCell>
+                                <TableCell className="text-sm font-bold text-slate-400 h-16">
+                                    {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
+                                </TableCell>
+                                <TableCell className="font-black text-white text-base tracking-tighter h-16">
+                                    {formatCurrency(invoice.total)}
+                                </TableCell>
+                                <TableCell className="h-16">
+                                    <Badge 
+                                        variant={invoice.status === 'Pagada' ? 'default' : 'secondary'} 
+                                        className={cn(
+                                            "text-[10px] font-black uppercase tracking-widest h-6",
+                                            invoice.status === 'Pagada' 
+                                                ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
+                                                : 'bg-amber-500/20 text-amber-500 border border-amber-500/20'
+                                        )}
+                                    >
+                                        {invoice.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right h-16">
+                                    <ActionsMenu invoice={invoice} />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </>
     );
 }

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { payRestaurantAccount } from '@/lib/actions/restaurant.actions';
+import { payRestaurantAccountClient } from '@/lib/client-actions/restaurant.client';
 import type { Order, SinpeAccount } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -28,6 +28,7 @@ import { CheckCircle, Smartphone, Wallet, CreditCard, ChevronRight, ReceiptText,
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playNotificationSound } from '@/lib/sound';
+import { useRouter } from 'next/navigation';
 
 interface PayOrderDialogProps {
     children: ReactNode;
@@ -59,6 +60,7 @@ export default function PayOrderDialog({ children, order, onSuccess }: PayOrderD
     const { toast } = useToast();
     const { firestore } = useFirebase();
     const [cashTendered, setCashTendered] = useState('');
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
@@ -98,7 +100,7 @@ export default function PayOrderDialog({ children, order, onSuccess }: PayOrderD
 
     const handleProcessPayment = (values: z.infer<typeof paymentSchema>) => {
         startTransition(async () => {
-            const result = await payRestaurantAccount(order.id, order.locationId, {
+            const result = await payRestaurantAccountClient(order.id, order.locationId, {
                 paymentMethod: values.paymentMethod,
                 voucherNumber: values.voucherNumber,
                 total: order.total,
@@ -114,6 +116,7 @@ export default function PayOrderDialog({ children, order, onSuccess }: PayOrderD
                 setOpen(false);
                 playNotificationSound('digital');
                 toast({ title: '¡Éxito!', description: 'Pago procesado correctamente.' });
+                router.refresh();
                 if (id && onSuccess) {
                     onSuccess(id);
                 }

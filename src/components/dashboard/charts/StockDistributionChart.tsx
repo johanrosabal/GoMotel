@@ -22,20 +22,23 @@ const categoryMap: Record<Service['category'], string> = {
     Amenity: "Amenidades",
 }
 
-export default function StockDistributionChart({ services }: { services: Service[] }) {
+export default function StockDistributionChart({ services }: { services: any[] }) {
     const chartData = React.useMemo(() => {
         const dataByCategory = services.reduce((acc, service) => {
-            if (!acc[service.category]) {
-                acc[service.category] = 0;
+            const catName = service.categoryName || 'Sin Categoría';
+            if (!acc[catName]) {
+                acc[catName] = 0;
             }
-            acc[service.category] += service.stock;
+            acc[catName] += service.stock;
             return acc;
-        }, {} as Record<Service['category'], number>);
+        }, {} as Record<string, number>);
 
-        return Object.entries(dataByCategory).map(([category, stock]) => ({
-            name: categoryMap[category as Service['category']],
+        const COLORS_ARRAY = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
+        return Object.entries(dataByCategory).map(([category, stock], index) => ({
+            name: category,
             value: stock,
-            fill: COLORS[category as Service['category']],
+            fill: COLORS_ARRAY[index % COLORS_ARRAY.length],
         })) as ChartData[];
     }, [services]);
 

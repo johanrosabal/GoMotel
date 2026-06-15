@@ -5,7 +5,7 @@ import { CheckCircle, Download, Printer, FileText, ChevronRight, Share2 } from '
 import { formatCurrency, getBaseUrl } from '@/lib/utils';
 import React, { useRef, useState } from 'react';
 import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
 import type { Invoice, Client } from '@/types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Mail, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendInvoiceEmail } from '@/lib/actions/email-sender.actions';
+import { getSystemSettings } from '@/lib/actions/system.actions';
+import { getCompanyInfo } from '@/lib/actions/company.actions';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 32 32" {...props}><path d=" M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25-.19 0-.38.03-.57.07-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57 0 .19.03.38.07.57.04.19.13.46.33.72.19.26.42.51.61.68.19.17.38.34.58.44.18.1.38.19.57.19h.005c.19.03.38.07.57.11.19.04.46.13.72.33.26.19.51.42.68.61.17.19.34.38.44.57.1.18.19.38.19.57a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25s-.38.03-.57.07c-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57 0 .19.03.38.07.57.04.19.13.46.33.72.19.26.42.51.61.68.19.17.38.34.58.44.18.1.38.19.57.19.19.03.38.07.57.11.19.04.46.13.72.33.26.19.51.42.68.61.17.19.34.38.44.57.1.18.19.38.19.57.01.19-.03.38-.07.57-.04.19-.13.46-.33.72-.19.26-.42.51-.61.68-.19.17-.38.34-.58.44-.18.1-.38.19-.57.19a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.46-1.825-2.13-2.3-2.592-.19-.18-.38-.25-.57-.25s-.38.03-.57.07c-.19.04-.46.13-.72.33-.26.19-.51.42-.68.61-.17.19-.34.4-.44.58-.1.18-.19.38-.19.57z" fill="currentColor"></path></svg>
@@ -232,7 +234,48 @@ export default function InvoiceSuccessDialog({ open, onOpenChange, invoiceId }: 
 
         setIsSendingEmail(true);
         try {
-            await sendInvoiceEmail(emailAddress, invoice.id);
+            const settings = await getSystemSettings();
+            const companyInfo = await getCompanyInfo();
+            
+            // Fetch template
+            const templatesRef = collection(firestore!, 'emailTemplates');
+            const q = query(templatesRef, where('type', '==', 'invoice'), orderBy('createdAt', 'desc'), limit(1));
+            const templateSnapshot = await getDocs(q);
+            
+            if (templateSnapshot.empty) {
+                throw new Error('No se encontró ninguna plantilla de tipo "Factura".');
+            }
+            const template = templateSnapshot.docs[0].data() as any;
+            
+            // Fetch client phone if needed
+            let clientPhone = '';
+            if (invoice.clientId) {
+                const clientRef = doc(firestore!, 'clients', invoice.clientId);
+                const clientSnap = await getDoc(clientRef);
+                if (clientSnap.exists()) {
+                    const clientData = clientSnap.data();
+                    clientPhone = clientData.phoneNumber || clientData.whatsappNumber || '';
+                }
+            }
+
+            await sendInvoiceEmail(emailAddress, invoice, settings, template, companyInfo, clientPhone);
+            
+            // Log the email in Firestore
+            try {
+                const logRef = doc(collection(firestore!, 'emailLogs'));
+                await setDoc(logRef, {
+                  to: emailAddress,
+                  invoiceId: invoice.id,
+                  templateId: templateSnapshot.docs[0].id,
+                  subject: template.subject,
+                  sentAt: Date.now(),
+                  status: 'success',
+                });
+            } catch (logError) {
+                console.error('Error logging email:', logError);
+                // Don't fail the operation if logging fails
+            }
+
             toast({
                 title: "¡Email enviado!",
                 description: `La factura ha sido enviada a ${emailAddress} exitosamente.`,

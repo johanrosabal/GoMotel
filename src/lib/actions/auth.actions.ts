@@ -1,13 +1,13 @@
-'use server';
-
+// 'use server'; // Removido por script
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
 } from 'firebase/auth';
 import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import { db, auth } from '../firebase';
-import { doc, setDoc, getDocs, collection, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, Timestamp, query, where } from 'firebase/firestore';
 
 // HACK: This is a hacky way to get the auth instance on the server.
 // In a real app, you would use the Firebase Admin SDK for server-side auth.
@@ -71,9 +71,19 @@ export async function register(values: z.infer<typeof registerSchema>) {
             return { error: errorMessages || 'Campos inválidos.' };
         }
         const { email, password, firstName, lastName, secondLastName, birthDate, idCard, phoneNumber, whatsappNumber, role } = validatedFields.data;
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        const user = userCredential.user;
+        // Check if user exists with soft delete
+        const userQuery = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+        if (!userQuery.empty) {
+            const userDoc = userQuery.docs[0];
+            if (userDoc.data().status === 'Deleted') {
+                return { error: 'Este usuario fue eliminado del sistema y no se puede registrar de nuevo.' };
+            }
+        }
+
+        // Create user with Client SDK
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
 
         try {
             // Check if this is the first user to assign roles
@@ -83,43 +93,48 @@ export async function register(values: z.infer<typeof registerSchema>) {
 
             if (isFirstUser) {
                 // This is the first user, make them an admin.
-                await setDoc(doc(db, 'roles_admin', user.uid), { admin: true });
+                await setDoc(doc(db, 'roles_admin', uid), { admin: true });
             }
 
             // Create user profile in Firestore
-            await setDoc(doc(db, 'users', user.uid), {
-                uid: user.uid,
+            await setDoc(doc(db, 'users', uid), {
+                uid: uid,
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
                 secondLastName: secondLastName || '',
-                birthDate: Timestamp.fromDate(birthDate),
+                birthDate: birthDate,
                 idCard: idCard,
                 phoneNumber: phoneNumber,
                 whatsappNumber: whatsappNumber || '',
-                createdAt: Timestamp.now(),
+                createdAt: new Date(),
                 role: userRole,
                 status: 'Active',
-                photoURL: user.photoURL || '',
+                photoURL: '',
             });
         } catch (firestoreError) {
-            // If Firestore fails, we should ideally delete the Auth user to allow retries
-            // but since we are using the client SDK on the server without admin privileges,
-            // this might not always work as expected depending on current session.
-            // However, we'll try to delete it.
+            // If Firestore fails, delete the Auth user to allow retries
             try {
-                await user.delete();
+                await userCredential.user.delete();
             } catch (deleteError) {
                 console.error('Failed to cleanup auth user after firestore failure:', deleteError);
             }
             throw firestoreError;
         }
         
-
     } catch (error: any) {
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                return { error: 'Este correo electrónico ya está en uso.' };
+        console.error('Registration error:', error);
+        
+        const errorCode = error.code || error.errorInfo?.code;
+        const errorMessage = error.message || '';
+        
+        if (errorCode === 'auth/email-already-in-use' || 
+            errorMessage.includes('already in use') || 
+            errorMessage.includes('ALREADY_EXISTS')) {
+            return { error: 'Este correo electrónico ya está en uso por otra cuenta.' };
+        }
+        
+        switch (errorCode) {
             case 'auth/invalid-email':
                 return { error: 'El formato del correo electrónico no es válido.' };
             case 'auth/weak-password':
@@ -130,4 +145,5 @@ export async function register(values: z.infer<typeof registerSchema>) {
     }
     revalidatePath('/');
     revalidatePath('/users');
+    return { success: true };
 }

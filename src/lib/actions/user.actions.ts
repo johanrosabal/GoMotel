@@ -1,18 +1,16 @@
 
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente
 
 import { collection, getDocs, query, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
 import { db, auth as clientAuth } from '../firebase';
-import { adminAuth } from '../firebase-admin';
 import type { UserProfile, UserRole } from '@/types';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import { getAuth } from 'firebase/auth';
 
 export async function getUsers(): Promise<UserProfile[]> {
   try {
-    const usersCollection = collection(db, 'users');
-    const q = query(usersCollection);
-    const usersSnapshot = await getDocs(q);
+    const usersSnapshot = await getDocs(collection(db, 'users'));
     const usersList = usersSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -22,7 +20,11 @@ export async function getUsers(): Promise<UserProfile[]> {
     });
     
     // Sort by creation date descending
-    usersList.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+    usersList.sort((a, b) => {
+      const dateA = a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : 0;
+      const dateB = b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : 0;
+      return dateB - dateA;
+    });
 
     return usersList;
   } catch (error) {
@@ -98,29 +100,14 @@ export async function toggleUserStatus(userId: string, currentStatus: string) {
 
 export async function deleteUser(userId: string) {
   try {
-    // 1. Delete from Authentication using Admin SDK
-    if (adminAuth) {
-      try {
-        await adminAuth.deleteUser(userId);
-      } catch (authError: any) {
-        // If user doesn't exist in Auth, we continue to cleanup Firestore
-        if (authError.code !== 'auth/user-not-found') {
-          console.error('Error deleting user from Auth:', authError);
-          return { error: 'Error de seguridad: No se pudo eliminar la cuenta de acceso.' };
-        }
-      }
-    }
-
-    // 2. Mark as Deleted in Firestore
+    // Mark as Deleted in Firestore
     const userRef = doc(db, 'users', userId);
     
-    // We update the status and "obfuscate" the email so the same email 
-    // can be used again to register a new account if needed.
+    // We update the status to 'Deleted'. We keep the email so we can
+    // prevent re-registration and show a specific error.
     await updateDoc(userRef, { 
       status: 'Deleted', 
-      deletedAt: Timestamp.now(),
-      // We keep a record of the original email but change the primary one
-      email: `deleted_${userId}@go-motel.internal` 
+      deletedAt: Timestamp.now()
     });
     
     // 3. Cleanup admin roles if exists

@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { extendStay } from '@/lib/actions/room.actions';
-import { Clock, CheckCircle, Smartphone, AlertTriangle, LogOut, Zap, CalendarPlus } from 'lucide-react';
+import { Clock, CheckCircle, Smartphone, AlertTriangle, LogOut, Zap, CalendarPlus, X } from 'lucide-react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Room, Stay, RoomType, Order, SinpeAccount } from '@/types';
@@ -94,13 +94,20 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
     });
 
     const selectedPlanName = form.watch('newPlanName');
-    const payNow = form.watch('payNow');
+    const payNow = true; // Forzado a true siempre
     const paymentMethod = form.watch('paymentMethod');
 
     const selectedPlan = useMemo(() => {
         if (!selectedPlanName || !availablePlans.length) return null;
         return availablePlans.find(p => p.name === selectedPlanName);
     }, [selectedPlanName, availablePlans]);
+
+    const isMonthlyPlan = useMemo(() => {
+        return selectedPlanName?.toLowerCase().includes('mensual') || selectedPlan?.unit === 'Months';
+    }, [selectedPlanName, selectedPlan]);
+
+    const extraFee = (paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') ? 2000 : 0;
+    const totalToPay = selectedPlan ? selectedPlan.price + extraFee : 0;
 
     const targetSinpeAccount = useMemo(() => {
         if (paymentMethod !== 'Sinpe Movil' || !activeSinpeAccounts || !selectedPlan) {
@@ -181,6 +188,12 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
     }, [open, form]);
 
     useEffect(() => {
+        if (isMonthlyPlan) {
+            form.setValue('paymentMethod', 'Efectivo');
+        }
+    }, [isMonthlyPlan, form]);
+
+    useEffect(() => {
         if (!payNow) {
             setCashTendered('');
         }
@@ -197,15 +210,24 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
             {stay && (
-                <DialogContent className="sm:max-w-md max-h-[95vh] overflow-y-auto scrollbar-hide p-0 border-none bg-slate-950/60 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-[2.5rem]">
+                <DialogContent className="w-[95vw] sm:max-w-md p-0 border-none bg-slate-950/60 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-[2.5rem] [&>button]:hidden">
                     <div className="relative overflow-hidden">
+                        {/* Custom Close Button */}
+                        <button 
+                            type="button" 
+                            onClick={() => setOpen(false)} 
+                            className="absolute right-6 top-6 z-50 p-2.5 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:scale-105 active:scale-95 transition-all shadow-lg backdrop-blur-md"
+                            id="custom-close-button"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
                         {/* Decorative background glow */}
                         <div className={cn(
                             "absolute -top-24 -left-24 w-48 h-48 rounded-full blur-[80px] opacity-20 pointer-events-none",
                             isOverdue ? "bg-rose-500" : "bg-primary"
                         )} />
                         
-                        <div className="p-8 relative z-10">
+                        <div className="p-5 sm:p-8 relative z-10 max-h-[85vh] overflow-y-auto scrollbar-hide">
                             <DialogHeader className="mb-8">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className={cn(
@@ -214,7 +236,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                     )}>
                                         <CalendarPlus className="h-6 w-6" />
                                     </div>
-                                    <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                    <DialogTitle className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                                         {isOverdue ? 'Gestionar Vencida' : 'Extender Estancia'}
                                     </DialogTitle>
                                 </div>
@@ -243,7 +265,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                     <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
                                                         {availablePlans.map(plan => (
                                                             <SelectItem key={plan.name} value={plan.name} className="py-3 font-bold focus:bg-primary/20 focus:text-primary">
-                                                                {plan.name} — <span className="text-primary">{formatCurrency(plan.price)}</span>
+                                                                {plan.name}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -275,35 +297,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
 
                                     {selectedPlan && (
                                         <div className="space-y-6 pt-6 border-t border-white/5">
-                                            <FormField
-                                                control={form.control}
-                                                name="payNow"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-5 shadow-inner group hover:border-primary/30 transition-all">
-                                                        <div className="space-y-1">
-                                                            <FormLabel className="text-xs font-black uppercase tracking-widest text-slate-300">Pagar Extensión Ahora</FormLabel>
-                                                            <p className="text-[10px] text-slate-500 font-medium">Genera factura inmediata por este tiempo.</p>
-                                                        </div>
-                                                        <FormControl>
-                                                            <Switch
-                                                                checked={field.value}
-                                                                onCheckedChange={field.onChange} 
-                                                                className="data-[state=checked]:bg-primary"
-                                                                id="extendstaydialog-switch-1" 
-                                                                data-testid="extendstaydialog-pay-extension-switch"
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            
-                                            <AnimatePresence>
-                                                {payNow && (
-                                                    <motion.div 
-                                                        initial={{ opacity: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        className="space-y-6 rounded-[2rem] border border-primary/20 bg-primary/[0.03] p-6 shadow-xl"
-                                                    >
+                                            <div className="space-y-6 rounded-[2rem] border border-primary/20 bg-primary/[0.03] p-6 shadow-xl">
                                                         <FormField
                                                             control={form.control}
                                                             name="paymentMethod"
@@ -318,8 +312,8 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                                         </FormControl>
                                                                         <SelectContent className="bg-slate-900 border-white/10 rounded-xl">
                                                                             <SelectItem value="Efectivo" className="py-2.5 font-bold">Efectivo</SelectItem>
-                                                                            <SelectItem value="Sinpe Movil" className="py-2.5 font-bold">Sinpe Móvil</SelectItem>
-                                                                            <SelectItem value="Tarjeta" className="py-2.5 font-bold">Tarjeta</SelectItem>
+                                                                            {!isMonthlyPlan && <SelectItem value="Sinpe Movil" className="py-2.5 font-bold">Sinpe Móvil</SelectItem>}
+                                                                            {!isMonthlyPlan && <SelectItem value="Tarjeta" className="py-2.5 font-bold">Tarjeta</SelectItem>}
                                                                         </SelectContent>
                                                                     </Select>
                                                                     <FormMessage />
@@ -332,23 +326,27 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                                 {isLoadingSinpe ? <p className="text-center text-[10px] uppercase font-bold animate-pulse">Consultando canales...</p> : targetSinpeAccount ? (
                                                                     <div className="space-y-4">
                                                                         <div className='p-5 bg-slate-950/50 rounded-2xl text-center border border-primary/20 shadow-inner'>
-                                                                            <p className='text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 mb-2'>Enviar <span className='text-white'>{formatCurrency(selectedPlan.price)}</span> a:</p>
-                                                                            <p className='text-3xl font-black font-mono tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
+                                                                            <p className='text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 mb-2'>Enviar <span className='text-white'>{formatCurrency(totalToPay)}</span> a:</p>
+                                                                            <p className='text-2xl sm:text-3xl font-black font-mono tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'>{targetSinpeAccount.phoneNumber.replace('(506) ', '')}</p>
                                                                             <p className='text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1'>{targetSinpeAccount.accountHolder}</p>
                                                                         </div>
                                                                         <FormField
                                                                             control={form.control}
                                                                             name="paymentConfirmed"
                                                                             render={({ field }) => (
-                                                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-2xl border border-white/5 bg-slate-950/50 p-5 shadow-sm">
-                                                                                    <FormControl>
-                                                                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} className="h-5 w-5 rounded-md border-primary/50 data-[state=checked]:bg-primary" id="extendstaydialog-checkbox-1" data-testid="extendstaydialog-confirm-payment-checkbox" />
-                                                                                    </FormControl>
-                                                                                    <div className="space-y-1">
-                                                                                        <FormLabel className="text-xs font-black uppercase tracking-widest text-slate-300">Pago verificado</FormLabel>
+                                                                                <label className="flex flex-row items-center space-x-3 space-y-0 rounded-2xl border border-white/5 bg-slate-950/50 p-5 shadow-sm cursor-pointer">
+                                                                                    <Checkbox 
+                                                                                        checked={field.value} 
+                                                                                        onCheckedChange={field.onChange} 
+                                                                                        className="h-5 w-5 rounded-md border-primary/50 data-[state=checked]:bg-primary" 
+                                                                                        id="extendstaydialog-checkbox-1" 
+                                                                                        data-testid="extendstaydialog-confirm-payment-checkbox" 
+                                                                                    />
+                                                                                    <div className="space-y-1 ml-3">
+                                                                                        <span className="text-xs font-black uppercase tracking-widest text-slate-300">Pago verificado</span>
                                                                                         <p className="text-[9px] text-slate-500 font-medium italic">* Verifique la recepción en la cuenta bancaria.</p>
                                                                                     </div>
-                                                                                </FormItem>
+                                                                                </label>
                                                                             )}
                                                                         />
                                                                     </div>
@@ -399,23 +397,19 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                                                 </AnimatePresence>
                                                             </div>
                                                         )}
-                                                        {paymentMethod && paymentMethod !== 'Sinpe Movil' && (
-                                                            <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 flex justify-between items-center">
-                                                                <span className='text-[10px] font-black uppercase tracking-widest text-primary'>Total a Cobrar</span>
-                                                                <span className="font-black text-xl text-white tracking-tighter">{formatCurrency(selectedPlan.price)}</span>
-                                                            </div>
-                                                        )}
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    )}
+                                                        <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 flex justify-between items-center">
+                                                            <span className='text-[10px] font-black uppercase tracking-widest text-primary'>Total a Cobrar</span>
+                                                            <span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalToPay)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                     <div className="flex flex-col gap-3 pt-6 border-t border-white/5">
                                         <Button 
                                             type="submit" 
                                             disabled={isPending || isLoading || !selectedPlanName} 
-                                            className="h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                                            className="h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
                                             id="extendstaydialog-button-1" 
                                             data-testid="extendstaydialog-submit-button"
                                         >
@@ -425,7 +419,7 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                                         
                                         {isOverdue && (
                                             <CheckoutDialog stay={stay} room={room} orders={orders || []} onCheckoutSuccess={onExtensionSuccess}>
-                                                <Button type="button" variant="ghost" className="h-14 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 font-black uppercase tracking-[0.2em] text-[11px] transition-all hover:scale-[1.02] active:scale-[0.98]" id="extendstaydialog-button-realizar-check-out" data-testid="extendstaydialog-action-checkout-button">
+                                                <Button type="button" variant="ghost" className="h-14 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/20 hover:text-white font-black uppercase tracking-[0.2em] text-[11px] transition-all hover:scale-[1.02] active:scale-[0.98]" id="extendstaydialog-button-realizar-check-out" data-testid="extendstaydialog-action-checkout-button">
                                                     <LogOut className="mr-2 h-4 w-4" /> Realizar Check-Out
                                                 </Button>
                                             </CheckoutDialog>

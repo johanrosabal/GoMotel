@@ -243,14 +243,14 @@ export default function CompanyInfoForm() {
             <div className="grid lg:grid-cols-3 gap-8 items-start">
               <div className="space-y-2 flex flex-col items-center lg:items-start">
                 <Label>Logo</Label>
-                <Avatar className="h-[400px] w-[400px] rounded-lg border-2 border-dashed">
+                <Avatar className="h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] rounded-lg border-2 border-dashed">
                   <AvatarImage src={logoPreview || undefined} className="object-contain" />
                   <AvatarFallback className="rounded-lg bg-transparent">
-                    <Building className="h-32 w-32 text-muted-foreground" />
+                    <Building className="h-20 w-20 sm:h-32 sm:w-32 text-muted-foreground" />
                   </AvatarFallback>
                 </Avatar>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" data-testid="companyinfoform-file-input" />
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[400px] mt-2" id="companyinfoform-button-cambiar-imagen" data-testid="companyinfoform-action-change-image-button"> Cambiar Imagen </Button>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-[280px] sm:w-[400px] mt-2" id="companyinfoform-button-cambiar-imagen" data-testid="companyinfoform-action-change-image-button"> Cambiar Imagen </Button>
               </div>
               <div className="lg:col-span-2 grid gap-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -272,7 +272,7 @@ export default function CompanyInfoForm() {
               </div>
               <div className="space-y-4">
                 {phoneFields.length > 0 ? phoneFields.map((field, index) => (
-                  <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                  <div key={field.id} className="flex flex-col sm:flex-row sm:items-end gap-2 p-3 border rounded-lg bg-muted/50">
                     <FormField control={form.control} name={`phoneNumbers.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Recepción" {...field} id="companyinfoform-input-ej-recepci-n" data-testid="companyinfoform-phone-label-input" /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name={`phoneNumbers.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Número</FormLabel><FormControl><Input placeholder="(506) 8888-8888" {...field} onChange={(e) => handlePhoneChange(e, field.onChange)} id="companyinfoform-input-506-8888-8888" data-testid="companyinfoform-phone-value-input" /></FormControl><FormMessage /></FormItem>)} />
                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removePhone(index)} id="companyinfoform-button-1" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>
@@ -291,7 +291,7 @@ export default function CompanyInfoForm() {
               </div>
               <div className="space-y-4">
                 {emailFields.length > 0 ? emailFields.map((field, index) => (
-                  <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                  <div key={field.id} className="flex flex-col sm:flex-row sm:items-end gap-2 p-3 border rounded-lg bg-muted/50">
                     <FormField control={form.control} name={`emails.${index}.label`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Etiqueta</FormLabel><FormControl><Input placeholder="Ej: Reservaciones" {...field} id="companyinfoform-input-ej-reservaciones" data-testid="companyinfoform-email-label-input" /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name={`emails.${index}.value`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="ejemplo@correo.com" {...field} id="companyinfoform-input-ejemplo-correo-com" data-testid="companyinfoform-email-value-input" /></FormControl><FormMessage /></FormItem>)} />
                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeEmail(index)} id="companyinfoform-button-2" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>
@@ -314,7 +314,7 @@ export default function CompanyInfoForm() {
                 {socialFields.length > 0 ? socialFields.map((field, index) => {
                   const Icon = socialIcons[form.watch(`socialMedia.${index}.platform`)];
                   return (
-                    <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg bg-muted/50">
+                    <div key={field.id} className="flex flex-col sm:flex-row sm:items-end gap-2 p-3 border rounded-lg bg-muted/50">
                       <FormField control={form.control} name={`socialMedia.${index}.platform`} render={({ field }) => (<FormItem><FormLabel>Plataforma</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="w-[150px]" id="companyinfoform-selecttrigger-1" data-testid="companyinfoform-social-platform-select"><div className="flex items-center gap-2"><Icon /> <SelectValue /></div></SelectTrigger></FormControl><SelectContent>{Object.keys(socialIcons).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name={`socialMedia.${index}.url`} render={({ field }) => (<FormItem className="flex-1"><FormLabel>URL</FormLabel><FormControl><Input type="url" placeholder="https://..." {...field} id="companyinfoform-input-https" data-testid="companyinfoform-social-url-input" /></FormControl><FormMessage /></FormItem>)} />
                       <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSocial(index)} id="companyinfoform-button-3" data-testid="companyinfoform-delete-button"><Trash2 className="h-4 w-4" /></Button>

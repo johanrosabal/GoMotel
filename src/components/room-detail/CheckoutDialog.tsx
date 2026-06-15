@@ -156,18 +156,18 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-slate-950/60 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-[2.5rem]">
+            <DialogContent className="w-[95vw] sm:max-w-md max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-slate-950/60 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-[2.5rem]">
                 <div className="relative overflow-hidden">
                      {/* Decorative background glow */}
                     <div className="absolute -top-24 -right-24 w-48 h-48 bg-rose-500 rounded-full blur-[80px] opacity-10 pointer-events-none" />
 
-                    <div className="p-8 relative z-10">
+                    <div className="p-5 sm:p-8 relative z-10">
                         <DialogHeader className="mb-8">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner text-rose-500">
                                     <ReceiptText className="h-6 w-6" />
                                 </div>
-                                <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                                     {step === 1 ? 'Resumen Check-Out' : 'Procesar Liquidación'}
                                 </DialogTitle>
                             </div>
@@ -433,7 +433,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                         </AnimatePresence>
 
                             {step === 1 ? (
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 mt-6">
                                     <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 h-14 rounded-2xl border border-white/5 font-black uppercase tracking-widest text-[10px] text-slate-400 hover:text-white transition-all" disabled={isPending} id="checkoutdialog-button-cancelar" data-testid="checkoutdialog-cancel-button">Cancelar</Button>
                                     <Button
                                         type="button"
@@ -454,7 +454,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                     </Button>
                                 </div>
                             ) : step === 2 ? (
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 mt-6">
                                     <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" id="checkoutdialog-button-volver" data-testid="checkoutdialog-back-button">
                                         <ChevronLeft className="mr-2 h-4 w-4 text-primary" /> Volver
                                     </Button>
@@ -469,7 +469,7 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 mt-6">
                                     <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={isPending} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" id="checkoutdialog-button-volver-confirm" data-testid="checkoutdialog-back-button">
                                         Cancelar
                                     </Button>

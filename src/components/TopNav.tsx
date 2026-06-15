@@ -62,7 +62,6 @@ export default function TopNav() {
             
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
               {user && !['Cocina', 'Vendedor POS', 'Contador'].includes(userProfile?.role || '') && <Notifications />}
-              <ThemeToggle />
               <UserMenu />
             </div>
         </div>

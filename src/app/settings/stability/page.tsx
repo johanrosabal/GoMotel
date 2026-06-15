@@ -91,18 +91,27 @@ export default function StabilityDashboardPage() {
       allResults.push(smtpRes);
       setProgress(45);
 
-      // 2. Module Matrix Validation (45% - 90%)
-      const totalModules = MODULE_POMS.length;
-      for (let i = 0; i < totalModules; i++) {
-        const pom = MODULE_POMS[i];
-        const res = await pom.validate();
-        allResults.push(...res);
-        setProgress(45 + Math.floor(((i + 1) / totalModules) * 45));
-      }
+      // 2. Playwright E2E Validation (45% - 90%)
+      try {
+        // Simulamos un progreso visual mientras esperamos a Playwright (toma ~30s)
+        const timer = setInterval(() => {
+          setProgress(p => (p < 90 ? p + 2 : p));
+        }, 1000);
 
-      // 3. System Page Validation (Final)
-      const systemRes = await SystemPOM.validate();
-      allResults.push(...systemRes);
+        const response = await fetch('/api/stability/run-e2e', { method: 'POST' });
+        clearInterval(timer);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results) {
+             allResults.push(...data.results);
+          }
+        } else {
+          allResults.push({ id: 'e2e-error', name: 'Motor Playwright', description: 'Error de la API de pruebas.', status: 'failed', message: 'Revise logs del servidor.', category: 'e2e' });
+        }
+      } catch (err: any) {
+        allResults.push({ id: 'e2e-error', name: 'Motor Playwright', description: 'Fallo de red.', status: 'failed', message: err.message, category: 'e2e' });
+      }
       
       setResults(allResults);
       setProgress(100);
@@ -198,14 +207,26 @@ export default function StabilityDashboardPage() {
                 <ModuleCard name="Email" icon={<Mail className="h-5 w-5" />} status={results.find(r => r.id === 'conn-smtp-01')?.status || 'idle'} />
                 
                 {/* Dynamically grouped modules */}
-                {MODULE_POMS.map(pom => (
-                    <ModuleCard 
-                      key={pom.name} 
-                      name={pom.name} 
-                      icon={ICONS[pom.iconName]} 
-                      status={results.find(r => r.name === pom.name)?.status || (results.some(r => r.name.includes(pom.name)) ? results.find(r => r.name.includes(pom.name))?.status : 'idle') as TestStatus} 
-                    />
-                ))}
+                {MODULE_POMS.map(pom => {
+                    // Mapeo flexible para que coincida el Grid superior con los nombres del JSON de Playwright
+                    const e2eNameMatch = pom.name === 'Cola de Cocina' ? 'Módulo Cocina' :
+                                         pom.name === 'Cola de Bar' ? 'Módulo Bar' :
+                                         pom.name === 'Cola de Limpieza' ? 'Módulo Limpieza' :
+                                         pom.name === 'Gestión de Clientes' ? 'Módulo Clientes' :
+                                         pom.name === 'Facturación' ? 'Módulo Facturación' :
+                                         pom.name === 'Configuración del Sistema' ? 'Botón Diagnóstico' : pom.name;
+
+                    const status = results.find(r => r.name.includes(e2eNameMatch))?.status || 'idle';
+                    
+                    return (
+                      <ModuleCard 
+                        key={pom.name} 
+                        name={pom.name} 
+                        icon={ICONS[pom.iconName]} 
+                        status={status as TestStatus} 
+                      />
+                    )
+                })}
             </div>
         </div>
 
@@ -289,10 +310,14 @@ function ModuleCard({ name, icon, status }: { name: string, icon: any, status: T
                         "text-[10px] font-black uppercase font-mono tracking-tighter",
                         status === 'passed' ? "text-emerald-500" :
                         status === 'failed' ? "text-rose-500" :
+                        status === 'warning' ? "text-amber-500" :
                         status === 'not-on-page' ? "text-muted-foreground" :
                         "text-muted-foreground/70"
                     )}>
-                        {status === 'not-on-page' ? 'OFF-LOG' : status === 'passed' ? 'SANO' : status === 'failed' ? 'ERROR' : 'PENDIENTE'}
+                        {status === 'not-on-page' ? 'OFF-LOG' : 
+                         status === 'passed' ? 'SANO' : 
+                         status === 'failed' ? 'ERROR' : 
+                         status === 'warning' ? 'ALERTA' : 'PENDIENTE'}
                     </p>
                 </div>
                 

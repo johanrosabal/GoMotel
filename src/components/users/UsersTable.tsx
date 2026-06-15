@@ -154,77 +154,143 @@ export default function UsersTable({ users }: { users: SerializedUserProfile[] }
           </SelectContent>
         </Select>
       </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Identidad y Acceso</TableHead>
-              <TableHead>Rol / Permisos</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Miembro Desde</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length > 0 ? filteredUsers.map(user => (
-              <TableRow key={user.id} className={cn(user.status !== 'Active' && "opacity-60 bg-muted/30")}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <UserAvatar user={user} />
-                    <div>
-                      <div className="font-medium">{user.firstName} {user.lastName}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+        <>
+            {/* Vista para móviles (Tarjetas) */}
+            <div className="md:hidden space-y-4">
+                {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                    <div key={user.id} className={cn("p-4 border rounded-xl bg-card/50 backdrop-blur-sm space-y-3 relative transition-all hover:bg-card", user.status !== 'Active' && "opacity-60 bg-muted/30")}>
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <UserAvatar user={user} />
+                                <div>
+                                    <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                                </div>
+                            </div>
+                            <ActionsMenu user={user} />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span className="text-muted-foreground block text-xs">Rol:</span>
+                                <Select 
+                                  defaultValue={user.role} 
+                                  onValueChange={async (newRole) => {
+                                    const result = await updateUserRole(user.id, newRole as UserRole);
+                                    if (result.error) {
+                                      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                                    } else {
+                                      toast({ title: 'Rol Actualizado', description: `El usuario ahora es ${newRole}.` });
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 w-full font-bold text-xs mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Administrador">Administrador</SelectItem>
+                                    <SelectItem value="Recepcion">Recepción</SelectItem>
+                                    <SelectItem value="Conserje">Conserje</SelectItem>
+                                    <SelectItem value="Contador">Contador</SelectItem>
+                                    <SelectItem value="Vendedor POS">Vendedor POS</SelectItem>
+                                    <SelectItem value="Cocina">Cocina</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground block text-xs">Estado:</span>
+                                <Badge variant="outline" className={cn("mt-1", user.status === 'Active' 
+                                    ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' 
+                                    : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50'
+                                )}>
+                                    {user.status === 'Active' ? 'Activo' : 'Pausado'}
+                                </Badge>
+                            </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground pt-1">
+                            Miembro desde: {format(new Date(user.createdAt), 'dd MMM yyyy', { locale: es })}
+                        </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                    <Select 
-                      defaultValue={user.role} 
-                      onValueChange={async (newRole) => {
-                        const result = await updateUserRole(user.id, newRole as UserRole);
-                        if (result.error) {
-                          toast({ title: 'Error', description: result.error, variant: 'destructive' });
-                        } else {
-                          toast({ title: 'Rol Actualizado', description: `El usuario ahora es ${newRole}.` });
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-[140px] font-bold text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Administrador">Administrador</SelectItem>
-                        <SelectItem value="Recepcion">Recepción</SelectItem>
-                        <SelectItem value="Conserje">Conserje</SelectItem>
-                        <SelectItem value="Contador">Contador</SelectItem>
-                        <SelectItem value="Vendedor POS">Vendedor POS</SelectItem>
-                        <SelectItem value="Cocina">Cocina</SelectItem>
-                      </SelectContent>
-                    </Select>
-                </TableCell>
-                <TableCell>
-                   <Badge variant="outline" className={cn(user.status === 'Active' 
-                        ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' 
-                        : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50'
-                    )}>
-                        {user.status === 'Active' ? 'Activo' : 'Pausado'}
-                    </Badge>
-                </TableCell>
-                <TableCell className="text-xs">{format(new Date(user.createdAt), 'dd MMM yyyy', { locale: es })}</TableCell>
-                <TableCell className="text-right">
-                  <ActionsMenu user={user} />
-                </TableCell>
-              </TableRow>
-            )) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        No se encontraron usuarios con los criterios de búsqueda.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                )) : (
+                    <div className="text-center text-muted-foreground py-8 border rounded-lg">
+                        No se encontraron usuarios.
+                    </div>
+                )}
+            </div>
+
+            {/* Vista para escritorio (Tabla) */}
+            <div className="hidden md:block rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Identidad y Acceso</TableHead>
+                            <TableHead>Rol / Permisos</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Miembro Desde</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                            <TableRow key={user.id} className={cn(user.status !== 'Active' && "opacity-60 bg-muted/30")}>
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <UserAvatar user={user} />
+                                        <div>
+                                            <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Select 
+                                      defaultValue={user.role} 
+                                      onValueChange={async (newRole) => {
+                                        const result = await updateUserRole(user.id, newRole as UserRole);
+                                        if (result.error) {
+                                          toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                                        } else {
+                                          toast({ title: 'Rol Actualizado', description: `El usuario ahora es ${newRole}.` });
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8 w-[140px] font-bold text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Administrador">Administrador</SelectItem>
+                                        <SelectItem value="Recepcion">Recepción</SelectItem>
+                                        <SelectItem value="Conserje">Conserje</SelectItem>
+                                        <SelectItem value="Contador">Contador</SelectItem>
+                                        <SelectItem value="Vendedor POS">Vendedor POS</SelectItem>
+                                        <SelectItem value="Cocina">Cocina</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                </TableCell>
+                                <TableCell>
+                                   <Badge variant="outline" className={cn(user.status === 'Active' 
+                                        ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50' 
+                                        : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50'
+                                    )}>
+                                        {user.status === 'Active' ? 'Activo' : 'Pausado'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">{format(new Date(user.createdAt), 'dd MMM yyyy', { locale: es })}</TableCell>
+                                <TableCell className="text-right">
+                                    <ActionsMenu user={user} />
+                                </TableCell>
+                            </TableRow>
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    No se encontraron usuarios con los criterios de búsqueda.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </>
     </div>
   );
 }

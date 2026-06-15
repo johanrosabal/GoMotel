@@ -39,6 +39,7 @@ import { saveTutorial, deleteTutorial, importTutorials } from '@/lib/actions/tut
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { VideoPlayer } from '@/components/dashboard/VideoPlayer';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Tutorial } from '@/types';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { MediaUpload } from '@/components/ui/media-upload';
@@ -339,6 +340,35 @@ export default function TutorialManager({ initialTutorials }: TutorialManagerPro
                                     className="h-12 bg-white/5 border-white/10 rounded-2xl text-white font-bold" data-testid="tutorialmanager-3-input"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Roles con Acceso</Label>
+                            <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                                {['Público', 'Administrador', 'Recepcion', 'Conserje', 'Contador', 'Vendedor POS', 'Cocina'].map((role) => (
+                                    <div key={role} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`role-${role}`}
+                                            checked={editingTutorial?.allowedRoles?.includes(role) || false}
+                                            onCheckedChange={(checked) => {
+                                                const currentRoles = editingTutorial?.allowedRoles || [];
+                                                if (checked) {
+                                                    setEditingTutorial(prev => ({ ...prev, allowedRoles: [...currentRoles, role] }));
+                                                } else {
+                                                    setEditingTutorial(prev => ({ ...prev, allowedRoles: currentRoles.filter(r => r !== role) }));
+                                                }
+                                            }}
+                                            className="border-white/20 data-[state=checked]:bg-primary data-[state=checked]:text-black"
+                                        />
+                                        <label htmlFor={`role-${role}`} className="text-xs font-bold uppercase tracking-widest text-white cursor-pointer">
+                                            {role}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[9px] text-slate-500 font-medium leading-relaxed italic uppercase mt-1">
+                                Marque 'Público' para que el video sea visible sin iniciar sesión. Si no selecciona nada, también será visible para todos.
+                            </p>
                         </div>
 
                         <div className="space-y-2">

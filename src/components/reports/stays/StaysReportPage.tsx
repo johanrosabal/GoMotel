@@ -5,7 +5,7 @@ import { collection, query, orderBy } from "firebase/firestore";
 import type { Stay } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import StaysTable from "./StaysTable";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { DateRange } from 'react-day-picker';
 import { SimpleDateRangeSelector } from "@/components/finance/SimpleDateRangeSelector";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 type StatusFilter = 'all' | 'active' | 'completed';
 
@@ -26,6 +29,8 @@ export default function StaysReportPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [daysRange, setDaysRange] = useState<number | 'month'>(1);
     const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+    const [isExporting, setIsExporting] = useState(false);
+    const chartRef = useRef<HTMLDivElement>(null);
 
     const staysQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -104,6 +109,111 @@ export default function StaysReportPage() {
             active: filteredStays.filter(s => !s.checkOut).length
         };
     }, [filteredStays]);
+
+    const handleExportPDF = async () => {
+        setIsExporting(true);
+        try {
+            const doc = new jsPDF();
+            
+            // Title
+            doc.setFontSize(18);
+            doc.setTextColor(30, 41, 59); // slate-800
+            doc.text('REPORTE DE ESTANCIAS', 14, 22);
+            
+            // Subtitle / Date
+            doc.setFontSize(10);
+            doc.setTextColor(100, 116, 139); // slate-500
+            doc.text(`Generado el: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 30);
+            
+            // Summary Cards in a table
+            autoTable(doc, {
+                head: [['Métrica', 'Valor']],
+                body: [
+                    ['Total Estancias', stats.total.toString()],
+                    ['Estancias Activas', stats.active.toString()],
+                    ['Estancias Completadas', stats.completed.toString()],
+                ],
+                startY: 35,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] }, // slate-900
+            });
+            
+            // Top Rooms
+            let currentY = (doc as any).lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Habitaciones más Solicitadas', 14, currentY);
+            
+            autoTable(doc, {
+                head: [['Posición', 'Habitación', 'Estancias']],
+                body: roomRanking.map(([room, count], index) => [
+                    `#${index + 1}`,
+                    `Habitación ${room}`,
+                    count.toString()
+                ]),
+                startY: currentY + 5,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] },
+            });
+            
+            // Chart
+            currentY = (doc as any).lastAutoTable.finalY + 10;
+            
+            if (chartRef.current) {
+                const canvas = await html2canvas(chartRef.current, {
+                    backgroundColor: '#0f172a', // Match the dark background!
+                    scale: 2 // Higher quality!
+                });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const imgWidth = 180; // Width in PDF
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                if (currentY + imgHeight > 280) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setTextColor(30, 41, 59);
+                doc.text('Ingresos Generados por Habitación', 14, currentY);
+                
+                doc.addImage(imgData, 'PNG', 14, currentY + 5, imgWidth, imgHeight);
+                currentY += imgHeight + 15;
+            }
+            
+            // Detailed Table
+            if (currentY > 200) {
+                doc.addPage();
+                currentY = 20;
+            }
+            
+            doc.setFontSize(12);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Detalle de Estancias', 14, currentY);
+            
+            autoTable(doc, {
+                head: [['Huésped', 'Habitación', 'Check-in', 'Check-out', 'Total', 'Estado']],
+                body: filteredStays.map(stay => [
+                    stay.guestName,
+                    stay.roomNumber,
+                    format(stay.checkIn.toDate(), "dd/MM/yyyy HH:mm"),
+                    stay.checkOut ? format(stay.checkOut.toDate(), "dd/MM/yyyy HH:mm") : 'En curso',
+                    stay.isPaid ? formatCurrency(stay.total).replace(/[^\d.,]/g, '') : '-', // Remove symbol!
+                    stay.checkOut ? 'Completada' : 'Activa'
+                ]),
+                startY: currentY + 5,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] },
+            });
+            
+            doc.save(`Reporte_Estancias_${format(new Date(), 'yyyyMMdd')}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <div className="space-y-8">
@@ -201,6 +311,16 @@ export default function StaysReportPage() {
                             </div>
                         </DialogContent>
                     </Dialog>
+                    
+                    <Button
+                        variant="outline"
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        className="h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all border-white/5 text-slate-500 hover:text-white hover:bg-white/10 ml-2"
+                    >
+                        <FileText className="h-3 w-3 mr-2" />
+                        {isExporting ? "Exportando..." : "Exportar PDF"}
+                    </Button>
                 </div>
             </div>
 
@@ -313,7 +433,7 @@ export default function StaysReportPage() {
             </div>
 
             {/* Income Chart Section */}
-            <div className="relative group">
+            <div ref={chartRef} className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-[2.5rem] blur opacity-5 group-hover:opacity-10 transition duration-500"></div>
                 <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500">
                     <CardHeader>

@@ -51,7 +51,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             if (result?.error) {
                 toast({ title: 'Error', description: 'No se pudo anular la reservación.', variant: 'destructive' });
             } else {
-                toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como No-show.' });
+                toast({ title: 'Reservación Anulada', description: 'La reservación ha sido marcada como "No se presentó".' });
             }
         });
     }
@@ -77,48 +77,48 @@ export default function ReservationActionsMenu({ reservation, className }: { res
                         <span className="sr-only">Toggle menu</span>
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
+                <DropdownMenuContent align="end" className="bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] min-w-[180px]">
+                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-3 py-2">Acciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-white/5 mx-1" />
                     {reservation.status === 'Confirmed' && (
                         <>
                             {reservation.paymentStatus === 'Pagado' ? (
-                                <DropdownMenuItem onClick={handleCheckIn} disabled={isPending}>
-                                    <LogIn className="mr-2 h-4 w-4" />
+                                <DropdownMenuItem onClick={handleCheckIn} disabled={isPending} className="py-2.5 px-3 rounded-xl text-slate-200 focus:bg-white/5 focus:text-white font-bold transition-all cursor-pointer flex items-center gap-2">
+                                    <LogIn className="h-4 w-4 text-emerald-500" />
                                     <span>Hacer Check-in</span>
                                 </DropdownMenuItem>
                             ) : (
                                 <CheckInFromReservationDialog reservation={reservation}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <LogIn className="mr-2 h-4 w-4" />
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="py-2.5 px-3 rounded-xl text-slate-200 focus:bg-white/5 focus:text-white font-bold transition-all cursor-pointer flex items-center gap-2">
+                                        <LogIn className="h-4 w-4 text-emerald-500" />
                                         <span>Hacer Check-in</span>
                                     </DropdownMenuItem>
                                 </CheckInFromReservationDialog>
                             )}
-                            <DropdownMenuItem onSelect={() => setIsCancelAlertOpen(true)} className="text-destructive focus:text-destructive">
-                                <XCircle className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem onSelect={() => setIsCancelAlertOpen(true)} className="py-2.5 px-3 rounded-xl text-rose-500 focus:bg-rose-500/10 focus:text-rose-400 font-bold transition-all cursor-pointer flex items-center gap-2">
+                                <XCircle className="h-4 w-4" />
                                 <span>Cancelar Reservación</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setIsNoShowAlertOpen(true)} className="text-destructive focus:text-destructive">
-                                <UserX className="mr-2 h-4 w-4" />
-                                <span>Anular (No-show)</span>
+                            <DropdownMenuItem onSelect={() => setIsNoShowAlertOpen(true)} className="py-2.5 px-3 rounded-xl text-orange-500 focus:bg-orange-500/10 focus:text-orange-400 font-bold transition-all cursor-pointer flex items-center gap-2">
+                                <UserX className="h-4 w-4" />
+                                <span>Anular (No se presentó)</span>
                             </DropdownMenuItem>
                         </>
                     )}
                     {reservation.status === 'Checked-in' && (
                         <DropdownMenuItem asChild>
-                            <Link href={`/rooms/${reservation.roomId}`} id="reservationactionsmenu-link-1" data-testid="reservationactionsmenu-action-manage-link">
-                                <Eye className="mr-2 h-4 w-4" />
+                            <Link href={`/rooms/${reservation.roomId}`} id="reservationactionsmenu-link-1" data-testid="reservationactionsmenu-action-manage-link" className="py-2.5 px-3 rounded-xl text-slate-200 focus:bg-white/5 focus:text-white font-bold transition-all cursor-pointer flex items-center gap-2">
+                                <Eye className="h-4 w-4 text-primary" />
                                 <span>Gestionar Estancia</span>
                             </Link>
                         </DropdownMenuItem>
                     )}
                     {userProfile?.role === 'Administrador' && reservation.status !== 'Checked-in' && (
                         <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar (Admin)
+                            <DropdownMenuSeparator className="bg-white/5 mx-1" />
+                            <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="py-2.5 px-3 rounded-xl text-rose-600 focus:bg-rose-600/10 focus:text-rose-500 font-bold transition-all cursor-pointer flex items-center gap-2">
+                                <Trash2 className="h-4 w-4" />
+                                <span>Eliminar (Admin)</span>
                             </DropdownMenuItem>
                         </>
                     )}
@@ -145,7 +145,7 @@ export default function ReservationActionsMenu({ reservation, className }: { res
             <AlertDialog open={isNoShowAlertOpen} onOpenChange={setIsNoShowAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Marcar como No-show?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Marcar como "No se presentó"?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Esta acción no se puede deshacer. Esto anulará la reservación para {reservation.guestName} por no presentarse.
                         </AlertDialogDescription>

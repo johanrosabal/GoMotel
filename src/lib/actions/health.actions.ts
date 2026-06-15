@@ -1,31 +1,17 @@
-
 'use server';
 
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { TestResult } from '../tests/types';
-
-// Intentar inicializar admin si no está
-if (!getApps().length && process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-  } catch (error) {
-    console.error('Error al inicializar Firebase Admin en Health Actions:', error);
-  }
-}
-
+import { adminDb } from '../firebase-admin';
 import { getSystemSettings } from './system.actions';
 import { testSmtpConnection } from './email-sender.actions';
 
 export async function pingFirebase(): Promise<TestResult> {
-  // Mantener esta función por si en el futuro se configura el Service Account
   const start = Date.now();
   try {
-    const db = getFirestore();
-    await db.collection('settings').limit(1).get();
+    if (!adminDb) {
+      throw new Error('Firebase Admin no está inicializado (no se usa Service Account en local).');
+    }
+    await adminDb.collection('settings').limit(1).get();
     
     return {
       id: 'conn-fb-01',

@@ -1,7 +1,11 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { HelpCircle, LifeBuoy, Mail, Phone } from 'lucide-react';
 import { getSystemSettings } from '@/lib/actions/system.actions';
+import { useState, useEffect } from 'react';
+import type { SystemSettings } from '@/types';
 
 const faqs = [
     {
@@ -26,9 +30,20 @@ const faqs = [
     }
 ];
 
-export default async function HelpCenterPage() {
-    const settings = await getSystemSettings();
-    const supportEmail = settings.supportEmail || "soporte.gomotel@example.com";
+export default function HelpCenterPage() {
+    const [settings, setSettings] = useState<SystemSettings | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getSystemSettings().then(data => {
+            setSettings(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) return <div>Cargando...</div>;
+
+    const supportEmail = settings?.supportEmail || "soporte.gomotel@example.com";
 
     return (
         <div className="container py-4 sm:py-6 lg:py-8 space-y-8">

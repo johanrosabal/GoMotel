@@ -1,9 +1,9 @@
-'use server';
-
+// 'use server'; // Removido por script
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { EmailTemplate, Invoice } from '@/types';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 
 export async function getEmailTemplates(): Promise<EmailTemplate[]> {
   try {

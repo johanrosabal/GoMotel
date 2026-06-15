@@ -23,7 +23,7 @@ export default function AddRoomButton() {
 
   return (
     <AddRoomDialog>
-        <Button className="rounded-full bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-[10px] h-12 px-8 shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-105" id="addroombutton-button-a-adir-habitaci-n-1" data-testid="addroombutton-add-button">
+        <Button className="rounded-full bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] h-12 px-8 shadow-xl shadow-primary/20 border border-white/10 transition-all active:scale-95 hover:scale-105" id="addroombutton-button-a-adir-habitaci-n-1" data-testid="addroombutton-add-button">
             <PlusCircle className="mr-2 h-5 w-5" />
             Añadir Habitación
         </Button>

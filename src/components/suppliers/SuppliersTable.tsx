@@ -98,42 +98,78 @@ function ActionsMenu({ supplier, onEdit }: { supplier: Supplier, onEdit: (suppli
 export default function SuppliersTable({ suppliers, onEdit }: { suppliers: Supplier[], onEdit: (supplier: Supplier) => void }) {
     if (suppliers.length === 0) {
         return (
-            <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+            <div className="text-center text-slate-500 py-16 border-2 border-dashed border-white/5 rounded-2xl bg-slate-900/20">
                 No se encontraron proveedores.
             </div>
         );
     }
     
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nombre del Proveedor</TableHead>
-                        <TableHead>Contacto</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Teléfono</TableHead>
-                        <TableHead>Ubicación</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {suppliers.map((supplier) => (
-                        <TableRow key={supplier.id}>
-                            <TableCell className="font-medium">{supplier.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{supplier.contactName || '-'}</TableCell>
-                             <TableCell className="text-muted-foreground">{supplier.email || '-'}</TableCell>
-                              <TableCell className="text-muted-foreground">{supplier.phone || '-'}</TableCell>
-                            <TableCell>
-                                {supplier.googleMapsUrl ? <LocationButtons url={supplier.googleMapsUrl} /> : <span className="text-muted-foreground">-</span>}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <ActionsMenu supplier={supplier} onEdit={onEdit} />
-                            </TableCell>
+        <div>
+            {/* Vista de Escritorio */}
+            <div className="hidden md:block">
+                <Table>
+                    <TableHeader className="bg-slate-800/50">
+                        <TableRow className="border-white/5 hover:bg-transparent">
+                            <TableHead className="text-slate-400 font-bold">Nombre del Proveedor</TableHead>
+                            <TableHead className="text-slate-400 font-bold">Contacto</TableHead>
+                            <TableHead className="text-slate-400 font-bold">Email</TableHead>
+                            <TableHead className="text-slate-400 font-bold">Teléfono</TableHead>
+                            <TableHead className="text-slate-400 font-bold">Ubicación</TableHead>
+                            <TableHead className="text-right text-slate-400 font-bold">Acciones</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {suppliers.map((supplier) => (
+                            <TableRow key={supplier.id} className="border-white/5 hover:bg-white/5 transition-colors">
+                                <TableCell className="font-medium text-white">{supplier.name}</TableCell>
+                                <TableCell className="text-slate-300">{supplier.contactName || '-'}</TableCell>
+                                <TableCell className="text-slate-300">{supplier.email || '-'}</TableCell>
+                                <TableCell className="text-slate-300">{supplier.phone || '-'}</TableCell>
+                                <TableCell>
+                                    {supplier.googleMapsUrl ? <LocationButtons url={supplier.googleMapsUrl} /> : <span className="text-slate-500">-</span>}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <ActionsMenu supplier={supplier} onEdit={onEdit} />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Vista de Móvil (Tarjetas) */}
+            <div className="md:hidden grid gap-4 p-4">
+                {suppliers.map((supplier) => (
+                    <div key={supplier.id} className="bg-slate-800/30 p-4 rounded-xl border border-white/5 space-y-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-bold text-white">{supplier.name}</h3>
+                                <p className="text-xs text-slate-400">{supplier.contactName || 'Sin contacto'}</p>
+                            </div>
+                            <ActionsMenu supplier={supplier} onEdit={onEdit} />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span className="text-slate-500 block uppercase font-bold text-[10px]">Email</span>
+                                <span className="text-slate-300 break-all">{supplier.email || '-'}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-500 block uppercase font-bold text-[10px]">Teléfono</span>
+                                <span className="text-slate-300">{supplier.phone || '-'}</span>
+                            </div>
+                        </div>
+
+                        {supplier.googleMapsUrl && (
+                            <div className="pt-2 border-t border-white/5 flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-400">Ubicación:</span>
+                                <LocationButtons url={supplier.googleMapsUrl} />
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

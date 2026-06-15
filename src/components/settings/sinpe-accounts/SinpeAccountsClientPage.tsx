@@ -12,10 +12,11 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteSinpeAccount } from "@/lib/actions/sinpe.actions";
+import { deleteSinpeAccount, saveSinpeAccount } from "@/lib/actions/sinpe.actions";
 import SinpeAccountFormDialog from "./SinpeAccountFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { RotateCcw } from "lucide-react";
 
 function ActionsMenu({ account }: { account: SinpeAccount }) {
     const { toast } = useToast();
@@ -28,6 +29,11 @@ function ActionsMenu({ account }: { account: SinpeAccount }) {
         setIsDeleteDialogOpen(false);
     }
 
+    const handleResetBalance = async () => {
+        await saveSinpeAccount({ ...account, balance: 0 });
+        toast({ title: "Saldo reseteado" });
+    }
+
     return (
         <>
             <DropdownMenu>
@@ -37,6 +43,7 @@ function ActionsMenu({ account }: { account: SinpeAccount }) {
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleResetBalance}><RotateCcw className="mr-2 h-4 w-4" />Resetear Saldo</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
                 </DropdownMenuContent>

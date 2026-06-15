@@ -283,7 +283,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
         setCashTendered('');
     }, [paymentMethod]);
 
-    const activeServices = availableServices.filter(s => s.isActive && (s.source === 'Internal' || (s.source !== 'Internal' && s.stock > 0)));
+    const activeServices = availableServices.filter(s => s.isActive && ((s.source as string) === 'Internal' || ((s.source as string) !== 'Internal' && s.stock > 0)));
 
     const handleAddToCart = (service: Service) => {
         setCart((prevCart) => {
@@ -291,7 +291,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
             if (existingItem) {
                 return prevCart.map((item) =>
                     item.service.id === service.id
-                        ? { ...item, quantity: item.service.source === 'Internal' ? item.quantity + 1 : Math.min(item.quantity + 1, service.stock) }
+                        ? { ...item, quantity: (item.service.source as string) === 'Internal' ? item.quantity + 1 : Math.min(item.quantity + 1, service.stock) }
                         : item
                 );
             }
@@ -436,7 +436,9 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                                 'OTHER': 'Otros',
                                                                 'SERVICE': 'Servicios',
                                                                 'MINIBAR': 'Minibar',
-                                                                'RESTAURANT': 'Restaurante'
+                                                                'RESTAURANT': 'Restaurante',
+                                                                'AMENITY': 'Amenidades',
+                                                                'ARTICLE': 'Artículos'
                                                             };
                                                             const label = map[cat.toUpperCase()] || cat;
                                                             return (
@@ -481,7 +483,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                                                 <motion.div 
                                                                     key={service.id} 
                                                                     whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                                                                    whileActive={{ scale: 0.98 }}
+                                                                    whileTap={{ scale: 0.98 }}
                                                                     onClick={() => handleAddToCart(service)}
                                                                     className="group relative flex items-center justify-between p-4 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden"
                                                                 >
@@ -856,7 +858,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                         type="button" 
                                         onClick={() => setStep(2)} 
                                         disabled={cart.length === 0} 
-                                        className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                        className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                                         id="orderservicedialog-next-button"
                                     >
                                         Continuar al Pago <ChevronRight className="ml-2 h-4 w-4" />
@@ -882,7 +884,7 @@ export default function OrderServiceDialog({ children, stayId, availableServices
                                             type="button" 
                                             onClick={form.handleSubmit(handleSubmit)} 
                                             disabled={isPending || (payNow && !paymentMethod)} 
-                                            className="h-12 px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-emerald-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                            className="h-12 px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-emerald-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                                             id="orderservicedialog-pay-button"
                                         >
                                             {isPending ? <Zap className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}

@@ -1,4 +1,4 @@
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente y evite el error de conexión en el servidor
 
 import {
   collection,
@@ -15,8 +15,12 @@ import {
   limit,
   increment,
   DocumentReference,
+  deleteDoc,
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache'
+const revalidatePath = (path: string) => {
+  console.log(`[Client] Mock revalidatePath called for ${path}`);
+};
 import { db } from '../firebase';
 import type { Room, RoomStatus, Stay, Order, RoomType, StayExtension, Invoice, InvoiceItem, SinpeAccount } from '@/types';
 import { z } from 'zod';
@@ -399,6 +403,7 @@ export async function finishCleaning(roomId: string, report: {
     notes?: string;
     reportedBy: string;
     cleanedBy?: string;
+    images?: string[];
 }) {
     if (!roomId) return { error: 'ID de habitación no válido.' };
 
@@ -412,15 +417,26 @@ export async function finishCleaning(roomId: string, report: {
 
         const batch = writeBatch(db);
 
-        // Si hay una última estancia, guardamos el reporte ahí
+        // Sanitize report to remove undefined values
+        const sanitizedReport: any = { ...report };
+        Object.keys(sanitizedReport).forEach(key => {
+            if (sanitizedReport[key] === undefined) {
+                delete sanitizedReport[key];
+            }
+        });
+
+        // Si hay una última estancia, verificamos si existe y guardamos el reporte ahí
         if (lastStayId) {
             const stayRef = doc(db, 'stays', lastStayId);
-            batch.update(stayRef, {
-                cleaningReport: {
-                    ...report,
-                    reportedAt: Timestamp.now(),
-                }
-            });
+            const staySnap = await getDoc(stayRef);
+            if (staySnap.exists()) {
+                batch.update(stayRef, {
+                    cleaningReport: {
+                        ...sanitizedReport,
+                        reportedAt: Timestamp.now(),
+                    }
+                });
+            }
         }
 
         // También guardamos en una colección histórica de reportes
@@ -429,7 +445,7 @@ export async function finishCleaning(roomId: string, report: {
             roomId,
             roomNumber: roomData.number,
             lastStayId: lastStayId || null,
-            ...report,
+            ...sanitizedReport,
             createdAt: Timestamp.now(),
         });
 
@@ -549,6 +565,29 @@ export async function saveRoom(formData: FormData) {
   }
 }
 
+export async function deleteRoom(roomId: string) {
+  if (!roomId) return { error: 'ID de habitación no válido.' };
+
+  try {
+    const roomRef = doc(db, 'rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) return { error: 'La habitación no existe.' };
+
+    const roomData = roomSnap.data();
+    if (roomData?.status && roomData.status !== 'Available') {
+      return { error: 'No se puede eliminar una habitación que no está disponible (ej. si está ocupada, en limpieza o mantenimiento).' };
+    }
+
+    await deleteDoc(roomRef);
+    revalidatePath('/');
+    revalidatePath('/dashboard/rooms');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to delete room:', error);
+    return { error: error.message || 'No se pudo eliminar la habitación.' };
+  }
+}
+
 const extendStaySchema = z.object({
   stayId: z.string(),
   newPlanName: z.string(),
@@ -645,6 +684,9 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
       };
   
       if (payNow) {
+          const extraFee = (paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') ? 2000 : 0;
+          const totalToPay = newPlan.price + extraFee;
+
           const invoicesRef = collection(db, 'invoices');
           const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
           const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
@@ -666,8 +708,8 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
           const invoiceItems = [{
               description: `Extensión de Estancia: ${newPlan.name} para Hab. ${roomData.number}`,
               quantity: 1,
-              unitPrice: newPlan.price,
-              total: newPlan.price
+              unitPrice: totalToPay,
+              total: totalToPay
           }];
   
           const newInvoice: Omit<Invoice, 'id'> = {
@@ -678,9 +720,9 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
               createdAt: Timestamp.now(),
               status: 'Pagada',
               items: invoiceItems,
-              subtotal: newPlan.price,
+              subtotal: totalToPay,
               taxes: [],
-              total: newPlan.price,
+              total: totalToPay,
               paymentMethod: paymentMethod!,
               voucherNumber: voucherNumber || null,
               roomId: stayData.roomId,
@@ -696,7 +738,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
               for (const doc of sinpeAccountsSnapshot.docs) {
                   const account = { id: doc.id, ...doc.data() } as SinpeAccount;
                   const limit = account.limitAmount || Infinity;
-                  if ((account.balance + newPlan.price) <= limit) {
+                  if ((account.balance + totalToPay) <= limit) {
                       targetAccountRef = doc.ref;
                       targetAccountData = account;
                       break;
@@ -705,14 +747,14 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
               if (!targetAccountRef || !targetAccountData) {
                   throw new Error("No hay cuentas SINPE Móvil disponibles o todas han alcanzado su límite de saldo.");
               }
-              batch.update(targetAccountRef, { balance: increment(newPlan.price) });
-              const newBalance = targetAccountData.balance + newPlan.price;
+              batch.update(targetAccountRef, { balance: increment(totalToPay) });
+              const newBalance = targetAccountData.balance + totalToPay;
               if (targetAccountData.limitAmount && newBalance >= targetAccountData.limitAmount) {
                   batch.update(targetAccountRef, { isActive: false });
               }
           }
           
-          updatedStayData.paymentAmount = increment(newPlan.price);
+          updatedStayData.paymentAmount = increment(totalToPay);
           updatedStayData.paymentMethod = paymentMethod || null;
           updatedStayData.voucherNumber = voucherNumber || null;
           // If the stay was pending, and now it's paid, it's fully paid

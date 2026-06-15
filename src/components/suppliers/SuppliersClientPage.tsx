@@ -35,8 +35,13 @@ export default function SuppliersClientPage() {
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Button onClick={handleAdd} id="suppliersclientpage-button-a-adir-proveedor" data-testid="suppliersclientpage-add-button">
-                    <PlusCircle className="mr-2 h-4 w-4" />
+                <Button 
+                    onClick={handleAdd} 
+                    id="suppliersclientpage-button-a-adir-proveedor" 
+                    data-testid="suppliersclientpage-add-button"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl h-11 px-6 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 gap-2"
+                >
+                    <PlusCircle className="h-4 w-4" />
                     Añadir Proveedor
                 </Button>
                 <SupplierFormDialog 
@@ -46,13 +51,15 @@ export default function SuppliersClientPage() {
                 />
             </div>
             {isLoading ? (
-                <div className="space-y-2 rounded-md border p-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+                <div className="space-y-3 bg-slate-900/20 p-6 rounded-2xl border border-white/5">
+                    <Skeleton className="h-12 w-full bg-white/5 rounded-xl" />
+                    <Skeleton className="h-12 w-full bg-white/5 rounded-xl" />
+                    <Skeleton className="h-12 w-full bg-white/5 rounded-xl" />
                 </div>
             ) : (
-                <SuppliersTable suppliers={suppliers || []} onEdit={handleEdit} />
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-white/5 shadow-2xl shadow-black/40 overflow-hidden">
+                    <SuppliersTable suppliers={suppliers || []} onEdit={handleEdit} />
+                </div>
             )}
         </div>
     );

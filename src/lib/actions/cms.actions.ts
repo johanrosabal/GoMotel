@@ -1,9 +1,9 @@
-'use server';
-
+// 'use server'; // Removido por script
 import { z } from 'zod';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 
 const landingPageFeatureSchema = z.object({
   id: z.string(),

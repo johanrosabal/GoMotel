@@ -1,57 +1,24 @@
 'use server';
 
 import nodemailer from 'nodemailer';
-import { collection, doc, setDoc, getDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
-import { EmailTemplate, Invoice } from '@/types';
-import { getCompanyInfo } from './company.actions';
-import { getSystemSettings } from './system.actions';
+import { Invoice, EmailTemplate, SystemSettings } from '@/types';
 import { generateInvoicePdf } from './invoice-pdf.actions';
 
-/**
- * Sends an invoice email to a client using the best available 'invoice' template.
- * This function is strictly server-side.
- */
-export async function sendInvoiceEmail(emailAddress: string, invoiceId: string): Promise<void> {
+export async function sendInvoiceEmail(
+  emailAddress: string, 
+  invoice: Invoice,
+  settings: SystemSettings,
+  template: EmailTemplate,
+  companyInfo: any,
+  clientPhone: string
+): Promise<{ success: boolean; messageId?: string }> {
   try {
-    const invoiceRef = doc(db, 'invoices', invoiceId);
-    const invoiceSnap = await getDoc(invoiceRef);
-
-    if (!invoiceSnap.exists()) {
-      throw new Error(`La factura con ID ${invoiceId} no existe.`);
-    }
-
-    const invoice = { id: invoiceSnap.id, ...invoiceSnap.data() } as Invoice;
-
     console.log(`[EmailService] Iniciando envío de factura ${invoice.invoiceNumber} a ${emailAddress}`);
-    
-    // 1. Get system-wide SMTP settings
-    const settings = await getSystemSettings();
-    if (!settings.smtpUser || !settings.smtpPass) {
-      throw new Error('La configuración SMTP (Email) no está completa en Ajustes del Sistema.');
-    }
-
-    // 2. Get the most recent template of type 'invoice'
-    const templatesRef = collection(db, 'emailTemplates');
-    const q = query(
-      templatesRef, 
-      where('type', '==', 'invoice'), 
-      orderBy('createdAt', 'desc'), 
-      limit(1)
-    );
-    const templateSnapshot = await getDocs(q);
-    
-    if (templateSnapshot.empty) {
-      throw new Error('No se encontró ninguna plantilla de tipo "Factura".');
-    }
-    
-    const template = templateSnapshot.docs[0].data() as EmailTemplate;
-    const companyInfo = await getCompanyInfo();
     
     const formatCRC = (amount: number) => 
       `CRC ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    // 3. Format details table (Multi-item support)
+    // Format details table
     const itemsHtml = invoice.items.map(item => `
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px; table-layout: auto;">
         <tr>
@@ -61,7 +28,7 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
       </table>
     `).join('');
 
-    // 4. Variable substitution map
+    // Variable substitution map
     const vars: Record<string, string> = {
       'nombre_cliente': invoice.clientName,
       'email_cliente': emailAddress,
@@ -85,25 +52,10 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
       finalSubject = finalSubject.replace(regex, vars[key]);
     });
 
-    // 5. Fetch additional client info if needed for the PDF
-    let clientPhone = '';
-    if (invoice.clientId) {
-      try {
-        const clientRef = doc(db, 'clients', invoice.clientId);
-        const clientSnap = await getDoc(clientRef);
-        if (clientSnap.exists()) {
-          const clientData = clientSnap.data();
-          clientPhone = clientData.phoneNumber || clientData.whatsappNumber || '';
-        }
-      } catch (e) {
-        console.error('Error fetching client info for PDF:', e);
-      }
-    }
-
-    // 6. Generate PDF Attachment on the Server
+    // Generate PDF Attachment on the Server
     const pdfBuffer = await generateInvoicePdf(invoice, companyInfo, emailAddress, clientPhone);
 
-    // 6. Setup Nodemailer Transport
+    // Setup Nodemailer Transport
     const transporter = nodemailer.createTransport({
       host: settings.smtpHost || 'smtp.gmail.com',
       port: settings.smtpPort || 465,
@@ -114,7 +66,7 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
       },
     });
 
-    // 7. Send Real Email
+    // Send Real Email
     const info = await transporter.sendMail({
       from: settings.smtpFrom || `${vars.nombre_empresa} <${settings.smtpUser}>`,
       to: emailAddress,
@@ -131,18 +83,7 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
 
     console.log(`[EmailService] Email REAL enviado: ${info.messageId}`);
 
-    // 8. Log the sending in Firestore
-    const logRef = doc(collection(db, 'emailLogs'));
-    await setDoc(logRef, {
-      to: emailAddress,
-      invoiceId: invoice.id,
-      templateId: templateSnapshot.docs[0].id,
-      subject: finalSubject,
-      sentAt: Date.now(),
-      status: 'success',
-      messageId: info.messageId,
-      contentPreview: finalHtml.substring(0, 500)
-    });
+    return { success: true, messageId: info.messageId };
 
   } catch (error) {
     console.error('Error sending invoice email:', error);
@@ -150,9 +91,6 @@ export async function sendInvoiceEmail(emailAddress: string, invoiceId: string):
   }
 }
 
-/**
- * Tests the SMTP connection by verifying credentials and sending a test email.
- */
 export async function testSmtpConnection(config: {
   smtpHost: string;
   smtpPort: number;
@@ -171,10 +109,8 @@ export async function testSmtpConnection(config: {
       },
     });
 
-    // 1. Verify connection
     await transporter.verify();
 
-    // 2. Send a real test email to the user himself
     await transporter.sendMail({
       from: config.smtpFrom || `Go Motel Test <${config.smtpUser}>`,
       to: config.smtpUser,

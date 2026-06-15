@@ -1,8 +1,10 @@
 
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// // import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
+
 import { db } from '../firebase';
 import type { SystemSettings } from '@/types';
 

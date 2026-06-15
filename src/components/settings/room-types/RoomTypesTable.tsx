@@ -170,8 +170,13 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                             {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
                                 <ul className="space-y-1.5 text-sm">
                                 {roomType.pricePlans.map(plan => (
-                                    <li key={plan.name} className="flex justify-between">
-                                        <span>{plan.name}</span>
+                                    <li key={plan.name} className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <span>{plan.name}</span>
+                                            {plan.capacity && (
+                                                <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{plan.capacity} Pers</Badge>
+                                            )}
+                                        </div>
                                         <span className="font-medium">{formatCurrency(plan.price)}</span>
                                     </li>
                                 ))}
@@ -273,9 +278,12 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                         {roomType.pricePlans && roomType.pricePlans.length > 0 ? (
                             <div className="flex flex-col gap-1.5 items-start">
                                 {roomType.pricePlans.map(plan => (
-                                    <div key={plan.name} className="text-xs whitespace-nowrap">
+                                    <div key={plan.name} className="text-xs whitespace-nowrap flex items-center gap-1">
                                         <span className="font-medium">{plan.name}:</span>
-                                        <span className="text-muted-foreground ml-1">{formatCurrency(plan.price)}</span>
+                                        <span className="text-muted-foreground">{formatCurrency(plan.price)}</span>
+                                        {plan.capacity && (
+                                            <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{plan.capacity} Pers</Badge>
+                                        )}
                                     </div>
                                 ))}
                             </div>

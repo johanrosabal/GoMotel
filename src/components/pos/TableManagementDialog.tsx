@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { createRestaurantTable, deleteRestaurantTable } from '@/lib/actions/restaurant.actions';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import type { RestaurantTable } from '@/types';
 import { Trash2, Plus, Utensils, Beer, Sun, MapPin, ChevronLeft, QrCode, Download } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -69,10 +70,24 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
         }
 
         startTransition(async () => {
-            const result = await createRestaurantTable({ number: nextNumber, type: finalType });
-            if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
+            try {
+                const tablesRef = collection(db, 'restaurantTables');
+                
+                // Check for duplicate number of the same type
+                const q = query(tablesRef, where('number', '==', nextNumber), where('type', '==', finalType));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    toast({ title: 'Error', description: `La ubicación ${finalType} ${nextNumber} ya existe.`, variant: 'destructive' });
+                    return;
+                }
+
+                await addDoc(tablesRef, {
+                    number: nextNumber,
+                    type: finalType,
+                    status: 'Available',
+                    currentOrderId: null
+                });
+
                 const label = TYPE_LABELS[finalType] || finalType;
                 toast({ title: 'Éxito', description: `${label} ${nextNumber} agregada correctamente.` });
                 if (isAddingCustomType) {
@@ -80,17 +95,27 @@ export default function TableManagementDialog({ open, onOpenChange, tables }: Pr
                     setNewType(customType);
                     setCustomType('');
                 }
+            } catch (e: any) {
+                toast({ title: 'Error', description: e.message || "Error al crear ubicación.", variant: 'destructive' });
             }
         });
     };
 
     const handleDelete = (id: string) => {
         startTransition(async () => {
-            const result = await deleteRestaurantTable(id);
-            if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
+            try {
+                const tableRef = doc(db, 'restaurantTables', id);
+                const tableSnap = await getDoc(tableRef);
+                
+                if (tableSnap.exists() && tableSnap.data().status === 'Occupied') {
+                    toast({ title: 'Error', description: "No se puede eliminar una ubicación con una cuenta abierta.", variant: 'destructive' });
+                    return;
+                }
+
+                await deleteDoc(tableRef);
                 toast({ title: 'Eliminado', description: 'Ubicación eliminada.' });
+            } catch (e: any) {
+                toast({ title: 'Error', description: e.message || "Error al eliminar ubicación.", variant: 'destructive' });
             }
         });
     };

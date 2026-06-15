@@ -40,6 +40,7 @@ const pricePlanSchema = z.object({
   duration: z.coerce.number().positive('La duración debe ser un número positivo.'),
   unit: z.enum(['Minutes', 'Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().min(0, 'El precio debe ser un número no negativo.'),
+  capacity: z.coerce.number().optional(),
 });
 
 const roomTypeSchema = z.object({
@@ -76,7 +77,10 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const [newPlanDuration, setNewPlanDuration] = useState('');
   const [newPlanUnit, setNewPlanUnit] = useState<PricePlan['unit']>('Hours');
   const [newPlanPrice, setNewPlanPrice] = useState('');
+  const [newPlanCustomName, setNewPlanCustomName] = useState('');
+  const [newPlanCapacity, setNewPlanCapacity] = useState('');
   const [editingPlanIndex, setEditingPlanIndex] = useState<number | null>(null);
+
   const [planInputErrors, setPlanInputErrors] = useState<{ duration?: string, price?: string }>({});
 
   const router = useRouter();
@@ -101,6 +105,14 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const { formState: { errors } } = form;
   const features = form.watch('features', roomType?.features || []);
   const pricePlans = form.watch('pricePlans', roomType?.pricePlans || []);
+
+  const roomCapacity = form.watch('capacity');
+
+  useEffect(() => {
+    if (!newPlanCapacity && roomCapacity) {
+      setNewPlanCapacity(String(roomCapacity));
+    }
+  }, [roomCapacity, newPlanCapacity]);
 
   const allGlobalFeatures = useMemo(() => {
     const featureSet = new Set<string>();
@@ -188,15 +200,16 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
     if (isNaN(durationNum) || durationNum <= 0) {
       currentErrors.duration = 'Debe ser un número positivo.';
-    } else if (
-      pricePlans.some((p, i) => p.duration === durationNum && p.unit === newPlanUnit && i !== editingPlanIndex)
-    ) {
-      currentErrors.duration = 'Ya existe un plan para esta duración.';
     }
 
 
     if (isNaN(priceNum) || priceNum < 0) {
       currentErrors.price = 'Debe ser un número no negativo.';
+    }
+
+    const roomTypeName = form.getValues('name');
+    if (roomTypeName.toUpperCase().includes('VIP') && newPlanUnit === 'Months') {
+        currentErrors.duration = 'Las habitaciones VIP no se pueden alquilar al mes.';
     }
 
     setPlanInputErrors(currentErrors);
@@ -220,9 +233,16 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
         Months: 'Meses'
     };
     const unitText = durationNum === 1 ? unitMapSingular[newPlanUnit] : unitMapPlural[newPlanUnit];
-    const newPlanName = `${durationNum} ${unitText}`;
+    const capacityNum = parseInt(newPlanCapacity, 10);
+    const generatedName = `${durationNum} ${unitText}${!isNaN(capacityNum) ? ` (${capacityNum} Pers)` : ''}`;
+    const newPlanName = newPlanCustomName.trim() || generatedName;
 
-    const newPlan: PricePlan = { name: newPlanName, duration: durationNum, unit: newPlanUnit, price: priceNum };
+    if (pricePlans.some((p, i) => p.name === newPlanName && i !== editingPlanIndex)) {
+        setPlanInputErrors(prev => ({...prev, duration: 'Ya existe un plan con este nombre.'}));
+        return;
+    }
+
+    const newPlan: PricePlan = { name: newPlanName, duration: durationNum, unit: newPlanUnit, price: priceNum, capacity: isNaN(capacityNum) ? undefined : capacityNum };
     
     if (editingPlanIndex !== null) {
       const updatedPlans = [...pricePlans];
@@ -235,6 +255,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setEditingPlanIndex(null);
     setNewPlanDuration('');
     setNewPlanPrice('');
+    setNewPlanCustomName('');
+    setNewPlanCapacity('');
     setNewPlanUnit('Hours');
   };
 
@@ -244,6 +266,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setNewPlanDuration(String(plan.duration));
     setNewPlanUnit(plan.unit);
     setNewPlanPrice(numberToString(plan.price));
+    setNewPlanCustomName(plan.name);
+    setNewPlanCapacity(plan.capacity ? String(plan.capacity) : '');
     setPlanInputErrors({});
   };
 
@@ -251,6 +275,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
     setEditingPlanIndex(null);
     setNewPlanDuration('');
     setNewPlanPrice('');
+    setNewPlanCustomName('');
+    setNewPlanCapacity('');
     setNewPlanUnit('Hours');
     setPlanInputErrors({});
   };
@@ -376,8 +402,18 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                   <div className="space-y-4">
                       <FormLabel>Planes de Precios</FormLabel>
                       <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
-                        <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-2 items-start">
-                          <div className="sm:col-span-2 space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-10 gap-x-4 gap-y-2 items-end">
+                          <div className="sm:col-span-3 space-y-2">
+                              <Label htmlFor="plan-custom-name">Nombre (Opcional)</Label>
+                              <Input
+                                  id="plan-custom-name"
+                                  placeholder="Ej: Mensual 1 Pers"
+                                  value={newPlanCustomName}
+                                  onChange={(e) => setNewPlanCustomName(e.target.value)}
+                                  className="h-10"
+                              />
+                          </div>
+                          <div className="sm:col-span-1 space-y-2">
                               <Label htmlFor="plan-duration" className={cn(planInputErrors.duration && "text-destructive")}>Duración</Label>
                               <Input
                                   id="plan-duration"
@@ -422,6 +458,18 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             />
                              {planInputErrors.price && <p className="text-sm font-medium text-destructive">{planInputErrors.price}</p>}
                           </div>
+                          <div className="sm:col-span-2 space-y-2">
+                            <Label htmlFor="plan-capacity">Capacidad (Huéspedes)</Label>
+                            <Input
+                                id="plan-capacity"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="Ej: 2"
+                                value={newPlanCapacity}
+                                onChange={(e) => setNewPlanCapacity(e.target.value.replace(/\D/g, ''))}
+                                className="h-10"
+                            />
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -458,7 +506,12 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             <TableBody>
                                 {pricePlans.map((plan, index) => (
                                 <TableRow key={index}>
-                                    <TableCell className="font-medium">{plan.name}</TableCell>
+                                    <TableCell className="font-medium flex items-center gap-2">
+                                        {plan.name}
+                                        {plan.capacity && (
+                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 uppercase font-black tracking-widest bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{plan.capacity} Personas</Badge>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
                                     <TableCell className="text-right">
                                     <Button

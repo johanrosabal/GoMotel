@@ -1,5 +1,4 @@
-'use server';
-
+// 'use server'; // Removido por script
 import { db } from '@/lib/firebase';
 import { 
     collection, 
@@ -12,7 +11,8 @@ import {
     Timestamp,
     getDoc
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import type { Tutorial } from '@/types';
 
 // Helper to convert Firestore Tutorial to plain object

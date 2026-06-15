@@ -3,12 +3,14 @@
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, onSnapshot, or, and } from 'firebase/firestore';
-import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order } from '@/types';
-import { createDirectSale } from '@/lib/actions/pos.actions';
-import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder, completeTakeoutOrder, completeTableOrderDelivery } from '@/lib/actions/restaurant.actions';
-import { completeOrderDelivery } from '@/lib/actions/order.actions';
+import { collection, query, where, orderBy, doc, onSnapshot, or, and, updateDoc, getDocs, getDoc, Timestamp, increment, runTransaction, limit, addDoc } from 'firebase/firestore';
+import type { Service, Tax, SinpeAccount, AppliedTax, ProductCategory, ProductSubCategory, RestaurantTable, Order, Invoice, Stay } from '@/types';
+// Server actions comentadas para migración al cliente
+// import { createDirectSale } from '@/lib/actions/pos.actions';
+// import { openTableAccount, addToTableAccount, payRestaurantAccount, updateOrderLabel, removeItemFromAccount, cancelRestaurantOrder, completeTakeoutOrder, completeTableOrderDelivery } from '@/lib/actions/restaurant.actions';
+// import { completeOrderDelivery } from '@/lib/actions/order.actions';
 import { getServices } from '@/lib/actions/service.actions';
+import { db } from '@/lib/firebase';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,6 +122,8 @@ export default function PosClientPage() {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [confirmAccountDialogOpen, setConfirmAccountDialogOpen] = useState(false);
+    const [serviceToSave, setServiceToSave] = useState<Service | null>(null);
     const [step, setStep] = useState(1);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string | null>(null);
@@ -344,6 +348,12 @@ export default function PosClientPage() {
     }, [paymentMethod, activeSinpeAccounts, grandTotal]);
 
     const handleAddToCart = (service: Service) => {
+        if (selectedTable && !selectedOrderId && cart.length === 0) {
+            setServiceToSave(service);
+            setConfirmAccountDialogOpen(true);
+            return;
+        }
+
         setCart(prev => {
             const existing = prev.find(i => i.service.id === service.id);
             if (existing) {
@@ -354,6 +364,15 @@ export default function PosClientPage() {
             }
             return [...prev, { service, quantity: 1 }];
         });
+    };
+
+    const handleConfirmCreateAccount = () => {
+        if (!serviceToSave) return;
+        const itemsToSave = [{ service: serviceToSave, quantity: 1 }];
+        setCart(itemsToSave);
+        handleSaveOpenAccount(itemsToSave);
+        setConfirmAccountDialogOpen(false);
+        setServiceToSave(null);
     };
 
     const handleRemoveFromCart = (serviceId: string) => {
@@ -394,39 +413,237 @@ export default function PosClientPage() {
         if (cart.length === 0 && !currentOrder) return;
 
         startTransition(async () => {
-            let result;
-            if (viewMode === 'fast' || !currentOrder) {
-                result = await createDirectSale({
-                    items: cart.map(i => ({
-                        serviceId: i.service.id,
-                        name: i.service.name,
-                        quantity: i.quantity,
-                        price: i.service.price,
-                        category: i.service.category,
-                        notes: i.notes
-                    })),
-                    clientName: values.clientName,
-                    paymentMethod: values.paymentMethod,
-                    voucherNumber: values.voucherNumber,
-                    subtotal,
-                    taxes: appliedTaxes,
-                    total: grandTotal,
-                });
-            } else if (selectedTable && currentOrder) {
-                result = await payRestaurantAccount(currentOrder.id, selectedTable.id, {
-                    clientName: values.clientName,
-                    paymentMethod: values.paymentMethod,
-                    voucherNumber: values.voucherNumber,
-                    subtotal,
-                    taxes: appliedTaxes,
-                    total: grandTotal
-                });
-            }
+            try {
+                let invoiceIdForReturn: string | undefined;
 
-            if (result?.error) {
-                toast({ title: 'Error en venta', description: result.error, variant: 'destructive' });
-            } else if (result?.success) {
-                setGeneratedInvoiceId(result.invoiceId);
+                if (viewMode === 'fast' || !currentOrder) {
+                    // --- CREATE DIRECT SALE (Takeout) ---
+                    if (cart.length === 0) throw new Error('El carrito está vacío.');
+
+                    // 1. Generate Invoice Number
+                    const invoicesRef = collection(db, 'invoices');
+                    const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+                    const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+                    
+                    let nextNum = 1;
+                    if (!lastInvoiceSnap.empty) {
+                        const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+                        if (lastInvoiceData.invoiceNumber) {
+                            const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                            if (!isNaN(lastPart)) nextNum = lastPart + 1;
+                        }
+                    }
+                    const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
+
+                    // 2. Find SINPE account if needed
+                    let targetSinpeRef = null;
+                    if (values.paymentMethod === 'Sinpe Movil') {
+                        const sinpeRef = collection(db, 'sinpeAccounts');
+                        const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
+                        const sinpeSnap = await getDocs(sinpeQ);
+                        
+                        for (const d of sinpeSnap.docs) {
+                            const acc = d.data();
+                            if ((acc.balance + grandTotal) <= (acc.limitAmount || Infinity)) {
+                                targetSinpeRef = d.ref;
+                                break;
+                            }
+                        }
+                    }
+
+                    await runTransaction(db, async (transaction) => {
+                        // 3. ALL READS FIRST
+                        const itemSnapshots = [];
+                        for (const item of cart) {
+                            const serviceRef = doc(db, 'products', item.service.id);
+                            const serviceSnap = await transaction.get(serviceRef);
+                            itemSnapshots.push({ item, serviceRef, serviceSnap });
+                        }
+
+                        // 4. VALIDATION AND WRITES
+                        for (const { item, serviceRef, serviceSnap } of itemSnapshots) {
+                            if (!serviceSnap.exists()) throw new Error(`Producto "${item.service.name}" no encontrado.`);
+                            
+                            const serviceData = serviceSnap.data() as Service;
+                            if (serviceData.source !== 'Internal' && serviceData.stock < item.quantity) {
+                                throw new Error(`Existencias insuficientes para ${serviceData.name}. Stock: ${serviceData.stock}`);
+                            }
+                            
+                            if (serviceData.source !== 'Internal') {
+                                transaction.update(serviceRef, { stock: increment(-item.quantity) });
+                            }
+                        }
+
+                        // Create Invoice
+                        const invoiceRef = doc(collection(db, 'invoices'));
+                        invoiceIdForReturn = invoiceRef.id;
+
+                        const invoiceData: Omit<Invoice, 'id'> = {
+                            invoiceNumber,
+                            clientName: values.clientName || 'Cliente de Contado',
+                            createdAt: Timestamp.now(),
+                            status: 'Pagada',
+                            items: cart.map(i => ({
+                                description: `${i.quantity}x ${i.service.name}${i.notes ? ` (${i.notes})` : ''}`,
+                                quantity: i.quantity,
+                                unitPrice: i.service.price,
+                                total: i.service.price * i.quantity
+                            })),
+                            subtotal: subtotal,
+                            taxes: appliedTaxes as any,
+                            total: grandTotal,
+                            paymentMethod: values.paymentMethod,
+                            voucherNumber: values.voucherNumber || null,
+                        };
+
+                        transaction.set(invoiceRef, invoiceData);
+
+                        // Create Order for KDS
+                        const orderRef = doc(collection(db, 'orders'));
+                        
+                        let hasKitchen = false;
+                        let hasBar = false;
+                        for (const item of cart) {
+                            if (item.service.category === 'Food') hasKitchen = true;
+                            if (item.service.category === 'Beverage') hasBar = true;
+                        }
+
+                        const needsPrep = hasKitchen || hasBar;
+
+                        transaction.set(orderRef, {
+                            locationType: 'Takeout',
+                            locationLabel: 'PARA LLEVAR',
+                            label: values.clientName || 'Venta POS',
+                            items: cart.map(i => ({
+                                id: Math.random().toString(36).substring(2, 9),
+                                serviceId: i.service.id,
+                                name: i.service.name,
+                                quantity: i.quantity,
+                                price: i.service.price,
+                                category: i.service.category,
+                                notes: i.notes || null,
+                                status: (i.service.category === 'Food' || i.service.category === 'Beverage') ? 'Pendiente' : 'Entregado',
+                                createdAt: Timestamp.now()
+                            })),
+                            subtotal: subtotal,
+                            taxes: appliedTaxes,
+                            total: grandTotal,
+                            createdAt: Timestamp.now(),
+                            status: needsPrep ? 'Pendiente' : 'Entregado',
+                            kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+                            barStatus: hasBar ? 'Pendiente' : 'Entregado',
+                            paymentStatus: 'Pagado',
+                            paymentMethod: values.paymentMethod,
+                            invoiceId: invoiceIdForReturn,
+                            source: 'POS'
+                        });
+
+                        // Update SINPE if applies
+                        if (targetSinpeRef) {
+                            transaction.update(targetSinpeRef, { balance: increment(grandTotal) });
+                        }
+                    });
+
+                } else if (selectedTable && currentOrder) {
+                    // --- PAY RESTAURANT ACCOUNT ---
+                    // 1. Generate Invoice Number
+                    const invoicesRef = collection(db, 'invoices');
+                    const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+                    const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+                    
+                    let nextNum = 1;
+                    if (!lastInvoiceSnap.empty) {
+                        const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+                        if (lastInvoiceData.invoiceNumber) {
+                            const lastPart = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                            if (!isNaN(lastPart)) nextNum = lastPart + 1;
+                        }
+                    }
+                    const invoiceNumber = `FAC-${String(nextNum).padStart(5, '0')}`;
+
+                    await runTransaction(db, async (transaction) => {
+                        const orderRef = doc(db, 'orders', currentOrder.id);
+                        
+                        // Create Invoice
+                        const invoiceRef = doc(collection(db, 'invoices'));
+                        invoiceIdForReturn = invoiceRef.id;
+
+                        const orderSnap = await transaction.get(orderRef);
+                        if (!orderSnap.exists()) throw new Error("Pedido no encontrado.");
+                        const orderData = orderSnap.data() as Order;
+
+                        const invoiceData: Omit<Invoice, 'id'> = {
+                            invoiceNumber,
+                            clientName: values.clientName,
+                            createdAt: Timestamp.now(),
+                            status: 'Pagada',
+                            items: orderData.items.map(i => ({
+                                description: `${i.quantity}x ${i.name}${i.notes ? ` (${i.notes})` : ''}`,
+                                quantity: i.quantity,
+                                unitPrice: i.price,
+                                total: i.price * i.quantity
+                            })),
+                            subtotal: subtotal,
+                            taxes: appliedTaxes as any,
+                            total: grandTotal,
+                            paymentMethod: values.paymentMethod,
+                            voucherNumber: values.voucherNumber || null,
+                            orderId: currentOrder.id,
+                            stayId: orderData.stayId || null,
+                        };
+
+                        transaction.set(invoiceRef, invoiceData);
+                        transaction.update(orderRef, { 
+                            status: 'Entregado', 
+                            kitchenStatus: 'Entregado',
+                            barStatus: 'Entregado',
+                            articlesStatus: 'Entregado',
+                            paymentStatus: 'Pagado', 
+                            invoiceId: invoiceIdForReturn,
+                            billRequested: false,
+                            items: (orderData.items || []).map(i => i.status === 'Cancelado' ? i : { ...i, status: 'Entregado' })
+                        });
+                        
+                        if (orderData.locationType !== 'Stay') {
+                            const tableRef = doc(db, 'restaurantTables', selectedTable.id);
+                            // Check if there are other pending orders for this table
+                            const ordersCollection = collection(db, 'orders');
+                            const otherOrdersQuery = query(
+                                ordersCollection, 
+                                where('locationId', '==', selectedTable.id), 
+                                where('paymentStatus', '==', 'Pendiente')
+                            );
+                            const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                            
+                            const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== currentOrder.id);
+                            if (remainingOrders.length === 0) {
+                                transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                            } else {
+                                transaction.update(tableRef, { currentOrderId: remainingOrders[0].id });
+                            }
+                        }
+
+                        // Update SINPE balance if applies
+                        if (values.paymentMethod === 'Sinpe Movil') {
+                            const sinpeRef = collection(db, 'sinpeAccounts');
+                            const sinpeQ = query(sinpeRef, where('isActive', '==', true), orderBy('createdAt', 'asc'));
+                            const sinpeSnap = await getDocs(sinpeQ);
+                            
+                            let targetRef = null;
+                            for (const d of sinpeSnap.docs) {
+                                const acc = d.data();
+                                if ((acc.balance + grandTotal) <= (acc.limitAmount || Infinity)) {
+                                    targetRef = d.ref;
+                                    break;
+                                }
+                            }
+                            if (targetRef) transaction.update(targetRef, { balance: increment(grandTotal) });
+                        }
+                    });
+                }
+
+                // Success!
+                setGeneratedInvoiceId(invoiceIdForReturn || null);
                 setSuccessModalOpen(true);
                 handleClearCart();
                 setStep(1);
@@ -435,31 +652,295 @@ export default function PosClientPage() {
                 setSelectedTable(null);
                 setSelectedOrderId(null);
                 getServices().then(setAvailableServices);
+
+            } catch (e: any) {
+                console.error("Process sale error:", e);
+                toast({ title: 'Error en venta', description: e.message || 'Error al procesar la venta.', variant: 'destructive' });
             }
         });
     };
 
-    const handleSaveOpenAccount = () => {
-        if (!selectedTable || cart.length === 0) return;
+    const handleSaveOpenAccount = (itemsToSave = cart) => {
+        if (!selectedTable || itemsToSave.length === 0) return;
 
         startTransition(async () => {
-            let result;
-            if (currentOrder) {
-                result = await addToTableAccount(currentOrder.id, cart);
-            } else {
-                const label = newAccountLabel.trim() || `Cuenta ${activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0 + 1}`;
-                result = await openTableAccount(selectedTable.id, cart, label, 'POS');
-            }
+            try {
+                let newCreatedOrderId: string | null = null;
+                const isNewAccount = !currentOrder;
+                const taxesSnap = await getDocs(collection(db, 'taxes'));
+                const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
 
-            if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
+                const serviceTaxInfo = allTaxes.find(t => 
+                    t.name.toLowerCase().includes('servicio') || 
+                    t.name.toLowerCase().includes('service')
+                );
+
+                if (currentOrder) {
+                    // --- ADD TO TABLE ACCOUNT ---
+                    await runTransaction(db, async (transaction) => {
+                        const orderRef = doc(db, 'orders', currentOrder.id);
+                        const orderSnap = await transaction.get(orderRef);
+                        if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+                        
+                        const orderData = orderSnap.data() as Order;
+                        
+                        // A. PRE-READ ALL PRODUCTS
+                        const uniqueProductIds = Array.from(new Set(itemsToSave.map(i => i.service.id)));
+                        const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+                        
+                        for (const sId of uniqueProductIds) {
+                            const itemRef = itemsToSave.find(i => i.service.id === sId);
+                            const sRef = doc(db, 'products', sId);
+                            const sSnap = await transaction.get(sRef);
+                            productSnapshots.push({ 
+                                ref: sRef, 
+                                data: sSnap.exists() ? sSnap.data() : null, 
+                                sId,
+                                name: itemRef?.service.name || 'Producto'
+                            });
+                        }
+
+                        // B. LOGIC & CALCULATIONS
+                        const updatedItems = [...orderData.items];
+                        let hasNewKitchen = false;
+                        let hasNewBar = false;
+                        let hasNewArticles = false;
+                        
+                        const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+                        if (orderData.taxes) {
+                            orderData.taxes.forEach(t => taxMap.set(t.taxId, { ...t }));
+                        }
+
+                        let newSubtotalAddition = 0;
+                        const itemCreatedAt = Timestamp.now();
+
+                        for (const item of itemsToSave) {
+                            const ps = productSnapshots.find(p => p.sId === item.service.id);
+                            if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                                throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                            }
+
+                            if (item.service.category === 'Food') hasNewKitchen = true;
+                            if (item.service.category === 'Beverage') hasNewBar = true;
+                            if (item.service.category === 'Article') hasNewArticles = true;
+
+                            updatedItems.push({
+                                id: Math.random().toString(36).substring(2, 9),
+                                serviceId: item.service.id,
+                                name: item.service.name,
+                                quantity: item.quantity,
+                                price: item.service.price,
+                                category: item.service.category,
+                                notes: item.notes || null,
+                                status: 'Pendiente',
+                                createdAt: itemCreatedAt
+                            });
+
+                            const effectiveTaxIds = new Set(item.service.taxIds || []);
+                            if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                            let cumulativePercentage = 0;
+                            effectiveTaxIds.forEach(taxId => {
+                                const taxInfo = allTaxes.find(t => t.id === taxId);
+                                if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                            });
+
+                            let itemSubtotal = 0;
+                            const itemQuantityPrice = item.service.price * item.quantity;
+                            if (item.service.taxIncluded) {
+                                itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                            } else {
+                                itemSubtotal = itemQuantityPrice;
+                            }
+                            newSubtotalAddition += itemSubtotal;
+
+                            effectiveTaxIds.forEach(taxId => {
+                                const taxInfo = allTaxes.find(t => t.id === taxId);
+                                if (taxInfo) {
+                                    const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                                    const existing = taxMap.get(taxId);
+                                    if (existing) existing.amount += taxAmount;
+                                    else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                                }
+                            });
+                        }
+
+                        const currentSubtotal = orderData.subtotal || orderData.total;
+                        const finalSubtotal = currentSubtotal + newSubtotalAddition;
+                        const appliedTaxes = Array.from(taxMap.values());
+                        const finalTotalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+                        const finalTotal = finalSubtotal + finalTotalTax;
+
+                        const updates: Record<string, any> = {
+                            items: updatedItems,
+                            subtotal: finalSubtotal,
+                            taxes: appliedTaxes,
+                            total: finalTotal
+                        };
+
+                        if (hasNewKitchen) {
+                            updates.kitchenStatus = 'Pendiente';
+                            updates.status = 'Pendiente';
+                        }
+                        if (hasNewBar) {
+                            updates.barStatus = 'Pendiente';
+                            updates.status = 'Pendiente';
+                        }
+                        if (hasNewArticles) {
+                            updates.articlesStatus = 'Pendiente';
+                            updates.status = 'Pendiente';
+                        }
+
+                        // C. WRITES
+                        for (const ps of productSnapshots) {
+                            if (ps.data && ps.data.source !== 'Internal') {
+                                const totalQty = cart.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                                transaction.update(ps.ref, { stock: increment(-totalQty) });
+                            }
+                        }
+                        transaction.update(orderRef, updates);
+                    });
+                } else {
+                    // --- OPEN TABLE ACCOUNT ---
+                    const label = newAccountLabel.trim() || `Cuenta ${activeOrders?.filter(o => o.locationId === selectedTable.id).length || 0 + 1}`;
+                    
+                    await runTransaction(db, async (transaction) => {
+                        const tableRef = doc(db, 'restaurantTables', selectedTable.id);
+                        const tableSnap = await transaction.get(tableRef);
+                        if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
+                        
+                        // A. PRE-READ ALL PRODUCTS
+                        const uniqueProductIds = Array.from(new Set(itemsToSave.map(i => i.service.id)));
+                        const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+                        
+                        for (const sId of uniqueProductIds) {
+                            const itemRef = itemsToSave.find(i => i.service.id === sId);
+                            const sRef = doc(db, 'products', sId);
+                            const sSnap = await transaction.get(sRef);
+                            productSnapshots.push({ 
+                                ref: sRef, 
+                                data: sSnap.exists() ? sSnap.data() : null, 
+                                sId,
+                                name: itemRef?.service.name || 'Producto'
+                            });
+                        }
+
+                        // B. LOGIC & CALCULATIONS
+                        const tableData = tableSnap.data() as RestaurantTable;
+                        const locationLabel = `${TYPE_LABELS[tableData.type] || tableData.type} ${tableData.number}`;
+
+                        let orderSubtotal = 0;
+                        const orderItems: any[] = [];
+                        let hasKitchen = false;
+                        let hasBar = false;
+                        let hasArticles = false;
+                        const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+
+                        for (const item of itemsToSave) {
+                            const ps = productSnapshots.find(p => p.sId === item.service.id);
+                            if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                                throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                            }
+
+                            if (item.service.category === 'Food') hasKitchen = true;
+                            if (item.service.category === 'Beverage') hasBar = true;
+                            if (item.service.category === 'Article') hasArticles = true;
+
+                            const itemCreatedAt = Timestamp.now();
+                            orderItems.push({
+                                id: Math.random().toString(36).substring(2, 9),
+                                serviceId: item.service.id,
+                                name: item.service.name,
+                                quantity: item.quantity,
+                                price: item.service.price,
+                                category: item.service.category,
+                                notes: item.notes || null,
+                                status: 'Pendiente',
+                                createdAt: itemCreatedAt
+                            });
+
+                            const effectiveTaxIds = new Set(item.service.taxIds || []);
+                            if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                            let cumulativePercentage = 0;
+                            effectiveTaxIds.forEach(taxId => {
+                                const taxInfo = allTaxes.find(t => t.id === taxId);
+                                if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                            });
+
+                            let itemSubtotal = 0;
+                            const itemQuantityPrice = item.service.price * item.quantity;
+                            if (item.service.taxIncluded) {
+                                itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                            } else {
+                                itemSubtotal = itemQuantityPrice;
+                            }
+                            orderSubtotal += itemSubtotal;
+
+                            effectiveTaxIds.forEach(taxId => {
+                                const taxInfo = allTaxes.find(t => t.id === taxId);
+                                if (taxInfo) {
+                                    const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                                    const existing = taxMap.get(taxId);
+                                    if (existing) existing.amount += taxAmount;
+                                    else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                                }
+                            });
+                        }
+
+                        const appliedTaxes = Array.from(taxMap.values());
+                        const totalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+                        const orderTotal = orderSubtotal + totalTax;
+
+                        const orderRef = doc(collection(db, 'orders'));
+                        newCreatedOrderId = orderRef.id;
+                        
+                        const newOrder = {
+                            locationType: tableData.type,
+                            locationId: selectedTable.id,
+                            locationLabel: locationLabel,
+                            label: label || locationLabel,
+                            items: orderItems,
+                            subtotal: orderSubtotal,
+                            taxes: appliedTaxes,
+                            total: orderTotal,
+                            createdAt: Timestamp.now(),
+                            status: (hasKitchen || hasBar || hasArticles) ? 'Pendiente' : 'Listo',
+                            kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+                            barStatus: hasBar ? 'Pendiente' : 'Entregado',
+                            articlesStatus: hasArticles ? 'Pendiente' : 'Entregado',
+                            paymentStatus: 'Pendiente',
+                            source: 'POS'
+                        };
+
+                        // C. WRITES
+                        for (const ps of productSnapshots) {
+                            if (ps.data && ps.data.source !== 'Internal') {
+                                const totalQty = itemsToSave.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                                transaction.update(ps.ref, { stock: increment(-totalQty) });
+                            }
+                        }
+                        transaction.set(orderRef, newOrder);
+                        transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
+                    });
+                }
+
+                // Success!
                 const label = TYPE_LABELS[selectedTable.type] || selectedTable.type;
                 toast({ title: 'Cuenta actualizada', description: `Se añadieron los productos a la ${label} ${selectedTable.number}.` });
                 handleClearCart();
-                setSelectedTable(null);
-                setSelectedOrderId(null);
                 setNewAccountLabel('');
+
+                if (isNewAccount && newCreatedOrderId) {
+                    setSelectedOrderId(newCreatedOrderId);
+                } else {
+                    setSelectedTable(null);
+                    setSelectedOrderId(null);
+                }
+
+            } catch (e: any) {
+                console.error("Save open account error:", e);
+                toast({ title: 'Error', description: e.message || "Error al actualizar cuenta.", variant: 'destructive' });
             }
         });
     }
@@ -478,12 +959,14 @@ export default function PosClientPage() {
     const handleRenameAccount = () => {
         if (!renamingOrderId || !newLabelName.trim()) return;
         startTransition(async () => {
-            const result = await updateOrderLabel(renamingOrderId, newLabelName.trim());
-            if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
+            try {
+                const orderRef = doc(db, 'orders', renamingOrderId);
+                await updateDoc(orderRef, { label: newLabelName.trim() });
                 toast({ title: 'Cuenta renombrada' });
                 setRenameDialogOpen(false);
+            } catch (e: any) {
+                console.error("Rename order error:", e);
+                toast({ title: 'Error', description: e.message || "Error al renombrar cuenta.", variant: 'destructive' });
             }
         });
     };
@@ -491,15 +974,73 @@ export default function PosClientPage() {
     const handleCancelEntireAccount = () => {
         if (!accountToCancel) return;
         startTransition(async () => {
-            const result = await cancelRestaurantOrder(accountToCancel.id);
-            if (result.error) {
-                toast({ title: 'Error al cancelar', description: result.error, variant: 'destructive' });
-            } else {
+            try {
+                const orderRef = doc(db, 'orders', accountToCancel.id);
+                const orderSnap = await getDoc(orderRef);
+                if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+                const orderData = orderSnap.data() as Order;
+
+                let nextOrderId: string | null = null;
+                let hasOtherOrders = false;
+
+                if (orderData.locationId) {
+                    const ordersCollection = collection(db, 'orders');
+                    const otherOrdersQuery = query(
+                        ordersCollection, 
+                        where('locationId', '==', orderData.locationId), 
+                        where('paymentStatus', '==', 'Pendiente')
+                    );
+                    const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                    const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== accountToCancel.id);
+                    
+                    hasOtherOrders = remainingOrders.length > 0;
+                    if (hasOtherOrders) {
+                        nextOrderId = remainingOrders[0].id;
+                    }
+                }
+
+                await runTransaction(db, async (transaction) => {
+                    const serviceSnapshots = [];
+                    for (const item of orderData.items) {
+                        const serviceRef = doc(db, 'products', item.serviceId);
+                        const serviceSnap = await transaction.get(serviceRef);
+                        serviceSnapshots.push({ ref: serviceRef, snap: serviceSnap, quantity: item.quantity });
+                    }
+
+                    let tableRef = null;
+                    if (orderData.locationId) {
+                        tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                        await transaction.get(tableRef);
+                    }
+
+                    for (const { ref, snap, quantity } of serviceSnapshots) {
+                        if (snap.exists()) {
+                            const serviceData = snap.data() as Service;
+                            if (serviceData.source !== 'Internal') {
+                                transaction.update(ref, { stock: increment(quantity) });
+                            }
+                        }
+                    }
+
+                    transaction.delete(orderRef);
+
+                    if (tableRef) {
+                        if (!hasOtherOrders) {
+                            transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                        } else {
+                            transaction.update(tableRef, { currentOrderId: nextOrderId });
+                        }
+                    }
+                });
+
                 toast({ title: 'Cuenta eliminada', description: 'La cuenta ha sido cerrada y el inventario restaurado.' });
                 setCancelAccountDialogOpen(false);
                 setAccountToCancel(null);
                 setSelectedOrderId(null);
                 handleClearCart();
+            } catch (e: any) {
+                console.error("Cancel entire order error:", e);
+                toast({ title: 'Error al cancelar', description: e.message || "Error al cancelar la cuenta.", variant: 'destructive' });
             }
         });
     };
@@ -515,38 +1056,138 @@ export default function PosClientPage() {
         if (!itemToRemove || !deletionReason) return;
 
         startTransition(async () => {
-            const result = await removeItemFromAccount(itemToRemove.orderId, itemToRemove.serviceId, deletionReason, deletionNotes);
-            if (result.error) {
-                toast({ title: 'Error al eliminar producto', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Producto eliminado', description: 'Se ha actualizado la cuenta y devuelto el stock.' });
+            try {
+                const orderRef = doc(db, 'orders', itemToRemove.orderId);
+                const orderSnap = await getDoc(orderRef);
+                if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+                
+                const orderData = orderSnap.data() as Order;
+                const itemIndex = orderData.items.findIndex(i => i.serviceId === itemToRemove.serviceId);
+                
+                if (itemIndex === -1) throw new Error("Producto no encontrado en la cuenta.");
+                
+                const item = orderData.items[itemIndex];
+                const itemPrice = item.price * item.quantity;
+
+                // 0. Audit check
+                if (item.status === 'En preparación' || item.status === 'Listo') {
+                    const auditRef = collection(db, 'cancellationAudit');
+                    await addDoc(auditRef, {
+                        orderId: itemToRemove.orderId,
+                        serviceId: item.serviceId,
+                        serviceName: item.name,
+                        quantity: item.quantity,
+                        previousStatus: item.status,
+                        reason: deletionReason,
+                        notes: deletionNotes || '',
+                        locationLabel: orderData.locationLabel || 'Unknown',
+                        area: item.category === 'Food' ? 'Kitchen' : item.category === 'Beverage' ? 'Bar' : 'Other',
+                        timestamp: Timestamp.now()
+                    });
+                }
+
+                await runTransaction(db, async (transaction) => {
+                    // 1. Restore Stock
+                    const serviceRef = doc(db, 'products', itemToRemove.serviceId);
+                    const serviceSnap = await transaction.get(serviceRef);
+                    if (serviceSnap.exists()) {
+                        const serviceData = serviceSnap.data() as Service;
+                        if (serviceData.source !== 'Internal') {
+                            transaction.update(serviceRef, { stock: increment(item.quantity) });
+                        }
+                    }
+
+                    // 2. Update Order Items
+                    const updatedItems = [...orderData.items];
+                    updatedItems.splice(itemIndex, 1);
+
+                    if (updatedItems.length === 0) {
+                        transaction.update(orderRef, {
+                            items: [],
+                            subtotal: 0,
+                            total: 0,
+                            taxes: [],
+                            status: 'Cancelado',
+                            kitchenStatus: 'Cancelado',
+                            barStatus: 'Cancelado',
+                            articlesStatus: 'Cancelado'
+                        });
+                        
+                        if (orderData.locationId) {
+                            const tableRef = doc(db, 'restaurantTables', orderData.locationId);
+                            const ordersCollection = collection(db, 'orders');
+                            const otherOrdersQuery = query(
+                                ordersCollection, 
+                                where('locationId', '==', orderData.locationId), 
+                                where('status', '==', 'Pendiente')
+                            );
+                            const otherOrdersSnap = await getDocs(otherOrdersQuery);
+                            const remainingOrders = otherOrdersSnap.docs.filter(d => d.id !== itemToRemove.orderId);
+                            
+                            if (remainingOrders.length === 0) {
+                                transaction.update(tableRef, { status: 'Available', currentOrderId: null });
+                            }
+                        }
+                    } else {
+                        const currentSubtotal = orderData.subtotal || orderData.total;
+                        const newSubtotal = Math.max(0, currentSubtotal - itemPrice);
+                        const taxRatio = orderData.total > 0 ? (orderData.total - currentSubtotal) / currentSubtotal : 0;
+                        const newTotal = newSubtotal * (1 + taxRatio);
+
+                        transaction.update(orderRef, {
+                            items: updatedItems,
+                            subtotal: newSubtotal,
+                            total: newTotal
+                        });
+                    }
+                });
+
+                toast({ title: 'Producto eliminado', description: 'El producto ha sido retirado de la cuenta y el inventario restaurado.' });
                 setRemoveItemDialogOpen(false);
                 setItemToRemove(null);
+                setDeletionReason('');
+                setDeletionNotes('');
+            } catch (e: any) {
+                console.error("Remove item error:", e);
+                toast({ title: 'Error', description: e.message || "Error al eliminar producto.", variant: 'destructive' });
             }
         });
     };
 
     const handleCompleteTakeout = (orderId: string) => {
         startTransition(async () => {
-            const result = await completeTakeoutOrder(orderId);
-            if (result.error) {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
-            } else {
+            try {
+                const orderRef = doc(db, 'orders', orderId);
+                await updateDoc(orderRef, { 
+                    status: 'Completado',
+                    completedAt: new Date()
+                });
                 toast({ title: 'Pedido entregado', description: 'El pedido ha sido completado con éxito.' });
+            } catch (e: any) {
+                console.error("Complete takeout order error:", e);
+                toast({ title: 'Error', description: e.message || "Error al completar pedido.", variant: 'destructive' });
             }
         });
     };
 
     const handleCompleteDelivery = async (orderId: string, locationType: string) => {
         startTransition(async () => {
-            const result = locationType === 'Stay' 
-                ? await completeOrderDelivery(orderId)
-                : await completeTableOrderDelivery(orderId);
-            
-            if (result.success) {
+            try {
+                const orderRef = doc(db, 'orders', orderId);
+                const orderSnap = await getDoc(orderRef);
+                if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+
+                await updateDoc(orderRef, {
+                    status: 'Entregado',
+                    kitchenStatus: 'Entregado',
+                    barStatus: 'Entregado',
+                    articlesStatus: 'Entregado',
+                    items: orderSnap.data().items.map((i: any) => ({ ...i, status: 'Entregado' }))
+                });
                 toast({ title: "¡Entregado!", description: "El pedido ha sido marcado como entregado." });
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
+            } catch (e: any) {
+                console.error("Complete delivery error:", e);
+                toast({ title: "Error", description: e.message || "Error al completar la entrega.", variant: "destructive" });
             }
         });
     };
@@ -585,8 +1226,8 @@ export default function PosClientPage() {
                     {locationTypes.map(type => {
                         const Icon = getTypeIcon(type);
                         const typeTables = allTables?.filter(t => t.type === type) || [];
-                        const hasActiveOrdersType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id));
-                        const hasBillRequestType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id && o.billRequested));
+                        const hasActiveOrdersType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id) || false);
+                        const hasBillRequestType = typeTables.some(t => activeOrders?.some(o => o.locationId === t.id && o.billRequested) || false);
 
                         return (
                             <button
@@ -619,15 +1260,15 @@ export default function PosClientPage() {
                         onClick={() => { setViewMode('ready'); setSelectedTable(null); setSelectedOrderId(null); handleClearCart(); }} id="posclientpage-button-entregas" data-testid="posclientpage-action-ready-tab"
                     >
                         <Bell className={cn("h-4 w-4", viewMode === 'ready' ? "animate-none" : "animate-bounce")} /> Entregas
-                        {activeOrders?.filter(o => 
+                        {(activeOrders?.filter(o => 
                             o.locationType !== 'Takeout' &&
                             o.items?.some(i => i.status === 'Listo')
-                        ).length > 0 && (
+                        )?.length || 0) > 0 && (
                             <Badge className="ml-1 bg-emerald-500 text-white border-none h-5 min-w-[20px] px-1 justify-center font-black">
-                                {activeOrders.filter(o => 
+                                {activeOrders?.filter(o => 
                                     o.locationType !== 'Takeout' &&
                                     o.items?.some(i => i.status === 'Listo')
-                                ).length}
+                                )?.length}
                             </Badge>
                         )}
                     </button>
@@ -1338,9 +1979,13 @@ export default function PosClientPage() {
                                                             control={form.control}
                                                             name="paymentConfirmed"
                                                             render={({ field }) => (
-                                                                <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left">
-                                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} id="posclientpage-checkbox-1" data-testid="posclientpage-1-checkbox" /></FormControl>
-                                                                    <FormLabel className="font-black text-[10px] uppercase">Pago recibido</FormLabel>                                                                </FormItem>
+                                                                <Label 
+                                                                     className="flex flex-row items-center space-x-2 space-y-0 rounded-xl border bg-background p-3 text-left cursor-pointer hover:bg-muted/50 transition-colors"
+                                                                     htmlFor="posclientpage-checkbox-1"
+                                                                 >
+                                                                     <Checkbox checked={field.value} onCheckedChange={field.onChange} id="posclientpage-checkbox-1" data-testid="posclientpage-1-checkbox" />
+                                                                     <span className="font-black text-[10px] uppercase">Pago recibido</span>
+                                                                 </Label>
                                                             )}
                                                         />
                                                     </div>
@@ -1444,9 +2089,9 @@ export default function PosClientPage() {
                                     <Button
                                         className={cn(
                                             "h-12 sm:h-14 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95",
-                                            isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
+                                            isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || (paymentMethod === 'Efectivo' && numericCashTendered < grandTotal) || isPending ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
                                         )}
-                                        disabled={isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || isPending}
+                                        disabled={isCartEmpty || (paymentMethod === 'Sinpe Movil' && !targetSinpeAccount) || (paymentMethod === 'Efectivo' && numericCashTendered < grandTotal) || isPending}
                                         onClick={form.handleSubmit(handleProcessSale)} id="posclientpage-button-confirmar-pago" data-testid="posclientpage-action-button"
                                     >
                                         CONFIRMAR
@@ -1482,6 +2127,30 @@ export default function PosClientPage() {
                 onOpenChange={setSuccessModalOpen}
                 invoiceId={generatedInvoiceId}
             />
+
+            <AlertDialog open={confirmAccountDialogOpen} onOpenChange={setConfirmAccountDialogOpen}>
+                <AlertDialogContent className="rounded-[2rem] border-white/10 bg-slate-950/90 backdrop-blur-2xl text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                            ¿Crear cuenta para {selectedTable?.number}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400">
+                            Estás agregando el primer producto. ¿Deseas crear la cuenta para asegurar que no se pierda la lista?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 pt-4">
+                        <AlertDialogCancel className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px]">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleConfirmCreateAccount}
+                            className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-widest text-[10px]"
+                        >
+                            Aceptar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
                 <DialogContent className="sm:max-w-md">

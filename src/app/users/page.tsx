@@ -1,19 +1,55 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { getUsers } from '@/lib/actions/user.actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import UsersTable from '@/components/users/UsersTable';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import UserFormDialog from '@/components/users/UserFormDialog';
+import type { UserProfile } from '@/types';
 
-export default async function UsersPage() {
-  const users = await getUsers();
-  
-  const serializedUsers = users.map(user => ({
-      ...user,
-      createdAt: user.createdAt.toDate().toISOString(),
-      birthDate: user.birthDate?.toDate().toISOString() || '',
-      deletedAt: user.deletedAt ? user.deletedAt.toDate().toISOString() : null,
-  }));
+export default function UsersPage() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getUsers().then(data => {
+      setUsers(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const toISO = (dateVal: any) => {
+      if (!dateVal) return null;
+      if (typeof dateVal === 'string') return new Date(dateVal).toISOString();
+      if (typeof dateVal.toDate === 'function') return dateVal.toDate().toISOString();
+      return null;
+  };
+
+  const serializedUsers = users.map(user => {
+      return {
+          ...user,
+          createdAt: toISO(user.createdAt) || new Date().toISOString(),
+          birthDate: toISO(user.birthDate) || '',
+          deletedAt: toISO(user.deletedAt) || null,
+      };
+  });
+
+  if (loading) {
+    return (
+      <div className="container py-4 sm:py-6 lg:py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Equipo de Trabajo</h1>
+            <p className="text-muted-foreground max-w-2xl">
+              Cargando usuarios...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4 sm:py-6 lg:py-8 space-y-6">

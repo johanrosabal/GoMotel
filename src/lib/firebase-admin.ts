@@ -1,41 +1,25 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
-/**
- * Initializes the Firebase Admin SDK.
- * This should only be used on the server side.
- * Requires FIREBASE_SERVICE_ACCOUNT environment variable to be set with the JSON content.
- */
-function initializeAdmin() {
-  if (admin.apps.length > 0) {
-    return admin.apps[0];
+function initializeFirebaseAdmin() {
+  if (getApps().length > 0) {
+    return getApps()[0];
   }
 
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-
-  if (!serviceAccountJson) {
-    console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Admin functions will fail.');
-    return null;
-  }
-
+  // No usamos service account por petición del usuario.
+  // Esto funcionará en Cloud Run con credenciales por defecto.
+  // En local fallará si no hay credenciales por defecto configuradas en la máquina.
   try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    
-    // Fix private key formatting if it was passed as a string with escaped newlines
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
-
-    return admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    return initializeApp();
   } catch (error) {
-    console.error('Error initializing Firebase Admin SDK:', error);
+    console.error('Error al inicializar Firebase Admin:', error);
     return null;
   }
 }
 
-const app = initializeAdmin();
+const app = initializeFirebaseAdmin();
 
-export const adminAuth = app ? admin.auth(app) : null;
-export const adminDb = app ? admin.firestore(app) : null;
-export default admin;
+export const adminDb = app ? getFirestore(app) : null as any;
+export const adminAuth = app ? getAuth(app) : null as any;
+export const db = adminDb; // Alias para compatibilidad con otros archivos

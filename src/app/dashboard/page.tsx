@@ -67,6 +67,7 @@ const HOTEL_ESSENTIAL_PATHS = [
   '/billing/invoices',
   '/finance/payments',
   '/reports',
+  '/inventory',
 ];
 
 const BAR_ESSENTIAL_PATHS = [
@@ -205,7 +206,7 @@ export default function DashboardPage() {
       title: 'Centros de Preparación',
       scope: 'Gestión de colas de producción en tiempo real.',
       description: 'Pantallas para Cocineros y Bartenders.',
-      roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS', 'Cocina'],
+      roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS', 'Cocina', 'Recepcion'],
       links: [
         {
           href: '/kitchen',
@@ -213,7 +214,7 @@ export default function DashboardPage() {
           description: 'Gestione los pedidos de comida en preparación.',
           icon: Flame,
           badge: 'ENVIVO',
-          roles: ['Administrador', 'Conserje', 'Contador', 'Cocina'],
+          roles: ['Administrador', 'Conserje', 'Contador', 'Cocina', 'Recepcion'],
         },
         {
           href: '/bar',
@@ -221,7 +222,15 @@ export default function DashboardPage() {
           description: 'Gestione los pedidos de bebidas en preparación.',
           icon: GlassWater,
           badge: 'ENVIVO',
-          roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS'],
+          roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS', 'Recepcion'],
+        },
+        {
+          href: '/articles',
+          title: 'Cola de Artículos',
+          description: 'Gestione los pedidos de artículos varios.',
+          icon: ShoppingBasket,
+          badge: 'ENVIVO',
+          roles: ['Administrador', 'Conserje', 'Contador', 'Vendedor POS', 'Recepcion'],
         },
       ],
     },
@@ -276,7 +285,8 @@ export default function DashboardPage() {
           title: 'Gestión de Inventario',
           description: 'Controle los niveles de stock y el valor de sus activos.',
           icon: Package,
-          roles: ['Administrador', 'Contador'],
+          badge: 'STOCK',
+          roles: ['Administrador', 'Contador', 'Recepcion'],
         },
       ],
     },
@@ -649,6 +659,8 @@ export default function DashboardPage() {
                               ? "border-emerald-500/40 border-2 ring-4 ring-emerald-500/5 bg-emerald-500/[0.02]"
                               : link.badge === 'ENVIVO'
                               ? "border-orange-500/40 border-2 ring-4 ring-orange-500/5 bg-orange-500/[0.02]"
+                              : link.badge === 'STOCK'
+                              ? "border-purple-500/40 border-2 ring-4 ring-purple-500/5 bg-purple-500/[0.02]"
                               : "bg-card border-primary/5"
                           )}>
                               <div className="flex flex-col space-y-1.5 p-6 pb-3 relative">
@@ -662,6 +674,7 @@ export default function DashboardPage() {
                                             link.badge === 'NUEVO' ? 'bg-green-600 text-white' :
                                             link.badge === 'PÚBLICO' ? 'bg-emerald-600 text-white' :
                                             link.badge === 'ENVIVO' ? 'bg-orange-600 text-white' :
+                                            link.badge === 'STOCK' ? 'bg-purple-600 text-white' :
                                             'bg-primary text-primary-foreground'
                                           )}>{link.badge}</Badge>
                                       </div>
@@ -674,6 +687,7 @@ export default function DashboardPage() {
                                       link.badge === 'TERCIARIA' ? "text-slate-400 bg-slate-100 dark:bg-slate-900/50" : 
                                       link.badge === 'PÚBLICO' ? "text-emerald-600 bg-emerald-100" :
                                       link.badge === 'ENVIVO' ? "text-orange-600 bg-orange-100" :
+                                      link.badge === 'STOCK' ? "text-purple-500 bg-purple-100 dark:bg-purple-900/50" : 
                                       "bg-primary/10 text-primary"
                                   )}>
                                       <link.icon className="size-6" />

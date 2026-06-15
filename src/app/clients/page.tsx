@@ -4,7 +4,7 @@ import ClientsPage from '@/components/clients/ClientsPage';
 
 export default function ClientsRootPage() {
     return (
-        <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden" data-testid="clients-root-div">
+        <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden" data-testid="clients-root-container">
             {/* Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <Image

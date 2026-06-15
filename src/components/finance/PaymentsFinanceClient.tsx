@@ -33,8 +33,9 @@ import { SimpleDateRangeSelector } from './SimpleDateRangeSelector';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection, addDoc, Timestamp } from 'firebase/firestore';
 import type { CompanyProfile } from '@/types';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 type PaymentMethod = 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
 
@@ -42,6 +43,14 @@ export default function PaymentsFinanceClient() {
     const { firestore } = useFirebase();
     const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
     const { data: company } = useDoc<CompanyProfile>(companyRef);
+    const { userProfile } = useUserProfile();
+    const isAdmin = userProfile?.role === 'Administrador';
+
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const [newEfectivo, setNewEfectivo] = useState<string>('');
+    const [newSinpe, setNewSinpe] = useState<string>('');
+    const [newTarjeta, setNewTarjeta] = useState<string>('');
+    const [isSavingReset, setIsSavingReset] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
@@ -110,6 +119,50 @@ export default function PaymentsFinanceClient() {
 
         return result;
     }, [filteredInvoices]);
+
+    const handleSaveReset = async () => {
+        if (!firestore) return;
+        setIsSavingReset(true);
+        try {
+            const diffEfectivo = parseFloat(newEfectivo.replace(/,/g, '')) - balances['Efectivo'];
+            const diffSinpe = parseFloat(newSinpe.replace(/,/g, '')) - balances['Sinpe Movil'];
+            const diffTarjeta = parseFloat(newTarjeta.replace(/,/g, '')) - balances['Tarjeta'];
+
+            const createAdjustment = async (method: PaymentMethod, diff: number) => {
+                if (diff === 0) return;
+                await addDoc(collection(firestore, 'invoices'), {
+                    invoiceNumber: "AJUSTE-" + Date.now() + "-" + Math.random().toString(36).substring(7),
+                    clientName: "AJUSTE DE CAJA (ADMIN)",
+                    createdAt: Timestamp.now(),
+                    status: 'Pagada',
+                    items: [],
+                    subtotal: diff,
+                    total: diff,
+                    paymentMethod: method,
+                });
+            };
+
+            await createAdjustment('Efectivo', diffEfectivo);
+            await createAdjustment('Sinpe Movil', diffSinpe);
+            await createAdjustment('Tarjeta', diffTarjeta);
+
+            setIsResetModalOpen(false);
+            // Refresh stats
+            const data = await getDashboardStats(365);
+            setStats(data);
+        } catch (error) {
+            console.error("Error saving reset:", error);
+        } finally {
+            setIsSavingReset(false);
+        }
+    };
+
+    const formatNumberInput = (val: string) => {
+        const cleanVal = val.replace(/[^\d.]/g, '');
+        const parts = cleanVal.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    };
 
     const handleExportPDF = async () => {
         const doc = new jsPDF();
@@ -386,8 +439,74 @@ export default function PaymentsFinanceClient() {
                             </div>
                         </DialogContent>
                     </Dialog>
+                    
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setNewEfectivo(formatNumberInput(balances['Efectivo'].toString()));
+                                setNewSinpe(formatNumberInput(balances['Sinpe Movil'].toString()));
+                                setNewTarjeta(formatNumberInput(balances['Tarjeta'].toString()));
+                                setIsResetModalOpen(true);
+                            }}
+                            className="h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all border-white/5 text-slate-500 hover:text-white hover:bg-white/10 ml-2"
+                        >
+                            <ArrowRightLeft className="h-3 w-3 mr-2" />
+                            Resetear Saldos
+                        </Button>
+                    )}
                 </div>
             </div>
+
+            {/* Reset Modal */}
+            <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+                <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2rem] sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                            <Wallet className="h-5 w-5 text-primary" />
+                            Resetear Saldos de Caja
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 font-medium">
+                            Ingrese los nuevos saldos para cada método de pago. Se crearán transacciones de ajuste para cuadrar los montos.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500">Efectivo (Actual: {formatCurrency(balances['Efectivo'])})</label>
+                            <Input
+                                type="text"
+                                value={newEfectivo}
+                                onChange={(e) => setNewEfectivo(formatNumberInput(e.target.value))}
+                                className="bg-white/5 border-white/10 rounded-xl text-right"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500">Sinpe Móvil (Actual: {formatCurrency(balances['Sinpe Movil'])})</label>
+                            <Input
+                                type="text"
+                                value={newSinpe}
+                                onChange={(e) => setNewSinpe(formatNumberInput(e.target.value))}
+                                className="bg-white/5 border-white/10 rounded-xl text-right"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500">Tarjeta (Actual: {formatCurrency(balances['Tarjeta'])})</label>
+                            <Input
+                                type="text"
+                                value={newTarjeta}
+                                onChange={(e) => setNewTarjeta(formatNumberInput(e.target.value))}
+                                className="bg-white/5 border-white/10 rounded-xl text-right"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setIsResetModalOpen(false)} className="rounded-xl">Cancelar</Button>
+                        <Button onClick={handleSaveReset} disabled={isSavingReset} className="rounded-xl bg-primary text-white hover:bg-primary/80">
+                            {isSavingReset ? "Guardando..." : "Guardar Cambios"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* KPI Balance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -1,4 +1,4 @@
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente y evite el error de conexión en el servidor
 
 import {
   collection,
@@ -17,7 +17,9 @@ import {
   DocumentReference,
   limit,
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// // import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
+
 import { z } from 'zod';
 import { addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { db } from '../firebase';
@@ -149,7 +151,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
     const isUpfrontPayment = checkInNow && !isOpenAccount;
     const paymentStatus = checkInNow ? (isOpenAccount ? 'Pendiente' : 'Pagado') : 'Pendiente';
     const paymentMethod = checkInNow ? (isOpenAccount ? 'Por Definir' : upfrontPaymentMethod!) : 'Por Definir';
-    const paymentAmount = isUpfrontPayment ? pricePlanAmount : 0;
+    const extraFee = (upfrontPaymentMethod === 'Sinpe Movil' || upfrontPaymentMethod === 'Tarjeta') ? 2000 : 0;
+    const paymentAmount = isUpfrontPayment ? (pricePlanAmount + extraFee) : 0;
     
     // --- Get Stay Ref if it's a direct check-in ---
     const stayRef = checkInNow ? doc(collection(db, 'stays')) : null;
@@ -230,8 +233,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
         const invoiceItems = [{
             description: `Reservación: ${plan.name} para Hab. ${roomData.number}`,
             quantity: 1,
-            unitPrice: pricePlanAmount,
-            total: pricePlanAmount
+            unitPrice: pricePlanAmount + extraFee,
+            total: pricePlanAmount + extraFee
         }];
 
         const newInvoice: Omit<Invoice, 'id'> = {
@@ -243,9 +246,9 @@ export async function createReservation(values: z.infer<typeof reservationAction
             createdAt: Timestamp.now(),
             status: 'Pagada',
             items: invoiceItems,
-            subtotal: pricePlanAmount,
+            subtotal: pricePlanAmount + extraFee,
             taxes: [], 
-            total: pricePlanAmount,
+            total: pricePlanAmount + extraFee,
             paymentMethod: paymentMethod,
             voucherNumber: voucherNumber || null,
             roomId: roomId,
@@ -267,7 +270,8 @@ export async function createReservation(values: z.infer<typeof reservationAction
           reservationId: reservationRef.id,
           guestId: guestId || null,
           pricePlanName: pricePlanName,
-          pricePlanAmount: pricePlanAmount,
+          pricePlanAmount: pricePlanAmount + extraFee,
+          pricePlanCapacity: plan.capacity || roomTypeData.capacity || 1,
           renewalCount: 0,
           paymentStatus,
           paymentMethod,
@@ -360,7 +364,8 @@ export async function checkInFromReservation(reservationId: string, paymentData?
     const isPaid = reservation.paymentStatus === 'Pagado' || (paymentData && !paymentData.isOpenAccount);
     const paymentStatus = isPaid ? 'Pagado' : 'Pendiente';
     const paymentMethod = reservation.paymentStatus === 'Pagado' ? reservation.paymentMethod : (paymentData?.isOpenAccount ? 'Por Definir' : (paymentData?.paymentMethod || 'Por Definir'));
-    const paymentAmount = needsPayment ? reservation.pricePlanAmount : (reservation.paymentStatus === 'Pagado' ? (reservation.paymentAmount || 0) : 0);
+    const extraFee = (paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') ? 2000 : 0;
+    const paymentAmount = needsPayment ? ((reservation.pricePlanAmount || 0) + extraFee) : (reservation.paymentStatus === 'Pagado' ? (reservation.paymentAmount || 0) : 0);
     const voucherNumber = reservation.paymentStatus === 'Pagado' ? (reservation.voucherNumber || null) : (paymentData?.voucherNumber || null);
 
     // Create new stay from reservation
@@ -426,12 +431,12 @@ export async function checkInFromReservation(reservationId: string, paymentData?
             items: [{
                 description: `Check-in (Reserva): ${reservation.pricePlanName} para Hab. ${reservation.roomNumber}`,
                 quantity: 1,
-                unitPrice: (reservation.pricePlanAmount || 0),
-                total: (reservation.pricePlanAmount || 0)
+                unitPrice: (reservation.pricePlanAmount || 0) + extraFee,
+                total: (reservation.pricePlanAmount || 0) + extraFee
             }],
-            subtotal: (reservation.pricePlanAmount || 0),
+            subtotal: (reservation.pricePlanAmount || 0) + extraFee,
             taxes: [], 
-            total: (reservation.pricePlanAmount || 0),
+            total: (reservation.pricePlanAmount || 0) + extraFee,
             paymentMethod: paymentMethod as any,
             voucherNumber: voucherNumber,
             roomId: reservation.roomId,

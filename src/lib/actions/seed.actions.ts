@@ -1,9 +1,8 @@
-
-'use server';
-
+// 'use server'; // Removido por script
 import { collection, writeBatch, doc, Timestamp, getDocs, query } from 'firebase/firestore';
 import { db } from '../firebase';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import type { Room, Service, RoomStatus, RoomType, RestaurantTable, Tax } from '@/types';
 import { addHours } from 'date-fns';
 

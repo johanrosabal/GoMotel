@@ -66,29 +66,52 @@ export default function TaxesTable({ taxes }: { taxes: Tax[] }) {
     }
     
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nombre</TableHead>
-                        <TableHead>Porcentaje</TableHead>
-                        <TableHead>Descripción</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {taxes.map((tax) => (
-                        <TableRow key={tax.id}>
-                            <TableCell className="font-medium">{tax.name}</TableCell>
-                            <TableCell>{tax.percentage}%</TableCell>
-                            <TableCell className="text-muted-foreground">{tax.description || '-'}</TableCell>
-                            <TableCell className="text-right">
-                                <ActionsMenu tax={tax} />
-                            </TableCell>
+        <>
+            {/* Vista para móviles (Tarjetas) */}
+            <div className="md:hidden space-y-4">
+                {taxes.map((tax) => (
+                    <div key={tax.id} className="p-4 border rounded-xl bg-card/50 backdrop-blur-sm space-y-3 relative transition-all hover:bg-card">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold">{tax.name}</span>
+                                    <span className="text-primary font-black">{tax.percentage}%</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {tax.description || 'Sin descripción'}
+                                </p>
+                            </div>
+                            <ActionsMenu tax={tax} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Vista para escritorio (Tabla) */}
+            <div className="hidden md:block rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Porcentaje</TableHead>
+                            <TableHead>Descripción</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                    </TableHeader>
+                    <TableBody>
+                        {taxes.map((tax) => (
+                            <TableRow key={tax.id}>
+                                <TableCell className="font-medium">{tax.name}</TableCell>
+                                <TableCell>{tax.percentage}%</TableCell>
+                                <TableCell className="text-muted-foreground">{tax.description || '-'}</TableCell>
+                                <TableCell className="text-right">
+                                    <ActionsMenu tax={tax} />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </>
     );
 }

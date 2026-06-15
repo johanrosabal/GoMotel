@@ -56,20 +56,24 @@ export default function Notifications() {
   }, [firestore]);
   const { data: cleaningRooms, isLoading: isLoadingCleaningRooms } = useCollection<Room>(cleaningRoomsQuery);
 
-  // Query for reservations that are currently checked-in
+  // Query for reservations that are currently checked-in or confirmed
   const checkedInReservationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'reservations'), where('status', '==', 'Checked-in'));
+    return query(collection(firestore, 'reservations'), where('status', 'in', ['Checked-in', 'Confirmed']));
   }, [firestore]);
   const { data: checkedInReservations, isLoading: isLoadingCheckedIn } = useCollection<Reservation>(checkedInReservationsQuery);
 
-  // Now, calculate overdue rooms from the checked-in reservations
-  const overdueReservations = useMemo(() => {
-    if (!checkedInReservations) {
-      return [];
-    }
-    return checkedInReservations.filter(res => res.checkOutDate.toDate() < now);
+  const overdueStays = useMemo(() => {
+    if (!checkedInReservations) return [];
+    return checkedInReservations.filter(res => res.status === 'Checked-in' && res.checkOutDate.toDate() < now);
   }, [checkedInReservations, now]);
+
+  const overdueArrivals = useMemo(() => {
+    if (!checkedInReservations) return [];
+    return checkedInReservations.filter(res => res.status === 'Confirmed' && res.checkInDate.toDate() < now);
+  }, [checkedInReservations, now]);
+
+  const overdueReservations = useMemo(() => [...overdueStays, ...overdueArrivals], [overdueStays, overdueArrivals]);
 
   // Query for pending orders from rooms (Room Service)
   const pendingOrdersQuery = useMemoFirebase(() => {
@@ -120,7 +124,7 @@ export default function Notifications() {
     prevOrdersCount.current = pendingOrders?.length || 0;
   }, [pendingOrders?.length, isAlertDisabled]);
 
-  const totalNotifications = (overdueReservations?.length || 0) + (cleaningRooms?.length || 0) + (pendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
+  const totalNotifications = (overdueStays.length || 0) + (overdueArrivals.length || 0) + (cleaningRooms?.length || 0) + (pendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
   const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn || isLoadingPendingOrders || isLoadingRequestedBills;
 
   // --- START: Alarm Logic ---
@@ -268,7 +272,7 @@ export default function Notifications() {
                           </Link>
                           
                           <div className="flex gap-2">
-                            {(order.kitchenStatus === 'Pendiente' || order.kitchenStatus === 'En preparación') && (
+                            {(order.kitchenStatus === 'Pendiente' || order.kitchenStatus === 'En preparación' || order.items?.some(i => i.category === 'Food' && i.status !== 'Entregado' && i.status !== 'Cancelado')) && (
                               <Link 
                                 href="/kitchen" 
                                 className="text-[8px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-sm"
@@ -276,12 +280,20 @@ export default function Notifications() {
                                 Cocina
                               </Link>
                             )}
-                            {(order.barStatus === 'Pendiente' || order.barStatus === 'En preparación') && (
+                            {(order.barStatus === 'Pendiente' || order.barStatus === 'En preparación' || order.items?.some(i => i.category === 'Beverage' && i.status !== 'Entregado' && i.status !== 'Cancelado')) && (
                               <Link 
                                 href="/bar" 
                                 className="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-sm"
                               >
                                 Bar
+                              </Link>
+                            )}
+                            {(order.articlesStatus === 'Pendiente' || order.articlesStatus === 'En preparación' || order.items?.some(i => i.category === 'Article' && i.status !== 'Entregado' && i.status !== 'Cancelado')) && (
+                              <Link 
+                                href="/articles" 
+                                className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all shadow-sm"
+                              >
+                                Artículos
                               </Link>
                             )}
                           </div>
@@ -290,17 +302,35 @@ export default function Notifications() {
                     </div>
                   </div>
                 )}
-                {overdueReservations.length > 0 && (
+                {overdueStays.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-destructive flex items-center gap-2">
                       <BedDouble className="h-4 w-4" />
-                      Estancias Vencidas ({overdueReservations.length})
+                      Estancias Vencidas ({overdueStays.length})
                     </p>
                     <div className="space-y-1">
-                      {overdueReservations.map(res => (
+                      {overdueStays.map(res => (
                         <Link key={res.id} href={`/rooms/${res.roomId}`} passHref id="notifications-link-1" data-testid="notifications-action-room-link">
                           <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
                             Habitación <span className="font-bold">{res.roomNumber}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {overdueArrivals.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-orange-500 flex items-center gap-2">
+                      <CalendarClock className="h-4 w-4" />
+                      Clientes No Llegaron ({overdueArrivals.length})
+                    </p>
+                    <div className="space-y-1">
+                      {overdueArrivals.map(res => (
+                        <Link key={res.id} href="/reservations" passHref id="notifications-link-arrivals" data-testid="notifications-action-arrivals-link">
+                          <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer flex justify-between items-center">
+                            <span>Hab. <span className="font-bold">{res.roomNumber}</span> - {res.guestName}</span>
+                            <span className="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase">No llegó</span>
                           </div>
                         </Link>
                       ))}

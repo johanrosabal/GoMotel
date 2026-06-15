@@ -252,25 +252,22 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
                     />
 
                     <div className="flex justify-between items-start mb-6 relative z-10">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-14 w-14 ring-4 ring-white/5 border-2 border-primary/20">
-                                <AvatarFallback className="bg-black text-primary font-black">{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <CardTitle className="text-xl font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors flex items-center gap-2">
-                                    {client.firstName} {client.lastName}
-                                    {client.isVip && <Star className="h-4 w-4 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />}
-                                    {client.isBlacklisted && <Skull className="h-4 w-4 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />}
-                                </CardTitle>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mt-1 italic">
-                                    <Mail className="h-3 w-3" /> {client.email}
+                        <div className="flex flex-col gap-1 w-full">
+                            <CardTitle className="text-base font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
+                                {client.firstName} {client.lastName}
+                                <div className="flex gap-1 items-center">
+                                    {client.isVip && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />}
+                                    {client.isBlacklisted && <Skull className="h-3.5 w-3.5 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />}
+                                </div>
+                            </CardTitle>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mt-1 italic">
+                                <Mail className="h-3 w-3" /> {client.email}
+                            </p>
+                            {client.isBlacklisted && client.blacklistReason && (
+                                <p className="text-[8px] font-black text-rose-500/70 uppercase tracking-tighter mt-1 bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 w-fit">
+                                    Motivo: {client.blacklistReason}
                                 </p>
-                                {client.isBlacklisted && client.blacklistReason && (
-                                    <p className="text-[8px] font-black text-rose-500/70 uppercase tracking-tighter mt-1 bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 w-fit">
-                                        Motivo: {client.blacklistReason}
-                                    </p>
-                                )}
-                            </div>
+                            )}
                         </div>
                         <ActionsMenu client={client} />
                     </div>

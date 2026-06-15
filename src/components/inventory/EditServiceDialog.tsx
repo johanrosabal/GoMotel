@@ -66,7 +66,7 @@ const serviceSchema = z.object({
     costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
     stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
     minStock: z.coerce.number().int().min(0, 'Las existencias mínimas no pueden ser negativas.').optional(),
-    category: z.enum(['Food', 'Beverage', 'Amenity']),
+    category: z.enum(['Food', 'Beverage', 'Amenity', 'Article']),
     description: z.string().optional(),
     imageUrl: z.string().optional(),
     categoryId: z.string().optional(),
@@ -220,7 +220,7 @@ export default function EditServiceDialog({ children, service, allServices, open
                 costPrice: 0,
                 stock: 0,
                 minStock: 10,
-                category: 'Food',
+                category: 'Food' as const,
                 description: '',
                 imageUrl: '',
                 categoryId: preselectedCategoryId,
@@ -294,23 +294,32 @@ export default function EditServiceDialog({ children, service, allServices, open
 
     const onSubmit = (values: z.infer<typeof serviceSchema>) => {
         startTransition(async () => {
-            const result = await saveService(values);
-            if (result.error) {
-                const errorDescription = typeof result.error === 'object'
-                    ? Object.values(result.error).flat().join(' \n')
-                    : String(result.error);
+            try {
+                const result = await saveService(values);
+                if (result.error) {
+                    const errorDescription = typeof result.error === 'object'
+                        ? Object.values(result.error).flat().join(' \n')
+                        : String(result.error);
+                    toast({
+                        title: 'Error al Guardar',
+                        description: errorDescription,
+                        variant: 'destructive',
+                    });
+                } else {
+                    toast({
+                        title: '¡Éxito!',
+                        description: `El servicio "${values.name}" ha sido guardado.`,
+                    });
+                    setOpen(false);
+                    form.reset();
+                }
+            } catch (error: any) {
+                console.error("Error calling saveService:", error);
                 toast({
-                    title: 'Error al Guardar',
-                    description: errorDescription,
+                    title: 'Error de Conexión',
+                    description: 'Ocurrió un error al enviar los datos. Si subió una imagen muy grande, intente con una más pequeña (máximo 1MB).',
                     variant: 'destructive',
                 });
-            } else {
-                toast({
-                    title: '¡Éxito!',
-                    description: `El servicio "${values.name}" ha sido guardado.`,
-                });
-                setOpen(false);
-                form.reset();
             }
         });
     };
@@ -318,7 +327,7 @@ export default function EditServiceDialog({ children, service, allServices, open
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-            <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 bg-background/80 backdrop-blur-xl border-white/5">
                 <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
                     <DialogTitle>{service ? 'Editar Producto' : 'Añadir Nuevo Producto'}</DialogTitle>
                     <DialogDescription>
@@ -328,448 +337,477 @@ export default function EditServiceDialog({ children, service, allServices, open
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto no-scrollbar">
                     <Form {...form}>
-                        <form id="edit-service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4" data-testid="editservicedialog-main-form">
-                            <FormField
-                                control={form.control}
-                                name="source"
-                                render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                        <FormLabel>Fuente del Producto</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup
-                                                onValueChange={field.onChange}
-                                                value={field.value}
-                                                className="flex space-x-4"
-                                            >
-                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                        <form id="edit-service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-testid="editservicedialog-main-form">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                                {/* Columna Izquierda: Información Básica e Imagen */}
+                                <div className="space-y-6">
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/80 mb-2">Identificación y Origen</h3>
+                                        
+                                        <FormField
+                                            control={form.control}
+                                            name="source"
+                                            render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Fuente del Producto</FormLabel>
                                                     <FormControl>
-                                                        <RadioGroupItem value="Purchased" id="editservicedialog-radiogroupitem-1" data-testid="editservicedialog-product-source-purchased-radiogroupitem" />
+                                                        <RadioGroup
+                                                            onValueChange={field.onChange}
+                                                            value={field.value}
+                                                            className="flex space-x-4"
+                                                        >
+                                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="Purchased" id="editservicedialog-radiogroupitem-1" data-testid="editservicedialog-product-source-purchased-radiogroupitem" />
+                                                                </FormControl>
+                                                                <FormLabel className="font-bold text-sm text-white/70">Comprado</FormLabel>
+                                                            </FormItem>
+                                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="Internal" id="editservicedialog-radiogroupitem-2" data-testid="editservicedialog-product-source-internal-radiogroupitem" />
+                                                                </FormControl>
+                                                                <FormLabel className="font-bold text-sm text-white/70">Producción Interna</FormLabel>
+                                                            </FormItem>
+                                                        </RadioGroup>
                                                     </FormControl>
-                                                    <FormLabel className="font-normal">Comprado</FormLabel>
+                                                    <FormMessage />
                                                 </FormItem>
-                                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                                    <FormControl>
-                                                        <RadioGroupItem value="Internal" id="editservicedialog-radiogroupitem-2" data-testid="editservicedialog-product-source-internal-radiogroupitem" />
-                                                    </FormControl>
-                                                    <FormLabel className="font-normal">Producción Interna</FormLabel>
-                                                </FormItem>
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormItem>
-                                <FormLabel>Imagen del Producto (Opcional)</FormLabel>
-                                <div className="flex items-center gap-4">
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileChange}
-                                        accept="image/*"
-                                        className="hidden" data-testid="editservicedialog-1-input"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="relative h-20 w-20 rounded-md p-0"
-                                        onClick={() => fileInputRef.current?.click()} id="editservicedialog-button-1" data-testid="editservicedialog-action-button"
-                                    >
-                                        <Avatar className="h-full w-full rounded-md">
-                                            <AvatarImage src={imagePreview || undefined} alt={form.getValues('name')} className="object-cover" />
-                                            <AvatarFallback className="rounded-md bg-transparent">
-                                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </Button>
-                                    <div className="flex flex-col gap-1 w-full">
-                                        <p className="text-xs text-muted-foreground">Haga clic en el recuadro para buscar una imagen.</p>
-                                        {imagePreview && (
-                                            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive h-auto p-1 justify-start w-fit" onClick={() => {
-                                                setImagePreview(null);
-                                                form.setValue('imageUrl', '');
-                                                if (fileInputRef.current) fileInputRef.current.value = '';
-                                            }} id="editservicedialog-button-eliminar-imagen" data-testid="editservicedialog-delete-button">
-                                                Eliminar imagen
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="categoryId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Categoría</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
-                                                <FormControl>
-                                                    <SelectTrigger id="editservicedialog-selecttrigger-1" data-testid="editservicedialog-product-category-select"><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>{categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="subCategoryId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sub-Categoría</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSubCategories || !selectedCategoryId}>
-                                                <FormControl>
-                                                    <SelectTrigger id="editservicedialog-selecttrigger-2" data-testid="editservicedialog-product-subcategory-select"><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>{subCategories?.map(sc => <SelectItem key={sc.id} value={sc.id}>{sc.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                                            )}
+                                        />
 
-                            <div className="grid grid-cols-3 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem className="col-span-2">
-                                            <FormLabel>Nombre del Producto</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="p.ej., Botella de Agua" {...field} id="editservicedialog-input-p-ej-botella-de" data-testid="editservicedialog-product-name-input" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="code"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Código</FormLabel>
-                                            <FormControl>
-                                                <Input readOnly placeholder="Auto-generado" {...field} className="bg-muted text-center font-mono" id="editservicedialog-input-auto-generado" data-testid="editservicedialog-product-code-input" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Descripción Promocional (Opcional)</FormLabel>
-                                        <p className="text-[10px] text-muted-foreground my-1">
-                                            Este texto se mostrará en el Menú de TV Público cuando el producto sea destacado.
-                                        </p>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Una selección excepcional creada para deleitar sus sentidos con los mejores ingredientes."
-                                                className="resize-none"
-                                                {...field}
-                                                id="editservicedialog-textarea-description" data-testid="editservicedialog-product-description-textarea"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {source === 'Purchased' && <FormField
-                                control={form.control}
-                                name="supplierId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Proveedor (Opcional)</FormLabel>
-                                        <Select
-                                            onValueChange={(value) => {
-                                                const finalValue = value === 'none' ? '' : value;
-                                                field.onChange(finalValue);
-                                                const supplier = suppliers?.find(s => s.id === finalValue);
-                                                form.setValue('supplierName', supplier?.name || '');
-                                            }}
-                                            value={field.value || 'none'}
-                                            disabled={isLoadingSuppliers}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger id="editservicedialog-selecttrigger-3" data-testid="editservicedialog-product-supplier-select">
-                                                    <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="none">Ninguno</SelectItem>
-                                                {suppliers?.map(supplier => (
-                                                    <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />}
-                            <FormField
-                                control={form.control}
-                                name="category"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Categoría (Contable)</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger id="editservicedialog-selecttrigger-4" data-testid="editservicedialog-product-accounting-category-select">
-                                                    <SelectValue placeholder="Seleccione una categoría contable" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="Beverage">Bebida</SelectItem>
-                                                <SelectItem value="Food">Comida</SelectItem>
-                                                <SelectItem value="Amenity">Amenidad</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="isActive"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Producto Activo</FormLabel>
-                                            <p className="text-xs text-muted-foreground">
-                                                {form.getValues('source') === 'Internal'
-                                                    ? 'Desactive si el producto no está disponible en cocina.'
-                                                    : 'Desactive para ocultar el producto de la venta.'
-                                                }
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange} id="editservicedialog-switch-1" data-testid="editservicedialog-product-active-switch"
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="isPublic"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-primary/5">
-                                        <div className="space-y-0.5">
-                                            <FormLabel className="text-primary font-bold">Mostrar en Pantalllas Públicas</FormLabel>
-                                            <p className="text-xs text-muted-foreground">
-                                                Habilite para mostrar este producto en la pantalla publicitaria o menú externo.
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange} id="editservicedialog-switch-is-public" data-testid="editservicedialog-product-public-switch"
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                                {source === 'Purchased' && <FormField
-                                    control={form.control}
-                                    name="costPrice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Precio de Costo</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={costPriceInput}
-                                                    onChange={handleCostPriceChange}
-                                                    className="text-right" id="editservicedialog-input-1" data-testid="editservicedialog-product-cost-price-input"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />}
-                                <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Precio de Venta</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={priceInput}
-                                                    onChange={handlePriceChange}
-                                                    className="text-right" id="editservicedialog-input-2" data-testid="editservicedialog-product-price-input"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            {source === 'Purchased' && <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="stock"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Existencias</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" {...field} className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-3" data-testid="editservicedialog-product-stock-input" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="minStock"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Exist. Mínimas</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" {...field} placeholder="10" className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-10" data-testid="editservicedialog-product-min-stock-input" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>}
-                            <FormField
-                                control={form.control}
-                                name="taxIds"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex flex-row items-center justify-between mb-2">
-                                            <FormLabel>Impuestos Aplicables</FormLabel>
+                                        <div className="grid grid-cols-3 gap-4">
                                             <FormField
                                                 control={form.control}
-                                                name="taxIncluded"
-                                                render={({ field: taxIncludedField }) => (
-                                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Impuesto incluido en precio</FormLabel>
+                                                name="name"
+                                                render={({ field }) => (
+                                                    <FormItem className="col-span-2">
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Nombre del Producto</FormLabel>
                                                         <FormControl>
-                                                            <Switch
-                                                                checked={taxIncludedField.value}
-                                                                onCheckedChange={taxIncludedField.onChange} id="editservicedialog-switch-tax-included" data-testid="editservicedialog-product-tax-included-switch"
-                                                            />
+                                                            <Input placeholder="p.ej., Botella de Agua" {...field} className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 text-white" id="editservicedialog-input-p-ej-botella-de" data-testid="editservicedialog-product-name-input" />
                                                         </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="code"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Código</FormLabel>
+                                                        <FormControl>
+                                                            <Input readOnly placeholder="Auto" {...field} className="h-12 bg-white/5 border-white/5 rounded-2xl px-2 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono text-center text-white/50" id="editservicedialog-input-auto-generado" data-testid="editservicedialog-product-code-input" />
+                                                        </FormControl>
+                                                        <FormMessage />
                                                     </FormItem>
                                                 )}
                                             />
                                         </div>
-                                        <div className="space-y-3 rounded-md border p-4 max-h-40 overflow-y-auto bg-muted/30">
-                                            {isLoadingTaxes ? (
-                                                <p className="text-sm text-muted-foreground">Cargando impuestos...</p>
-                                            ) : taxes && taxes.length > 0 ? (
-                                                taxes.map((tax) => (
-                                                    <FormItem
-                                                        key={tax.id}
-                                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                                    >
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value?.includes(tax.id)}
-                                                                onCheckedChange={(checked) => {
-                                                                    const currentIds = field.value || [];
-                                                                    if (checked) {
-                                                                        field.onChange([...currentIds, tax.id]);
-                                                                    } else {
-                                                                        field.onChange(
-                                                                            currentIds.filter((id) => id !== tax.id)
-                                                                        );
-                                                                    }
-                                                                }} id="editservicedialog-checkbox-1" data-testid="editservicedialog-product-tax-checkbox"
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                            {tax.name} ({tax.percentage}%)
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                ))
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">No hay impuestos configurados. <Link href="/settings/taxes" className="text-primary underline" id="editservicedialog-link-crear-uno" data-testid="editservicedialog-create-link">Crear uno</Link></p>
+
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Descripción Promocional (Opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Descripción para el Menú de TV..."
+                                                            className="resize-none h-20 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 text-white"
+                                                            {...field}
+                                                            id="editservicedialog-textarea-description" data-testid="editservicedialog-product-description-textarea"
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )}
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Price Breakdown Display */}
-                            {priceBreakdown && (
-                                <div className="rounded-xl border bg-primary/5 p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                                            <DollarSign className="h-3 w-3" />
-                                            Resumen de Cálculo
-                                        </h4>
-                                        {priceBreakdown.profitMargin > 0 ? (
-                                            <span className="text-[10px] font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                <TrendingUp className="h-2.5 w-2.5" />
-                                                +{priceBreakdown.profitMargin.toFixed(1)}% margen
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                <TrendingDown className="h-2.5 w-2.5" />
-                                                {priceBreakdown.profitMargin.toFixed(1)}% margen
-                                            </span>
-                                        )}
+                                        />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Base (Neto)</p>
-                                            <p className="text-sm font-mono font-bold">{formatCurrency(priceBreakdown.subtotal)}</p>
-                                        </div>
-                                        <div className="space-y-1 text-right">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Impuestos</p>
-                                            <p className="text-sm font-mono font-bold text-primary">+{formatCurrency(priceBreakdown.totalTaxAmount)}</p>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="opacity-50" />
-
-                                    <div className="space-y-2">
-                                        {priceBreakdown.taxBreakdown.length > 0 && (
-                                            <div className="space-y-1">
-                                                {priceBreakdown.taxBreakdown.map((t, idx) => (
-                                                    <div key={idx} className="flex justify-between text-[10px]">
-                                                        <span className="text-muted-foreground">{t.name} ({t.percentage}%):</span>
-                                                        <span className="font-mono">{formatCurrency(t.amount)}</span>
-                                                    </div>
-                                                ))}
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/80 mb-2">Imagen y Visibilidad</h3>
+                                        
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Imagen del Producto</FormLabel>
+                                            <div className="flex flex-col gap-3 mt-1">
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    onChange={handleFileChange}
+                                                    accept="image/*"
+                                                    className="hidden" data-testid="editservicedialog-1-input"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="relative w-full h-48 rounded-2xl p-0 border-white/10 hover:border-primary/50 bg-white/[0.03] transition-all"
+                                                    onClick={() => fileInputRef.current?.click()} id="editservicedialog-button-1" data-testid="editservicedialog-action-button"
+                                                >
+                                                    <Avatar className="h-full w-full rounded-2xl">
+                                                        <AvatarImage src={imagePreview || undefined} alt={form.getValues('name')} className="object-cover" />
+                                                        <AvatarFallback className="rounded-2xl bg-transparent flex items-center justify-center">
+                                                            <ImageIcon className="h-12 w-12 text-white/20" />
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                </Button>
+                                                <div className="flex flex-col gap-2 w-full text-center">
+                                                    <p className="text-xs text-white/40 font-medium">Haga clic en el recuadro para buscar una imagen.</p>
+                                                    {imagePreview && (
+                                                        <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive h-auto p-1 justify-center w-full text-xs font-bold uppercase tracking-wider" onClick={() => {
+                                                            setImagePreview(null);
+                                                            form.setValue('imageUrl', '');
+                                                            if (fileInputRef.current) fileInputRef.current.value = '';
+                                                        }} id="editservicedialog-button-eliminar-imagen" data-testid="editservicedialog-delete-button">
+                                                            Eliminar imagen
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        )}
+                                            <FormMessage />
+                                        </FormItem>
 
-                                        <div className="flex justify-between items-center py-2 px-3 bg-primary/10 rounded-lg">
-                                            <p className="text-xs font-black uppercase">Total Venta:</p>
-                                            <p className="text-lg font-black font-mono">{formatCurrency(priceBreakdown.finalPrice)}</p>
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="isPublic"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] p-3 shadow-sm">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-xs font-bold text-white/70">Mostrar en Pantallas Públicas</FormLabel>
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Menú digital y auto-pedido.
+                                                        </p>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange} id="editservicedialog-switch-is-public" data-testid="editservicedialog-product-public-switch"
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                        <div className="flex justify-between items-center px-3">
-                                            <p className="text-[11px] font-bold text-muted-foreground uppercase">Utilidad Estimada:</p>
-                                            <p className={`text-sm font-black font-mono ${priceBreakdown.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                                {formatCurrency(priceBreakdown.profit)}
-                                            </p>
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="isActive"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] p-3 shadow-sm">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-xs font-bold text-white/70">Producto Activo</FormLabel>
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Visible para venta.
+                                                        </p>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange} id="editservicedialog-switch-1" data-testid="editservicedialog-product-active-switch"
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                 </div>
-                            )}
+
+                                {/* Columna Derecha: Clasificación y Precios */}
+                                <div className="space-y-6">
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/80 mb-2">Clasificación</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="categoryId"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Categoría</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 text-white" id="editservicedialog-selecttrigger-1" data-testid="editservicedialog-product-category-select"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>{categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="subCategoryId"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Sub-Categoría</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingSubCategories || !selectedCategoryId}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 text-white" id="editservicedialog-selecttrigger-2" data-testid="editservicedialog-product-subcategory-select"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>{subCategories?.map(sc => <SelectItem key={sc.id} value={sc.id}>{sc.name}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <FormField
+                                            control={form.control}
+                                            name="category"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Categoría de Cola (Destino)</FormLabel>
+                                                    <Select
+                                                        onValueChange={field.onChange}
+                                                        defaultValue={field.value}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 text-white" id="editservicedialog-selecttrigger-4" data-testid="editservicedialog-product-accounting-category-select">
+                                                                <SelectValue placeholder="Seleccione cola de producción" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Beverage">Cola de Bar</SelectItem>
+                                                            <SelectItem value="Food">Cola de Cocina</SelectItem>
+                                                            <SelectItem value="Amenity">Cola de Amenidades</SelectItem>
+                                                            <SelectItem value="Article">Cola de Artículos</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {source === 'Purchased' && <FormField
+                                            control={form.control}
+                                            name="supplierId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Proveedor (Opcional)</FormLabel>
+                                                    <Select
+                                                        onValueChange={(value) => {
+                                                            const finalValue = value === 'none' ? '' : value;
+                                                            field.onChange(finalValue);
+                                                            const supplier = suppliers?.find(s => s.id === finalValue);
+                                                            form.setValue('supplierName', supplier?.name || '');
+                                                        }}
+                                                        value={field.value || 'none'}
+                                                        disabled={isLoadingSuppliers}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 text-white" id="editservicedialog-selecttrigger-3" data-testid="editservicedialog-product-supplier-select">
+                                                                <SelectValue placeholder={isLoadingSuppliers ? "Cargando..." : "Seleccione un proveedor"} />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">Ninguno</SelectItem>
+                                                            {suppliers?.map(supplier => (
+                                                                <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />}
+                                    </div>
+
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/80 mb-2">Precios y Stock</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {source === 'Purchased' && <FormField
+                                                control={form.control}
+                                                name="costPrice"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Precio de Costo</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="text"
+                                                                inputMode="decimal"
+                                                                value={costPriceInput}
+                                                                onChange={handleCostPriceChange}
+                                                                className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono text-right text-white" id="editservicedialog-input-1" data-testid="editservicedialog-product-cost-price-input"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />}
+                                            <FormField
+                                                control={form.control}
+                                                name="price"
+                                                render={({ field }) => (
+                                                    <FormItem className={source !== 'Purchased' ? 'col-span-2' : ''}>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Precio de Venta</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="text"
+                                                                inputMode="decimal"
+                                                                value={priceInput}
+                                                                onChange={handlePriceChange}
+                                                                className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono text-right text-white" id="editservicedialog-input-2" data-testid="editservicedialog-product-price-input"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {source === 'Purchased' && <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="stock"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Existencias</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono text-right text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-3" data-testid="editservicedialog-product-stock-input" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="minStock"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Exist. Mínimas</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} placeholder="10" className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-4 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono text-right text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" id="editservicedialog-input-10" data-testid="editservicedialog-product-min-stock-input" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>}
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="taxIds"
+                                        render={({ field }) => (
+                                            <FormItem className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                                                <div className="flex flex-row items-center justify-between mb-2">
+                                                    <FormLabel className="text-xs font-black uppercase tracking-[0.2em] text-primary/80">Impuestos</FormLabel>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="taxIncluded"
+                                                        render={({ field: taxIncludedField }) => (
+                                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Incluido</FormLabel>
+                                                                <FormControl>
+                                                                    <Switch
+                                                                        checked={taxIncludedField.value}
+                                                                        onCheckedChange={taxIncludedField.onChange} id="editservicedialog-switch-tax-included" data-testid="editservicedialog-product-tax-included-switch"
+                                                                    />
+                                                                </FormControl>
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 max-h-32 overflow-y-auto no-scrollbar">
+                                                    {isLoadingTaxes ? (
+                                                        <p className="text-xs text-muted-foreground">Cargando impuestos...</p>
+                                                    ) : taxes && taxes.length > 0 ? (
+                                                        taxes.map((tax) => (
+                                                            <FormItem
+                                                                key={tax.id}
+                                                                className="flex flex-row items-start space-x-3 space-y-0"
+                                                            >
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(tax.id)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            const currentIds = field.value || [];
+                                                                            if (checked) {
+                                                                                field.onChange([...currentIds, tax.id]);
+                                                                            } else {
+                                                                                field.onChange(
+                                                                                    currentIds.filter((id) => id !== tax.id)
+                                                                                );
+                                                                            }
+                                                                        }} id="editservicedialog-checkbox-1" data-testid="editservicedialog-product-tax-checkbox"
+                                                                    />
+                                                                </FormControl>
+                                                                <FormLabel className="font-bold text-sm text-white/70">
+                                                                    {tax.name} ({tax.percentage}%)
+                                                                </FormLabel>
+                                                            </FormItem>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-xs text-muted-foreground">No hay impuestos configurados. <Link href="/settings/taxes" className="text-primary underline" id="editservicedialog-link-crear-uno" data-testid="editservicedialog-create-link">Crear uno</Link></p>
+                                                    )}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    {/* Price Breakdown Display */}
+                                    {priceBreakdown && (
+                                        <div className="rounded-2xl border border-white/5 bg-primary/5 p-4 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-xs font-black uppercase tracking-tight flex items-center gap-2 text-primary">
+                                                    <DollarSign className="h-3 w-3" />
+                                                    Resumen de Cálculo
+                                                </h4>
+                                                {priceBreakdown.profitMargin > 0 ? (
+                                                    <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                        <TrendingUp className="h-2.5 w-2.5" />
+                                                        +{priceBreakdown.profitMargin.toFixed(1)}% margen
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                        <TrendingDown className="h-2.5 w-2.5" />
+                                                        {priceBreakdown.profitMargin.toFixed(1)}% margen
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Base (Neto)</p>
+                                                    <p className="text-sm font-mono font-bold text-white">{formatCurrency(priceBreakdown.subtotal)}</p>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Impuestos</p>
+                                                    <p className="text-sm font-mono font-bold text-primary">+{formatCurrency(priceBreakdown.totalTaxAmount)}</p>
+                                                </div>
+                                            </div>
+
+                                            <Separator className="opacity-10" />
+
+                                            <div className="space-y-2">
+                                                {priceBreakdown.taxBreakdown.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        {priceBreakdown.taxBreakdown.map((t, idx) => (
+                                                            <div key={idx} className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                                                                <span className="text-white/40">{t.name} ({t.percentage}%):</span>
+                                                                <span className="font-mono text-white/70">{formatCurrency(t.amount)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between items-center py-2 px-3 bg-primary/10 rounded-xl mt-2">
+                                                    <p className="text-xs font-black uppercase text-primary">Total Venta:</p>
+                                                    <p className="text-lg font-black font-mono text-white">{formatCurrency(priceBreakdown.finalPrice)}</p>
+                                                </div>
+
+                                                <div className="flex justify-between items-center px-3">
+                                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Utilidad Estimada:</p>
+                                                    <p className={`text-sm font-black font-mono ${priceBreakdown.profit >= 0 ? 'text-green-500' : 'text-destructive'}`}>
+                                                        {formatCurrency(priceBreakdown.profit)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </form>
                     </Form>
                 </div>

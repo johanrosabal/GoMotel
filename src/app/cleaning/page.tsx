@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Brush, ArrowLeft } from 'lucide-react';
+import { Sparkles, Brush, ArrowLeft, ClipboardList } from 'lucide-react';
 import CleaningQueuePage from '@/components/cleaning/CleaningQueuePage';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 export default function CleaningRootPage() {
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden">
+    <div className="relative min-h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden" data-testid="cleaning-root-container">
       {/* Cinematic Background */}
       <div className="fixed inset-0 z-0">
         <Image 
@@ -47,6 +47,12 @@ export default function CleaningRootPage() {
           </div>
           
           <div className="flex items-center gap-3">
+            <Button asChild variant="outline" className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border-amber-500/50 text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 hover:text-white shadow-[0_0_15px_rgba(251,191,36,0.15)] transition-all hover:scale-105 active:scale-95" id="cleaning-button-reportes">
+              <Link href="/cleaning/reports" id="cleaning-link-reportes">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Reportes de Daños
+              </Link>
+            </Button>
             <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[10px] h-12 px-6 border border-white/10 shadow-xl transition-all hover:scale-105 active:scale-95" id="cleaning-button-volver" data-testid="cleaning-back-button">
               <Link href="/dashboard/rooms" id="cleaning-link-volver" data-testid="cleaning-back-link">
                 <ArrowLeft className="mr-2 h-4 w-4 text-amber-400" />

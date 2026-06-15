@@ -10,19 +10,60 @@ import html2canvas from 'html2canvas';
 import Link from 'next/link';
 
 interface PublicReservationPageProps {
-    reservationData: any; // Serialized reservation
+    reservationId: string;
 }
 
-export default function PublicReservationPage({ reservationData }: PublicReservationPageProps) {
+export default function PublicReservationPage({ reservationId }: PublicReservationPageProps) {
     const ticketRef = React.useRef<HTMLDivElement>(null);
+    const [reservation, setReservation] = React.useState<Reservation | null>(null);
+    const [loading, setLoading] = React.useState(true);
 
-    // Re-construct the Firestore-like structure for the template
-    const reservation: Reservation = {
-        ...reservationData,
-        checkInDate: { toDate: () => new Date(reservationData.checkInDate) },
-        checkOutDate: { toDate: () => new Date(reservationData.checkOutDate) },
-        createdAt: { toDate: () => new Date(reservationData.createdAt) },
-    };
+    React.useEffect(() => {
+        const fetchReservation = async () => {
+            try {
+                const { doc, getDoc } = await import('firebase/firestore');
+                const { db } = await import('@/lib/firebase');
+                const reservationDoc = await getDoc(doc(db, 'reservations', reservationId));
+                if (reservationDoc.exists()) {
+                    setReservation({ id: reservationDoc.id, ...reservationDoc.data() } as Reservation);
+                } else {
+                    console.error("Reservation not found");
+                }
+            } catch (error) {
+                console.error("Error fetching reservation:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchReservation();
+    }, [reservationId]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+                <div className="text-center space-y-4">
+                    <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-slate-400 font-medium">Cargando reservación...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!reservation) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+                <div className="text-center space-y-4">
+                    <p className="text-slate-400 font-medium">No se encontró la reservación.</p>
+                    <Button asChild variant="link" className="text-primary hover:text-white transition-colors font-bold uppercase tracking-widest text-xs">
+                        <Link href="/">
+                            <Home className="mr-2 h-3 w-3" />
+                            Volver al Inicio
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     const handleDownloadPdf = () => {
         const input = ticketRef.current;

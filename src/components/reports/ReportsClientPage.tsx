@@ -17,9 +17,10 @@ import {
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -29,10 +30,30 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import StockDistributionChart from '@/components/dashboard/charts/StockDistributionChart';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+
+const days = Array.from({ length: 31 }, (_, i) => i + 1);
+const months = [
+    { value: 0, label: 'Ene' },
+    { value: 1, label: 'Feb' },
+    { value: 2, label: 'Mar' },
+    { value: 3, label: 'Abr' },
+    { value: 4, label: 'May' },
+    { value: 5, label: 'Jun' },
+    { value: 6, label: 'Jul' },
+    { value: 7, label: 'Ago' },
+    { value: 8, label: 'Sep' },
+    { value: 9, label: 'Oct' },
+    { value: 10, label: 'Nov' },
+    { value: 11, label: 'Dic' },
+];
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
 export default function ReportsClientPage() {
     const [data, setData] = useState<any>(null);
@@ -41,12 +62,160 @@ export default function ReportsClientPage() {
     const [isExporting, setIsExporting] = useState(false);
     const stockReportRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        getDashboardStats(7).then(res => {
-            setData(res);
-            setIsLoading(false);
+    const [period, setPeriod] = useState('today');
+    const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>(() => {
+        const now = new Date();
+        return { from: startOfDay(now), to: endOfDay(now) };
+    });
+
+    const handleDatePartChange = (target: 'from' | 'to', part: 'day' | 'month' | 'year', value: string) => {
+        setDateRange(prev => {
+            const current = prev[target] || new Date();
+            const newDate = new Date(current);
+            
+            if (part === 'day') newDate.setDate(parseInt(value));
+            if (part === 'month') newDate.setMonth(parseInt(value));
+            if (part === 'year') newDate.setFullYear(parseInt(value));
+            
+            return { ...prev, [target]: newDate };
         });
-    }, []);
+    };
+
+    const handleExportPDF = async () => {
+        if (!data?.detailedInvoices) return;
+        
+        const doc = new jsPDF();
+        
+        // 1. Título y Metadatos
+        doc.setFontSize(18);
+        doc.text("REPORTE DE FACTURACIÓN", 14, 15);
+        
+        doc.setFontSize(10);
+        doc.text(`Periodo: ${period === 'thisMonth' ? 'Este Mes' : period === 'last7' ? '7d' : period === 'today' ? 'Hoy' : 'Ayer'}`, 14, 22);
+        doc.text(`Fecha de Emisión: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 27);
+        
+        // 2. Tabla de KPIs (Resumen) en la primera página
+        autoTable(doc, {
+            head: [["Ingresos", "Ocupación", "Stock Bajo", "Movimientos"]],
+            body: [[
+                formatCurrency(data.kpis.totalRevenue).replace(/[^\d.,]/g, '').trim(),
+                `${data.kpis.occupancyRate}%`,
+                data.kpis.lowStockCount.toString(),
+                data.kpis.totalInvoices.toString()
+            ]],
+            startY: 32,
+            theme: 'grid',
+            styles: { fontSize: 10, halign: 'center' },
+            headStyles: { fillColor: [51, 65, 85] },
+        });
+
+        let yOffset = (doc as any).lastAutoTable.finalY + 10;
+
+        // 3. Agregar Gráficos en la primera página (manteniendo proporción)
+        const chartTendencia = document.getElementById('chart-tendencia');
+        const chartPagos = document.getElementById('chart-pagos');
+
+        if (chartTendencia) {
+            const canvas = await html2canvas(chartTendencia);
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 180;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            doc.setFontSize(12);
+            doc.text("Tendencia de Ingresos", 14, yOffset);
+            doc.addImage(imgData, 'PNG', 14, yOffset + 5, imgWidth, imgHeight);
+            yOffset += imgHeight + 15;
+        }
+
+        if (chartPagos) {
+            const canvas = await html2canvas(chartPagos);
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 180;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            // Si no cabe en la página, lo pasamos a la siguiente (o si ya está muy abajo)
+            if (yOffset + imgHeight > 280) {
+                doc.addPage();
+                yOffset = 15;
+            }
+            
+            doc.setFontSize(12);
+            doc.text("Distribución de Pagos", 14, yOffset);
+            doc.addImage(imgData, 'PNG', 14, yOffset + 5, imgWidth, imgHeight);
+            yOffset += imgHeight + 15;
+        }
+
+        // 4. Tabla Detallada en Nueva Página
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text("DETALLE DE FACTURAS", 14, 15);
+
+        const tableColumn = ["Factura", "Cliente", "Subtotal", "Total", "Método", "Fecha"];
+        const tableRows = data.detailedInvoices.map((inv: any) => [
+            inv.invoiceNumber,
+            inv.clientName,
+            formatCurrency(inv.subtotal || 0).replace(/[^\d.,]/g, '').trim(),
+            formatCurrency(inv.total).replace(/[^\d.,]/g, '').trim(),
+            inv.paymentMethod,
+            format(new Date(inv.createdAt), "dd/MM/yyyy HH:mm")
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 22,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 8 },
+        });
+
+        doc.save(`Reporte_Facturacion_${format(new Date(), "yyyyMMdd")}.pdf`);
+    };
+
+    const handleExportExcel = () => {
+        if (!data?.detailedInvoices) return;
+        
+        const worksheet = XLSX.utils.json_to_sheet(data.detailedInvoices.map((inv: any) => ({
+            "Factura": inv.invoiceNumber,
+            "Cliente": inv.clientName,
+            "Subtotal": inv.subtotal,
+            "Total": inv.total,
+            "Método Pago": inv.paymentMethod,
+            "Fecha": format(new Date(inv.createdAt), "dd/MM/yyyy HH:mm")
+        })));
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Facturas");
+        
+        XLSX.writeFile(workbook, `Reporte_Facturacion_${format(new Date(), "yyyyMMdd")}.xlsx`);
+    };
+
+    useEffect(() => {
+        setIsLoading(true);
+        let from = dateRange.from;
+        let to = dateRange.to;
+
+        if (period === 'today') {
+            from = startOfDay(new Date());
+            to = endOfDay(new Date());
+        } else if (period === 'yesterday') {
+            from = startOfDay(subDays(new Date(), 1));
+            to = endOfDay(subDays(new Date(), 1));
+        } else if (period === 'last7') {
+            from = startOfDay(subDays(new Date(), 6));
+            to = endOfDay(new Date());
+        } else if (period === 'thisMonth') {
+            from = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+            to = new Date();
+        }
+
+        if (from && to) {
+            getDashboardStats(7, { from, to }).then(res => {
+                setData(res);
+                setIsLoading(false);
+            });
+        }
+    }, [period, dateRange]);
 
     const handleAiAnalysis = () => {
         // AI Analysis removed per user request
@@ -118,10 +287,130 @@ export default function ReportsClientPage() {
 
     return (
         <div className="space-y-6">
+            {/* Filtros Premium */}
+            <div className="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-white/5 shadow-2xl shadow-black/40">
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Periodo de Tiempo</label>
+                        <Select value={period} onValueChange={setPeriod}>
+                            <SelectTrigger className="w-[200px] h-11 bg-slate-800/50 border-white/5 rounded-xl text-white">
+                                <SelectValue placeholder="Seleccionar periodo" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="today">Hoy</SelectItem>
+                                <SelectItem value="yesterday">Ayer</SelectItem>
+                                <SelectItem value="last7">Últimos 7 días</SelectItem>
+                                <SelectItem value="thisMonth">Este Mes</SelectItem>
+                                <SelectItem value="custom">Rango Personalizado</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {period === 'custom' && (
+                        <div className="flex flex-wrap gap-3 items-center bg-slate-800/30 p-4 rounded-xl border border-white/5">
+                            {/* Desde */}
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-500 mr-1">Desde:</span>
+                                <Select 
+                                    value={dateRange.from ? dateRange.from.getDate().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('from', 'day', val)}
+                                >
+                                    <SelectTrigger className="w-16 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Día" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {days.map(d => <SelectItem key={d} value={d.toString()}>{d}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select 
+                                    value={dateRange.from ? dateRange.from.getMonth().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('from', 'month', val)}
+                                >
+                                    <SelectTrigger className="w-24 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Mes" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {months.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select 
+                                    value={dateRange.from ? dateRange.from.getFullYear().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('from', 'year', val)}
+                                >
+                                    <SelectTrigger className="w-24 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Año" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <span className="text-slate-600 hidden lg:inline">-</span>
+
+                            {/* Hasta */}
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-500 mr-1">Hasta:</span>
+                                <Select 
+                                    value={dateRange.to ? dateRange.to.getDate().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('to', 'day', val)}
+                                >
+                                    <SelectTrigger className="w-16 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Día" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {days.map(d => <SelectItem key={d} value={d.toString()}>{d}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select 
+                                    value={dateRange.to ? dateRange.to.getMonth().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('to', 'month', val)}
+                                >
+                                    <SelectTrigger className="w-24 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Mes" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {months.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select 
+                                    value={dateRange.to ? dateRange.to.getFullYear().toString() : ''} 
+                                    onValueChange={(val) => handleDatePartChange('to', 'year', val)}
+                                >
+                                    <SelectTrigger className="w-24 bg-white/5 border-white/10 text-white h-11 rounded-xl focus:border-primary/50 focus:ring-primary/50 transition-all">
+                                        <SelectValue placeholder="Año" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 mt-4 md:mt-0">
+                        <Button 
+                            onClick={handleExportPDF} 
+                            className="bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-11 flex items-center gap-2 border border-white/5"
+                        >
+                            <Download className="h-4 w-4" />
+                            Exportar PDF
+                        </Button>
+                        <Button 
+                            onClick={handleExportExcel} 
+                            className="bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-11 flex items-center gap-2 border border-white/5"
+                        >
+                            <Download className="h-4 w-4" />
+                            Exportar Excel
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-bold uppercase tracking-wider">Ingresos (7d)</CardTitle>
+                        <CardTitle className="text-sm font-bold uppercase tracking-wider">Ingresos ({period === 'thisMonth' ? 'Este Mes' : period === 'last7' ? '7d' : period === 'today' ? 'Hoy' : 'Ayer'})</CardTitle>
                         <DollarSign className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
@@ -172,7 +461,7 @@ export default function ReportsClientPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-black">{data.kpis.totalInvoices}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Facturas emitidas (7d)</p>
+                        <p className="text-xs text-muted-foreground mt-1">Facturas emitidas ({period === 'thisMonth' ? 'Este Mes' : period === 'last7' ? '7d' : period === 'today' ? 'Hoy' : 'Ayer'})</p>
                     </CardContent>
                 </Card>
             </div>
@@ -243,7 +532,7 @@ export default function ReportsClientPage() {
             </Card>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
+                <Card id="chart-tendencia">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <TrendingUp className="h-5 w-5 text-primary" />
@@ -267,7 +556,7 @@ export default function ReportsClientPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card id="chart-pagos">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <PieIcon className="h-5 w-5 text-primary" />
@@ -528,6 +817,12 @@ export default function ReportsClientPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <div className="bg-slate-800/50 p-4 rounded-xl mt-6">
+                <h3 className="text-sm font-bold mb-2 text-white">Debug Info (Categorías):</h3>
+                <pre className="text-xs text-slate-400 overflow-auto max-h-40">
+                    {JSON.stringify((data as any)?.debugInfo, null, 2)}
+                </pre>
+            </div>
         </div>
     );
 }

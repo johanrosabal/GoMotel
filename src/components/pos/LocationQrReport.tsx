@@ -30,7 +30,7 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
     }, [tables]);
 
     const pages = React.useMemo(() => {
-        const limit = 4;
+        const limit = 1;
         const result = [];
         for (let i = 0; i < sortedTables.length; i += limit) {
             result.push(sortedTables.slice(i, i + limit));
@@ -45,7 +45,7 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
             {pages.map((pageTables, pageIndex) => (
                 <div 
                     key={pageIndex}
-                    className="qr-pdf-page bg-white p-0 text-gray-900 grid grid-cols-2 grid-rows-2 mb-10" 
+                    className="qr-pdf-page bg-white p-0 text-gray-900 flex items-center justify-center mb-10 relative" 
                     style={{ 
                         width: '210mm', 
                         height: '297mm', 
@@ -59,41 +59,50 @@ const LocationQrReport = React.forwardRef<HTMLDivElement, LocationQrReportProps>
                         return (
                             <div 
                                 key={table.id} 
-                                className="w-full h-full flex flex-col items-center justify-center border-[0.5px] border-gray-100 p-8"
+                                className="w-[140mm] h-[200mm] flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-400 relative"
                             >
+                                {/* Indicador de corte */}
+                                <div className="absolute top-1 left-4 text-gray-400 text-xs font-bold flex items-center gap-1">
+                                    <span>✂️</span> Línea de corte
+                                </div>
                                 {/* Contenedor Principal Centrado */}
-                                <div className="w-full flex flex-col items-center gap-8 py-10 bg-white rounded-[3rem] border-2 border-gray-100 shadow-sm">
+                                <div className="w-full h-[95%] flex flex-col items-center justify-center gap-8 py-10 bg-white rounded-[2rem] border border-gray-100 shadow-lg relative overflow-hidden">
+                                    {/* Adorno superior (Gradiente Premium) */}
+                                    <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500" />
+                                    
                                     {/* Header */}
-                                    <div className="text-center space-y-2">
-                                        <h1 className="text-2xl font-black uppercase tracking-tight text-gray-800">
+                                    <div className="text-center space-y-1">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">BIENVENIDO A</p>
+                                        <h1 className="text-3xl font-black uppercase tracking-tight text-gray-900">
                                             {company?.tradeName || 'Go Motel'}
                                         </h1>
-                                        <div className="h-1 w-12 bg-primary/20 mx-auto rounded-full" />
+                                        <div className="h-1 w-12 bg-purple-600 mx-auto rounded-full mt-2" />
                                     </div>
 
                                     {/* QR Section */}
                                     <div className="flex flex-col items-center gap-4">
-                                        <div className="p-5 bg-white border-4 border-primary/5 rounded-[2.5rem] shadow-sm">
+                                        <div className="p-4 bg-white border-2 border-gray-100 rounded-3xl shadow-xl">
                                             <QRCodeCanvas 
                                                 value={orderUrl} 
-                                                size={180}
+                                                size={170}
                                                 level="H"
                                                 includeMargin={false}
                                             />
                                         </div>
                                         <div className="text-center max-w-[180px]">
-                                            <p className="text-[10px] font-mono font-bold text-primary/40 break-all leading-tight">
+                                            <p className="text-[8px] font-mono font-medium text-gray-400 break-all leading-tight">
                                                 {orderUrl}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Footer Label - ESTILO ACTUALIZADO A TÍTULO NORMAL */}
+                                    {/* Footer Label */}
                                     <div className="text-center w-full space-y-1">
-                                        <h2 className="text-4xl font-black uppercase tracking-widest text-primary">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">ORDENA DESDE TU CELULAR</p>
+                                        <h2 className="text-5xl font-black uppercase tracking-tighter text-slate-900">
                                             {locationName}
                                         </h2>
-                                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Escanee para pedir</p>
+                                        <p className="text-[11px] font-bold text-gray-600 mt-2">Escanea el código QR para pedir</p>
                                     </div>
                                 </div>
                             </div>

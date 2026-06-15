@@ -143,7 +143,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="Ingresar correo"
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-email-input"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 [selectionColor:white] autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white] text-white" data-testid="login-email-input"
                         />
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                       </div>
@@ -167,7 +167,7 @@ export default function LoginPage() {
                           type={showPassword ? 'text' : 'password'}
                           placeholder=""
                           {...field}
-                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white]" data-testid="login-password-input"
+                          className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-12 focus:ring-primary/20 focus:border-primary/50 transition-all font-medium placeholder:text-white/10 autofill:shadow-[0_0_0_1000px_#0a0a0a_inset] [-webkit-text-fill-color:white] text-white" data-testid="login-password-input"
                         />
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
                         <Button
@@ -188,7 +188,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative"
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 group overflow-hidden relative"
                 disabled={isPending} data-testid="login-submit-button"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">

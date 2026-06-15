@@ -1,4 +1,3 @@
-
 'use server';
 
 import {
@@ -113,6 +112,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
             const orderItems: OrderItem[] = [];
             let hasKitchen = false;
             let hasBar = false;
+            let hasArticles = false;
             const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
 
             const serviceTaxInfo = allTaxes.find(t => 
@@ -128,6 +128,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
 
                 if (item.service.category === 'Food') hasKitchen = true;
                 if (item.service.category === 'Beverage') hasBar = true;
+                if (item.service.category === 'Article') hasArticles = true;
 
                 const itemCreatedAt = Timestamp.now();
                 orderItems.push({
@@ -188,9 +189,10 @@ export async function openTableAccount(tableId: string, items: { service: Servic
                 taxes: appliedTaxes,
                 total: orderTotal,
                 createdAt: Timestamp.now(),
-                status: 'Pendiente',
+                status: (hasKitchen || hasBar || hasArticles) ? 'Pendiente' : 'Listo',
                 kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
                 barStatus: hasBar ? 'Pendiente' : 'Entregado',
+                articlesStatus: hasArticles ? 'Pendiente' : 'Entregado',
                 paymentStatus: 'Pendiente',
                 source: source
             };
@@ -211,6 +213,7 @@ export async function openTableAccount(tableId: string, items: { service: Servic
         revalidatePath('/public/order');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true, orderId: orderIdForReturn };
     } catch (e: any) {
         console.error("Open table account error:", e);
@@ -249,6 +252,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
             const updatedItems = [...orderData.items];
             let hasNewKitchen = false;
             let hasNewBar = false;
+            let hasNewArticles = false;
             
             const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
             if (orderData.taxes) {
@@ -271,6 +275,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
 
                 if (item.service.category === 'Food') hasNewKitchen = true;
                 if (item.service.category === 'Beverage') hasNewBar = true;
+                if (item.service.category === 'Article') hasNewArticles = true;
 
                 updatedItems.push({
                     id: Math.random().toString(36).substring(2, 9),
@@ -334,6 +339,10 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
                 updates.barStatus = 'Pendiente';
                 updates.status = 'Pendiente';
             }
+            if (hasNewArticles) {
+                updates.articlesStatus = 'Pendiente';
+                updates.status = 'Pendiente';
+            }
 
             // C. BATCHED WRITES AT THE END
             for (const ps of productSnapshots) {
@@ -350,6 +359,7 @@ export async function addToTableAccount(orderId: string, items: { service: Servi
         revalidatePath('/public/order');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true, orderId };
     } catch (e: any) {
         console.error("Add to table account error:", e);
@@ -423,6 +433,7 @@ export async function payRestaurantAccount(
                 status: 'Entregado', 
                 kitchenStatus: 'Entregado',
                 barStatus: 'Entregado',
+                articlesStatus: 'Entregado',
                 paymentStatus: 'Pagado', 
                 invoiceId: invoiceIdForReturn,
                 billRequested: false,
@@ -478,7 +489,7 @@ export async function payRestaurantAccount(
 /**
  * Updates the status of an individual item in an order.
  */
-export async function updateOrderItemStatus(orderId: string, itemId: string, status: PrepStatus, area: 'Kitchen' | 'Bar') {
+export async function updateOrderItemStatus(orderId: string, itemId: string, status: PrepStatus, area: 'Kitchen' | 'Bar' | 'Articles') {
     try {
         await runTransaction(db, async (transaction) => {
             const orderRef = doc(db, 'orders', orderId);
@@ -497,6 +508,7 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
             // Recalculate area statuses - ignoring cancelled items
             const kItems = updatedItems.filter(i => i.category === 'Food' && i.status !== 'Cancelado');
             const bItems = updatedItems.filter(i => i.category === 'Beverage' && i.status !== 'Cancelado');
+            const aItems = updatedItems.filter(i => i.category === 'Article' && i.status !== 'Cancelado');
 
             const getAreaStatus = (items: OrderItem[], current: PrepStatus | undefined) => {
                 if (items.length === 0) return 'Listo'; // If no items for this area, it's "done"
@@ -511,15 +523,19 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
             const kStatus = getAreaStatus(kItems, orderData.kitchenStatus);
             const bStatus = getAreaStatus(bItems, orderData.barStatus);
+            const aStatus = getAreaStatus(aItems, orderData.articlesStatus);
 
             updates.kitchenStatus = kStatus;
             updates.barStatus = bStatus;
+            updates.articlesStatus = aStatus;
 
-            if (kStatus === 'Entregado' && bStatus === 'Entregado') {
+            if (kStatus === 'Entregado' && bStatus === 'Entregado' && aStatus === 'Entregado') {
                 updates.status = 'Entregado';
-            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+            } else if ((kStatus === 'Listo' || kStatus === 'Entregado') && 
+                       (bStatus === 'Listo' || bStatus === 'Entregado') && 
+                       (aStatus === 'Listo' || aStatus === 'Entregado')) {
                 updates.status = 'Listo';
-            } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
+            } else if (kStatus === 'En preparación' || bStatus === 'En preparación' || aStatus === 'En preparación') {
                 updates.status = 'En preparación';
             } else {
                 updates.status = 'Pendiente';
@@ -530,6 +546,7 @@ export async function updateOrderItemStatus(orderId: string, itemId: string, sta
 
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         revalidatePath('/public/order');
         revalidatePath('/pos');
         return { success: true };
@@ -607,7 +624,8 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
                     taxes: [],
                     status: 'Cancelado',
                     kitchenStatus: 'Cancelado',
-                    barStatus: 'Cancelado'
+                    barStatus: 'Cancelado',
+                    articlesStatus: 'Cancelado'
                 });
                 
                 if (orderData.locationId) {
@@ -643,6 +661,7 @@ export async function removeItemFromAccount(orderId: string, serviceId: string, 
         revalidatePath('/pos');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true };
     } catch (e: any) {
         console.error("Remove item error:", e);
@@ -721,6 +740,7 @@ export async function cancelRestaurantOrder(orderId: string) {
         revalidatePath('/pos');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true };
     } catch (e: any) {
         console.error("Cancel entire order error:", e);
@@ -896,6 +916,7 @@ export async function cancelOrderItem(orderId: string, itemId: string, reason: s
 
             const kStatus = getAreaStatus(activeItems.filter(i => i.category === 'Food'));
             const bStatus = getAreaStatus(activeItems.filter(i => i.category === 'Beverage'));
+            const aStatus = getAreaStatus(activeItems.filter(i => i.category === 'Article'));
 
             const updates: Record<string, any> = {
                 items: newItems,
@@ -903,7 +924,8 @@ export async function cancelOrderItem(orderId: string, itemId: string, reason: s
                 taxes: appliedTaxes,
                 total: newTotal,
                 kitchenStatus: kStatus,
-                barStatus: bStatus
+                barStatus: bStatus,
+                articlesStatus: aStatus
             };
 
             if (activeItems.length === 0) {
@@ -917,11 +939,13 @@ export async function cancelOrderItem(orderId: string, itemId: string, reason: s
                     const tableRef = doc(db, 'restaurantTables', orderData.locationId);
                     transaction.update(tableRef, { status: 'Available', currentOrderId: null });
                 }
-            } else if (kStatus === 'Entregado' && bStatus === 'Entregado') {
+            } else if (kStatus === 'Entregado' && bStatus === 'Entregado' && aStatus === 'Entregado') {
                 updates.status = 'Entregado';
-            } else if (kStatus === 'Listo' && bStatus === 'Listo') {
+            } else if ((kStatus === 'Listo' || kStatus === 'Entregado') && 
+                       (bStatus === 'Listo' || bStatus === 'Entregado') && 
+                       (aStatus === 'Listo' || aStatus === 'Entregado')) {
                 updates.status = 'Listo';
-            } else if (kStatus === 'En preparación' || bStatus === 'En preparación') {
+            } else if (kStatus === 'En preparación' || bStatus === 'En preparación' || aStatus === 'En preparación') {
                 updates.status = 'En preparación';
             } else {
                 updates.status = 'Pendiente';
@@ -939,6 +963,7 @@ export async function cancelOrderItem(orderId: string, itemId: string, reason: s
         revalidatePath('/public/order');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true };
     } catch (e: any) {
         console.error("Cancel order item error:", e);
@@ -974,11 +999,13 @@ export async function completeTableOrderDelivery(orderId: string) {
             status: 'Entregado',
             kitchenStatus: 'Entregado',
             barStatus: 'Entregado',
+            articlesStatus: 'Entregado',
             items: orderSnap.data().items.map((i: any) => ({ ...i, status: 'Entregado' }))
         });
         revalidatePath('/pos');
         revalidatePath('/kitchen');
         revalidatePath('/bar');
+        revalidatePath('/articles');
         return { success: true };
     } catch (e: any) {
         return { error: e.message || "Error al completar la entrega." };

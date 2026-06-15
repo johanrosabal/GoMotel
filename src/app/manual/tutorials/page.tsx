@@ -17,9 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import type { Tutorial } from '@/types';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LearningCenterPage() {
+    const { userProfile, isLoading: isProfileLoading } = useUserProfile();
     const [tutorials, setTutorials] = useState<Tutorial[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTutorial, setSelectedTutorial] = useState<Tutorial | null>(null);
@@ -28,12 +30,22 @@ export default function LearningCenterPage() {
     useEffect(() => {
         async function fetchTutorials() {
             const data = await getTutorials();
-            setTutorials(data);
-            if (data.length > 0) setSelectedTutorial(data[0]);
+            const userRole = userProfile?.role;
+            const filtered = data.filter(t => {
+                const allowed = t.allowedRoles || [];
+                // Si está marcado como Público o no tiene roles asignados, es visible para todos
+                if (allowed.includes('Público') || allowed.length === 0) return true;
+                // De lo contrario, solo si el usuario está logueado y su rol está permitido
+                return userRole && allowed.includes(userRole);
+            });
+            setTutorials(filtered);
+            if (filtered.length > 0) setSelectedTutorial(filtered[0]);
             setLoading(false);
         }
-        fetchTutorials();
-    }, []);
+        if (!isProfileLoading) {
+            fetchTutorials();
+        }
+    }, [isProfileLoading, userProfile]);
 
     const filteredTutorials = tutorials.filter(t =>
         t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

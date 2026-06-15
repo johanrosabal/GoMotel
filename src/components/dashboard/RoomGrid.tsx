@@ -6,6 +6,8 @@ import type { Room, Stay } from '@/types';
 import RoomCard from './RoomCard';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export default function RoomGrid() {
   const { firestore } = useFirebase();
@@ -16,6 +18,14 @@ export default function RoomGrid() {
     return query(collection(firestore, 'rooms'));
   }, [firestore]);
   const { data: rooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
+
+  const [selectedRoomType, setSelectedRoomType] = useState<string | null>(null);
+
+  const roomTypesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'roomTypes'));
+  }, [firestore]);
+  const { data: roomTypes } = useCollection<any>(roomTypesQuery);
 
   const activeStaysQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -51,6 +61,14 @@ export default function RoomGrid() {
   const sortedRooms = useMemo(() => {
       return rooms?.slice().sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })) || [];
   }, [rooms]);
+
+  const filteredRooms = useMemo(() => {
+      let filtered = sortedRooms;
+      if (selectedRoomType) {
+          filtered = filtered.filter(room => room.roomTypeName === selectedRoomType);
+      }
+      return filtered;
+  }, [sortedRooms, selectedRoomType]);
 
   const allStaysToday = useMemo(() => {
     const stays = [...(activeStays || []), ...(closedStays || [])];
@@ -133,19 +151,48 @@ export default function RoomGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {sortedRooms.map((room) => {
-        const stay = staysByRoomId.get(room.id);
-        const dailyIncome = dailyIncomeByRoomId.get(room.id) || 0;
-        return (
-            <RoomCard 
-                key={room.id} 
-                room={room} 
-                stay={stay}
-                dailyIncome={dailyIncome}
-                isOverdue={overdueRoomIds.has(room.id)} />
-        );
-      })}
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mr-2">Filtrar por Tipo:</span>
+        <Button
+          variant={selectedRoomType === null ? 'default' : 'outline'}
+          onClick={() => setSelectedRoomType(null)}
+          className={cn(
+            "rounded-full text-[10px] uppercase font-black tracking-widest h-8 px-4 font-bold",
+            selectedRoomType === null ? "bg-primary text-white border-primary" : "text-slate-400 hover:text-white border-white/10"
+          )}
+        >
+          Todas
+        </Button>
+        {roomTypes?.map((type: any) => (
+          <Button
+            key={type.id}
+            variant={selectedRoomType === type.name ? 'default' : 'outline'}
+            onClick={() => setSelectedRoomType(type.name)}
+            className={cn(
+              "rounded-full text-[10px] uppercase font-black tracking-widest h-8 px-4 font-bold",
+              selectedRoomType === type.name ? "bg-primary text-white border-primary" : "text-slate-400 hover:text-white border-white/10"
+            )}
+          >
+            {type.name}
+          </Button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {filteredRooms.map((room) => {
+          const stay = staysByRoomId.get(room.id);
+          const dailyIncome = dailyIncomeByRoomId.get(room.id) || 0;
+          return (
+              <RoomCard 
+                  key={room.id} 
+                  room={room} 
+                  stay={stay}
+                  dailyIncome={dailyIncome}
+                  isOverdue={overdueRoomIds.has(room.id)} />
+          );
+        })}
+      </div>
     </div>
   );
 }

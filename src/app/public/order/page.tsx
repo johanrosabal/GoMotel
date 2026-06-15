@@ -4,7 +4,7 @@
 import { useState, useEffect, useTransition, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, onSnapshot, getDocs, runTransaction, Timestamp, increment } from 'firebase/firestore';
 import type { RestaurantTable, Service, Order, ProductCategory, ProductSubCategory, Tax, Room, Stay } from '@/types';
 import { openTableAccount, addToTableAccount, requestBill, requestStayBill, cancelOrderItem } from '@/lib/actions/restaurant.actions';
 import { createOrder } from '@/lib/actions/order.actions';
@@ -260,13 +260,267 @@ function OrderPageContent() {
             if (roomId && activeStay) {
                 result = await createOrder(activeStay.id, cart);
             } else if (tableId && table) {
-                if (currentOrder) {
-                    result = await addToTableAccount(currentOrder.id, cart);
-                } else {
-                    result = await openTableAccount(tableId, cart, `Cliente ${TYPE_LABELS[table.type]} ${table.number}`, 'Public');
+                const db = firestore!;
+                try {
+                    if (currentOrder) {
+                        // --- ADD TO TABLE ACCOUNT ---
+                        await runTransaction(db, async (transaction) => {
+                            const orderRef = doc(db, 'orders', currentOrder.id);
+                            const orderSnap = await transaction.get(orderRef);
+                            if (!orderSnap.exists()) throw new Error("Orden no encontrada.");
+                            
+                            const orderData = orderSnap.data() as Order;
+                            
+                            // A. PRE-READ ALL PRODUCTS
+                            const uniqueProductIds = Array.from(new Set(cart.map(i => i.service.id)));
+                            const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+                            
+                            for (const sId of uniqueProductIds) {
+                                const itemRef = cart.find(i => i.service.id === sId);
+                                const sRef = doc(db, 'products', sId);
+                                const sSnap = await transaction.get(sRef);
+                                productSnapshots.push({ 
+                                    ref: sRef, 
+                                    data: sSnap.exists() ? sSnap.data() : null, 
+                                    sId,
+                                    name: itemRef?.service.name || 'Producto'
+                                });
+                            }
+
+                            // B. LOGIC & CALCULATIONS
+                            const taxesSnap = await getDocs(collection(db, 'taxes'));
+                            const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
+                            const serviceTaxInfo = allTaxes.find(t => t.name.toLowerCase().includes('servicio') || t.name.toLowerCase().includes('service'));
+
+                            const updatedItems = [...(orderData.items || [])];
+                            let hasNewKitchen = false;
+                            let hasNewBar = false;
+                            let hasNewArticles = false;
+                            let newSubtotalAddition = 0;
+                            const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+
+                            // Fill taxMap with existing taxes
+                            (orderData.taxes || []).forEach(t => taxMap.set(t.taxId, { ...t }));
+
+                            for (const item of cart) {
+                                const ps = productSnapshots.find(p => p.sId === item.service.id);
+                                if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                                    throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                                }
+
+                                if (item.service.category === 'Food') hasNewKitchen = true;
+                                if (item.service.category === 'Beverage') hasNewBar = true;
+                                if (item.service.category === 'Article') hasNewArticles = true;
+
+                                const itemCreatedAt = Timestamp.now();
+                                updatedItems.push({
+                                    id: Math.random().toString(36).substring(2, 9),
+                                    serviceId: item.service.id,
+                                    name: item.service.name,
+                                    quantity: item.quantity,
+                                    price: item.service.price,
+                                    category: item.service.category,
+                                    notes: item.notes || null,
+                                    status: 'Pendiente',
+                                    createdAt: itemCreatedAt
+                                });
+
+                                const effectiveTaxIds = new Set(item.service.taxIds || []);
+                                if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                                let cumulativePercentage = 0;
+                                effectiveTaxIds.forEach(taxId => {
+                                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                                    if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                                });
+
+                                let itemSubtotal = 0;
+                                const itemQuantityPrice = item.service.price * item.quantity;
+                                if (item.service.taxIncluded) {
+                                    itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                                } else {
+                                    itemSubtotal = itemQuantityPrice;
+                                }
+                                newSubtotalAddition += itemSubtotal;
+
+                                effectiveTaxIds.forEach(taxId => {
+                                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                                    if (taxInfo) {
+                                        const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                                        const existing = taxMap.get(taxId);
+                                        if (existing) existing.amount += taxAmount;
+                                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                                    }
+                                });
+                            }
+
+                            const currentSubtotal = orderData.subtotal || orderData.total;
+                            const finalSubtotal = currentSubtotal + newSubtotalAddition;
+                            const appliedTaxes = Array.from(taxMap.values());
+                            const finalTotalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+                            const finalTotal = finalSubtotal + finalTotalTax;
+
+                            const updates: Record<string, any> = {
+                                items: updatedItems,
+                                subtotal: finalSubtotal,
+                                taxes: appliedTaxes,
+                                total: finalTotal
+                            };
+
+                            if (hasNewKitchen) {
+                                updates.kitchenStatus = 'Pendiente';
+                                updates.status = 'Pendiente';
+                            }
+                            if (hasNewBar) {
+                                updates.barStatus = 'Pendiente';
+                                updates.status = 'Pendiente';
+                            }
+                            if (hasNewArticles) {
+                                updates.articlesStatus = 'Pendiente';
+                                updates.status = 'Pendiente';
+                            }
+
+                            // C. WRITES
+                            for (const ps of productSnapshots) {
+                                if (ps.data && ps.data.source !== 'Internal') {
+                                    const totalQty = cart.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                                    transaction.update(ps.ref, { stock: increment(-totalQty) });
+                                }
+                            }
+                            transaction.update(orderRef, updates);
+                        });
+                        result = { success: true };
+                    } else {
+                        // --- OPEN TABLE ACCOUNT ---
+                        const label = `Cliente ${TYPE_LABELS[table.type]} ${table.number}`;
+                        
+                        await runTransaction(db, async (transaction) => {
+                            const tableRef = doc(db, 'restaurantTables', tableId);
+                            const tableSnap = await transaction.get(tableRef);
+                            if (!tableSnap.exists()) throw new Error("Ubicación no encontrada.");
+                            
+                            // A. PRE-READ ALL PRODUCTS
+                            const uniqueProductIds = Array.from(new Set(cart.map(i => i.service.id)));
+                            const productSnapshots: { ref: any, data: any, sId: string, name: string }[] = [];
+                            
+                            for (const sId of uniqueProductIds) {
+                                const itemRef = cart.find(i => i.service.id === sId);
+                                const sRef = doc(db, 'products', sId);
+                                const sSnap = await transaction.get(sRef);
+                                productSnapshots.push({ 
+                                    ref: sRef, 
+                                    data: sSnap.exists() ? sSnap.data() : null, 
+                                    sId,
+                                    name: itemRef?.service.name || 'Producto'
+                                });
+                            }
+
+                            // B. LOGIC & CALCULATIONS
+                            const taxesSnap = await getDocs(collection(db, 'taxes'));
+                            const allTaxes = taxesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Tax));
+                            const serviceTaxInfo = allTaxes.find(t => t.name.toLowerCase().includes('servicio') || t.name.toLowerCase().includes('service'));
+
+                            const tableData = tableSnap.data() as RestaurantTable;
+                            const locationLabel = `${TYPE_LABELS[tableData.type] || tableData.type} ${tableData.number}`;
+
+                            let orderSubtotal = 0;
+                            const orderItems: any[] = [];
+                            let hasKitchen = false;
+                            let hasBar = false;
+                            let hasArticles = false;
+                            const taxMap = new Map<string, { taxId: string; name: string; percentage: number; amount: number }>();
+
+                            for (const item of cart) {
+                                const ps = productSnapshots.find(p => p.sId === item.service.id);
+                                if (ps?.data && ps.data.source !== 'Internal' && ps.data.stock < item.quantity) {
+                                    throw new Error(`Stock insuficiente para ${item.service.name}.`);
+                                }
+
+                                if (item.service.category === 'Food') hasKitchen = true;
+                                if (item.service.category === 'Beverage') hasBar = true;
+                                if (item.service.category === 'Article') hasArticles = true;
+
+                                const itemCreatedAt = Timestamp.now();
+                                orderItems.push({
+                                    id: Math.random().toString(36).substring(2, 9),
+                                    serviceId: item.service.id,
+                                    name: item.service.name,
+                                    quantity: item.quantity,
+                                    price: item.service.price,
+                                    category: item.service.category,
+                                    notes: item.notes || null,
+                                    status: 'Pendiente',
+                                    createdAt: itemCreatedAt
+                                });
+
+                                const effectiveTaxIds = new Set(item.service.taxIds || []);
+                                if (serviceTaxInfo) effectiveTaxIds.add(serviceTaxInfo.id);
+
+                                let cumulativePercentage = 0;
+                                effectiveTaxIds.forEach(taxId => {
+                                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                                    if (taxInfo) cumulativePercentage += taxInfo.percentage;
+                                });
+
+                                let itemSubtotal = 0;
+                                const itemQuantityPrice = item.service.price * item.quantity;
+                                if (item.service.taxIncluded) {
+                                    itemSubtotal = itemQuantityPrice / (1 + cumulativePercentage / 100);
+                                } else {
+                                    itemSubtotal = itemQuantityPrice;
+                                }
+                                orderSubtotal += itemSubtotal;
+
+                                effectiveTaxIds.forEach(taxId => {
+                                    const taxInfo = allTaxes.find(t => t.id === taxId);
+                                    if (taxInfo) {
+                                        const taxAmount = itemSubtotal * (taxInfo.percentage / 100);
+                                        const existing = taxMap.get(taxId);
+                                        if (existing) existing.amount += taxAmount;
+                                        else taxMap.set(taxId, { taxId, name: taxInfo.name, percentage: taxInfo.percentage, amount: taxAmount });
+                                    }
+                                });
+                            }
+
+                            const appliedTaxes = Array.from(taxMap.values());
+                            const totalTax = appliedTaxes.reduce((sum, t) => sum + t.amount, 0);
+                            const orderTotal = orderSubtotal + totalTax;
+
+                            const orderRef = doc(collection(db, 'orders'));
+                            
+                            const newOrder = {
+                                locationType: tableData.type,
+                                locationId: tableId,
+                                locationLabel: locationLabel,
+                                label: label || locationLabel,
+                                items: orderItems,
+                                subtotal: orderSubtotal,
+                                taxes: appliedTaxes,
+                                total: orderTotal,
+                                createdAt: Timestamp.now(),
+                                status: (hasKitchen || hasBar || hasArticles) ? 'Pendiente' : 'Listo',
+                                kitchenStatus: hasKitchen ? 'Pendiente' : 'Entregado',
+                                barStatus: hasBar ? 'Pendiente' : 'Entregado',
+                                articlesStatus: hasArticles ? 'Pendiente' : 'Entregado',
+                                paymentStatus: 'Pendiente',
+                                source: 'Public'
+                            };
+
+                            // C. WRITES
+                            for (const ps of productSnapshots) {
+                                if (ps.data && ps.data.source !== 'Internal') {
+                                    const totalQty = cart.filter(i => i.service.id === ps.sId).reduce((sum, i) => sum + i.quantity, 0);
+                                    transaction.update(ps.ref, { stock: increment(-totalQty) });
+                                }
+                            }
+                            transaction.set(orderRef, newOrder);
+                            transaction.update(tableRef, { status: 'Occupied', currentOrderId: orderRef.id });
+                        });
+                        result = { success: true };
+                    }
+                } catch (e: any) {
+                    result = { error: e.message || "Error al procesar la orden." };
                 }
-            } else {
-                result = { error: "Ubicación no identificada." };
             }
 
             if (result.error) {

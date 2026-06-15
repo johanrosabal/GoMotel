@@ -19,17 +19,14 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const STATUS_FILTERS: { label: string; value: ReservationStatus | 'all'; color: string }[] = [
-    { label: 'Todas', value: 'all', color: 'bg-muted' },
     { label: 'Por Ingresar', value: 'Confirmed', color: 'bg-blue-500' },
-    { label: 'En Habitación', value: 'Checked-in', color: 'bg-green-600' },
-    { label: 'Finalizadas', value: 'Completed', color: 'bg-gray-500' },
     { label: 'Canceladas', value: 'Cancelled', color: 'bg-red-500' },
     { label: 'No se presentó', value: 'No-show', color: 'bg-yellow-600' },
 ];
 
 export default function ReservationsClientPage() {
     const { firestore } = useFirebase();
-    const [view, setView] = useState<'list' | 'grid' | 'timeline'>('grid');
+    const [view, setView] = useState<'list' | 'grid' | 'timeline'>('timeline');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('Confirmed');
     const [now, setNow] = useState(new Date());
@@ -129,7 +126,7 @@ export default function ReservationsClientPage() {
                             </Button>
                         </AddClientDialog>
                         <CreateReservationDialog>
-                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/95 text-black hover:text-white font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-105" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-add-reservation-button">
+                            <Button className="flex-1 md:flex-none h-14 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black uppercase tracking-widest text-[10px] px-8 shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-105" id="reservationsclientpage-button-nueva-reservaci-n" data-testid="reservationsclientpage-add-reservation-button">
                                 <PlusCircle className="mr-2 h-5 w-5" />
                                 Nueva Reservación
                             </Button>
@@ -153,45 +150,6 @@ export default function ReservationsClientPage() {
                                 {f.label}
                             </button>
                         ))}
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
-                        <Button
-                            variant={view === 'grid' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setView('grid')}
-                            className={cn(
-                                "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
-                                view === 'grid' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-tarjetas" data-testid="reservationsclientpage-action-cards-button"
-                        >
-                            <LayoutGrid className="h-3.5 w-3.5" />
-                            Tarjetas
-                        </Button>
-                        <Button
-                            variant={view === 'timeline' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setView('timeline')}
-                            className={cn(
-                                "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
-                                view === 'timeline' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-agenda" data-testid="reservationsclientpage-action-timeline-button"
-                        >
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            Agenda
-                        </Button>
-                        <Button
-                            variant={view === 'list' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setView('list')}
-                            className={cn(
-                                "h-9 gap-2 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all",
-                                view === 'list' ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
-                            )} id="reservationsclientpage-button-lista" data-testid="reservationsclientpage-action-list-button"
-                        >
-                            <List className="h-3.5 w-3.5" />
-                            Lista
-                        </Button>
                     </div>
                 </div>
             </div>

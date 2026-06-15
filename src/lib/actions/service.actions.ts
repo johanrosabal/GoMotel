@@ -1,5 +1,5 @@
 
-'use server';
+// 'use server'; // Removido para que se ejecute en el cliente y evite el error de conexión en el servidor
 
 import {
   collection,
@@ -14,7 +14,8 @@ import {
   runTransaction,
   increment,
 } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+// import { revalidatePath } from 'next/cache';
+const revalidatePath = (path: string) => { console.log('[Client] Mock revalidatePath called for ' + path); };
 import { z } from 'zod';
 import { db } from '../firebase';
 import type { Service } from '@/types';
@@ -47,9 +48,7 @@ const toServiceObject = (doc: any): Service => {
 
 export async function getServices(): Promise<Service[]> {
   try {
-    const productsCollection = collection(db, 'products');
-    const q = query(productsCollection);
-    const servicesSnapshot = await getDocs(q);
+    const servicesSnapshot = await getDocs(collection(db, 'products'));
     const services = servicesSnapshot.docs.map(toServiceObject);
     services.sort((a, b) => {
         if (a.category.localeCompare(b.category) !== 0) {
@@ -72,7 +71,7 @@ const serviceSchema = z.object({
   costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo.').optional(),
   stock: z.coerce.number().int().min(0, 'Las existencias no pueden ser negativas.'),
   minStock: z.coerce.number().int().min(0, 'Las existencias mínimas no pueden ser negativas.').optional(),
-  category: z.enum(['Food', 'Beverage', 'Amenity']),
+  category: z.enum(['Food', 'Beverage', 'Amenity', 'Article']),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
   categoryId: z.string().optional(),
@@ -128,7 +127,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     } else {
        // Add new service with incremental code
       const productsCollection = collection(db, 'products');
-      const servicesSnapshot = await getDocs(query(productsCollection));
+      const servicesSnapshot = await getDocs(productsCollection);
       
       const existingCodes = servicesSnapshot.docs
         .map(d => d.data().code)
@@ -149,7 +148,7 @@ export async function saveService(values: z.infer<typeof serviceSchema>) {
     return { success: true };
   } catch (error: any) {
     console.error('Failed to save service:', error);
-    if (error?.code === 'invalid-argument' && error?.message?.includes('exceeds the maximum size')) {
+    if (error?.code === 'invalid-argument' || error?.message?.includes('exceeds the maximum size')) {
         return { error: 'No se pudo guardar. La imagen es demasiado grande (límite de 1MB). Por favor, utilice una imagen más pequeña.' };
     }
     if (error instanceof Error) {

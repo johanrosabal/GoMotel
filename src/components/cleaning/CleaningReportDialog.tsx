@@ -9,9 +9,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { finishCleaning } from '@/lib/actions/room.actions';
-import { Check, AlertTriangle, ShieldAlert, FileText, Smartphone } from 'lucide-react';
+import { Check, AlertTriangle, ShieldAlert, FileText, Smartphone, Camera, X, Image as ImageIcon } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import type { Room, Stay } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,10 +35,12 @@ interface CleaningReportDialogProps {
 export default function CleaningReportDialog({ open, onOpenChange, room }: CleaningReportDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, storage } = useFirebase();
   const { userProfile } = useUserProfile();
   const [lastStay, setLastStay] = useState<Stay | null>(null);
   const [isLoadingStay, setIsLoadingStay] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<z.infer<typeof cleaningReportSchema>>({
     resolver: zodResolver(cleaningReportSchema),
@@ -68,9 +71,26 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
 
   const onSubmit = (values: z.infer<typeof cleaningReportSchema>) => {
     startTransition(async () => {
+      let imageUrls: string[] = [];
+      if (images.length > 0 && storage) {
+        setIsUploading(true);
+        for (const file of images) {
+          const fileRef = ref(storage, `cleaning_reports/${room.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`);
+          try {
+              const uploadTask = await uploadBytesResumable(fileRef, file);
+              const url = await getDownloadURL(uploadTask.ref);
+              imageUrls.push(url);
+          } catch (e) {
+              console.error("Error uploading image", e);
+          }
+        }
+        setIsUploading(false);
+      }
+
       const result = await finishCleaning(room.id, {
         ...values,
         reportedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Empleado',
+        images: imageUrls.length > 0 ? imageUrls : undefined,
       });
 
       if (result.success) {
@@ -78,6 +98,7 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
             title: result.nextStatus === 'Available' ? 'Habitación Lista' : 'Habitación a Mantenimiento', 
             description: `La suite ${room.number} ha sido procesada correctamente.` 
         });
+        setImages([]);
         onOpenChange(false);
         form.reset();
       } else {
@@ -90,7 +111,7 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem]">
+      <DialogContent className="w-[95vw] sm:max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
@@ -180,13 +201,47 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
               )}
             />
 
+            <div className="space-y-3">
+               <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
+                  <Camera className="h-3 w-3" />
+                  Imágenes de Respaldo (Opcional, Max 10)
+               </FormLabel>
+               
+               <div className="flex flex-wrap gap-3">
+                   {images.map((file, i) => (
+                       <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 group">
+                           <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                           <button type="button" onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                               <X className="h-3 w-3" />
+                           </button>
+                       </div>
+                   ))}
+                   {images.length < 10 && (
+                       <label className="w-20 h-20 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors text-slate-400 hover:text-amber-400">
+                           <ImageIcon className="h-6 w-6 mb-1" />
+                           <span className="text-[8px] font-bold uppercase tracking-wider">Añadir</span>
+                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                               if (e.target.files) {
+                                   const newFiles = Array.from(e.target.files);
+                                   if (images.length + newFiles.length > 10) {
+                                       toast({ title: 'Límite excedido', description: 'Solo puedes subir hasta 10 imágenes.', variant: 'destructive' });
+                                       return;
+                                   }
+                                   setImages(prev => [...prev, ...newFiles]);
+                               }
+                           }} />
+                       </label>
+                   )}
+               </div>
+            </div>
+
             <DialogFooter className="pt-2">
               <Button 
                 type="submit" 
-                disabled={isPending}
+                disabled={isPending || isUploading}
                 className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase tracking-[0.2em] text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95" id="cleaningreportdialog-button-1" data-testid="cleaningreportdialog-submit-button"
               >
-                {isPending ? 'Enviando Reporte...' : 'Finalizar y Liberar'}
+                {isPending || isUploading ? 'Enviando Reporte...' : 'Finalizar y Liberar'}
               </Button>
             </DialogFooter>
           </form>

@@ -133,11 +133,7 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
       className="relative group/card h-full"
     >
-      {userProfile?.role === 'Administrador' && (
-          <div className="absolute top-5 right-[4.5rem] z-20 opacity-0 group-hover/card:opacity-100 transition-opacity">
-            <RoomActionsMenu room={room} />
-          </div>
-      )}
+
       <Link href={`/rooms/${room.id}`} className="block h-full" id="roomcard-link-1" data-testid="roomcard-action-link">
         <Card className={cn(
           "relative transition-all duration-300 flex flex-col h-full overflow-hidden",
