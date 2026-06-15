@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { RoomType, PricePlan } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Pencil } from 'lucide-react';
+import { Plus, X, Pencil, GripVertical } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,6 +41,7 @@ const pricePlanSchema = z.object({
   unit: z.enum(['Minutes', 'Hours', 'Days', 'Weeks', 'Months']),
   price: z.coerce.number().min(0, 'El precio debe ser un número no negativo.'),
   capacity: z.coerce.number().optional(),
+  isVisibleOnWeb: z.boolean().default(true),
 });
 
 const roomTypeSchema = z.object({
@@ -80,6 +81,8 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
   const [newPlanCustomName, setNewPlanCustomName] = useState('');
   const [newPlanCapacity, setNewPlanCapacity] = useState('');
   const [editingPlanIndex, setEditingPlanIndex] = useState<number | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const [planInputErrors, setPlanInputErrors] = useState<{ duration?: string, price?: string }>({});
 
@@ -242,11 +245,19 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
         return;
     }
 
-    const newPlan: PricePlan = { name: newPlanName, duration: durationNum, unit: newPlanUnit, price: priceNum, capacity: isNaN(capacityNum) ? undefined : capacityNum };
+    const newPlan: PricePlan = { 
+        name: newPlanName, 
+        duration: durationNum, 
+        unit: newPlanUnit, 
+        price: priceNum, 
+        capacity: isNaN(capacityNum) ? undefined : capacityNum,
+        isVisibleOnWeb: true // Default to true for new plans
+    };
     
     if (editingPlanIndex !== null) {
       const updatedPlans = [...pricePlans];
-      updatedPlans[editingPlanIndex] = newPlan;
+      const existingPlan = updatedPlans[editingPlanIndex];
+      updatedPlans[editingPlanIndex] = { ...newPlan, isVisibleOnWeb: existingPlan.isVisibleOnWeb ?? true };
       form.setValue('pricePlans', updatedPlans, { shouldValidate: true });
     } else {
       form.setValue('pricePlans', [...pricePlans, newPlan], { shouldValidate: true });
@@ -283,6 +294,20 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
 
   const handleRemovePlan = (indexToRemove: number) => {
     const newPlans = pricePlans.filter((_, index) => index !== indexToRemove);
+    form.setValue('pricePlans', newPlans, { shouldValidate: true });
+  };
+
+  const handleTogglePlanVisibility = (index: number, isVisible: boolean) => {
+    const newPlans = [...pricePlans];
+    newPlans[index] = { ...newPlans[index], isVisibleOnWeb: isVisible };
+    form.setValue('pricePlans', newPlans, { shouldValidate: true });
+  };
+
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const newPlans = [...pricePlans];
+    const [movedPlan] = newPlans.splice(fromIndex, 1);
+    newPlans.splice(toIndex, 0, movedPlan);
     form.setValue('pricePlans', newPlans, { shouldValidate: true });
   };
 
@@ -498,14 +523,57 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                             <Table>
                             <TableHeader>
                                 <TableRow>
+                                <TableHead className="w-[40px]"></TableHead>
                                 <TableHead>Plan</TableHead>
                                 <TableHead className="text-right">Precio</TableHead>
+                                <TableHead className="text-center w-[120px]">Visible en Web</TableHead>
                                 <TableHead className="text-right w-[100px]">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {pricePlans.map((plan, index) => (
-                                <TableRow key={index}>
+                                <TableRow 
+                                    key={`${plan.name}-${index}`}
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('text/plain', index.toString());
+                                      e.dataTransfer.effectAllowed = 'move';
+                                      setDraggedIndex(index);
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.dataTransfer.dropEffect = 'move';
+                                      if (dragOverIndex !== index) {
+                                        setDragOverIndex(index);
+                                      }
+                                    }}
+                                    onDragLeave={() => {
+                                      if (dragOverIndex === index) {
+                                        setDragOverIndex(null);
+                                      }
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                      if (!isNaN(fromIndex)) {
+                                        handleReorder(fromIndex, index);
+                                      }
+                                      setDraggedIndex(null);
+                                      setDragOverIndex(null);
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggedIndex(null);
+                                      setDragOverIndex(null);
+                                    }}
+                                    className={cn(
+                                      "transition-all duration-200",
+                                      draggedIndex === index && "opacity-50 scale-[0.98] bg-primary/5",
+                                      dragOverIndex === index && draggedIndex !== index && "border-t-2 border-t-primary bg-primary/10"
+                                    )}
+                                >
+                                    <TableCell className="w-[40px] px-2 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white">
+                                        <GripVertical className="h-5 w-5" />
+                                    </TableCell>
                                     <TableCell className="font-medium flex items-center gap-2">
                                         {plan.name}
                                         {plan.capacity && (
@@ -513,6 +581,12 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">{formatCurrency(plan.price)}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Switch 
+                                            checked={plan.isVisibleOnWeb !== false} 
+                                            onCheckedChange={(checked) => handleTogglePlanVisibility(index, checked)}
+                                        />
+                                    </TableCell>
                                     <TableCell className="text-right">
                                     <Button
                                         type="button"
@@ -520,7 +594,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                         onClick={() => handleEditPlan(index)}
-                                        aria-label={`Editar ${plan.name}`} id="roomtypeform-button-2" data-testid="roomtypeform-edit-button"
+                                        aria-label={`Editar ${plan.name}`} id={`roomtypeform-button-edit-${index}`} data-testid="roomtypeform-edit-button"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </Button>
@@ -530,7 +604,7 @@ export default function RoomTypeForm({ roomType, allRoomTypes = [] }: RoomTypeFo
                                         size="icon"
                                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                         onClick={() => handleRemovePlan(index)}
-                                        aria-label={`Eliminar ${plan.name}`} id="roomtypeform-button-3" data-testid="roomtypeform-close-button"
+                                        aria-label={`Eliminar ${plan.name}`} id={`roomtypeform-button-delete-${index}`} data-testid="roomtypeform-close-button"
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>

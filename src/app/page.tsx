@@ -150,13 +150,14 @@ export default function LandingPage() {
     if (!roomTypesData || roomTypesData.length === 0) return [];
 
     return roomTypesData.map((rt) => {
-      const mainPlan = rt.pricePlans?.[0];
+      const visiblePlans = (rt.pricePlans || []).filter(p => p.isVisibleOnWeb !== false);
+      const mainPlan = visiblePlans[0] || rt.pricePlans?.[0];
       return {
         name: rt.name,
         price: mainPlan ? formatCurrency(mainPlan.price) : 'N/A',
         period: mainPlan ? `DESDE ${mainPlan.name}` : '',
         features: rt.features || [],
-        plans: (rt.pricePlans || []).map(p => ({
+        plans: visiblePlans.map(p => ({
           label: p.name,
           price: formatCurrency(p.price)
         }))

@@ -5,16 +5,20 @@ import { useCollection, useMemoFirebase, useFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Check, ShieldAlert, Smartphone, Calendar, User, FileText, Search, Filter, X } from "lucide-react";
+import { AlertTriangle, Check, ShieldAlert, Smartphone, Calendar, User, FileText, Search, Filter, X, Download } from "lucide-react";
 import { format, isToday, isThisMonth, subMonths } from "date-fns";
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
-import type { Timestamp } from "firebase/firestore";
-import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Timestamp } from "firebase/firestore";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface CleaningReport {
     id: string;
@@ -117,6 +121,40 @@ export default function CleaningReportsList() {
         return matchesSearch && matchesCondition && matchesControl && matchesDate;
     }) || [];
 
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text('Historial de Reportes de Limpieza', 14, 22);
+        doc.setFontSize(11);
+        doc.text(`Generado: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 30);
+        
+        const tableColumn = ["Habitación", "Fecha", "Estado", "Control", "Notas", "Reportado por"];
+        const tableRows: any[] = [];
+
+        filteredReports.forEach(report => {
+            const reportData = [
+                `Hab. ${report.roomNumber}`,
+                report.createdAt ? format(report.createdAt.toDate(), "dd/MM/yyyy HH:mm") : '-',
+                report.roomCondition,
+                report.remoteControlRecovered ? "Recuperado" : "No Recuperado",
+                report.notes || 'N/A',
+                report.reportedBy
+            ];
+            tableRows.push(reportData);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+            styles: { fontSize: 10, cellPadding: 3 },
+            headStyles: { fillColor: [41, 128, 185], textColor: 255 }
+        });
+
+        doc.save(`reportes_limpieza_${format(new Date(), "yyyy_MM_dd")}.pdf`);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row gap-4 bg-slate-900/50 p-5 rounded-3xl border border-white/5 shadow-inner">
@@ -171,6 +209,11 @@ export default function CleaningReportsList() {
                             <SelectItem value="No" className="py-3 font-bold text-rose-400">No Recuperado</SelectItem>
                         </SelectContent>
                     </Select>
+                    
+                    <Button onClick={exportToPDF} className="h-14 bg-amber-500 hover:bg-amber-600 text-black font-black rounded-2xl px-6 transition-all active:scale-95 shadow-xl">
+                        <Download className="mr-2 h-5 w-5" />
+                        Exportar PDF
+                    </Button>
                 </div>
             </div>
 
@@ -181,7 +224,9 @@ export default function CleaningReportsList() {
                     <p className="text-slate-500 font-medium">Intenta ajustar los filtros de búsqueda.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <>
+                {/* Mobile View: Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:hidden">
                     <AnimatePresence mode="popLayout">
                         {filteredReports.map((report) => {
                     const isPerfect = report.roomCondition === 'Perfecto';
@@ -291,6 +336,65 @@ export default function CleaningReportsList() {
                 })}
             </AnimatePresence>
             </div>
+
+                {/* Desktop View: Table */}
+                <div className="hidden lg:block rounded-2xl border border-white/10 bg-slate-950/40 backdrop-blur-2xl overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-slate-900/50">
+                            <TableRow className="border-white/5 hover:bg-transparent">
+                                <TableHead className="text-slate-400">Habitación</TableHead>
+                                <TableHead className="text-slate-400">Fecha</TableHead>
+                                <TableHead className="text-slate-400">Estado</TableHead>
+                                <TableHead className="text-slate-400">Control</TableHead>
+                                <TableHead className="text-slate-400">Notas / Evidencia</TableHead>
+                                <TableHead className="text-slate-400 text-right">Reportado por</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredReports.map((report) => {
+                                const isPerfect = report.roomCondition === 'Perfecto';
+                                const isDamage = report.roomCondition === 'Daños';
+                                const isProblem = report.roomCondition === 'Problemas';
+                                return (
+                                    <TableRow key={report.id} className="border-white/5 hover:bg-white/5 transition-colors">
+                                        <TableCell className="font-bold text-white text-base">Hab. {report.roomNumber}</TableCell>
+                                        <TableCell className="text-slate-300 whitespace-nowrap">
+                                            {report.createdAt ? format(report.createdAt.toDate(), "dd MMM yyyy, hh:mm a", { locale: es }) : '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={cn("border py-1 px-2.5 rounded-full text-xs font-black uppercase tracking-widest", isPerfect ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : isDamage ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400")}>
+                                                {report.roomCondition}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={cn("border py-1 px-2.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1.5 w-fit", report.remoteControlRecovered ? "bg-slate-800 border-white/10 text-slate-300" : "bg-rose-500/10 border-rose-500/20 text-rose-400")}>
+                                                {report.remoteControlRecovered ? (
+                                                    <><Smartphone className="h-3 w-3" /> Recuperado</>
+                                                ) : (
+                                                    <><AlertTriangle className="h-3 w-3" /> No Recuperado</>
+                                                )}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="max-w-[250px]">
+                                            {report.notes && <p className="text-sm text-slate-300 truncate mb-1.5" title={report.notes}>{report.notes}</p>}
+                                            {report.images && report.images.length > 0 && (
+                                                <div className="flex gap-1.5">
+                                                    {report.images.map((url, idx) => (
+                                                        <button type="button" onClick={() => setSelectedImage(url)} key={idx} className="w-8 h-8 rounded-md overflow-hidden border border-white/10 hover:border-amber-500/50 hover:scale-105 transition-all">
+                                                            <img src={url} alt={`img-${idx}`} className="w-full h-full object-cover" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right text-slate-300 text-sm font-semibold">{report.reportedBy}</TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+                </>
             )}
 
             <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>

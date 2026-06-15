@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpDown, ChevronDown, ChevronUp, MoreHorizontal, Tag, Globe, EyeOff } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, MoreHorizontal, Tag, Globe, EyeOff, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -172,6 +172,11 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                                 {roomType.pricePlans.map(plan => (
                                     <li key={plan.name} className="flex justify-between items-center">
                                         <div className="flex items-center gap-2">
+                                            {plan.isVisibleOnWeb !== false ? (
+                                                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" title="Visible en Web" />
+                                            ) : (
+                                                <div className="w-3.5" /> // spacer
+                                            )}
                                             <span>{plan.name}</span>
                                             {plan.capacity && (
                                                 <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{plan.capacity} Pers</Badge>
@@ -279,6 +284,11 @@ export default function RoomTypesTable({ roomTypes }: RoomTypesTableProps) {
                             <div className="flex flex-col gap-1.5 items-start">
                                 {roomType.pricePlans.map(plan => (
                                     <div key={plan.name} className="text-xs whitespace-nowrap flex items-center gap-1">
+                                        {plan.isVisibleOnWeb !== false ? (
+                                            <Star className="h-3.5 w-3.5 mr-0.5 text-yellow-500 fill-yellow-500" title="Visible en Web" />
+                                        ) : (
+                                            <div className="w-4" /> // spacer
+                                        )}
                                         <span className="font-medium">{plan.name}:</span>
                                         <span className="text-muted-foreground">{formatCurrency(plan.price)}</span>
                                         {plan.capacity && (

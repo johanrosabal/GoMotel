@@ -11,6 +11,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: boolean }) {
     const { firestore } = useFirebase();
@@ -116,7 +117,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
             {/* Left Column: Featured Product (50%) */}
             <div className="w-1/2 h-full relative flex flex-col justify-between p-4 bg-[#FFFFFF]">
                 {/* Logo and Branding */}
-                <div className="flex items-center gap-4">
+                <Link href="/dashboard" className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity">
                     <div className="relative h-16 w-16">
                         <Image src="/logo_manolo.png" alt="Logo" fill className="object-contain" />
                     </div>
@@ -124,7 +125,7 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                         <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-[#1A1A1A]">Hotel Du Manolo</h1>
                         <p className="text-xs font-bold uppercase tracking-widest text-[#7A756D]">Menu & Lounge</p>
                     </div>
-                </div>
+                </Link>
 
                 {/* Featured Product Image */}
                 <div className="flex-1 flex items-center justify-center relative my-4 overflow-hidden">

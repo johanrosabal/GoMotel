@@ -9,6 +9,7 @@ export interface PricePlan {
   unit: 'Minutes' | 'Hours' | 'Days' | 'Weeks' | 'Months';
   price: number;
   capacity?: number;
+  isVisibleOnWeb?: boolean;
 }
 
 export interface RoomType {
