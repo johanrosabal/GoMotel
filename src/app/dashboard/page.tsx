@@ -44,7 +44,8 @@ import {
   Info as InfoIcon,
   Mail,
   GraduationCap,
-  Utensils
+  Utensils,
+  AlertTriangle
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CompanyProfile, UserRole, Room, Service } from '@/types';
@@ -64,6 +65,7 @@ const HOTEL_ESSENTIAL_PATHS = [
   '/dashboard/rooms',
   '/cleaning',
   '/clients',
+  '/dashboard/reports/fines',
   '/billing/invoices',
   '/finance/payments',
   '/reports',
@@ -279,6 +281,14 @@ export default function DashboardPage() {
           icon: Users,
           badge: 'TERCIARIA',
           roles: ['Administrador', 'Recepcion', 'Vendedor POS'],
+        },
+        {
+          href: '/dashboard/reports/fines',
+          title: 'Reporte de Multas',
+          description: 'Visualice todas las multas cobradas a clientes.',
+          icon: AlertTriangle,
+          badge: 'MONITOREO',
+          roles: ['Administrador', 'Recepcion'],
         },
         {
           href: '/inventory',

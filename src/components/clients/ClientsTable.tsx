@@ -207,6 +207,8 @@ function ActionsMenu({ client }: { client: Client }) {
 
 export default function ClientsTable({ clients, searchTerm }: { clients: Client[], searchTerm: string }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -253,7 +255,13 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
 
                     <div className="flex justify-between items-start mb-6 relative z-10">
                         <div className="flex flex-col gap-1 w-full">
-                            <CardTitle className="text-base font-black uppercase italic tracking-tighter text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
+                            <CardTitle 
+                                className="text-base font-black uppercase italic tracking-tighter text-white hover:text-primary transition-colors flex items-center gap-2 flex-wrap cursor-pointer"
+                                onClick={() => {
+                                    setSelectedClient(client);
+                                    setIsDetailsDialogOpen(true);
+                                }}
+                            >
                                 {client.firstName} {client.lastName}
                                 <div className="flex gap-1 items-center">
                                     {client.isVip && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />}
@@ -344,7 +352,13 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
                                 <AvatarFallback className="bg-black text-primary font-black text-xs">{client.firstName?.[0]}{client.lastName?.[0]}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <div className="font-black text-white uppercase italic tracking-tighter text-sm flex items-center gap-2 group-hover:text-primary transition-colors">
+                                <div 
+                                    className="font-black text-white uppercase italic tracking-tighter text-sm flex items-center gap-2 hover:text-primary transition-colors cursor-pointer"
+                                    onClick={() => {
+                                        setSelectedClient(client);
+                                        setIsDetailsDialogOpen(true);
+                                    }}
+                                >
                                     {client.firstName} {client.lastName}
                                     {client.isVip && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />}
                                     {client.isBlacklisted && <Skull className="h-3.5 w-3.5 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]" />}
@@ -395,6 +409,73 @@ export default function ClientsTable({ clients, searchTerm }: { clients: Client[
             </div>
         </>
       )}
+
+      {/* Client Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="bg-[#0f0f0f] border-white/10 text-white rounded-[2.5rem] p-8 max-w-lg shadow-2xl">
+          {selectedClient && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 border-2 border-primary/50">
+                    <AvatarFallback className="bg-primary/20 text-primary font-black text-xl">{selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+                      {selectedClient.firstName} {selectedClient.lastName}
+                      {selectedClient.isVip && <Star className="h-5 w-5 text-amber-400 fill-amber-400" />}
+                    </DialogTitle>
+                    <DialogDescription className="text-slate-400 font-medium text-xs uppercase tracking-widest mt-1">
+                      {selectedClient.email}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              
+              <div className="grid grid-cols-2 gap-6 mt-6 p-6 bg-white/5 rounded-2xl border border-white/10">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono</p>
+                  <p className="text-sm font-bold">{selectedClient.phoneNumber}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1"><CreditCard className="h-3 w-3" /> Cédula</p>
+                  <p className="text-sm font-bold font-mono">{selectedClient.idCard}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1"><Calendar className="h-3 w-3" /> Visitas</p>
+                  <p className="text-sm font-bold text-primary">{selectedClient.visitCount || 0}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Identidad</p>
+                  <div className="flex items-center gap-2">
+                    {selectedClient.isValidated ? (
+                      <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 uppercase tracking-widest"><ShieldCheck className="w-3 h-3" /> Verificada</span>
+                    ) : (
+                      <span className="text-slate-400 text-xs font-bold flex items-center gap-1 uppercase tracking-widest"><ShieldX className="w-3 h-3" /> Pendiente</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {selectedClient.isBlacklisted && (
+                <div className="mt-4 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-start gap-3">
+                    <Ban className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-rose-500 font-black uppercase tracking-widest text-xs mb-1">En Lista Negra</p>
+                        <p className="text-rose-400/80 text-sm italic">{selectedClient.blacklistReason}</p>
+                    </div>
+                </div>
+              )}
+
+              <DialogFooter className="mt-6">
+                <Button onClick={() => setIsDetailsDialogOpen(false)} variant="ghost" className="rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest">
+                  Cerrar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

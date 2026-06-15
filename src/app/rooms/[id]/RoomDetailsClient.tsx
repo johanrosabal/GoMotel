@@ -18,6 +18,7 @@ import AddClientDialog from '@/components/clients/AddClientDialog'
 import OrderServiceDialog from '@/components/room-detail/OrderServiceDialog'
 import CheckoutDialog from '@/components/room-detail/CheckoutDialog'
 import PayOrderDialog from '@/components/room-detail/PayOrderDialog'
+import GenerateFineDialog from '@/components/room-detail/GenerateFineDialog'
 import { getServices } from '@/lib/actions/service.actions'
 import { updateRoomStatus, checkOut } from '@/lib/actions/room.actions'
 import { cancelOrder, completeOrderDelivery } from '@/lib/actions/order.actions'
@@ -353,6 +354,12 @@ export default function RoomDetailsClient() {
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
+
+                        <GenerateFineDialog stay={stay} onSuccess={() => {}}>
+                            <Button variant="outline" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-rose-500/50 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                <AlertTriangle className="mr-2 h-5 w-5" /> Generar Multa
+                            </Button>
+                        </GenerateFineDialog>
 
                         {isOverdue && stay && (
                             <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>

@@ -24,6 +24,7 @@ const cleaningReportSchema = z.object({
   remoteControlRecovered: z.boolean().default(true),
   roomCondition: z.enum(['Perfecto', 'Daños', 'Problemas']),
   notes: z.string().optional(),
+  blacklistClient: z.boolean().default(false),
 });
 
 interface CleaningReportDialogProps {
@@ -48,6 +49,7 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
       remoteControlRecovered: true,
       roomCondition: 'Perfecto',
       notes: '',
+      blacklistClient: false,
     },
   });
 
@@ -119,8 +121,16 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
              </div>
              Reporte de Limpieza
           </DialogTitle>
-          <DialogDescription className="text-slate-400 font-medium">
-            Finalice la limpieza de la <span className="text-white font-bold">Suite {room.number}</span> informando el estado actual.
+          <DialogDescription asChild className="text-slate-400 font-medium">
+            <div className="flex flex-col gap-2 mt-2">
+                <p>Finalice la limpieza de la <span className="text-white font-bold">Suite {room.number}</span> informando el estado actual.</p>
+                {lastStay?.guestName && (
+                   <div className="bg-white/5 border border-white/10 rounded-xl p-3 mt-1">
+                       <span className="text-xs uppercase tracking-widest text-slate-500 font-bold block mb-1">Último Cliente:</span>
+                       <span className="text-white font-black">{lastStay.guestName}</span>
+                   </div>
+                )}
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -201,7 +211,33 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
               )}
             />
 
-            <div className="space-y-3">
+            {lastStay?.guestId && (
+              <FormField
+                control={form.control}
+                name="blacklistClient"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 mt-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="h-6 w-6 border-rose-500/50 data-[state=checked]:bg-rose-500"
+                        id="cleaningreportdialog-blacklist-checkbox" 
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className="text-sm font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" />
+                        Añadir Cliente a Lista Negra
+                      </FormLabel>
+                      <p className="text-[10px] text-slate-400 font-medium italic">Se bloqueará al cliente usando la nota anterior como motivo.</p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <div className="space-y-3 mt-6">
                <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
                   <Camera className="h-3 w-3" />
                   Imágenes de Respaldo (Opcional, Max 10)

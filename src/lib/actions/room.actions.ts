@@ -404,6 +404,7 @@ export async function finishCleaning(roomId: string, report: {
     reportedBy: string;
     cleanedBy?: string;
     images?: string[];
+    blacklistClient?: boolean;
 }) {
     if (!roomId) return { error: 'ID de habitación no válido.' };
 
@@ -430,12 +431,26 @@ export async function finishCleaning(roomId: string, report: {
             const stayRef = doc(db, 'stays', lastStayId);
             const staySnap = await getDoc(stayRef);
             if (staySnap.exists()) {
+                const stayData = staySnap.data() as Stay;
                 batch.update(stayRef, {
                     cleaningReport: {
                         ...sanitizedReport,
                         reportedAt: Timestamp.now(),
                     }
                 });
+
+                // Update client if blacklisted
+                if (report.blacklistClient && stayData.guestId) {
+                    const clientRef = doc(db, 'clients', stayData.guestId);
+                    const clientSnap = await getDoc(clientRef);
+                    if (clientSnap.exists()) {
+                        batch.update(clientRef, {
+                            isBlacklisted: true,
+                            blacklistReason: report.notes || 'Bloqueado durante limpieza.',
+                            updatedAt: Timestamp.now()
+                        });
+                    }
+                }
             }
         }
 

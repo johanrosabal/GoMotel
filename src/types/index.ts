@@ -184,6 +184,7 @@ export interface Order {
   source?: 'POS' | 'Public';
   billRequested?: boolean;
   billRequestedAt?: Timestamp;
+  type?: 'Normal' | 'Multa';
 }
 
 export type UserRole = 'Administrador' | 'Recepcion' | 'Conserje' | 'Contador' | 'Vendedor POS' | 'Cocina';

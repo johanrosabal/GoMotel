@@ -423,3 +423,139 @@ export async function completeOrderDelivery(orderId: string) {
         return { error: e.message || "Error al completar la entrega." };
     }
 }
+
+export async function createFineOrder(
+  stayId: string,
+  amount: number,
+  description: string,
+  paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta',
+  voucherNumber?: string,
+  blacklistClient?: boolean
+) {
+  if (!stayId || amount <= 0 || !description || !paymentMethod) {
+    return { error: 'Datos de la multa inválidos.' };
+  }
+
+  try {
+    let invoiceIdForReturn: string | undefined;
+
+    await runTransaction(db, async (transaction) => {
+      const stayRef = doc(db, 'stays', stayId);
+      const staySnap = await transaction.get(stayRef);
+      if (!staySnap.exists()) throw new Error('La estancia asociada no existe.');
+      const stayData = staySnap.data() as Stay;
+
+      // Update client if blacklisted
+      if (blacklistClient && stayData.guestId) {
+        const clientRef = doc(db, 'clients', stayData.guestId);
+        const clientSnap = await transaction.get(clientRef);
+        if (clientSnap.exists()) {
+            transaction.update(clientRef, {
+                isBlacklisted: true,
+                blacklistReason: description,
+                updatedAt: Timestamp.now()
+            });
+        }
+      }
+
+      const orderRef = doc(collection(db, 'orders'));
+
+      const fineItem: OrderItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        serviceId: 'MULTA',
+        name: `Multa: ${description}`,
+        quantity: 1,
+        price: amount,
+        category: 'Article', // Can be classified as Article to avoid Kitchen/Bar queues
+        status: 'Entregado',
+        createdAt: Timestamp.now()
+      };
+
+      const newOrder: Omit<Order, 'id'> = {
+        stayId,
+        roomId: stayData.roomId,
+        locationType: 'Stay',
+        locationId: stayId,
+        locationLabel: `Hab. ${stayData.roomNumber}`,
+        label: stayData.guestName,
+        items: [fineItem],
+        subtotal: amount,
+        taxes: [], // No taxes applied to fines generally
+        total: amount,
+        createdAt: Timestamp.now(),
+        status: 'Entregado',
+        kitchenStatus: 'Entregado',
+        barStatus: 'Entregado',
+        articlesStatus: 'Entregado',
+        paymentStatus: 'Pagado', // We removed Pendiente
+        paymentMethod: paymentMethod,
+        voucherNumber: voucherNumber || null,
+        type: 'Multa'
+      };
+
+      const invoicesRef = collection(db, 'invoices');
+      const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+      const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+      let nextInvoiceNumberInt = 1;
+      if (!lastInvoiceSnap.empty) {
+          const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+          if (lastInvoiceData.invoiceNumber) {
+              const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+              if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
+          }
+      }
+      const nextInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+
+      const invoiceRef = doc(collection(db, 'invoices'));
+      invoiceIdForReturn = invoiceRef.id;
+
+      const newInvoice: Omit<Invoice, 'id'> = {
+          invoiceNumber: nextInvoiceNumber,
+          orderId: orderRef.id,
+          stayId: stayId,
+          clientName: stayData.guestName,
+          clientId: stayData.guestId || null,
+          createdAt: Timestamp.now(),
+          status: 'Pagada',
+          items: [{
+              description: `Multa: ${description}`,
+              quantity: 1,
+              unitPrice: amount,
+              total: amount,
+          }],
+          subtotal: amount,
+          taxes: [],
+          total: amount,
+          paymentMethod: paymentMethod,
+          voucherNumber: voucherNumber || null,
+      };
+
+      transaction.set(invoiceRef, newInvoice);
+      newOrder.invoiceId = invoiceRef.id;
+
+      if (paymentMethod === 'Sinpe Movil') {
+          const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+          const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+          let targetAccountRef: any = null;
+          for (const doc of sinpeAccountsSnapshot.docs) {
+              const account = doc.data();
+              if ((account.balance + amount) <= (account.limitAmount || Infinity)) {
+                  targetAccountRef = doc.ref;
+                  break;
+              }
+          }
+          if (targetAccountRef) {
+              transaction.update(targetAccountRef, { balance: increment(amount) });
+          }
+      }
+
+      transaction.set(orderRef, newOrder);
+    });
+
+    revalidatePath(`/rooms/${stayId}`);
+    return { success: true, invoiceId: invoiceIdForReturn };
+  } catch (error: any) {
+    console.error('Failed to create fine:', error);
+    return { error: error.message || 'Error al generar la multa.' };
+  }
+}
