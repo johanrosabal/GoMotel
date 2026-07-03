@@ -267,6 +267,7 @@ export interface Invoice {
     orderId?: string;
     roomId?: string | null;
     roomNumber?: string | null;
+    createdByName?: string;
 }
 
 export interface SinpeAccount {

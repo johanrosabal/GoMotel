@@ -2,7 +2,7 @@
 
 import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import type { Invoice } from "@/types";
+import type { Invoice, Stay } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import InvoicesTable from "./InvoicesTable";
 import { useState, useMemo, useRef } from "react";
@@ -63,11 +63,16 @@ const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 export default function InvoicesClientPage() {
     const { firestore } = useFirebase();
     const [searchTerm, setSearchTerm] = useState('');
-    const [period, setPeriod] = useState<Period>('all');
+    const [period, setPeriod] = useState<Period>('today');
+    const [userFilter, setUserFilter] = useState<string>('all');
+    const [roomFilter, setRoomFilter] = useState<string>('all');
     const [isExporting, setIsExporting] = useState(false);
-    const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-        from: undefined,
-        to: undefined
+    const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>(() => {
+        const now = new Date();
+        return {
+            from: startOfDay(now),
+            to: endOfDay(now)
+        };
     });
 
     const handleDatePartChange = (target: 'from' | 'to', part: 'day' | 'month' | 'year', value: string) => {
@@ -90,7 +95,48 @@ export default function InvoicesClientPage() {
         return query(collection(firestore, "invoices"), orderBy("createdAt", "desc"));
     }, [firestore]);
 
+    const staysQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, "stays"));
+    }, [firestore]);
+
     const { data: invoices, isLoading } = useCollection<Invoice>(invoicesQuery);
+    const { data: stays } = useCollection<Stay>(staysQuery);
+
+    const invoicesWithUser = useMemo(() => {
+        if (!invoices) return [];
+        return invoices.map(invoice => {
+            let extraData: any = {};
+            if (invoice.stayId && stays) {
+                const stay = stays.find(s => s.id === invoice.stayId);
+                if (stay) {
+                    if (stay.createdBy && !invoice.createdByName) extraData.createdByName = stay.createdBy;
+                    if (stay.checkIn) extraData.stayCheckIn = stay.checkIn;
+                    if (stay.checkOut || stay.expectedCheckOut) extraData.stayCheckOut = stay.checkOut || stay.expectedCheckOut;
+                }
+            }
+            return { ...invoice, ...extraData };
+        });
+    }, [invoices, stays]);
+
+    const uniqueUsers = useMemo(() => {
+        if (!invoicesWithUser) return [];
+        const users = new Set<string>();
+        invoicesWithUser.forEach(invoice => {
+            const userName = (invoice as any).createdByName || (invoice as any).createdBy;
+            if (userName) users.add(userName);
+        });
+        return Array.from(users).sort();
+    }, [invoicesWithUser]);
+
+    const uniqueRooms = useMemo(() => {
+        if (!invoicesWithUser) return [];
+        const rooms = new Set<string>();
+        invoicesWithUser.forEach(invoice => {
+            if (invoice.roomNumber) rooms.add(invoice.roomNumber);
+        });
+        return Array.from(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    }, [invoicesWithUser]);
 
     const handlePeriodChange = (value: Period) => {
         setPeriod(value);
@@ -119,8 +165,8 @@ export default function InvoicesClientPage() {
     };
 
     const filteredInvoices = useMemo(() => {
-        if (!invoices) return [];
-        return invoices.filter(invoice => {
+        if (!invoicesWithUser) return [];
+        return invoicesWithUser.filter(invoice => {
             const invoiceDate = invoice.createdAt.toDate();
             
             const searchContent = `${invoice.clientName} ${invoice.invoiceNumber}`.toLowerCase();
@@ -136,9 +182,13 @@ export default function InvoicesClientPage() {
                 dateMatch = invoiceDate >= startOfDay(dateRange.from);
             }
 
-            return searchMatch && dateMatch;
+            const userName = (invoice as any).createdByName || (invoice as any).createdBy || 'N/D';
+            const userMatch = userFilter === 'all' || userName === userFilter;
+            const roomMatch = roomFilter === 'all' || invoice.roomNumber === roomFilter;
+
+            return searchMatch && dateMatch && userMatch && roomMatch;
         });
-    }, [invoices, searchTerm, dateRange]);
+    }, [invoicesWithUser, searchTerm, dateRange, userFilter, roomFilter]);
 
     const handleExportPDF = async () => {
         const input = reportRef.current;
@@ -196,13 +246,16 @@ export default function InvoicesClientPage() {
 
                     {/* Botones */}
                     <div className="flex gap-3 w-full lg:w-auto items-center">
-                        {(searchTerm || period !== 'all') && (
+                        {(searchTerm || period !== 'all' || userFilter !== 'all') && (
                             <Button 
                                 variant="ghost" 
                                 onClick={() => {
                                     setSearchTerm('');
-                                    setPeriod('all');
-                                    setDateRange({ from: undefined, to: undefined });
+                                    setPeriod('today');
+                                    setUserFilter('all');
+                                    setRoomFilter('all');
+                                    const now = new Date();
+                                    setDateRange({ from: startOfDay(now), to: endOfDay(now) });
                                 }}
                                 className="h-11 px-4 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all gap-2 font-black uppercase tracking-widest text-[10px]" id="invoicesclientpage-button-3" data-testid="invoicesclientpage-close-button"
                             >
@@ -237,6 +290,39 @@ export default function InvoicesClientPage() {
                                 <SelectItem value="last7">Últimos 7 días</SelectItem>
                                 <SelectItem value="thisMonth">Este Mes</SelectItem>
                                 <SelectItem value="custom">Rango Personalizado</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Filtro Usuario */}
+                    <div className="grid gap-2 w-full lg:w-auto">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Registrado Por</label>
+                        <Select value={userFilter} onValueChange={setUserFilter}>
+                            <SelectTrigger className="w-full lg:w-52 bg-white/5 border-white/10 text-white focus:border-primary/50 focus:ring-primary/50 rounded-xl h-11 font-medium transition-all" id="invoicesclientpage-select-user-filter">
+                                <SelectValue placeholder="Seleccionar usuario" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="all">Todos los usuarios</SelectItem>
+                                {uniqueUsers.map(u => (
+                                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                                ))}
+                                <SelectItem value="N/D">No Definido (N/D)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Filtro Habitación */}
+                    <div className="grid gap-2 w-full lg:w-auto">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Habitación</label>
+                        <Select value={roomFilter} onValueChange={setRoomFilter}>
+                            <SelectTrigger className="w-full lg:w-52 bg-white/5 border-white/10 text-white focus:border-primary/50 focus:ring-primary/50 rounded-xl h-11 font-medium transition-all" id="invoicesclientpage-select-room-filter">
+                                <SelectValue placeholder="Todas las Hab." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="all">Todas las Hab.</SelectItem>
+                                {uniqueRooms.map(r => (
+                                    <SelectItem key={r} value={r}>Habitación {r}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

@@ -27,6 +27,7 @@ export default function StaysReportPage() {
     const { firestore } = useFirebase();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [roomFilter, setRoomFilter] = useState<string>('all');
     const [daysRange, setDaysRange] = useState<number | 'month'>(1);
     const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
     const [isExporting, setIsExporting] = useState(false);
@@ -38,6 +39,12 @@ export default function StaysReportPage() {
     }, [firestore]);
 
     const { data: stays, isLoading } = useCollection<Stay>(staysQuery);
+
+    const uniqueRooms = useMemo(() => {
+        if (!stays) return [];
+        const rooms = new Set(stays.map(s => s.roomNumber).filter(Boolean));
+        return Array.from(rooms).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+    }, [stays]);
 
     const filteredStays = useMemo(() => {
         if (!stays) return [];
@@ -69,9 +76,14 @@ export default function StaysReportPage() {
                 statusMatch = !!stay.checkOut;
             }
 
-            return isInRange && searchMatch && statusMatch;
+            let roomMatch = true;
+            if (roomFilter !== 'all') {
+                roomMatch = stay.roomNumber === roomFilter;
+            }
+
+            return isInRange && searchMatch && statusMatch && roomMatch;
         });
-    }, [stays, searchTerm, statusFilter, daysRange, customDateRange]);
+    }, [stays, searchTerm, statusFilter, roomFilter, daysRange, customDateRange]);
 
     // Calculate room ranking
     const roomRanking = useMemo(() => {
@@ -240,6 +252,20 @@ export default function StaysReportPage() {
                                 <SelectItem value="all">Todos</SelectItem>
                                 <SelectItem value="active">Activas</SelectItem>
                                 <SelectItem value="completed">Completadas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="relative">
+                        <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+                        <Select value={roomFilter} onValueChange={setRoomFilter}>
+                            <SelectTrigger className="pl-10 h-11 w-[180px] bg-black/40 border-white/5 rounded-xl text-sm focus:ring-primary/20">
+                                <SelectValue placeholder="Habitación" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 rounded-xl">
+                                <SelectItem value="all">Todas las habs.</SelectItem>
+                                {uniqueRooms.map(room => (
+                                    <SelectItem key={room} value={room}>Habitación {room}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

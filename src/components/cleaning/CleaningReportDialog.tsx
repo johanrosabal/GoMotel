@@ -113,7 +113,7 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem]">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl bg-slate-900 border-white/10 text-white rounded-[2rem]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
@@ -135,7 +135,10 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Columna Izquierda: Estados y Checkboxes */}
+              <div className="space-y-6">
             {hasRemoteControl && (
               <FormField
                 control={form.control}
@@ -190,88 +193,93 @@ export default function CleaningReportDialog({ open, onOpenChange, room }: Clean
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                   <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
-                      <FileText className="h-3 w-3" />
-                      Observaciones / Detalles
-                   </FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Escriba aquí cualquier anomalía o detalle relevante..." 
-                      className="min-h-[100px] bg-white/5 border-white/10 rounded-2xl resize-none focus-visible:ring-amber-500/20" 
-                      {...field} id="cleaningreportdialog-textarea-escriba-aqu-cualquier" data-testid="cleaningreportdialog-notes-textarea"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {lastStay?.guestId && (
-              <FormField
-                control={form.control}
-                name="blacklistClient"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 mt-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="h-6 w-6 border-rose-500/50 data-[state=checked]:bg-rose-500"
-                        id="cleaningreportdialog-blacklist-checkbox" 
-                      />
-                    </FormControl>
-                    <div className="space-y-1">
-                      <FormLabel className="text-sm font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
-                        <ShieldAlert className="h-4 w-4" />
-                        Añadir Cliente a Lista Negra
-                      </FormLabel>
-                      <p className="text-[10px] text-slate-400 font-medium italic">Se bloqueará al cliente usando la nota anterior como motivo.</p>
-                    </div>
-                  </FormItem>
+                {lastStay?.guestId && (
+                  <FormField
+                    control={form.control}
+                    name="blacklistClient"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="h-6 w-6 border-rose-500/50 data-[state=checked]:bg-rose-500"
+                            id="cleaningreportdialog-blacklist-checkbox" 
+                          />
+                        </FormControl>
+                        <div className="space-y-1">
+                          <FormLabel className="text-sm font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                            <ShieldAlert className="h-4 w-4" />
+                            Añadir a Lista Negra
+                          </FormLabel>
+                          <p className="text-[10px] text-slate-400 font-medium italic">Se bloqueará al cliente usando la nota como motivo.</p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-            )}
+              </div>
 
-            <div className="space-y-3 mt-6">
-               <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
-                  <Camera className="h-3 w-3" />
-                  Imágenes de Respaldo (Opcional, Max 10)
-               </FormLabel>
-               
-               <div className="flex flex-wrap gap-3">
-                   {images.map((file, i) => (
-                       <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 group">
-                           <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                           <button type="button" onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                               <X className="h-3 w-3" />
-                           </button>
-                       </div>
-                   ))}
-                   {images.length < 10 && (
-                       <label className="w-20 h-20 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors text-slate-400 hover:text-amber-400">
-                           <ImageIcon className="h-6 w-6 mb-1" />
-                           <span className="text-[8px] font-bold uppercase tracking-wider">Añadir</span>
-                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                               if (e.target.files) {
-                                   const newFiles = Array.from(e.target.files);
-                                   if (images.length + newFiles.length > 10) {
-                                       toast({ title: 'Límite excedido', description: 'Solo puedes subir hasta 10 imágenes.', variant: 'destructive' });
-                                       return;
+              {/* Columna Derecha: Observaciones y Fotos */}
+              <div className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                       <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
+                          <FileText className="h-3 w-3" />
+                          Observaciones / Detalles
+                       </FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Escriba aquí cualquier anomalía o detalle relevante..." 
+                          className="min-h-[120px] bg-white/5 border-white/10 rounded-2xl resize-none focus-visible:ring-amber-500/20" 
+                          {...field} id="cleaningreportdialog-textarea-escriba-aqu-cualquier" data-testid="cleaningreportdialog-notes-textarea"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-3 mt-6">
+                   <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 flex items-center gap-2">
+                      <Camera className="h-3 w-3" />
+                      Imágenes de Respaldo (Opcional, Max 10)
+                   </FormLabel>
+                   
+                   <div className="flex flex-wrap gap-3">
+                       {images.map((file, i) => (
+                           <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 group">
+                               <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                               <button type="button" onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <X className="h-3 w-3" />
+                               </button>
+                           </div>
+                       ))}
+                       {images.length < 10 && (
+                           <label className="w-20 h-20 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors text-slate-400 hover:text-amber-400">
+                               <ImageIcon className="h-6 w-6 mb-1" />
+                               <span className="text-[8px] font-bold uppercase tracking-wider">Añadir</span>
+                               <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
+                                   if (e.target.files) {
+                                       const newFiles = Array.from(e.target.files);
+                                       if (images.length + newFiles.length > 10) {
+                                           toast({ title: 'Límite excedido', description: 'Solo puedes subir hasta 10 imágenes.', variant: 'destructive' });
+                                           return;
+                                       }
+                                       setImages(prev => [...prev, ...newFiles]);
                                    }
-                                   setImages(prev => [...prev, ...newFiles]);
-                               }
-                           }} />
-                       </label>
-                   )}
-               </div>
+                               }} />
+                           </label>
+                       )}
+                   </div>
+                </div>
+              </div>
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-8">
               <Button 
                 type="submit" 
                 disabled={isPending || isUploading}

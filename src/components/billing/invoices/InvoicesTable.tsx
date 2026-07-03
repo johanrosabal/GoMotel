@@ -390,6 +390,20 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
                                 </p>
+                                <p className="text-xs font-bold text-slate-400">
+                                    Por: {(invoice as any).createdByName || (invoice as any).createdBy || 'N/D'}
+                                </p>
+                                <p className="text-xs font-bold text-slate-400">
+                                    Habitación {invoice.roomNumber || 'N/D'}
+                                </p>
+                                <div className="flex flex-col gap-1 mt-2 p-2 bg-white/5 rounded-lg border border-white/5">
+                                    <p className="text-[10px] font-bold text-slate-400">
+                                        <span className="uppercase tracking-wider">Entrada:</span> {(invoice as any).stayCheckIn ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-slate-400">
+                                        <span className="uppercase tracking-wider">Salida:</span> {(invoice as any).stayCheckOut ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                    </p>
+                                </div>
                             </div>
                             <ActionsMenu invoice={invoice} />
                         </div>
@@ -424,8 +438,12 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                         <TableRow className="border-b border-white/5 hover:bg-transparent">
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Factura</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Cliente</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Habitación</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Entrada</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Salida</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Fecha Emisión</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Monto Total</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Registrado Por</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14">Estado</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 h-14 text-right">Acciones</TableHead>
                         </TableRow>
@@ -439,11 +457,23 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                     </span>
                                 </TableCell>
                                 <TableCell className="font-black text-sm text-white uppercase tracking-tight h-16">{invoice.clientName}</TableCell>
-                                <TableCell className="text-sm font-bold text-slate-400 h-16">
+                                <TableCell className="font-bold text-sm text-slate-400 h-16 whitespace-nowrap">
+                                    {invoice.roomNumber ? `Habitación ${invoice.roomNumber}` : 'N/D'}
+                                </TableCell>
+                                <TableCell className="text-xs font-bold text-slate-400 h-16 whitespace-nowrap">
+                                    {(invoice as any).stayCheckIn ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                </TableCell>
+                                <TableCell className="text-xs font-bold text-slate-400 h-16 whitespace-nowrap">
+                                    {(invoice as any).stayCheckOut ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                </TableCell>
+                                <TableCell className="text-sm font-bold text-slate-400 h-16 whitespace-nowrap">
                                     {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
                                 </TableCell>
                                 <TableCell className="font-black text-white text-base tracking-tighter h-16">
                                     {formatCurrency(invoice.total)}
+                                </TableCell>
+                                <TableCell className="text-sm font-bold text-slate-400 h-16">
+                                    {(invoice as any).createdByName || (invoice as any).createdBy || 'N/D'}
                                 </TableCell>
                                 <TableCell className="h-16">
                                     <Badge 
