@@ -24,14 +24,17 @@ interface ReservationModalProps {
   onOpenChange: (open: boolean) => void;
   phoneNumber?: string;
   whatsappNumber?: string;
+  companyName?: string;
 }
 
 export function ReservationModal({ 
   isOpen, 
   onOpenChange,
   phoneNumber = "+506 2222-2222",
-  whatsappNumber = "+506 8888-8888"
+  whatsappNumber = "+506 8888-8888",
+  companyName
 }: ReservationModalProps) {
+  const displayName = companyName || 'Hotel Du Manolo';
   const whatsappClean = whatsappNumber.replace(/[^0-9]/g, '');
   const whatsappMessage = encodeURIComponent("Hola, me gustaría consultar disponibilidad para una habitación.");
   const whatsappLink = `https://wa.me/${whatsappClean}?text=${whatsappMessage}`;
@@ -120,7 +123,7 @@ export function ReservationModal({
           </div>
 
           <div className="mt-10 pt-4 text-center border-t border-border dark:border-white/5 relative z-10">
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground dark:text-white/40">Hotel Du Manolo - Exclusividad Sin Límites</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground dark:text-white/40">{displayName} - Exclusividad Sin Límites</p>
           </div>
         </div>
       </DialogContent>

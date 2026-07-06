@@ -81,6 +81,10 @@ function OrderPageContent() {
     const roomRef = useMemoFirebase(() => roomId ? doc(firestore!, 'rooms', roomId) : null, [firestore, roomId]);
     const { data: room, isLoading: isLoadingRoom } = useDoc<Room>(roomRef);
 
+    const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+    const { data: company } = useDoc<any>(companyRef);
+    const companyName = company?.tradeName || 'Hotel Du Manolo';
+
     const [activeStay, setActiveStay] = useState<Stay | null>(null);
     useEffect(() => {
         if (!roomId || !firestore) return;
@@ -591,9 +595,9 @@ function OrderPageContent() {
         return (
             <div className="min-h-screen bg-neutral-950 p-6 flex flex-col items-center justify-center text-center">
                 <div className="relative w-32 h-32 mb-6">
-                    <Image src="/logo_manolo.png" alt="Hotel Du Manolo" fill className="object-contain" priority />
+                    <Image src={company?.logoUrl || "/logo_manolo.png"} alt={companyName} fill className="object-contain" priority />
                 </div>
-                <h1 className="text-white text-3xl font-black uppercase tracking-[0.2em] italic mb-2">Hotel Du Manolo</h1>
+                <h1 className="text-white text-3xl font-black uppercase tracking-[0.2em] italic mb-2">{companyName}</h1>
                 <p className="text-neutral-400 text-xs font-bold tracking-widest uppercase mb-8">Seleccione su ubicación</p>
 
                 <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mb-8 flex gap-2 flex-wrap justify-center">

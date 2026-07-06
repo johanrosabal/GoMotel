@@ -7,10 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Loader2, Sparkles, AlertTriangle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function RoomCheckInPage() {
     const params = useParams();
     const roomId = params.roomId as string;
+    
+    const { firestore } = useFirebase();
+    const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+    const { data: company } = useDoc<any>(companyRef);
+    const companyName = company?.tradeName || 'Hotel Du Manolo';
     
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already_confirmed'>('loading');
     const [roomInfo, setRoomInfo] = useState<{ number: string; guestName?: string } | null>(null);
@@ -73,7 +80,7 @@ export default function RoomCheckInPage() {
             <div className="w-full max-w-md relative z-10 text-center space-y-8">
                 <header className="space-y-2">
                     <h2 className="text-4xl font-black italic tracking-tighter uppercase text-primary drop-shadow-2xl">
-                        HOTEL DU MANOLO
+                        {companyName}
                     </h2>
                     <div className="h-0.5 w-16 bg-primary/50 mx-auto rounded-full" />
                 </header>

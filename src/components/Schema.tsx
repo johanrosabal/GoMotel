@@ -1,14 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useContext } from 'react';
+import { useDoc, useMemoFirebase } from '@/firebase';
+import { FirebaseContext } from '@/firebase/provider';
+import { doc } from 'firebase/firestore';
 
 export default function Schema() {
+  const context = useContext(FirebaseContext);
+  const firestore = context?.firestore;
+  const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+  const { data: company } = useDoc<any>(companyRef);
+  const companyName = company?.tradeName || 'Hotel Du Manolo';
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Hotel',
-    'name': 'Hotel Du Manolo',
-    'alternateName': 'Hotel Dumanolo',
-    'description': 'Hotel Du Manolo - Privacidad, Lujo y Discreción en Heredia, Costa Rica. El mejor motel de lujo con habitaciones premium y servicio exclusivo.',
+    'name': companyName,
+    'alternateName': companyName,
+    'description': `${companyName} - Privacidad, Lujo y Discreción en Heredia, Costa Rica. El mejor motel de lujo con habitaciones premium y servicio exclusivo.`,
     'image': 'https://hotel-du-manolo-cr.com/hero_bg_clean.png',
     'url': 'https://hotel-du-manolo-cr.com',
     'sameAs': [

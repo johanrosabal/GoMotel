@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { Service } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -15,6 +15,10 @@ import Link from 'next/link';
 
 export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: boolean }) {
     const { firestore } = useFirebase();
+    const companyRef = useMemoFirebase(() => firestore ? doc(firestore, 'companyInfo', 'main') : null, [firestore]);
+    const { data: company } = useDoc<any>(companyRef);
+    const companyName = company?.tradeName || 'Hotel Du Manolo';
+
     const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
     const [currentProductIndex, setCurrentProductIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -119,10 +123,10 @@ export default function PublicMenuClient({ isDarkMode = false }: { isDarkMode?: 
                 {/* Logo and Branding */}
                 <Link href="/dashboard" className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity">
                     <div className="relative h-16 w-16">
-                        <Image src="/logo_manolo.png" alt="Logo" fill className="object-contain" />
+                        <Image src={company?.logoUrl || "/logo_manolo.png"} alt="Logo" fill className="object-contain" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-[#1A1A1A]">Hotel Du Manolo</h1>
+                        <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-[#1A1A1A]">{companyName}</h1>
                         <p className="text-xs font-bold uppercase tracking-widest text-[#7A756D]">Menu & Lounge</p>
                     </div>
                 </Link>

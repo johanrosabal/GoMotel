@@ -61,16 +61,14 @@ export function ImageUpload({ value, onChange, path = 'landing-page' }: ImageUpl
             variant="destructive"
             size="icon"
             className="absolute top-2 right-2 h-7 w-7"
-            onClick={async () => {
-              if (value.includes('firebasestorage.googleapis.com')) {
-                try {
-                  const oldRef = ref(storage, value);
-                  await deleteObject(oldRef);
-                } catch (error) {
-                  console.error('Error deleting image:', error);
-                }
-              }
+            onClick={() => {
               onChange('');
+              if (value.includes('firebasestorage.googleapis.com')) {
+                const oldRef = ref(storage, value);
+                deleteObject(oldRef).catch((error) => {
+                  console.warn('Error deleting image from storage:', error);
+                });
+              }
             }}
           >
             <X className="h-4 w-4" />

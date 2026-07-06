@@ -152,8 +152,10 @@ export default function CompanyInfoForm() {
         if (!ctx) return;
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Forzamos formato JPEG con calidad media para comprimir drásticamente
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        // Preservamos la transparencia si el archivo original es un PNG, de lo contrario usamos JPEG para mayor compresión
+        const dataUrl = file.type === 'image/png'
+          ? canvas.toDataURL('image/png')
+          : canvas.toDataURL('image/jpeg', 0.6);
 
         setLogoPreview(dataUrl);
         form.setValue('logoUrl', dataUrl, { shouldValidate: true });

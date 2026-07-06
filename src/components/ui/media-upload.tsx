@@ -97,18 +97,19 @@ export function MediaUpload({
     );
   };
 
-  const handleRemove = async () => {
-    if (value && value.includes('firebasestorage.googleapis.com')) {
-      try {
-        const oldRef = ref(storage, value);
-        await deleteObject(oldRef);
-      } catch (error: any) {
-        if (error.code !== 'storage/object-not-found') {
-          console.error('Error deleting file:', error);
-        }
-      }
-    }
+  const handleRemove = () => {
+    // 1. Actualizar el estado de inmediato
     onChange('');
+
+    // 2. Eliminar de Storage en segundo plano sin bloquear la UI
+    if (value && value.includes('firebasestorage.googleapis.com')) {
+      const oldRef = ref(storage, value);
+      deleteObject(oldRef).catch((error: any) => {
+        if (error.code !== 'storage/object-not-found') {
+          console.warn('Error deleting file:', error);
+        }
+      });
+    }
   };
 
   return (

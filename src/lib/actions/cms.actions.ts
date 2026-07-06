@@ -44,7 +44,7 @@ const landingPageContentSchema = z.object({
       id: z.string(),
       url: z.string({ required_error: 'La URL es requerida.', invalid_type_error: 'La URL es requerida.' }).min(1, 'La URL es requerida.'),
       alt: z.string().optional(),
-    })).min(1, 'Debe haber al menos una imagen en la galería.'),
+    })),
     videos: z.array(z.object({
       id: z.string(),
       url: z.string({ required_error: 'La URL del video es requerida.' }).min(1, 'La URL es requerida.'),

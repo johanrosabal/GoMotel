@@ -67,7 +67,7 @@ const landingPageContentSchema = z.object({
       id: z.string(),
       url: z.string({ required_error: 'La URL es requerida.', invalid_type_error: 'La URL es requerida.' }).min(1, 'La URL es requerida.'),
       alt: z.string().optional(),
-    })).min(1, 'Debe haber al menos una imagen en la galería.'),
+    })),
     videos: z.array(z.object({
       id: z.string(),
       url: z.string({ required_error: 'La URL del video es requerida.' }).min(1, 'La URL es requerida.'),
@@ -246,18 +246,63 @@ export default function LandingPageForm() {
     });
   };
 
-  const handleRemoveMedia = async (index: number, type: 'images' | 'videos') => {
-    const item = form.getValues(`gallerySection.${type}`)?.[index];
-    if (item?.url && item.url.includes('firebasestorage.googleapis.com') && storage) {
-      try {
-        const storageRef = ref(storage, item.url);
-        await deleteObject(storageRef);
-      } catch (error) {
-        console.error('Error deleting media from storage:', error);
+  const onError = (errors: any) => {
+    console.error('Form errors:', errors);
+    const errorMessages: string[] = [];
+    const extractErrors = (obj: any, prefix = '') => {
+      for (const key in obj) {
+        if (obj[key] && typeof obj[key] === 'object') {
+          if (obj[key].message) {
+            errorMessages.push(`${prefix}${key}: ${obj[key].message}`);
+          } else {
+            extractErrors(obj[key], `${prefix}${key} -> `);
+          }
+        }
       }
+    };
+    extractErrors(errors);
+
+    // Validación manual de Zod para inspeccionar los valores reales y detallar los fallos exactos
+    const values = form.getValues();
+    try {
+      const result = landingPageContentSchema.safeParse(values);
+      console.log('Zod safeParse result:', result);
+      if (!result.success) {
+        const zodErrors = result.error.errors.map(err => {
+          const pathStr = err.path.map(p => typeof p === 'number' ? `[${p}]` : p).join('.');
+          return `${pathStr}: ${err.message}`;
+        });
+        console.error('Zod errors detailed:', zodErrors);
+        errorMessages.push(...zodErrors);
+      }
+    } catch (e) {
+      console.error('Error durante safeParse manual:', e);
     }
+
+    toast({
+      title: 'No se pudo guardar',
+      description: errorMessages.length > 0 
+        ? `Por favor corrija: ${errorMessages.slice(0, 3).join(', ')}`
+        : 'Por favor verifique los campos requeridos en el formulario.',
+      variant: 'destructive',
+    });
+  };
+
+  const handleRemoveMedia = (index: number, type: 'images' | 'videos') => {
+    const item = form.getValues(`gallerySection.${type}`)?.[index];
+    
+    // 1. Eliminar inmediatamente de la interfaz de usuario para que sea instantáneo
     if (type === 'images') removeGallery(index);
     else removeVideo(index);
+
+    // 2. Eliminar de Firebase Storage en segundo plano sin bloquear la UI
+    if (item?.url && item.url.includes('firebasestorage.googleapis.com') && storage) {
+      const storageRef = ref(storage, item.url);
+      deleteObject(storageRef).catch((error) => {
+        // Solo registrar advertencia en la consola; no debe bloquear la UI si el archivo ya no existe
+        console.warn('Nota: No se pudo eliminar el archivo físico de Storage (puede que ya no exista o pertenezca a otro ambiente):', error);
+      });
+    }
   };
 
   if (isLoading) {
@@ -270,7 +315,7 @@ export default function LandingPageForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="landingpageform-main-form">
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8" data-testid="landingpageform-main-form">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

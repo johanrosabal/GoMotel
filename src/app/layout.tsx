@@ -102,10 +102,10 @@ export default function RootLayout({
                   <main className="flex-1">{children}</main>
                 </div>
               </AuthWrapper>
+              <Schema />
             </FirebaseClientProvider>
             <Toaster />
             <NetworkStatusModal />
-            <Schema />
           </ToastStateProvider>
         </ThemeProvider>
       </body>

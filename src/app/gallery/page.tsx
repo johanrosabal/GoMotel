@@ -32,7 +32,13 @@ export default function GalleryPage() {
     return doc(firestore, 'landingPageContent', 'main');
   }, [firestore]);
 
+  const companyRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'companyInfo', 'main');
+  }, [firestore]);
+
   const { data: cmsContent, isLoading } = useDoc<LandingPageContent>(contentRef);
+  const { data: company } = useDoc<any>(companyRef);
 
   const galleryImages = cmsContent?.gallerySection?.images || [];
   const galleryVideos = cmsContent?.gallerySection?.videos || [];
@@ -70,7 +76,7 @@ export default function GalleryPage() {
 
           <div className="flex items-center gap-2">
             <div className="relative w-8 h-8">
-              <Image src="/logo_manolo.png" alt="Logo" fill className="object-contain" />
+              <Image src={company?.logoUrl || "/logo_manolo.png"} alt="Logo" fill className="object-contain" />
             </div>
             <h1 className="text-lg font-black italic uppercase tracking-tighter">Galería <span className="text-primary italic">Exclusiva</span></h1>
           </div>
@@ -86,7 +92,7 @@ export default function GalleryPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-7xl font-black tracking-tighter italic uppercase mb-6 leading-none"
           >
-            {cmsContent?.gallerySection?.title1 || "EXPLORE"} <br />
+            {cmsContent?.gallerySection?.title1 || "EXPLORE"}{" "}
             <span className="text-primary italic">{cmsContent?.gallerySection?.title2 || "LUJO"}</span>
           </motion.h2>
           <motion.div
@@ -117,62 +123,78 @@ export default function GalleryPage() {
           </motion.div>
         </div>
 
-        {/* Media Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <AnimatePresence mode="popLayout">
-            {filteredMedia.map((item, index) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                className={cn(
-                  "group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/5 cursor-pointer bg-neutral-900",
-                  index % 5 === 0 && "md:col-span-2 lg:col-span-2 aspect-video md:aspect-auto"
-                )}
-                onClick={() => setSelectedMedia({ url: item.url, type: item.type, alt: item.alt })}
-              >
-                {item.type === 'image' ? (
-                  <Image
-                    src={item.url}
-                    alt={item.alt || 'Gallery item'}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="relative w-full h-full bg-slate-900 pointer-events-none">
-                    <video
-                      src={`${item.url}#t=0.1`}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      muted
-                      playsInline
-                      preload="metadata"
+        {/* Media Grid / Empty State */}
+        {filteredMedia.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-24 px-6 rounded-[2.5rem] border border-white/5 bg-neutral-900/20 backdrop-blur-md max-w-md mx-auto mt-8"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6 text-primary animate-pulse">
+              <ImageIcon className="h-6 w-6 opacity-60" />
+            </div>
+            <h3 className="text-lg font-black uppercase tracking-wider mb-2">No hay elementos</h3>
+            <p className="text-neutral-400 font-medium text-xs leading-relaxed">
+              Actualmente no se registran {filter === 'all' ? 'imágenes ni videos' : filter === 'image' ? 'imágenes' : 'videos'} en la galería.
+            </p>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <AnimatePresence mode="popLayout">
+              {filteredMedia.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  className={cn(
+                    "group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/5 cursor-pointer bg-neutral-900",
+                    index % 5 === 0 && "md:col-span-2 lg:col-span-2 aspect-video md:aspect-auto"
+                  )}
+                  onClick={() => setSelectedMedia({ url: item.url, type: item.type, alt: item.alt })}
+                >
+                  {item.type === 'image' ? (
+                    <Image
+                      src={item.url}
+                      alt={item.alt || 'Gallery item'}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
-                      <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="h-8 w-8 text-primary fill-primary" />
+                  ) : (
+                    <div className="relative w-full h-full bg-slate-900 pointer-events-none">
+                      <video
+                        src={`${item.url}#t=0.1`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
+                        <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Play className="h-8 w-8 text-primary fill-primary" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors pointer-events-none" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors pointer-events-none" />
 
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/50">{item.type === 'image' ? 'Fotografía' : 'Video'}</p>
-                    <h4 className="text-sm font-black uppercase italic tracking-tighter truncate max-w-[200px]">{item.alt || 'Suite Premium'}</h4>
+                  <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/50">{item.type === 'image' ? 'Fotografía' : 'Video'}</p>
+                      <h4 className="text-sm font-black uppercase italic tracking-tighter truncate max-w-[200px]">{item.alt || 'Suite Premium'}</h4>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {item.type === 'image' ? <Maximize2 className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    {item.type === 'image' ? <Maximize2 className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
       </main>
 
       {/* Lightbox / Video Player Overlay */}

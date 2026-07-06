@@ -33,7 +33,8 @@ import {
   X,
   Bell,
   Eye,
-  Play
+  Play,
+  Loader2
 } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,7 @@ import { ReservationModal } from '@/components/ReservationModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDoc, useFirebase, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, query, collection, orderBy, where } from 'firebase/firestore';
-import type { LandingPageContent, RoomType, AppNotification } from '@/types';
+import type { LandingPageContent, RoomType, AppNotification, CompanyProfile } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { getActiveNotifications } from '@/lib/actions/notification.actions';
 import {
@@ -75,6 +76,11 @@ export default function LandingPage() {
     return doc(firestore, 'landingPageContent', 'main');
   }, [firestore]);
 
+  const companyRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'companyInfo', 'main');
+  }, [firestore]);
+
   const roomTypesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -85,7 +91,11 @@ export default function LandingPage() {
   }, [firestore]);
 
   const { data: cmsContent } = useDoc<LandingPageContent>(contentRef);
+  const { data: company, isLoading: isLoadingCompany } = useDoc<CompanyProfile>(companyRef);
   const { data: roomTypesData } = useCollection<RoomType>(roomTypesQuery);
+
+  const companyName = company?.tradeName || 'Hotel Du Manolo';
+  const companyLogo = company?.logoUrl || null;
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [activeAmenityIndex, setActiveAmenityIndex] = useState(0);
@@ -109,10 +119,18 @@ export default function LandingPage() {
   ].slice(0, 4);
 
   useEffect(() => {
-    // Hide splash after 2.8s total
-    const timer = setTimeout(() => setShowSplash(false), 2800);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!isLoadingCompany) {
+      // Ocultar el splash después de 2.5s una vez que cargaron los datos
+      const timer = setTimeout(() => setShowSplash(false), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingCompany]);
+
+  useEffect(() => {
+    if (companyName) {
+      document.title = `${companyName} - Privacidad, Lujo y Discreción en Costa Rica`;
+    }
+  }, [companyName]);
 
   useEffect(() => {
     if (showSplash) {
@@ -209,7 +227,7 @@ export default function LandingPage() {
   const aboutPillText = cmsContent?.aboutSection?.pillText || "Nuestra Historia";
   const aboutTitle1 = cmsContent?.aboutSection?.title1 || "MÁS DE 15 AÑOS DE";
   const aboutTitle2 = cmsContent?.aboutSection?.title2 || "EXCELENCIA";
-  const aboutDesc = cmsContent?.aboutSection?.description || "Descubra por qué Hotel Du Manolo es el referente de privacidad y lujo en Costa Rica. Una historia construida sobre la pasión por los detalles y la discreción absoluta.";
+  const aboutDesc = cmsContent?.aboutSection?.description || `Descubra por qué ${companyName} es el referente de privacidad y lujo en Costa Rica. Una historia construida sobre la pasión por los detalles y la discreción absoluta.`;
   const aboutBtnText = cmsContent?.aboutSection?.buttonText || "Conozca Quiénes Somos";
 
   const footerDescription = cmsContent?.footerSection?.description || "El motel líder en Costa Rica, ofreciendo experiencias de lujo y privacidad desde hace más de 15 años.";
@@ -295,67 +313,73 @@ export default function LandingPage() {
               className="absolute w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px]"
             />
 
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="relative flex flex-col items-center gap-6"
-            >
-              <div className="relative w-64 h-32 md:w-[450px] md:h-[225px] mb-2">
-                <Image
-                  src="/logo-original.png"
-                  alt="Hotel Du Manolo Logo"
-                  fill
-                  className="object-contain drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]"
-                  priority
-                />
+            {isLoadingCompany ? (
+              <div className="relative flex flex-col items-center justify-center gap-4 z-10">
+                <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
               </div>
-
-              <div className="flex flex-col items-center gap-4">
-                <motion.h1
-                  initial={{ opacity: 0, letterSpacing: '0.4em' }}
-                  animate={{ opacity: 1, letterSpacing: '0.2em' }}
-                  transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
-                  className="text-2xl md:text-6xl font-black uppercase italic tracking-[0.2em] text-white text-center"
-                >
-                  Hotel Du Manolo
-                </motion.h1>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.6 }}
-                  transition={{ delay: 0.8, duration: 1 }}
-                  className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-primary"
-                >
-                  Exclusividad & Discreción
-                </motion.p>
-              </div>
-
-              {/* Progress Bar Container */}
-              <div className="mt-4 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
-                <motion.div
-                  initial={{ x: "-100%" }}
-                  animate={{ x: "0%" }}
-                  transition={{
-                    duration: 2.5,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
-                />
-              </div>
-
-              {/* Status text */}
+            ) : (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.4 }}
-                transition={{ delay: 1.5, duration: 1 }}
-                className="flex items-center gap-3 mt-2"
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="relative flex flex-col items-center gap-6"
               >
-                <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-                <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/50 italic">
-                  Cargando Experiencia...
-                </span>
+                <div className="relative w-64 h-32 md:w-[450px] md:h-[225px] mb-2">
+                  <Image
+                    src={companyLogo || "/logo-original.png"}
+                    alt={`${companyName} Logo`}
+                    fill
+                    className="object-contain drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]"
+                    priority
+                  />
+                </div>
+
+                <div className="flex flex-col items-center gap-4">
+                  <motion.h1
+                    initial={{ opacity: 0, letterSpacing: '0.4em' }}
+                    animate={{ opacity: 1, letterSpacing: '0.2em' }}
+                    transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
+                    className="text-2xl md:text-6xl font-black uppercase italic tracking-[0.2em] text-white text-center"
+                  >
+                    {companyName}
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6 }}
+                    transition={{ delay: 0.8, duration: 1 }}
+                    className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-primary"
+                  >
+                    Exclusividad & Discreción
+                  </motion.p>
+                </div>
+
+                {/* Progress Bar Container */}
+                <div className="mt-4 relative w-48 md:w-64 h-[1px] bg-white/10 overflow-hidden rounded-full">
+                  <motion.div
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "0%" }}
+                    transition={{
+                      duration: 2.5,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
+                  />
+                </div>
+
+                {/* Status text */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.4 }}
+                  transition={{ delay: 1.5, duration: 1 }}
+                  className="flex items-center gap-3 mt-2"
+                >
+                  <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                  <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/50 italic">
+                    Cargando Experiencia...
+                  </span>
+                </motion.div>
               </motion.div>
-            </motion.div>
+            )}
 
 
           </motion.div>
@@ -403,13 +427,13 @@ export default function LandingPage() {
           >
             <div className="relative w-8 h-8 md:w-12 md:h-12 transition-transform group-hover:scale-110">
               <Image
-                src="/logo_manolo.png"
-                alt="Hotel Du Manolo Logo"
+                src={companyLogo || "/logo_manolo.png"}
+                alt={`${companyName} Logo`}
                 fill
                 className="object-contain"
               />
             </div>
-            <span className={`text-sm md:text-2xl font-black tracking-tighter uppercase italic transition-colors ${isScrolled ? 'text-foreground' : 'text-white shadow-sm'}`}>Hotel Du Manolo</span>
+            <span className={`text-sm md:text-2xl font-black tracking-tighter uppercase italic transition-colors ${isScrolled ? 'text-foreground' : 'text-white shadow-sm'}`}>{companyName}</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 ml-auto mr-12">
@@ -431,14 +455,14 @@ export default function LandingPage() {
           <div className="absolute inset-0 z-0 flex items-center justify-center">
             <Image
               src={heroMobileImage}
-              alt="Hotel Du Manolo - Experiencia de Lujo y Discreción en Costa Rica (Vista Móvil)"
+              alt={`${companyName} - Experiencia de Lujo y Discreción en Costa Rica (Vista Móvil)`}
               fill
               className="object-contain opacity-70 brightness-[0.5] md:hidden"
               priority
             />
             <Image
               src={heroDesktopImage}
-              alt="Hotel Du Manolo - Suite de Lujo Premium con Jacuzzi y Privacidad Total"
+              alt={`${companyName} - Suite de Lujo Premium con Jacuzzi y Privacidad Total`}
               fill
               className="object-cover opacity-70 brightness-[0.5] hidden md:block"
               priority
@@ -451,8 +475,8 @@ export default function LandingPage() {
               className="hidden md:block absolute top-32 right-12 w-[450px] h-[450px] z-20 pointer-events-none"
             >
               <Image
-                src="/logo-original.png"
-                alt="Logotipo Oficial Hotel Du Manolo"
+                src={companyLogo || "/logo-original.png"}
+                alt={`Logotipo Oficial ${companyName}`}
                 fill
                 className="object-contain drop-shadow-2xl opacity-80"
               />
@@ -919,13 +943,13 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-4 group" data-testid="app-2-link">
               <div className="relative w-10 h-10 transition-transform group-hover:scale-110">
                 <Image
-                  src="/logo_manolo.png"
-                  alt="Hotel Du Manolo Logo"
+                  src={companyLogo || "/logo_manolo.png"}
+                  alt={`${companyName} Logo`}
                   fill
                   className="object-contain"
                 />
               </div>
-              <span className="text-xl font-black tracking-tighter uppercase italic">Hotel Du Manolo</span>
+              <span className="text-xl font-black tracking-tighter uppercase italic">{companyName}</span>
             </Link>
             <p className="text-muted-foreground dark:text-white/40 font-medium leading-relaxed max-w-sm">
               {footerDescription}
@@ -1008,7 +1032,7 @@ export default function LandingPage() {
         </div>
         <div className="mt-20 pt-10 pb-32 md:pb-10 border-t border-border dark:border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground dark:text-white/20">
           <div className="max-w-[250px] md:max-w-none mx-auto leading-loose md:leading-normal">
-            © 2026 Hotel Du Manolo - Todos los derechos reservados.
+            © 2026 {companyName} - Todos los derechos reservados.
           </div>
         </div>
       </footer>
@@ -1018,6 +1042,7 @@ export default function LandingPage() {
         onOpenChange={setIsReservationModalOpen}
         phoneNumber={footerPhone}
         whatsappNumber={whatsappNumber}
+        companyName={companyName}
       />
 
       {/* Floating WhatsApp Button */}

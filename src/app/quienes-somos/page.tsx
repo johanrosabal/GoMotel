@@ -16,7 +16,14 @@ export default function AboutPage() {
     return doc(firestore, 'publicPages', 'about');
   }, [firestore]);
 
+  const companyRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'companyInfo', 'main');
+  }, [firestore]);
+
   const { data: content, isLoading } = useDoc<AboutPageContent>(contentRef);
+  const { data: company } = useDoc<any>(companyRef);
+  const companyName = company?.tradeName || 'Hotel Du Manolo';
 
   return (
     <div className="min-h-screen bg-background text-foreground dark:bg-[#0a0a0a] dark:text-white transition-colors duration-300">
@@ -28,9 +35,9 @@ export default function AboutPage() {
           </Link>
           <div className="flex items-center gap-2">
             <div className="relative w-8 h-8 md:w-10 md:h-10">
-              <Image src="/logo_manolo.png" alt="Logo" fill className="object-contain" />
+              <Image src={company?.logoUrl || "/logo_manolo.png"} alt="Logo" fill className="object-contain" />
             </div>
-            <span className="text-sm md:text-xl font-black tracking-tighter uppercase italic text-foreground hidden sm:block">Hotel Du Manolo</span>
+            <span className="text-sm md:text-xl font-black tracking-tighter uppercase italic text-foreground hidden sm:block">{companyName}</span>
           </div>
         </div>
       </header>
