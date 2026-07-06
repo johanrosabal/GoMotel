@@ -202,6 +202,11 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
                           className={cn("h-full bg-gradient-to-r transition-all", progress > 90 ? "from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.5)]" : "from-violet-600 to-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.5)]")}
                         />
                       </div>
+                      {stay.createdBy && (
+                        <div className="text-[10px] text-slate-500 font-medium tracking-wide mt-1">
+                          Registrado por: <span className="text-slate-400 font-semibold">{stay.createdBy}</span>
+                        </div>
+                      )}
                     </div>
                     <Button variant="secondary" size="sm" className="w-full h-10 font-black uppercase tracking-widest text-[9px] bg-slate-900/50 border border-white/10 hover:bg-slate-800 transition-all rounded-xl shadow-xl hover:shadow-cyan-500/20" id="roomcard-button-gestionar-estancia" data-testid="roomcard-action-button">
                       Gestionar Estancia
