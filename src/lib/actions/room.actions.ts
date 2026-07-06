@@ -804,3 +804,78 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
       return { error: error.message || 'No se pudo extender la estancia.' };
     }
 }
+
+export async function reassignRoom(stayId: string, currentRoomId: string, targetRoomId: string) {
+  if (!stayId || !currentRoomId || !targetRoomId) {
+    return { error: 'IDs de estancia o habitaciones no válidos.' };
+  }
+
+  try {
+    const stayDoc = await getDoc(doc(db, 'stays', stayId));
+    const oldRoomDoc = await getDoc(doc(db, 'rooms', currentRoomId));
+    const newRoomDoc = await getDoc(doc(db, 'rooms', targetRoomId));
+
+    if (!stayDoc.exists()) return { error: 'Estancia no encontrada.' };
+    if (!oldRoomDoc.exists()) return { error: 'Habitación de origen no encontrada.' };
+    if (!newRoomDoc.exists()) return { error: 'Habitación de destino no encontrada.' };
+
+    const stay = { id: stayDoc.id, ...stayDoc.data() } as Stay;
+    const oldRoom = { id: oldRoomDoc.id, ...oldRoomDoc.data() } as Room;
+    const newRoom = { id: newRoomDoc.id, ...newRoomDoc.data() } as Room;
+
+    if (newRoom.status !== 'Available') {
+      return { error: `La habitación ${newRoom.number} no está disponible (estado actual: ${newRoom.status}).` };
+    }
+
+    const batch = writeBatch(db);
+
+    // 1. Update stay document
+    const stayRef = doc(db, 'stays', stayId);
+    batch.update(stayRef, {
+      roomId: targetRoomId,
+      roomNumber: newRoom.number,
+    });
+
+    // 2. Update old room document (move to Available directly, no cleaning needed)
+    const oldRoomRef = doc(db, 'rooms', currentRoomId);
+    batch.update(oldRoomRef, {
+      status: 'Available',
+      currentStayId: null,
+      lastStayId: null,
+      statusUpdatedAt: Timestamp.now(),
+      isClientConfirmed: false,
+      clientConfirmedAt: null,
+    });
+
+    // 3. Update new room document (move to Occupied)
+    const newRoomRef = doc(db, 'rooms', targetRoomId);
+    batch.update(newRoomRef, {
+      status: 'Occupied',
+      currentStayId: stayId,
+      statusUpdatedAt: Timestamp.now(),
+      isClientConfirmed: oldRoom.isClientConfirmed || false,
+      clientConfirmedAt: oldRoom.clientConfirmedAt || null,
+    });
+
+    // 4. Update reservation if present
+    if (stay.reservationId) {
+      const reservationRef = doc(db, 'reservations', stay.reservationId);
+      batch.update(reservationRef, {
+        roomId: targetRoomId,
+        roomNumber: newRoom.number,
+      });
+    }
+
+    await batch.commit();
+
+    revalidatePath('/');
+    revalidatePath(`/rooms/${currentRoomId}`);
+    revalidatePath(`/rooms/${targetRoomId}`);
+    revalidatePath('/dashboard/rooms');
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Reassignment failed:', error);
+    return { error: error.message || 'Ocurrió un error inesperado al reasignar la habitación.' };
+  }
+}

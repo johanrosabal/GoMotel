@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package } from 'lucide-react'
+import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package, ArrowLeftRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUserProfile } from '@/hooks/use-user-profile'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
@@ -27,6 +27,7 @@ import { es } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
+import ReassignRoomDialog from '@/components/room-detail/ReassignRoomDialog'
 import { Progress } from '@/components/ui/progress'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from '@/components/ui/badge'
@@ -354,6 +355,12 @@ export default function RoomDetailsClient() {
                                 <PlusCircle className="mr-2 h-5 w-5" /> Pedir Servicio
                             </Button>
                         </OrderServiceDialog>
+
+                        <ReassignRoomDialog room={room} stay={stay}>
+                            <Button variant="outline" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-primary/50 text-primary hover:bg-primary hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98]" id="page-button-reasignar-habitacion" data-testid="id-reassign-button">
+                                <ArrowLeftRight className="mr-2 h-5 w-5" /> Cambiar Habitación
+                            </Button>
+                        </ReassignRoomDialog>
 
                         <GenerateFineDialog stay={stay} onSuccess={() => {}}>
                             <Button variant="outline" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-rose-500/50 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]">
