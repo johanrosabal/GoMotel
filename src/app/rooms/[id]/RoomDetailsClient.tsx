@@ -376,25 +376,19 @@ export default function RoomDetailsClient() {
                             </ExtendStayDialog>
                         )}
 
-                        {financialSummary?.netDue === 0 ? (
+                        <CheckoutDialog stay={stay} room={room} orders={activeOrders || []} onCheckoutSuccess={handleInvoiceSuccess}>
                             <Button 
                                 variant="outline" 
-                                className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-emerald-500/50 text-white hover:text-white hover:bg-emerald-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]" 
-                                onClick={handleDirectCheckout}
-                                disabled={isCheckingOut}
-                                id="page-button-checkout-directo"
-                                data-testid="id-action-checkout-direct-button"
+                                className={cn(
+                                    "w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98]",
+                                    financialSummary?.netDue === 0
+                                        ? "border-emerald-500/50 text-white hover:text-white hover:bg-emerald-500/10" 
+                                        : "border-rose-500/50 text-white hover:text-white hover:bg-rose-500/10"
+                                )}
                             >
-                                <LogOut className="mr-2 h-5 w-5" /> 
-                                {isCheckingOut ? 'Procesando...' : 'Realizar Check-Out'}
+                                <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
                             </Button>
-                        ) : (
-                            <CheckoutDialog stay={stay} room={room} orders={activeOrders || []} onCheckoutSuccess={handleInvoiceSuccess}>
-                                <Button variant="outline" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-rose-500/50 text-white hover:text-white hover:bg-rose-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]" id="page-button-realizar-check-out" data-testid="id-action-checkout-button">
-                                    <LogOut className="mr-2 h-5 w-5" /> Realizar Check-Out
-                                </Button>
-                            </CheckoutDialog>
-                        )}
+                        </CheckoutDialog>
                     </div>
                 )
             case 'Cleaning':

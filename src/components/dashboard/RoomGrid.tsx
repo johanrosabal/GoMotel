@@ -89,6 +89,12 @@ export default function RoomGrid() {
     
     dailyInvoices.forEach((invoice: any) => {
       if (invoice.status === 'Pagada') {
+        // If invoice belongs to a stay, ensure the stay exists in allStaysToday
+        if (invoice.stayId) {
+          const stayExists = (allStaysToday || []).some((s: any) => s.id === invoice.stayId);
+          if (!stayExists) return;
+        }
+
         let roomId = invoice.roomId;
         
         // Try to find the roomId if missing
@@ -142,7 +148,7 @@ export default function RoomGrid() {
 
   if (isLoading && !rooms?.length) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
         {Array.from({ length: 10 }).map((_, i) => (
           <Skeleton key={i} className="h-[120px] w-full" />
         ))}
@@ -179,7 +185,7 @@ export default function RoomGrid() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
         {filteredRooms.map((room) => {
           const stay = staysByRoomId.get(room.id);
           const dailyIncome = dailyIncomeByRoomId.get(room.id) || 0;

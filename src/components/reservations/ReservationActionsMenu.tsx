@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { checkInFromReservation, cancelReservation, markAsNoShow, deleteReservation } from '@/lib/actions/reservation.actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useUser } from '@/firebase';
 import CheckInFromReservationDialog from './CheckInFromReservationDialog';
 
 export default function ReservationActionsMenu({ reservation, className }: { reservation: Reservation, className?: string }) {
@@ -19,11 +20,13 @@ export default function ReservationActionsMenu({ reservation, className }: { res
     const [isNoShowAlertOpen, setIsNoShowAlertOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const { userProfile } = useUserProfile();
+    const { user } = useUser();
 
     const handleCheckIn = () => {
         startTransition(async () => {
             const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Sistema';
-            const result = await checkInFromReservation(reservation.id, undefined, userName);
+            const userEmail = user?.email || userProfile?.email || '';
+            const result = await checkInFromReservation(reservation.id, undefined, userName, userEmail || undefined);
             if (result?.error) {
                 toast({ title: 'Error en Check-in', description: result.error, variant: 'destructive' });
             } else {

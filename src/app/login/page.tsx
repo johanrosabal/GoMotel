@@ -33,6 +33,9 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [showTokenInput, setShowTokenInput] = useState(false);
+  const [token, setToken] = useState('');
+  const [tokenError, setTokenError] = useState('');
   const { toast } = useToast();
   const router = useRouter();
   const { auth } = useFirebase();
@@ -204,10 +207,55 @@ export default function LoginPage() {
           </Form>
 
           <div className="mt-12 text-center pt-8 border-t border-white/5">
-            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿No tiene una cuenta?</p>
-            <Link href="/register" data-testid="login-register-link">
-              <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Solicitar Registro</span>
-            </Link>
+            {!showTokenInput ? (
+              <>
+                <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-4">¿No tiene una cuenta?</p>
+                <button type="button" onClick={() => setShowTokenInput(true)} data-testid="login-register-link">
+                  <span className="text-xs font-black uppercase tracking-widest text-white/80 hover:text-primary transition-colors">Solicitar Registro</span>
+                </button>
+              </>
+            ) : (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-[240px] mx-auto">
+                <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em]">Token de Seguridad</p>
+                <div className="flex flex-col gap-2">
+                  <Input 
+                    type="text" 
+                    maxLength={6} 
+                    placeholder="000000" 
+                    value={token}
+                    onChange={(e) => {
+                      setToken(e.target.value.replace(/\D/g, ''));
+                      setTokenError('');
+                    }}
+                    className="h-12 bg-white/[0.03] border-white/5 text-center text-lg tracking-[0.5em] focus:ring-primary/20 focus:border-primary/50 text-white"
+                  />
+                  {tokenError && <span className="text-red-400 text-[10px] font-bold uppercase">{tokenError}</span>}
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={() => { setShowTokenInput(false); setToken(''); setTokenError(''); }}
+                      className="flex-1 text-xs h-10 text-white/50 hover:text-white"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="button" 
+                      onClick={() => {
+                        if (token === '010201') {
+                          router.push('/register');
+                        } else {
+                          setTokenError('Token inválido');
+                        }
+                      }}
+                      className="flex-1 text-xs h-10 bg-primary hover:bg-primary/90 text-white"
+                    >
+                      Verificar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 

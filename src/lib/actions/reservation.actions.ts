@@ -40,6 +40,7 @@ const reservationActionSchema = z.object({
   voucherNumber: z.string().nullable().optional(),
   remoteControlDelivered: z.boolean().optional(),
   createdBy: z.string().optional(),
+  createdByEmail: z.string().optional(),
 }).refine(data => data.checkInNow || data.checkInDate, {
   message: 'La fecha de check-in es requerida para futuras reservaciones.',
   path: ['checkInDate'],
@@ -81,7 +82,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
     return { error: 'Datos inválidos. Por favor, revise todos los campos.' };
   }
 
-  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber, remoteControlDelivered, createdBy } = validatedFields.data;
+  const { roomId, checkInDate, checkOutDate, guestId, guestName, checkInNow, pricePlanName, isOpenAccount, paymentMethod: upfrontPaymentMethod, voucherNumber, remoteControlDelivered, createdBy, createdByEmail } = validatedFields.data;
   const finalCheckInDate = checkInNow ? new Date() : checkInDate!;
 
   const roomRef = doc(db, 'rooms', roomId);
@@ -253,6 +254,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
             voucherNumber: voucherNumber || null,
             roomId: roomId,
             roomNumber: roomData.number,
+            ...(createdByEmail ? { createdByEmail } : {}),
         };
         batch.set(invoiceRef, newInvoice);
     }
@@ -279,6 +281,7 @@ export async function createReservation(values: z.infer<typeof reservationAction
           voucherNumber: voucherNumber || null,
           remoteControlDelivered: remoteControlDelivered || false,
           createdBy: createdBy || 'Sistema',
+          ...(createdByEmail ? { createdByEmail } : {}),
         };
         batch.set(stayRef, newStay);
         
@@ -330,7 +333,7 @@ export interface CheckInPaymentData {
     voucherNumber?: string | null;
 }
 
-export async function checkInFromReservation(reservationId: string, paymentData?: CheckInPaymentData, createdBy?: string) {
+export async function checkInFromReservation(reservationId: string, paymentData?: CheckInPaymentData, createdBy?: string, createdByEmail?: string) {
     if (!reservationId) return { error: 'ID de reservación no válido.' };
     
     const reservationRef = doc(db, 'reservations', reservationId);
@@ -441,6 +444,7 @@ export async function checkInFromReservation(reservationId: string, paymentData?
             voucherNumber: voucherNumber,
             roomId: reservation.roomId,
             roomNumber: reservation.roomNumber,
+            ...(createdByEmail ? { createdByEmail } : {}),
         };
         batch.set(invoiceRef, newInvoice);
     }
@@ -464,7 +468,8 @@ export async function checkInFromReservation(reservationId: string, paymentData?
       paymentAmount: paymentAmount,
       voucherNumber: voucherNumber,
       remoteControlDelivered: reservation.remoteControlDelivered || false,
-      createdBy: "TEST USER (HARDCODED)",
+      createdBy: createdBy || "Sistema",
+      ...(createdByEmail ? { createdByEmail } : {}),
     };
     batch.set(stayRef, newStay);
 

@@ -82,7 +82,7 @@ const checkInSchema = z.object({
   expectedCheckOut: z.coerce.date(),
 });
 
-export async function checkIn(roomId: string, formData: FormData, createdBy?: string) {
+export async function checkIn(roomId: string, formData: FormData, createdBy?: string, createdByEmail?: string) {
   const rawData = Object.fromEntries(formData);
   const validatedFields = checkInSchema.safeParse(rawData);
 
@@ -136,7 +136,8 @@ export async function checkIn(roomId: string, formData: FormData, createdBy?: st
   }
 
 
-  const createdByValue = "TEST USER (HARDCODED)";
+  const createdByValue = createdBy || "Sistema";
+  const emailValue = (formData.get('createdByEmail') as string) || createdByEmail || (createdByValue.includes('@') ? createdByValue : null);
 
   // Create new stay
   const stayRef = doc(collection(db, 'stays'));
@@ -155,6 +156,7 @@ export async function checkIn(roomId: string, formData: FormData, createdBy?: st
     renewalCount: 0,
     extensionHistory: [],
     createdBy: createdByValue,
+    ...(emailValue ? { createdByEmail: emailValue } : {}),
   };
   batch.set(stayRef, newStay);
 
@@ -181,7 +183,8 @@ export async function checkOut(
         paymentMethod: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
         voucherNumber?: string;
         amountPaid: number;
-    }
+    },
+    createdBy?: string
 ) {
   if (!stayId || !roomId) {
     return { error: 'ID de estancia o habitación no válido.' };
@@ -284,6 +287,7 @@ export async function checkOut(
         voucherNumber: paymentDetails?.voucherNumber || null,
         roomId: roomId,
         roomNumber: room.number,
+        createdByName: createdBy || "Sistema",
     };
     batch.set(invoiceRef, finalInvoice);
   }

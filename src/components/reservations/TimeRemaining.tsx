@@ -32,13 +32,14 @@ export default function TimeRemaining({ checkOutDate, status, className }: TimeR
   const isOverdue = now > checkOutDate;
 
   if (isOverdue) {
+    const overdueDistance = formatDistanceStrict(now, checkOutDate, { locale: es, addSuffix: false });
     return (
-      <span className={cn("font-semibold text-destructive", className)}>
-        Vencido
+      <span className={cn("font-black text-rose-200 tracking-wider", className)}>
+        +{overdueDistance}
       </span>
     );
   }
 
   const distance = formatDistanceStrict(checkOutDate, now, { locale: es, addSuffix: false });
-  return <span className={cn("font-medium", className)}>{distance}</span>;
+  return <span className={cn("font-bold text-slate-200", className)}>{distance}</span>;
 }

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState } from 'react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useFirebase } from '@/firebase';
-import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export default function StaysTable({ stays }: { stays: Stay[] }) {
@@ -31,14 +31,24 @@ export default function StaysTable({ stays }: { stays: Stay[] }) {
         
         setIsDeleting(true);
         try {
-            await deleteDoc(doc(firestore, 'stays', stayToDelete.id));
-            
+            const batch = writeBatch(firestore);
+            batch.delete(doc(firestore, 'stays', stayToDelete.id));
+
+            // Also delete associated invoices for this stay
+            const invQuery = query(collection(firestore, 'invoices'), where('stayId', '==', stayToDelete.id));
+            const invSnap = await getDocs(invQuery);
+            invSnap.forEach((invDoc) => {
+              batch.delete(invDoc.ref);
+            });
+
             if (!stayToDelete.checkOut) {
-                await updateDoc(doc(firestore, 'rooms', stayToDelete.roomId), {
+                batch.update(doc(firestore, 'rooms', stayToDelete.roomId), {
                     status: 'Available',
                     currentStayId: null
                 });
             }
+
+            await batch.commit();
             
             toast({
                 title: "Estancia eliminada",

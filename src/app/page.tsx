@@ -172,12 +172,14 @@ export default function LandingPage() {
       const mainPlan = visiblePlans[0] || rt.pricePlans?.[0];
       return {
         name: rt.name,
-        price: mainPlan ? formatCurrency(mainPlan.price) : 'N/A',
+        price: mainPlan ? formatCurrency((mainPlan.price || 0) + 2000) : 'N/A',
+        cashPrice: mainPlan ? formatCurrency(mainPlan.price || 0) : 'N/A',
         period: mainPlan ? `DESDE ${mainPlan.name}` : '',
         features: rt.features || [],
         plans: visiblePlans.map(p => ({
           label: p.name,
-          price: formatCurrency(p.price)
+          price: formatCurrency((p.price || 0) + 2000),
+          cashPrice: formatCurrency(p.price || 0)
         }))
       };
     });
@@ -626,6 +628,9 @@ export default function LandingPage() {
                             <span className="text-muted-foreground dark:text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-gray-200 dark:bg-white/5 py-1 px-3 rounded-md w-fit border border-border dark:border-white/5">
                               {tier.period}
                             </span>
+                            <div className="mt-2 text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded w-fit border border-green-500/20">
+                              💵 {tier.cashPrice} descuento en efectivo
+                            </div>
                           </div>
                           <div className="space-y-4 mb-10 flex-grow">
                             {tier.features.map((feat, j) => {
@@ -657,7 +662,12 @@ export default function LandingPage() {
                             {(tier.plans || []).map((plan, k) => (
                               <div key={k} className="flex justify-between items-center bg-foreground/5 dark:bg-white/[0.03] p-3 rounded-xl border border-border dark:border-white/5 group hover:border-primary/50 transition-colors">
                                 <span className="text-xs font-bold text-foreground/80 dark:text-white/80">{plan.label}</span>
-                                <span className="text-xs font-black text-primary">{plan.price}</span>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-xs font-black text-primary">{plan.price}</span>
+                                  <span className="text-[10px] font-bold text-green-600 dark:text-green-400 mt-1">
+                                    💵 {plan.cashPrice} descuento en efectivo
+                                  </span>
+                                </div>
                               </div>
                             ))}
                           </div>

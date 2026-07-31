@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { checkIn } from '@/lib/actions/room.actions';
 import { Check, ChevronsUpDown, PlusCircle, Star, Clock } from 'lucide-react';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Client, Room, RoomType, PricePlan } from '@/types';
 import AddClientDialog from '@/components/clients/AddClientDialog';
@@ -38,7 +38,8 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [addClientOpen, setAddClientOpen] = useState(false);
-  const { firestore, user } = useFirebase();
+  const { firestore } = useFirebase();
+  const { user } = useUser();
   const { userProfile } = useUserProfile();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,9 +149,12 @@ export default function CheckInDialog({ children, roomId }: CheckInDialogProps) 
     formData.append('expectedCheckOut', expectedCheckOutDate.toISOString());
     
     formData.append('createdBy', userName);
+    if (user?.email) {
+      formData.append('createdByEmail', user.email);
+    }
 
     startTransition(async () => {
-      const result = await checkIn(roomId, formData, userName);
+      const result = await checkIn(roomId, formData, userName, user?.email || undefined);
       if (result?.error) {
         toast({
           title: 'Falló el Check-In',

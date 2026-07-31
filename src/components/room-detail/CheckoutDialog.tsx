@@ -26,7 +26,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { CheckCircle, Smartphone, Wallet, CreditCard, ChevronRight, ChevronLeft, ReceiptText, Zap, Info, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -61,7 +61,8 @@ const checkoutPaymentSchema = z.object({
 
 export default function CheckoutDialog({ children, stay, room, orders, onCheckoutSuccess }: CheckoutDialogProps) {
     const [open, setOpen] = useState(false);
-    const [step, setStep] = useState(1); // 1: Summary, 2: Payment, 3: Zero Balance Confirm
+    const [step, setStep] = useState(1);
+    const { user, userProfile } = useUser(); // 1: Summary, 2: Payment, 3: Zero Balance Confirm
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
     const { firestore } = useFirebase();
@@ -74,11 +75,21 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
 
     const paymentMethod = form.watch('paymentMethod');
 
-    const sinpeAccountsQuery = useMemoFirebase(() =>
-        firestore ? query(collection(firestore, "sinpeAccounts"), where('isActive', '==', true), orderBy('createdAt', 'asc')) : null,
+    const sinpeAccountsQuery = useMemoFirebase(
+        () => {
+            if (!firestore) return null;
+            return query(
+                collection(firestore, 'settings', 'payment', 'sinpe-accounts'),
+                where('isActive', '==', true),
+                orderBy('order', 'asc')
+            );
+        },
         [firestore]
     );
     const { data: activeSinpeAccounts, isLoading: isLoadingSinpe } = useCollection<SinpeAccount>(sinpeAccountsQuery);
+
+    const [keysDelivered, setKeysDelivered] = useState(false);
+    const [remoteDelivered, setRemoteDelivered] = useState(false);
 
     const billing = useMemo(() => {
         if (!stay || !room) return { duration: 'N/D', roomTotal: 0, servicesTotal: 0, upfrontPaid: 0, totalDue: 0, unpaidOrders: [] };
@@ -111,6 +122,8 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
             setStep(1);
             form.reset();
             setCashTendered('');
+            setKeysDelivered(false);
+            setRemoteDelivered(false);
         }
     }, [open, form]);
 
@@ -125,11 +138,12 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
         if (!stay || !room) return;
 
         startTransition(async () => {
+            const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : (user?.displayName || user?.email || 'Sistema');
             const result = await checkOut(stay.id, room.id, {
                 paymentMethod: values.paymentMethod,
                 voucherNumber: values.voucherNumber,
                 amountPaid: billing.totalDue,
-            });
+            }, userName);
 
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -261,6 +275,31 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                             </ScrollArea>
                                         </div>
                                     )}
+
+                                    <div className="pt-4 space-y-3">
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox 
+                                                id="keys-delivered" 
+                                                checked={keysDelivered} 
+                                                onCheckedChange={(c) => setKeysDelivered(c as boolean)}
+                                                className="border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-black"
+                                            />
+                                            <Label htmlFor="keys-delivered" className="text-sm font-medium leading-none text-slate-300">
+                                                Llaves entregadas en recepción
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox 
+                                                id="remote-delivered" 
+                                                checked={remoteDelivered} 
+                                                onCheckedChange={(c) => setRemoteDelivered(c as boolean)}
+                                                className="border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-black"
+                                            />
+                                            <Label htmlFor="remote-delivered" className="text-sm font-medium leading-none text-slate-300">
+                                                Control remoto entregado en recepción
+                                            </Label>
+                                        </div>
+                                    </div>
                                 </motion.div>
                             ) : step === 2 ? (
                                 <motion.div 
@@ -442,13 +481,15 @@ export default function CheckoutDialog({ children, stay, room, orders, onCheckou
                                             "flex-[2] h-14 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]",
                                             billing.totalDue === 0 ? "bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20" : "bg-primary hover:bg-primary/90 text-black shadow-primary/20"
                                         )}
-                                        disabled={isPending} id="checkoutdialog-button-1" data-testid="checkoutdialog-action-button"
+                                        disabled={isPending || !keysDelivered || !remoteDelivered}
+                                        id="checkoutdialog-button-1" 
+                                        data-testid="checkoutdialog-action-button"
                                     >
                                         {isPending ? "Procesando..." : (
                                             billing.totalDue > 0 ? (
-                                                <div className="flex items-center">Proceder a Cobro <ChevronRight className="ml-2 h-5 w-5" /></div>
+                                                <span className="flex items-center justify-center">Continuar a Pago <ChevronRight className="ml-2 h-4 w-4" /></span>
                                             ) : (
-                                                <div className="flex items-center">Cerrar Estancia <CheckCircle className="ml-2 h-5 w-5" /></div>
+                                                <span className="flex items-center justify-center">Finalizar Estancia <CheckCircle className="ml-2 h-4 w-4" /></span>
                                             )
                                         )}
                                     </Button>

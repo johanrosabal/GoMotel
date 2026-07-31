@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy as fbOrderBy, addDoc, Timestamp } from 'firebase/firestore';
 import type { Room, Client, RoomType, SinpeAccount } from '@/types';
 import DateTimePicker from './DateTimePicker';
@@ -87,7 +87,8 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
 
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const { firestore, user } = useFirebase();
+    const { firestore } = useFirebase();
+    const { user } = useUser();
     const { userProfile } = useUserProfile();
 
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -392,6 +393,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         const finalCheckInDate = values.checkInNow ? new Date() : values.checkInDate;
 
         const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : (user?.displayName || user?.email || 'Sistema');
+        const userEmail = user?.email || userProfile?.email || '';
 
         startTransition(async () => {
             const result = await createReservation({
@@ -399,6 +401,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                 checkInDate: finalCheckInDate,
                 checkOutDate: calculatedCheckOut,
                 createdBy: userName,
+                createdByEmail: userEmail || undefined,
             });
             if (result.error) {
                 toast({ title: 'Error', description: result.error, variant: 'destructive' });
@@ -534,6 +537,9 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                                                     onClick={() => {
                                                                                         form.setValue('guestName', `${client.firstName} ${client.lastName}`);
                                                                                         form.setValue('guestId', client.id);
+                                                                                        if (client.idCard) {
+                                                                                            form.setValue('guestIdCard', client.idCard);
+                                                                                        }
                                                                                         setShowSuggestions(false);
                                                                                     }}
                                                                                     className="flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-sm hover:bg-primary transition-colors group" id="createreservationdialog-button-1" data-testid="createreservationdialog-select-client-button"

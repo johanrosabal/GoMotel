@@ -185,17 +185,24 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
 
           <CardContent className="mt-auto space-y-4 p-6 pt-0">
             {room.status === 'Occupied' && stay ? (
-                <div className='space-y-4'>
+                <div className='space-y-3'>
                     <div className="space-y-2">
-                      <div className="flex justify-between items-end">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                           <StatusBadge status={room.status} isOverdue={isOverdue} />
-                          <TimeRemaining 
-                              checkOutDate={stay.expectedCheckOut.toDate()} 
-                              status={'Checked-in'}
-                              className="text-[10px] font-black uppercase tracking-widest text-slate-400"
-                          />
+                          <div className={cn(
+                            "flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest font-mono px-2.5 py-1 rounded-full border shrink-0 transition-all",
+                            isOverdue
+                              ? "bg-rose-500/25 border-rose-500/40 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse"
+                              : "bg-white/5 border-white/10 text-slate-300"
+                          )}>
+                            <Clock className={cn("h-3 w-3", isOverdue ? "text-rose-400" : "text-violet-400")} />
+                            <TimeRemaining 
+                                checkOutDate={stay.expectedCheckOut.toDate()} 
+                                status={'Checked-in'}
+                            />
+                          </div>
                       </div>
-                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
+                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5 mt-2">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
@@ -203,8 +210,9 @@ export default function RoomCard({ room, stay, isOverdue = false, dailyIncome = 
                         />
                       </div>
                       {stay.createdBy && (
-                        <div className="text-[10px] text-slate-500 font-medium tracking-wide mt-1">
-                          Registrado por: <span className="text-slate-400 font-semibold">{stay.createdBy}</span>
+                        <div className="text-[10px] text-slate-400 font-medium tracking-wide mt-1.5 flex items-center gap-1.5 truncate">
+                          <User className="h-3 w-3 text-slate-500 shrink-0" />
+                          <span className="text-slate-500 shrink-0">Registrado por:</span> <span className="text-slate-300 font-semibold truncate">{stay.createdBy}</span>
                         </div>
                       )}
                     </div>
