@@ -196,7 +196,7 @@ export default function DashboardRoomsPage() {
 
     const ALLOWED_ROLES = ['administrador', 'administración', 'administracion', 'recepción', 'recepcion'];
     return Array.from(userSalesMap.values())
-      .filter(u => ALLOWED_ROLES.includes((u.role || '').trim().toLowerCase()))
+      .filter(u => ALLOWED_ROLES.includes((u.role || '').trim().toLowerCase()) && (u.totalSales > 0 || u.count > 0))
       .sort((a, b) => b.totalSales - a.totalSales);
   }, [dailyStays, uniqueUsers]);
 
@@ -283,10 +283,70 @@ export default function DashboardRoomsPage() {
           <p className="text-slate-400 max-w-xl text-lg font-medium leading-relaxed">
             Gestione la disponibilidad y el estado de sus suites desde un centro de mando unificado y elegante.
           </p>
-        </div>        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Panel: Rendimiento y Estadísticas */}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Panel: Summary & Sales per User */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-6">
-            {/* Panel: Estadísticas e Indicadores (Habitaciones Más Solicitadas + Volumen) */}
+            {/* Panel 1: Resumen de Ventas por Usuario (Solo Roles Administrador y Recepción) */}
+            <Card className="bg-slate-950/40 backdrop-blur-3xl border-white/10 shadow-2xl rounded-[2.5rem] p-6 space-y-5 border-t-white/20">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase italic tracking-tight text-white">Ventas por Recepción</h3>
+                    <p className="text-[10px] font-medium text-slate-400">Registrado por (Hoy)</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  Hoy
+                </span>
+              </div>
+
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                {salesPerUserToday.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic p-3 text-center">Sin datos de recepción hoy</p>
+                ) : (
+                  salesPerUserToday.map(u => (
+                    <div 
+                      key={u.id}
+                      onClick={() => setUserFilter(userFilter === u.id ? 'all' : u.id)}
+                      className={cn(
+                        "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 group",
+                        userFilter === u.id 
+                          ? "bg-emerald-500/15 border-emerald-500/40 shadow-lg shadow-emerald-500/10" 
+                          : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
+                          {u.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{u.name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{u.email}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                              {u.role}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">{u.count} {u.count === 1 ? 'estancia' : 'estancias'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-white italic tracking-tight font-mono">
+                          ₡{u.totalSales.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+
+            {/* Panel 2: Estadísticas e Indicadores (Habitaciones Más Solicitadas + Volumen) */}
             <Card className="bg-slate-950/40 backdrop-blur-3xl border-white/10 shadow-2xl rounded-[2.5rem] p-6 space-y-6 border-t-white/20">
               {/* Habitaciones Más Solicitadas */}
               <div className="space-y-4">
@@ -368,64 +428,6 @@ export default function DashboardRoomsPage() {
                     </Button>
                     <EditRoomTopButton rooms={rooms || []} />
                     <AddRoomButton />
-                  </div>
-                </div>
-
-                {/* Resumen de Ventas por Recepción (Solo Roles Administrador y Recepción) */}
-                <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-black uppercase italic tracking-tight text-white">Ventas por Recepción</h3>
-                        <p className="text-[10px] font-medium text-slate-400">Registrado por (Hoy) • Administración y Recepción</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                      Hoy
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {salesPerUserToday.length === 0 ? (
-                      <p className="text-xs text-slate-500 italic p-3 col-span-full">Sin datos de recepción hoy</p>
-                    ) : (
-                      salesPerUserToday.map(u => (
-                        <div 
-                          key={u.id}
-                          onClick={() => setUserFilter(userFilter === u.id ? 'all' : u.id)}
-                          className={cn(
-                            "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 group",
-                            userFilter === u.id 
-                              ? "bg-emerald-500/15 border-emerald-500/40 shadow-lg shadow-emerald-500/10" 
-                              : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
-                              {u.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-white truncate">{u.name}</p>
-                              <p className="text-[10px] text-slate-400 font-mono truncate">{u.email}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                                  {u.role}
-                                </span>
-                                <span className="text-[10px] text-slate-500 font-medium">{u.count} {u.count === 1 ? 'estancia' : 'estancias'}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-xs font-black text-white italic tracking-tight font-mono">
-                              ₡{u.totalSales.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
                   </div>
                 </div>
 

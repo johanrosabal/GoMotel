@@ -26,6 +26,7 @@ import { register } from '@/lib/actions/auth.actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirebase } from '@/firebase';
 import { getSystemSettings } from '@/lib/actions/system.actions';
+import { verifyCedulaTSE } from '@/lib/actions/client.actions';
 import { Progress } from '@/components/ui/progress';
 
 const registerSchema = z.object({
@@ -137,49 +138,25 @@ export default function RegisterPage() {
     const idCard = form.getValues('idCard');
     const cleanId = idCard.replace(/\D/g, '');
 
-    if (cleanId.length < 9) {
-      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 9 dígitos de la cédula.', variant: 'destructive' });
+    if (cleanId.length < 8) {
+      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 8-9 dígitos de la cédula.', variant: 'destructive' });
       return;
     }
 
     setIsVerifying(true);
     try {
-      const settings = await getSystemSettings();
-      const domain = settings.verificationApiDomain || 'api-krdy3op4ma-uc.a.run.app';
-      const response = await fetch(`https://${domain}/verify?cedula=${cleanId}`);
-      const data = await response.json();
-
-      if (data['person-found']) {
-        const parts = data.name.trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 3) {
-          const secondLastName = parts.pop() || '';
-          const lastName = parts.pop() || '';
-          const firstName = parts.join(' ');
-          form.setValue('firstName', toTitleCase(firstName));
-          form.setValue('lastName', toTitleCase(lastName));
-          form.setValue('secondLastName', toTitleCase(secondLastName));
-        } else if (parts.length === 2) {
-          form.setValue('firstName', toTitleCase(parts[0]));
-          form.setValue('lastName', toTitleCase(parts[1]));
-        } else {
-          form.setValue('firstName', toTitleCase(parts[0]));
-        }
-
-        if (data['birth-date']) {
-          const [d, m, y] = data['birth-date'].split('/');
-          setBirthDay(String(parseInt(d, 10)));
-          setBirthMonth(String(parseInt(m, 10)));
-          setBirthYear(String(parseInt(y, 10)));
-        }
-
+      const result = await verifyCedulaTSE(cleanId);
+      if (result.success && result.fullName) {
+        form.setValue('firstName', result.firstName || '');
+        form.setValue('lastName', result.lastName || '');
+        form.setValue('secondLastName', result.secondLastName || '');
         setIsValidated(true);
-        toast({ title: 'Persona Encontrada', description: `¡Hola ${data.name}! La información ha sido cargada.` });
+        toast({ title: 'Cédula Verificada', description: `Identificado: ${result.fullName}` });
       } else {
-        setIsValidated(false);
-        toast({ title: 'No encontrado', description: 'No se encontró información para esta cédula.', variant: 'destructive' });
+        toast({ title: 'Verificación', description: result.error || 'No se encontró la cédula.', variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Error de Conexión', description: 'No se pudo conectar con el servicio de verificación.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Error al consultar el servicio del Registro Civil.', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }

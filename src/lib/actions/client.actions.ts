@@ -160,4 +160,35 @@ export async function checkClientByIdCard(idCard: string): Promise<any | null> {
     }
 }
 
+export async function verifyCedulaTSE(idCard: string): Promise<{
+  success: boolean;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  secondLastName?: string;
+  error?: string;
+}> {
+  const cleanId = idCard.replace(/\D/g, '');
+  if (cleanId.length < 8) {
+    return { success: false, error: 'Por favor ingrese al menos 8-9 dígitos de la cédula.' };
+  }
+
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const response = await fetch(`${origin}/api/verify-cedula?cedula=${cleanId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (err: any) {
+    console.error('Error in verifyCedulaTSE:', err);
+    return { success: false, error: err.message || 'Error de conexión con la verificación de cédula.' };
+  }
+}
+
     

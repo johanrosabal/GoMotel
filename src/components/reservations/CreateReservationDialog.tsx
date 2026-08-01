@@ -32,6 +32,7 @@ import InvoiceSuccessDialog from './InvoiceSuccessDialog';
 import ReservationSuccessDialog from './ReservationSuccessDialog';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import AddClientDialog from '@/components/clients/AddClientDialog';
+import { verifyCedulaTSE } from '@/lib/actions/client.actions';
 
 
 
@@ -252,30 +253,67 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         const cleanId = guestIdCardValue.replace(/\D/g, '');
         if (cleanId.length < 5) return;
 
-        const toTitleCase = (str: string) => str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
         const formatIdCard = (value: string) => {
             if (value.length > 5) return `${value.slice(0, 1)}-${value.slice(1, 5)}-${value.slice(5)}`;
             if (value.length > 1) return `${value.slice(0, 1)}-${value.slice(1)}`;
             return value;
         };
 
-        // 1. Check local DB
-        const existingClient = clients?.find(c => c.idCard.replace(/\D/g, '') === cleanId);
-        if (existingClient) {
-            form.setValue('guestName', `${existingClient.firstName} ${existingClient.lastName}`);
-            form.setValue('guestId', existingClient.id);
-            setShowSuggestions(false);
-            toast({ title: 'Cliente encontrado', description: `${existingClient.firstName} ${existingClient.lastName} seleccionado.` });
-            return;
-        }
+        setIsVerifying(true);
+        setVerificationError(null);
+        try {
+            // 1. Check local DB
+            const existingClient = clients?.find(c => c.idCard.replace(/\D/g, '') === cleanId);
+            if (existingClient) {
+                form.setValue('guestName', `${existingClient.firstName} ${existingClient.lastName}`);
+                form.setValue('guestId', existingClient.id);
+                setShowSuggestions(false);
+                toast({ title: 'Cliente encontrado', description: `${existingClient.firstName} ${existingClient.lastName} seleccionado.` });
+                setIsVerifying(false);
+                return;
+            }
 
-        // Si no se encuentra en Firebase, en lugar de llamar a la API externa, forzamos registro manual
-        toast({ title: 'Cliente no encontrado', description: 'Por favor, ingrese los datos manualmente.', variant: 'default' });
-        setVerificationError('No se encontró información para esta cédula en la base de datos.');
-        setForeignerId(formatIdCard(cleanId));
-        setForeignerIsNational(true);
-        setShowAddForeignerModal(true);
-        setIsVerifying(false);
+            // 2. Query TSE API (apifycr)
+            const result = await verifyCedulaTSE(cleanId);
+            if (result.success && result.fullName) {
+                form.setValue('guestName', result.fullName);
+                setShowSuggestions(false);
+                toast({ title: 'Cédula Verificada', description: `Huésped: ${result.fullName}` });
+
+                // Save client automatically for future visits
+                if (firestore) {
+                    try {
+                        const newClientData = {
+                            firstName: result.firstName || '',
+                            lastName: result.lastName || '',
+                            secondLastName: result.secondLastName || '',
+                            idCard: formatIdCard(cleanId),
+                            isValidated: true,
+                            createdAt: Timestamp.now(),
+                            visitCount: 0,
+                            isVip: false,
+                            isBlacklisted: false,
+                            isForeigner: false,
+                        };
+                        const clientDocRef = await addDoc(collection(firestore, 'clients'), newClientData);
+                        form.setValue('guestId', clientDocRef.id);
+                    } catch (e) {
+                        console.error('Error auto-saving client:', e);
+                    }
+                }
+            } else {
+                toast({ title: 'Verificación', description: result.error || 'Por favor, ingrese los datos manualmente.', variant: 'default' });
+                setVerificationError(result.error || 'No se encontró información para esta cédula.');
+                setForeignerId(formatIdCard(cleanId));
+                setForeignerIsNational(true);
+                setShowAddForeignerModal(true);
+            }
+        } catch (error) {
+            console.error('Error during client verification:', error);
+            toast({ title: 'Error', description: 'Error al conectar con el servicio de verificación.', variant: 'destructive' });
+        } finally {
+            setIsVerifying(false);
+        }
     };
 
 

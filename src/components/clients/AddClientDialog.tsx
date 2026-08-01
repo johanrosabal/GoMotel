@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types';
-import { checkClientByIdCard } from '@/lib/actions/client.actions';
+import { checkClientByIdCard, verifyCedulaTSE } from '@/lib/actions/client.actions';
 import { useFirebase } from '@/firebase';
 import { doc, updateDoc, addDoc, collection, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Textarea } from '../ui/textarea';
@@ -241,8 +241,8 @@ export default function AddClientDialog({ children, client, open: controlledOpen
     const idCard = form.getValues('idCard');
     const cleanId = idCard.replace(/\D/g, '');
 
-    if (cleanId.length < 9) {
-      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 9 dígitos de la cédula.', variant: 'destructive' });
+    if (cleanId.length < 8) {
+      toast({ title: 'Cédula incompleta', description: 'Por favor ingrese los 8-9 dígitos de la cédula.', variant: 'destructive' });
       return;
     }
 
@@ -257,12 +257,21 @@ export default function AddClientDialog({ children, client, open: controlledOpen
         return;
       }
 
-      // 2. Si no existe, se le indica al usuario que lo agregue manualmente
-      form.setValue('isValidated', false);
-      toast({ title: 'Cliente no encontrado', description: 'No se encontró en la base de datos. Por favor ingrese los datos manualmente.', variant: 'default' });
+      // 2. Query TSE API (apifycr)
+      const result = await verifyCedulaTSE(cleanId);
+      if (result.success && result.fullName) {
+        form.setValue('firstName', result.firstName || '');
+        form.setValue('lastName', result.lastName || '');
+        form.setValue('secondLastName', result.secondLastName || '');
+        form.setValue('isValidated', true);
+        toast({ title: 'Cédula Verificada', description: `Identificado: ${result.fullName}` });
+      } else {
+        form.setValue('isValidated', false);
+        toast({ title: 'Verificación', description: result.error || 'No se encontró la cédula. Ingrese los datos manualmente.', variant: 'default' });
+      }
 
     } catch (error) {
-      toast({ title: 'Error', description: 'Error al verificar la cédula en la base de datos.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Error al verificar la cédula en el servicio.', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }
