@@ -5,12 +5,12 @@ import { collection, query, orderBy } from "firebase/firestore";
 import type { Stay } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import StaysTable from "./StaysTable";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, CalendarDays, Search, Filter, Trophy, Clock, CheckCircle2, FileText, LineChart } from "lucide-react";
+import { Calendar, CalendarDays, Search, Filter, Trophy, Clock, CheckCircle2, FileText, LineChart, Loader2, DollarSign } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -25,6 +25,7 @@ type StatusFilter = 'all' | 'active' | 'completed';
 
 export default function StaysReportPage() {
     const { firestore } = useFirebase();
+    const [isPending, startTransition] = useTransition();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [roomFilter, setRoomFilter] = useState<string>('all');
@@ -39,6 +40,31 @@ export default function StaysReportPage() {
     }, [firestore]);
 
     const { data: stays, isLoading } = useCollection<Stay>(staysQuery);
+
+    const handleDaysRangeChange = (d: number | 'month') => {
+        startTransition(() => {
+            setDaysRange(d);
+            setCustomDateRange(undefined);
+        });
+    };
+
+    const handleCustomDateRangeChange = (range: DateRange | undefined) => {
+        startTransition(() => {
+            setCustomDateRange(range);
+        });
+    };
+
+    const handleStatusFilterChange = (val: StatusFilter) => {
+        startTransition(() => {
+            setStatusFilter(val);
+        });
+    };
+
+    const handleRoomFilterChange = (val: string) => {
+        startTransition(() => {
+            setRoomFilter(val);
+        });
+    };
 
     const uniqueRooms = useMemo(() => {
         if (!stays) return [];
@@ -115,10 +141,14 @@ export default function StaysReportPage() {
     }, [filteredStays]);
 
     const stats = useMemo(() => {
+        const paidStays = filteredStays.filter(s => s.isPaid);
+        const totalRevenue = paidStays.reduce((sum, s) => sum + (s.total || 0), 0);
         return {
             total: filteredStays.length,
             completed: filteredStays.filter(s => !!s.checkOut).length,
-            active: filteredStays.filter(s => !s.checkOut).length
+            active: filteredStays.filter(s => !s.checkOut).length,
+            paidCount: paidStays.length,
+            totalRevenue
         };
     }, [filteredStays]);
 
@@ -229,6 +259,29 @@ export default function StaysReportPage() {
 
     return (
         <div className="space-y-8">
+            {/* Barra de progreso / Estado de consulta */}
+            {(isLoading || isPending || isExporting) && (
+                <div className="w-full bg-slate-900/60 backdrop-blur-xl border border-primary/30 p-4 rounded-2xl shadow-xl shadow-black/40 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 font-bold text-primary">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            {isExporting 
+                                ? "Generando documento PDF de reporte de estancias..." 
+                                : isLoading 
+                                ? "Consultando historial de estancias en tiempo real..." 
+                                : "Procesando y filtrando registros..."}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-2.5 py-1 rounded-full border border-primary/30 animate-pulse">
+                            {isExporting ? "Exportando PDF" : "Consultando"}
+                        </span>
+                    </div>
+                    {/* Barra de progreso animada */}
+                    <div className="h-2 w-full bg-slate-950/80 rounded-full overflow-hidden relative border border-white/5">
+                        <div className="h-full bg-gradient-to-r from-primary via-cyan-400 to-primary rounded-full animate-pulse w-full" />
+                    </div>
+                </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex flex-col lg:flex-row justify-between gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5 backdrop-blur-md">
                 {/* Search and Status */}
@@ -244,7 +297,7 @@ export default function StaysReportPage() {
                     </div>
                     <div className="relative">
                         <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                        <Select value={statusFilter} onValueChange={(value) => handleStatusFilterChange(value as any)}>
                             <SelectTrigger className="pl-10 h-11 w-[180px] bg-black/40 border-white/5 rounded-xl text-sm focus:ring-primary/20">
                                 <SelectValue placeholder="Estado" />
                             </SelectTrigger>
@@ -257,7 +310,7 @@ export default function StaysReportPage() {
                     </div>
                     <div className="relative">
                         <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Select value={roomFilter} onValueChange={setRoomFilter}>
+                        <Select value={roomFilter} onValueChange={handleRoomFilterChange}>
                             <SelectTrigger className="pl-10 h-11 w-[180px] bg-black/40 border-white/5 rounded-xl text-sm focus:ring-primary/20">
                                 <SelectValue placeholder="Habitación" />
                             </SelectTrigger>
@@ -278,10 +331,7 @@ export default function StaysReportPage() {
                             key={d}
                             variant={daysRange === d && !customDateRange ? 'secondary' : 'ghost'}
                             size="sm"
-                            onClick={() => {
-                                setDaysRange(d);
-                                setCustomDateRange(undefined);
-                            }}
+                            onClick={() => handleDaysRangeChange(d)}
                             className={cn(
                                 "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
                                 daysRange === d && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
@@ -294,10 +344,7 @@ export default function StaysReportPage() {
                     <Button
                         variant={daysRange === 'month' && !customDateRange ? 'secondary' : 'ghost'}
                         size="sm"
-                        onClick={() => {
-                            setDaysRange('month');
-                            setCustomDateRange(undefined);
-                        }}
+                        onClick={() => handleDaysRangeChange('month')}
                         className={cn(
                             "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
                             daysRange === 'month' && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
@@ -333,7 +380,7 @@ export default function StaysReportPage() {
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-6">
-                                <SimpleDateRangeSelector date={customDateRange} setDate={setCustomDateRange} />
+                                <SimpleDateRangeSelector date={customDateRange} setDate={handleCustomDateRangeChange} />
                             </div>
                         </DialogContent>
                     </Dialog>
@@ -351,11 +398,11 @@ export default function StaysReportPage() {
             </div>
 
             {/* Stats and Ranking Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Ranking Card */}
                 <div className="lg:col-span-2 relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-                    <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500">
+                    <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 h-full flex flex-col justify-between">
                         <CardHeader className="pb-3 relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
@@ -367,8 +414,8 @@ export default function StaysReportPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="relative z-10 pt-2">
-                            <div className="space-y-4">
+                        <CardContent className="relative z-10 pt-2 flex-1">
+                            <div className="space-y-3">
                                 {roomRanking.length > 0 ? (
                                     roomRanking.map(([room, count], index) => (
                                         <div key={room} className="flex items-center justify-between bg-white/[0.02] p-3 rounded-xl border border-white/5 hover:bg-white/[0.05] transition-all">
@@ -402,59 +449,63 @@ export default function StaysReportPage() {
                     </Card>
                 </div>
 
-                {/* Total Stays */}
+                {/* Total Facturado */}
                 <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
                     <Card className="relative bg-black/40 backdrop-blur-2xl border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 h-full flex flex-col justify-between">
                         <CardHeader className="pb-3 relative z-10">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.1)]">
-                                    <FileText className="h-5 w-5" />
+                                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                                    <DollarSign className="h-5 w-5" />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Volumen Total</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Total Facturado</span>
                             </div>
                         </CardHeader>
                         <CardContent className="relative z-10 pb-8 flex-1 flex flex-col justify-end">
-                            <div className="text-6xl font-black tracking-tighter mb-2 font-mono bg-gradient-to-br from-white via-white to-primary/60 bg-clip-text text-transparent">
-                                {stats.total}
+                            <div className="text-4xl font-black tracking-tight mb-2 text-white">
+                                {formatCurrency(stats.totalRevenue)}
                             </div>
-                            <div className="flex items-center gap-2 text-primary/60">
-                                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                                <p className="text-[10px] font-bold uppercase tracking-widest">Estancias registradas</p>
+                            <div className="flex items-center gap-2 text-emerald-400/80">
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <p className="text-[10px] font-bold uppercase tracking-widest">{stats.paidCount} pagadas</p>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Stays Breakdowns */}
+                {/* Total Stays & Breakdown */}
                 <div className="flex flex-col gap-4">
-                    {/* Activas */}
-                    <Card className="bg-black/40 backdrop-blur-2xl border-white/5 rounded-3xl overflow-hidden p-5 flex-1 flex flex-col justify-between hover:border-emerald-500/30 transition-all duration-500">
+                    {/* Volumen Total */}
+                    <Card className="bg-black/40 backdrop-blur-2xl border-white/5 rounded-3xl overflow-hidden p-4 flex-1 flex flex-col justify-between hover:border-primary/30 transition-all duration-500">
                         <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Activas</p>
-                                <div className="text-3xl font-black font-mono text-white mt-1">{stats.active}</div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Volumen Total</p>
+                                <div className="text-3xl font-black font-mono text-white mt-1">{stats.total}</div>
                             </div>
-                            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                <Clock className="h-4 w-4" />
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                                <FileText className="h-4 w-4" />
                             </div>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-2">En curso actualmente</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">Estancias registradas</p>
                     </Card>
 
-                    {/* Completadas */}
-                    <Card className="bg-black/40 backdrop-blur-2xl border-white/5 rounded-3xl overflow-hidden p-5 flex-1 flex flex-col justify-between hover:border-blue-500/30 transition-all duration-500">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">Completadas</p>
-                                <div className="text-3xl font-black font-mono text-white mt-1">{stats.completed}</div>
+                    {/* Activas y Completadas */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <Card className="bg-black/40 backdrop-blur-2xl border-white/5 rounded-2xl p-3 flex flex-col justify-between hover:border-emerald-500/30 transition-all">
+                            <div className="flex justify-between items-center">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500">Activas</p>
+                                <Clock className="h-3 w-3 text-emerald-500" />
                             </div>
-                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                <CheckCircle2 className="h-4 w-4" />
+                            <div className="text-2xl font-black font-mono text-white mt-1">{stats.active}</div>
+                        </Card>
+                        <Card className="bg-black/40 backdrop-blur-2xl border-white/5 rounded-2xl p-3 flex flex-col justify-between hover:border-blue-500/30 transition-all">
+                            <div className="flex justify-between items-center">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500">Completas</p>
+                                <CheckCircle2 className="h-3 w-3 text-blue-500" />
                             </div>
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-2">Finalizadas con éxito</p>
-                    </Card>
+                            <div className="text-2xl font-black font-mono text-white mt-1">{stats.completed}</div>
+                        </Card>
+                    </div>
                 </div>
             </div>
 

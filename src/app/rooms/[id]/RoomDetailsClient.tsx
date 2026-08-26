@@ -27,6 +27,7 @@ import { es } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import ExtendStayDialog from '@/components/room-detail/ExtendStayDialog'
+import EditPlanDialog from '@/components/room-detail/EditPlanDialog'
 import ReassignRoomDialog from '@/components/room-detail/ReassignRoomDialog'
 import { Progress } from '@/components/ui/progress'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -223,6 +224,14 @@ export default function RoomDetailsClient() {
         }
     }, [stay, room?.status]);
 
+    const isWithin10Minutes = useMemo(() => {
+        if (!stay || room?.status !== 'Occupied') return false;
+        const checkInTime = stay.checkIn?.toDate ? stay.checkIn.toDate() : (stay.checkIn?.seconds ? new Date((stay.checkIn as any).seconds * 1000) : null);
+        if (!checkInTime) return false;
+        const elapsedMinutes = (new Date().getTime() - checkInTime.getTime()) / (1000 * 60);
+        return elapsedMinutes <= 10;
+    }, [stay, room?.status]);
+
     useEffect(() => {
         if (stay && room?.status === 'Occupied') {
             const calculateProgress = () => {
@@ -367,6 +376,14 @@ export default function RoomDetailsClient() {
                                 <AlertTriangle className="mr-2 h-5 w-5" /> Generar Multa
                             </Button>
                         </GenerateFineDialog>
+
+                        {isWithin10Minutes && stay && (
+                            <EditPlanDialog room={room} stay={stay} onSuccess={handleInvoiceSuccess}>
+                                <Button variant="outline" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-black transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                    <Clock className="mr-2 h-5 w-5" /> Editar Plan (10 min)
+                                </Button>
+                            </EditPlanDialog>
+                        )}
 
                         {isOverdue && stay && (
                             <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>

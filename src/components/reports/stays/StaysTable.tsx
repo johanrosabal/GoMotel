@@ -8,10 +8,10 @@ import { es } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, CheckCircle2, Trash2 } from 'lucide-react';
+import { Eye, Clock, CheckCircle2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useFirebase } from '@/firebase';
 import { doc, deleteDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
@@ -21,10 +21,22 @@ export default function StaysTable({ stays }: { stays: Stay[] }) {
     const [selectedStay, setSelectedStay] = useState<Stay | null>(null);
     const [stayToDelete, setStayToDelete] = useState<Stay | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 25;
     
     const { userProfile } = useUserProfile();
     const { firestore } = useFirebase();
     const { toast } = useToast();
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [stays.length]);
+
+    const totalPages = Math.ceil(stays.length / pageSize) || 1;
+    const paginatedStays = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return stays.slice(start, start + pageSize);
+    }, [stays, currentPage, pageSize]);
 
     const handleDeleteStay = async () => {
         if (!stayToDelete || !firestore) return;
@@ -91,15 +103,15 @@ export default function StaysTable({ stays }: { stays: Stay[] }) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {stays.map(stay => (
+                    {paginatedStays.map(stay => (
                         <TableRow key={stay.id} className="border-white/5 hover:bg-white/[0.02] transition-colors">
                             <TableCell className="font-bold text-white py-4">{stay.guestName}</TableCell>
                             <TableCell className="font-mono text-slate-300">{stay.roomNumber}</TableCell>
                             <TableCell className="text-slate-300 text-sm">
-                                {format(stay.checkIn.toDate(), "dd MMM, h:mm a", { locale: es })}
+                                {stay.checkIn?.toDate ? format(stay.checkIn.toDate(), "dd MMM, h:mm a", { locale: es }) : 'N/D'}
                             </TableCell>
                             <TableCell className="text-slate-300 text-sm">
-                                {stay.checkOut ? format(stay.checkOut.toDate(), "dd MMM, h:mm a", { locale: es }) : (
+                                {stay.checkOut?.toDate ? format(stay.checkOut.toDate(), "dd MMM, h:mm a", { locale: es }) : (
                                     <span className="text-slate-600 font-medium">En curso...</span>
                                 )}
                             </TableCell>
@@ -142,6 +154,40 @@ export default function StaysTable({ stays }: { stays: Stay[] }) {
                     ))}
                 </TableBody>
             </Table>
+
+            {/* Paginación */}
+            {stays.length > 25 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-white/5 bg-black/40">
+                    <div className="text-xs font-medium text-slate-400">
+                        Mostrando <span className="font-bold text-white">{(currentPage - 1) * pageSize + 1}</span> a{' '}
+                        <span className="font-bold text-white">{Math.min(currentPage * pageSize, stays.length)}</span> de{' '}
+                        <span className="font-bold text-white">{stays.length}</span> estancias
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                        </Button>
+                        <span className="text-xs font-bold text-slate-400 px-2">
+                            Página <span className="text-white font-black">{currentPage}</span> de <span className="text-white font-black">{totalPages}</span>
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                            className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                            Siguiente <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Dialog open={!!selectedStay} onOpenChange={(open) => !open && setSelectedStay(null)}>
                 <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2rem]">

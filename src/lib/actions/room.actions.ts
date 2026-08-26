@@ -597,13 +597,90 @@ export async function deleteRoom(roomId: string) {
       return { error: 'No se puede eliminar una habitación que no está disponible (ej. si está ocupada, en limpieza o mantenimiento).' };
     }
 
-    await deleteDoc(roomRef);
+    // Check if there are active checked-in reservations
+    const reservationsRef = collection(db, 'reservations');
+    const checkedInQuery = query(reservationsRef, where('roomId', '==', roomId), where('status', '==', 'Checked-in'));
+    const checkedInSnap = await getDocs(checkedInQuery);
+    if (!checkedInSnap.empty) {
+      return { error: 'No se puede eliminar la habitación porque tiene una estancia activa. Debe realizar el check-out primero.' };
+    }
+
+    const batch = writeBatch(db);
+
+    // Cancel any future confirmed reservations for this room
+    const confirmedQuery = query(reservationsRef, where('roomId', '==', roomId), where('status', '==', 'Confirmed'));
+    const confirmedSnap = await getDocs(confirmedQuery);
+    confirmedSnap.forEach((docSnap) => {
+      batch.update(docSnap.ref, {
+        status: 'Cancelled',
+        cancellationReason: 'Habitación eliminada del sistema',
+        cancelledAt: Timestamp.now(),
+      });
+    });
+
+    // Cancel any pending orders associated with this room
+    const ordersRef = collection(db, 'orders');
+    const pendingOrdersQuery = query(ordersRef, where('roomId', '==', roomId), where('status', '==', 'Pendiente'));
+    const pendingOrdersSnap = await getDocs(pendingOrdersQuery);
+    pendingOrdersSnap.forEach((orderSnap) => {
+      batch.update(orderSnap.ref, {
+        status: 'Cancelado',
+        cancelReason: 'Habitación eliminada del sistema',
+      });
+    });
+
+    // Delete the room document
+    batch.delete(roomRef);
+    await batch.commit();
+
     revalidatePath('/');
     revalidatePath('/dashboard/rooms');
     return { success: true };
   } catch (error: any) {
     console.error('Failed to delete room:', error);
     return { error: error.message || 'No se pudo eliminar la habitación.' };
+  }
+}
+
+/**
+ * Utility to scan and cancel orphaned reservations whose room no longer exists in the 'rooms' collection.
+ */
+export async function cleanupOrphanedReservations() {
+  try {
+    const roomsSnap = await getDocs(collection(db, 'rooms'));
+    const existingRoomIds = new Set(roomsSnap.docs.map(d => d.id));
+
+    const reservationsQuery = query(
+      collection(db, 'reservations'),
+      where('status', 'in', ['Checked-in', 'Confirmed'])
+    );
+    const reservationsSnap = await getDocs(reservationsQuery);
+
+    let cleanedCount = 0;
+    const batch = writeBatch(db);
+
+    reservationsSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (!data.roomId || !existingRoomIds.has(data.roomId)) {
+        batch.update(docSnap.ref, {
+          status: 'Cancelled',
+          cancellationReason: 'Habitación eliminada o no encontrada (limpieza de registros huérfanos)',
+          cancelledAt: Timestamp.now(),
+        });
+        cleanedCount++;
+      }
+    });
+
+    if (cleanedCount > 0) {
+      await batch.commit();
+      revalidatePath('/reservations');
+      revalidatePath('/');
+    }
+
+    return { success: true, cleanedCount };
+  } catch (error: any) {
+    console.error('Failed to cleanup orphaned reservations:', error);
+    return { error: error.message || 'Error al limpiar reservaciones huérfanas.' };
   }
 }
 
@@ -881,5 +958,85 @@ export async function reassignRoom(stayId: string, currentRoomId: string, target
   } catch (error: any) {
     console.error('Reassignment failed:', error);
     return { error: error.message || 'Ocurrió un error inesperado al reasignar la habitación.' };
+  }
+}
+
+const updateStayPlanSchema = z.object({
+  stayId: z.string().min(1, 'El ID de estancia es requerido.'),
+  newPlanName: z.string().min(1, 'Debe seleccionar un plan de estancia.'),
+  paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']),
+  paymentConfirmed: z.boolean().optional(),
+  voucherNumber: z.string().optional().nullable(),
+  paymentAmount: z.number().optional(),
+});
+
+export async function updateStayPlan(values: z.infer<typeof updateStayPlanSchema>) {
+  const validated = updateStayPlanSchema.safeParse(values);
+  if (!validated.success) {
+    return { error: 'Datos de actualización inválidos.' };
+  }
+
+  const { stayId, newPlanName, paymentMethod, voucherNumber, paymentAmount } = validated.data;
+
+  try {
+    const stayRef = doc(db, 'stays', stayId);
+    const staySnap = await getDoc(stayRef);
+    if (!staySnap.exists()) {
+      return { error: 'Estancia no encontrada.' };
+    }
+    const stayData = staySnap.data() as Stay;
+
+    // Check 10-minute limit from original checkIn
+    const checkInDate = stayData.checkIn?.toDate ? stayData.checkIn.toDate() : new Date((stayData.checkIn as any).seconds * 1000);
+    const elapsedMinutes = (new Date().getTime() - checkInDate.getTime()) / (1000 * 60);
+    if (elapsedMinutes > 10) {
+      return { error: 'El tiempo máximo para editar el plan de estancia (10 minutos) ha expirado.' };
+    }
+
+    const roomSnap = await getDoc(doc(db, 'rooms', stayData.roomId));
+    if (!roomSnap.exists()) {
+      return { error: 'Habitación no encontrada.' };
+    }
+    const roomData = roomSnap.data() as Room;
+
+    const roomTypeSnap = await getDoc(doc(db, 'roomTypes', roomData.roomTypeId));
+    if (!roomTypeSnap.exists()) {
+      return { error: 'Tipo de habitación no encontrado.' };
+    }
+    const roomTypeData = roomTypeSnap.data() as RoomType;
+
+    const newPlan = roomTypeData.pricePlans?.find(p => p.name === newPlanName);
+    if (!newPlan) {
+      return { error: 'El plan de precio seleccionado no es válido.' };
+    }
+
+    // Recalculate expectedCheckOut from original checkIn timestamp
+    let newExpectedCheckOut = new Date(checkInDate);
+    switch (newPlan.unit) {
+      case 'Minutes': newExpectedCheckOut = addMinutes(checkInDate, newPlan.duration); break;
+      case 'Hours': newExpectedCheckOut = addHours(checkInDate, newPlan.duration); break;
+      case 'Days': newExpectedCheckOut = addDays(checkInDate, newPlan.duration); break;
+      case 'Weeks': newExpectedCheckOut = addWeeks(checkInDate, newPlan.duration); break;
+      case 'Months': newExpectedCheckOut = addMonths(checkInDate, newPlan.duration); break;
+    }
+
+    // Update stay document in Firestore
+    await updateDoc(stayRef, {
+      pricePlanName: newPlan.name,
+      pricePlanAmount: newPlan.price,
+      total: newPlan.price,
+      expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
+      paymentMethod,
+      paymentAmount: paymentAmount || newPlan.price,
+      voucherNumber: voucherNumber || null,
+    });
+
+    revalidatePath(`/rooms/${stayData.roomId}`);
+    revalidatePath('/dashboard/rooms');
+
+    return { success: true, newCheckOut: newExpectedCheckOut };
+  } catch (error: any) {
+    console.error('Error updating stay plan:', error);
+    return { error: error.message || 'Error al actualizar el plan de estancia.' };
   }
 }

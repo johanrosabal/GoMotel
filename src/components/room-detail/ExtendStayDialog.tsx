@@ -161,6 +161,16 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
 
     const onSubmit = (values: z.infer<typeof extendStaySchema>) => {
         if (!stay) return;
+        if (values.payNow && values.paymentMethod === 'Efectivo') {
+            if (!cashTendered || numericCashTendered <= 0) {
+                toast({ title: 'Monto en efectivo requerido', description: 'Debe ingresar el monto recibido en efectivo.', variant: 'destructive' });
+                return;
+            }
+            if (selectedPlan && numericCashTendered < selectedPlan.price) {
+                toast({ title: 'Monto insuficiente', description: `El monto ingresado (${formatCurrency(numericCashTendered)}) es menor al precio (${formatCurrency(selectedPlan.price)}).`, variant: 'destructive' });
+                return;
+            }
+        }
         startTransition(async () => {
             const result = await extendStay({
                 stayId: stay.id,

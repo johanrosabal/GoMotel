@@ -45,10 +45,12 @@ import {
   Mail,
   GraduationCap,
   Utensils,
-  AlertTriangle
+  AlertTriangle,
+  Inbox,
+  MessageSquareWarning
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import type { CompanyProfile, UserRole, Room, Service } from '@/types';
+import type { CompanyProfile, UserRole, Room, Service, FeedbackTicket } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
@@ -70,6 +72,7 @@ const HOTEL_ESSENTIAL_PATHS = [
   '/finance/payments',
   '/reports',
   '/inventory',
+  '/dashboard/feedback',
 ];
 
 const BAR_ESSENTIAL_PATHS = [
@@ -113,12 +116,13 @@ export default function DashboardPage() {
   const { data: company } = useDoc<CompanyProfile>(companyRef);
 
   const [activeNotifications, setActiveNotifications] = useState<AppNotification[]>([]);
-  const [dashboardMode, setDashboardMode] = useState<'all' | 'hotel' | 'bar'>('all');
+  const [dashboardMode, setDashboardMode] = useState<'all' | 'hotel' | 'bar'>('hotel');
 
   useEffect(() => {
     async function fetchNotifs() {
       const notifs = await getActiveNotifications('Internal');
-      setActiveNotifications(notifs);
+      // Filter out feedback notifications from raw system banner
+      setActiveNotifications(notifs.filter(n => !(n as any).feedbackId));
     }
     fetchNotifs();
   }, []);
@@ -134,6 +138,14 @@ export default function DashboardPage() {
 
   const barInvoicesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'invoices'), where('createdAt', '>=', Timestamp.fromDate(startOfDay))) : null, [firestore, startOfDay]);
   const { data: dayInvoices } = useCollection<any>(barInvoicesQuery);
+
+  const feedbackQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'feedbackTickets')) : null, [firestore]);
+  const { data: feedbackTickets } = useCollection<FeedbackTicket>(feedbackQuery);
+
+  const unreviewedFeedbackCount = useMemo(() => {
+    if (!feedbackTickets) return 0;
+    return feedbackTickets.filter(t => t.status === 'Pendiente').length;
+  }, [feedbackTickets]);
 
   if (isProfileLoading || isLoadingRooms || isLoadingServices) {
     return (
@@ -200,6 +212,15 @@ export default function DashboardPage() {
       description: 'Artículos por debajo del punto de reorden.',
       icon: TriangleAlert,
       visible: ['Administrador', 'Contador'].includes(userRole),
+    },
+    {
+      title: 'Quejas sin Revisar',
+      value: unreviewedFeedbackCount,
+      description: unreviewedFeedbackCount === 0 ? 'Sin solicitudes pendientes.' : `${unreviewedFeedbackCount} solicitudes pendientes de atención.`,
+      icon: MessageSquareWarning,
+      href: '/dashboard/feedback',
+      badge: unreviewedFeedbackCount > 0 ? `${unreviewedFeedbackCount} PENDIENTES` : undefined,
+      visible: userRole === 'Administrador',
     },
   ];
 
@@ -420,6 +441,14 @@ export default function DashboardPage() {
           description: 'Administre el contenido educativo del centro de aprendizaje.',
           icon: GraduationCap,
         },
+        {
+          href: '/dashboard/feedback',
+          title: 'Buzón de Quejas y Sugerencias',
+          description: unreviewedFeedbackCount > 0 ? `${unreviewedFeedbackCount} queja(s) sin revisar.` : 'Gestione las quejas o recomendaciones de mejora enviadas por clientes.',
+          icon: Inbox,
+          badge: unreviewedFeedbackCount > 0 ? `${unreviewedFeedbackCount} PENDIENTES` : undefined,
+          roles: ['Administrador'],
+        },
       ],
     },
      {
@@ -563,22 +592,37 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {kpiData.filter(kpi => kpi.visible).map((kpi, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {kpi.title}
-              </CardTitle>
-              <kpi.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {kpi.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {kpiData.filter(kpi => kpi.visible).map((kpi, index) => {
+          const cardContent = (
+            <Card className={cn("transition-all hover:scale-[1.02]", (kpi as any).href && "cursor-pointer hover:border-primary/50")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  {kpi.title}
+                  {(kpi as any).badge && (
+                    <Badge variant="destructive" className="text-[9px] font-black uppercase px-2 py-0.5 animate-pulse">
+                      {(kpi as any).badge}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <kpi.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{kpi.value}</div>
+                <p className="text-xs text-muted-foreground">
+                  {kpi.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+
+          return (kpi as any).href ? (
+            <Link key={index} href={(kpi as any).href}>
+              {cardContent}
+            </Link>
+          ) : (
+            <div key={index}>{cardContent}</div>
+          );
+        })}
       </div>
 
       {/* Navigation Sections */}

@@ -22,7 +22,7 @@ import EditRoomTopButton from '@/components/dashboard/EditRoomTopButton';
 
 export default function DashboardRoomsPage() {
   const { firestore } = useFirebase();
-  const { user, userProfile } = useUser();
+  const { user } = useUser();
   
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -31,19 +31,33 @@ export default function DashboardRoomsPage() {
   
   const { data: rooms, isLoading: loading } = useCollection<Room>(roomsQuery);
 
-  const startOfDay = useMemo(() => {
+  const [shiftFilter, setShiftFilter] = useState('current');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [userFilter, setUserFilter] = useState('all');
+
+  const queryStartDate = useMemo(() => {
+    if (shiftFilter === 'custom' && customStartDate) {
+      const parsedStart = new Date(customStartDate);
+      if (!isNaN(parsedStart.getTime())) {
+        const startOfCustom = new Date(parsedStart);
+        startOfCustom.setHours(0, 0, 0, 0);
+        return startOfCustom;
+      }
+    }
     const d = new Date();
+    d.setDate(d.getDate() - 2);
     d.setHours(0, 0, 0, 0);
     return d;
-  }, []);
+  }, [shiftFilter, customStartDate]);
 
   const invoicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'invoices'),
-      where('createdAt', '>=', Timestamp.fromDate(startOfDay))
+      where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
     );
-  }, [firestore, startOfDay]);
+  }, [firestore, queryStartDate]);
 
   const { data: dailyInvoices } = useCollection<any>(invoicesQuery);
 
@@ -51,9 +65,9 @@ export default function DashboardRoomsPage() {
     if (!firestore) return null;
     return query(
       collection(firestore, 'stays'),
-      where('checkIn', '>=', Timestamp.fromDate(startOfDay))
+      where('checkIn', '>=', Timestamp.fromDate(queryStartDate))
     );
-  }, [firestore, startOfDay]);
+  }, [firestore, queryStartDate]);
 
   const { data: dailyStays } = useCollection<Stay>(staysQuery);
 
@@ -68,8 +82,138 @@ export default function DashboardRoomsPage() {
 
   const { data: systemUsers } = useCollection<any>(usersQuery);
 
-  const [shiftFilter, setShiftFilter] = useState('all');
-  const [userFilter, setUserFilter] = useState('all');
+  useEffect(() => {
+    if (shiftFilter === 'custom' && !customStartDate && !customEndDate) {
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const formatDT = (d: Date) => {
+        const pad = (n: number) => n < 10 ? '0' + n : n;
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+
+      setCustomStartDate(formatDT(yesterday));
+      setCustomEndDate(formatDT(now));
+    }
+  }, [shiftFilter, customStartDate, customEndDate]);
+
+  // Helper to compute exact shift start and end dates
+  const getShiftTimeRange = (filter: string) => {
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    if (filter === 'current') {
+      if (currentHour < 6) {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(18, 0, 0, 0);
+        const end = new Date(now);
+        end.setHours(6, 0, 0, 0);
+        return { start, end, label: 'Turno Actual (Noche 6PM-6AM)', badge: 'Turno Actual' };
+      }
+      if (currentHour >= 18) {
+        const start = new Date(now);
+        start.setHours(18, 0, 0, 0);
+        const end = new Date(now);
+        end.setDate(end.getDate() + 1);
+        end.setHours(6, 0, 0, 0);
+        return { start, end, label: 'Turno Actual (Noche 6PM-6AM)', badge: 'Turno Actual' };
+      }
+      const start = new Date(now);
+      start.setHours(6, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(18, 0, 0, 0);
+      return { start, end, label: 'Turno Actual (Día 6AM-6PM)', badge: 'Turno Actual' };
+    }
+
+    if (filter === 'night') {
+      if (currentHour < 6) {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(18, 0, 0, 0);
+        const end = new Date(now);
+        end.setHours(6, 0, 0, 0);
+        return { start, end, label: 'Turno Noche (6PM-6AM)', badge: 'Noche' };
+      } else {
+        const start = new Date(now);
+        start.setHours(18, 0, 0, 0);
+        const end = new Date(now);
+        end.setDate(end.getDate() + 1);
+        end.setHours(6, 0, 0, 0);
+        return { start, end, label: 'Turno Noche (6PM-6AM)', badge: 'Noche' };
+      }
+    }
+
+    if (filter === 'day') {
+      if (currentHour < 6) {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(6, 0, 0, 0);
+        const end = new Date(now);
+        end.setDate(end.getDate() - 1);
+        end.setHours(18, 0, 0, 0);
+        return { start, end, label: 'Turno Día (6AM-6PM)', badge: 'Día' };
+      } else {
+        const start = new Date(now);
+        start.setHours(6, 0, 0, 0);
+        const end = new Date(now);
+        end.setHours(18, 0, 0, 0);
+        return { start, end, label: 'Turno Día (6AM-6PM)', badge: 'Día' };
+      }
+    }
+
+    if (filter === 'today') {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+      return { start, end, label: 'Hoy (Calendar)', badge: 'Hoy' };
+    }
+
+    if (filter === 'yesterday') {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setDate(end.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+      return { start, end, label: 'Ayer (Calendar)', badge: 'Ayer' };
+    }
+
+    if (filter === 'custom') {
+      const start = customStartDate ? new Date(customStartDate) : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const end = customEndDate ? new Date(customEndDate) : new Date();
+
+      const validStart = isNaN(start.getTime()) ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : start;
+      const validEnd = isNaN(end.getTime()) ? new Date() : end;
+
+      return {
+        start: validStart,
+        end: validEnd,
+        label: 'Rango Personalizado',
+        badge: 'Personalizado'
+      };
+    }
+
+    // 'all' -> Last 24 Hours
+    const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    return { start, end, label: 'Últimas 24 Horas', badge: '24h' };
+  };
+
+  const activeShiftRange = useMemo(() => {
+    return getShiftTimeRange(shiftFilter);
+  }, [shiftFilter]);
+
+  const filteredStaysByShift = useMemo(() => {
+    if (!dailyStays) return [];
+    return dailyStays.filter((stay: any) => {
+      if (!stay.checkIn) return false;
+      const checkInDate = stay.checkIn.toDate ? stay.checkIn.toDate() : new Date(stay.checkIn);
+      return checkInDate >= activeShiftRange.start && checkInDate <= activeShiftRange.end;
+    });
+  }, [dailyStays, activeShiftRange]);
 
   // Build clean users list strictly from systemUsers (users collection)
   const uniqueUsers = useMemo(() => {
@@ -93,22 +237,12 @@ export default function DashboardRoomsPage() {
   }, [systemUsers]);
 
   const totalSalesToday = useMemo(() => {
-    if (!dailyStays) return 0;
+    if (!filteredStaysByShift) return 0;
 
     const selectedUser = userFilter !== 'all' ? uniqueUsers.find(u => u.id === userFilter || u.name === userFilter || u.email === userFilter) : null;
 
-    return dailyStays
+    return filteredStaysByShift
       .filter((stay: any) => {
-        if (shiftFilter !== 'all') {
-          const date = stay.checkIn?.toDate ? stay.checkIn.toDate() : new Date(stay.checkIn);
-          const hour = date.getHours();
-          if (shiftFilter === 'day') {
-            if (hour < 6 || hour >= 18) return false;
-          } else if (shiftFilter === 'night') {
-            if (hour >= 6 && hour < 18) return false;
-          }
-        }
-        
         if (selectedUser) {
           const creatorEmail = (stay.createdByEmail || '').trim().toLowerCase();
           const creatorName = (stay.createdBy || '').trim().toLowerCase();
@@ -128,9 +262,9 @@ export default function DashboardRoomsPage() {
         return true;
       })
       .reduce((acc: number, stay: any) => acc + (stay.pricePlanAmount || stay.total || stay.paymentAmount || 0), 0);
-  }, [dailyStays, shiftFilter, userFilter, uniqueUsers]);
+  }, [filteredStaysByShift, userFilter, uniqueUsers]);
 
-  // 1. Calculate Sales & Stays per User/Registrar for today using dailyStays
+  // 1. Calculate Sales & Stays per User/Registrar for selected shift using filteredStaysByShift
   const salesPerUserToday = useMemo(() => {
     const userSalesMap = new Map<string, { id: string; name: string; email: string; role: string; totalSales: number; count: number }>();
 
@@ -145,8 +279,8 @@ export default function DashboardRoomsPage() {
       });
     });
 
-    if (dailyStays) {
-      dailyStays.forEach((stay: any) => {
+    if (filteredStaysByShift) {
+      filteredStaysByShift.forEach((stay: any) => {
         const regName = (stay.createdBy || '').trim();
         const regEmail = (stay.createdByEmail || '').trim().toLowerCase();
         const amount = stay.pricePlanAmount || stay.total || stay.paymentAmount || 0;
@@ -198,13 +332,13 @@ export default function DashboardRoomsPage() {
     return Array.from(userSalesMap.values())
       .filter(u => ALLOWED_ROLES.includes((u.role || '').trim().toLowerCase()) && (u.totalSales > 0 || u.count > 0))
       .sort((a, b) => b.totalSales - a.totalSales);
-  }, [dailyStays, uniqueUsers]);
+  }, [filteredStaysByShift, uniqueUsers]);
 
-  // 2. Top Requested Rooms Today
+  // 2. Top Requested Rooms for selected shift
   const topRoomsToday = useMemo(() => {
-    if (!dailyStays) return [];
+    if (!filteredStaysByShift) return [];
     const counts: { [roomNumber: string]: number } = {};
-    dailyStays.forEach(stay => {
+    filteredStaysByShift.forEach(stay => {
       if (stay.roomNumber) {
         counts[stay.roomNumber] = (counts[stay.roomNumber] || 0) + 1;
       }
@@ -213,16 +347,16 @@ export default function DashboardRoomsPage() {
       .map(([roomNumber, count]) => ({ roomNumber, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
-  }, [dailyStays]);
+  }, [filteredStaysByShift]);
 
-  // 3. Stays Volume & Breakdown Today
+  // 3. Stays Volume & Breakdown for selected shift
   const staysVolumeToday = useMemo(() => {
-    if (!dailyStays) return { total: 0, active: 0, completed: 0 };
-    const total = dailyStays.length;
-    const active = dailyStays.filter(s => !s.checkOut).length;
-    const completed = dailyStays.filter(s => !!s.checkOut).length;
+    if (!filteredStaysByShift) return { total: 0, active: 0, completed: 0 };
+    const total = filteredStaysByShift.length;
+    const active = filteredStaysByShift.filter(s => !s.checkOut).length;
+    const completed = filteredStaysByShift.filter(s => !!s.checkOut).length;
     return { total, active, completed };
-  }, [dailyStays]);
+  }, [filteredStaysByShift]);
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-neutral-950 overflow-hidden">
@@ -297,17 +431,17 @@ export default function DashboardRoomsPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black uppercase italic tracking-tight text-white">Ventas por Recepción</h3>
-                    <p className="text-[10px] font-medium text-slate-400">Registrado por (Hoy)</p>
+                    <p className="text-[10px] font-medium text-slate-400">Registrado por ({activeShiftRange.badge})</p>
                   </div>
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                  Hoy
+                  {activeShiftRange.badge}
                 </span>
               </div>
 
               <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                 {salesPerUserToday.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic p-3 text-center">Sin datos de recepción hoy</p>
+                  <p className="text-xs text-slate-500 italic p-3 text-center">Sin datos de recepción en este turno</p>
                 ) : (
                   salesPerUserToday.map(u => (
                     <div 
@@ -362,7 +496,7 @@ export default function DashboardRoomsPage() {
 
                 <div className="space-y-2">
                   {topRoomsToday.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic p-3 text-center">Sin estancias registradas hoy</p>
+                    <p className="text-xs text-slate-500 italic p-3 text-center">Sin estancias registradas en este turno</p>
                   ) : (
                     topRoomsToday.map((r, idx) => (
                       <div key={r.roomNumber} className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
@@ -388,7 +522,7 @@ export default function DashboardRoomsPage() {
               <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Hoy</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Turno</span>
                     <FileText className="h-4 w-4 text-purple-400" />
                   </div>
                   <p className="text-2xl font-black text-white italic font-mono">{staysVolumeToday.total}</p>
@@ -435,15 +569,42 @@ export default function DashboardRoomsPage() {
                 <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/5 mt-4">
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Filtrar Ventas:</span>
                   <Select value={shiftFilter} onValueChange={setShiftFilter}>
-                    <SelectTrigger className="h-9 text-xs bg-white/5 border-white/10 text-white rounded-xl font-bold w-[140px]">
+                    <SelectTrigger className="h-9 text-xs bg-white/5 border-white/10 text-white rounded-xl font-bold w-[210px]">
                       <SelectValue placeholder="Turno" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todo el día</SelectItem>
-                      <SelectItem value="day">Día (6AM-6PM)</SelectItem>
-                      <SelectItem value="night">Noche (6PM-6AM)</SelectItem>
+                      <SelectItem value="current">Turno Actual (Auto)</SelectItem>
+                      <SelectItem value="night">Noche (6PM - 6AM)</SelectItem>
+                      <SelectItem value="day">Día (6AM - 6PM)</SelectItem>
+                      <SelectItem value="today">Hoy (00:00 - 23:59)</SelectItem>
+                      <SelectItem value="yesterday">Ayer (00:00 - 23:59)</SelectItem>
+                      <SelectItem value="all">Últimas 24 Horas</SelectItem>
+                      <SelectItem value="custom">Rango Personalizado...</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {shiftFilter === 'custom' && (
+                    <div className="flex flex-wrap items-center gap-2 bg-slate-900/80 p-1.5 px-3 rounded-2xl border border-white/10 backdrop-blur-md">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400">Desde:</span>
+                        <input
+                          type="datetime-local"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="h-8 text-xs bg-black/50 border border-white/15 text-white px-2 rounded-xl focus:outline-none focus:border-primary font-mono"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400">Hasta:</span>
+                        <input
+                          type="datetime-local"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="h-8 text-xs bg-black/50 border border-white/15 text-white px-2 rounded-xl focus:outline-none focus:border-primary font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <Select value={userFilter} onValueChange={setUserFilter}>
                     <SelectTrigger className="h-9 text-xs bg-white/5 border-white/10 text-white rounded-xl font-bold w-[180px]">

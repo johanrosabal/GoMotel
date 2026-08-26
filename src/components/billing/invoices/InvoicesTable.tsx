@@ -9,10 +9,10 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
     MoreHorizontal, Eye, Printer, FileDown, 
-    ReceiptText, ChevronRight, X, Mail, Loader2, CheckCircle2
+    ReceiptText, ChevronRight, ChevronLeft, X, Mail, Loader2, CheckCircle2
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import InvoiceTemplate from './InvoiceTemplate';
@@ -31,6 +31,7 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 function ActionsMenu({ invoice }: { invoice: Invoice }) {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const ticketRef = useRef<HTMLDivElement>(null);
+    const [activeTemplate, setActiveTemplate] = useState<'invoice' | 'ticket' | 'download' | null>(null);
     const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
     const [showEmailDialog, setShowEmailDialog] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -63,109 +64,137 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
     }, [showEmailDialog, invoice.clientId]);
 
     const handlePrintInvoice = () => {
-        const input = invoiceRef.current;
-        if (!input) return;
-        
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
+        setActiveTemplate('invoice');
+        setTimeout(() => {
+            const input = invoiceRef.current;
+            if (!input) {
+                setActiveTemplate(null);
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                setActiveTemplate(null);
+                return;
+            }
 
-        const styles = Array.from(document.styleSheets)
-            .map(styleSheet => {
-                try {
-                    return Array.from(styleSheet.cssRules)
-                        .map(rule => rule.cssText)
-                        .join('');
-                } catch (e) {
-                    return '';
-                }
-            })
-            .join('');
+            const styles = Array.from(document.styleSheets)
+                .map(styleSheet => {
+                    try {
+                        return Array.from(styleSheet.cssRules)
+                            .map(rule => rule.cssText)
+                            .join('');
+                    } catch (e) {
+                        return '';
+                    }
+                })
+                .join('');
 
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Factura ${invoice.invoiceNumber}</title>
-                    <style>${styles}</style>
-                    <style>
-                        @page { size: auto; margin: 0mm; }
-                        body { margin: 1cm; background: white !important; }
-                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    </style>
-                </head>
-                <body>
-                    ${input.innerHTML}
-                    <script>
-                        window.onload = () => {
-                            setTimeout(() => {
-                                window.print();
-                                window.close();
-                            }, 500);
-                        };
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Factura ${invoice.invoiceNumber}</title>
+                        <style>${styles}</style>
+                        <style>
+                            @page { size: auto; margin: 0mm; }
+                            body { margin: 1cm; background: white !important; }
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        </style>
+                    </head>
+                    <body>
+                        ${input.innerHTML}
+                        <script>
+                            window.onload = () => {
+                                setTimeout(() => {
+                                    window.print();
+                                    window.close();
+                                }, 500);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setActiveTemplate(null);
+        }, 100);
     };
 
     const handlePrintTicket = () => {
-        const input = ticketRef.current;
-        if (!input) return;
-        
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
+        setActiveTemplate('ticket');
+        setTimeout(() => {
+            const input = ticketRef.current;
+            if (!input) {
+                setActiveTemplate(null);
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                setActiveTemplate(null);
+                return;
+            }
 
-        const styles = Array.from(document.styleSheets)
-            .map(styleSheet => {
-                try {
-                    return Array.from(styleSheet.cssRules)
-                        .map(rule => rule.cssText)
-                        .join('');
-                } catch (e) {
-                    return '';
-                }
-            })
-            .join('');
+            const styles = Array.from(document.styleSheets)
+                .map(styleSheet => {
+                    try {
+                        return Array.from(styleSheet.cssRules)
+                            .map(rule => rule.cssText)
+                            .join('');
+                    } catch (e) {
+                        return '';
+                    }
+                })
+                .join('');
 
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Ticket ${invoice.invoiceNumber}</title>
-                    <style>${styles}</style>
-                    <style>
-                        @page { size: 80mm auto; margin: 0mm; }
-                        body { margin: 0; padding: 0; background: white !important; }
-                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    </style>
-                </head>
-                <body>
-                    ${input.innerHTML}
-                    <script>
-                        window.onload = () => {
-                            setTimeout(() => {
-                                window.print();
-                                window.close();
-                            }, 500);
-                        };
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Ticket ${invoice.invoiceNumber}</title>
+                        <style>${styles}</style>
+                        <style>
+                            @page { size: 80mm auto; margin: 0mm; }
+                            body { margin: 0; padding: 0; background: white !important; }
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        </style>
+                    </head>
+                    <body>
+                        ${input.innerHTML}
+                        <script>
+                            window.onload = () => {
+                                setTimeout(() => {
+                                    window.print();
+                                    window.close();
+                                }, 500);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setActiveTemplate(null);
+        }, 100);
     };
 
     const handleDownloadPdf = () => {
-        const input = invoiceRef.current;
-        if (!input) return;
+        setActiveTemplate('download');
+        setTimeout(() => {
+            const input = invoiceRef.current;
+            if (!input) {
+                setActiveTemplate(null);
+                return;
+            }
 
-        html2canvas(input, { scale: 2 }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`factura-${invoice.invoiceNumber}.pdf`);
-        });
+            html2canvas(input, { scale: 2 }).then((canvas) => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`factura-${invoice.invoiceNumber}.pdf`);
+            }).finally(() => {
+                setActiveTemplate(null);
+            });
+        }, 100);
     };
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -353,16 +382,35 @@ function ActionsMenu({ invoice }: { invoice: Invoice }) {
                 </DialogContent>
             </Dialog>
             
-            {/* Templates ocultos para generación de PDF/Impresión */}
-            <div className="absolute -left-[9999px] top-0 pointer-events-none">
-                <InvoiceTemplate invoice={invoice} ref={invoiceRef} />
-                <PosTicketTemplate invoice={invoice} ref={ticketRef} />
-            </div>
+            {/* Template montado bajo demanda sólo al imprimir o descargar */}
+            {activeTemplate && (
+                <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                    {(activeTemplate === 'invoice' || activeTemplate === 'download') && (
+                        <InvoiceTemplate invoice={invoice} ref={invoiceRef} />
+                    )}
+                    {activeTemplate === 'ticket' && (
+                        <PosTicketTemplate invoice={invoice} ref={ticketRef} />
+                    )}
+                </div>
+            )}
         </>
     );
 }
 
 export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [invoices.length]);
+
+    const totalPages = Math.ceil(invoices.length / pageSize) || 1;
+    const paginatedInvoices = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return invoices.slice(start, start + pageSize);
+    }, [invoices, currentPage, pageSize]);
+
     if (invoices.length === 0) {
         return (
             <div className="text-center text-slate-500 py-20 bg-slate-900/20 rounded-2xl border border-white/5 border-dashed">
@@ -374,10 +422,10 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
     }
     
     return (
-        <>
+        <div className="space-y-4">
             {/* Vista para móviles (Tarjetas) */}
-            <div className="md:hidden space-y-4">
-                {invoices.map((invoice) => (
+            <div className="md:hidden space-y-4 p-4">
+                {paginatedInvoices.map((invoice) => (
                     <div key={invoice.id} className="p-5 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 space-y-4 relative transition-all hover:bg-white/10 shadow-lg shadow-black/20">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1.5">
@@ -388,7 +436,7 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                     <span className="font-black text-sm text-white uppercase tracking-tight">{invoice.clientName}</span>
                                 </div>
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
+                                    {invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es }) : 'N/D'}
                                 </p>
                                 <p className="text-xs font-bold text-slate-400">
                                     Por: {(invoice as any).createdByName || (invoice as any).createdBy || 'N/D'}
@@ -398,10 +446,10 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                 </p>
                                 <div className="flex flex-col gap-1 mt-2 p-2 bg-white/5 rounded-lg border border-white/5">
                                     <p className="text-[10px] font-bold text-slate-400">
-                                        <span className="uppercase tracking-wider">Entrada:</span> {(invoice as any).stayCheckIn ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                        <span className="uppercase tracking-wider">Entrada:</span> {(invoice as any).stayCheckIn?.toDate ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
                                     </p>
                                     <p className="text-[10px] font-bold text-slate-400">
-                                        <span className="uppercase tracking-wider">Salida:</span> {(invoice as any).stayCheckOut ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                        <span className="uppercase tracking-wider">Salida:</span> {(invoice as any).stayCheckOut?.toDate ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
                                     </p>
                                 </div>
                             </div>
@@ -420,7 +468,7 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                         "text-[10px] font-black uppercase tracking-widest h-6",
                                         invoice.status === 'Pagada' 
                                             ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
-                                            : 'bg-amber-500/20 text-amber-500 border border-amber-500/20'
+                                             : 'bg-amber-500/20 text-amber-500 border border-amber-500/20'
                                     )}
                                 >
                                     {invoice.status}
@@ -449,7 +497,7 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {invoices.map((invoice) => (
+                        {paginatedInvoices.map((invoice) => (
                             <TableRow key={invoice.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
                                 <TableCell className="h-16">
                                     <span className="font-mono text-xs font-black px-2.5 py-1 bg-white/5 rounded-lg text-white border border-white/10">
@@ -461,13 +509,13 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                                     {invoice.roomNumber ? `Habitación ${invoice.roomNumber}` : 'N/D'}
                                 </TableCell>
                                 <TableCell className="text-xs font-bold text-slate-400 h-16 whitespace-nowrap">
-                                    {(invoice as any).stayCheckIn ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                    {(invoice as any).stayCheckIn?.toDate ? format((invoice as any).stayCheckIn.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
                                 </TableCell>
                                 <TableCell className="text-xs font-bold text-slate-400 h-16 whitespace-nowrap">
-                                    {(invoice as any).stayCheckOut ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
+                                    {(invoice as any).stayCheckOut?.toDate ? format((invoice as any).stayCheckOut.toDate(), "dd MMM yy, HH:mm", { locale: es }) : 'N/D'}
                                 </TableCell>
                                 <TableCell className="text-sm font-bold text-slate-400 h-16 whitespace-nowrap">
-                                    {format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es })}
+                                    {invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), "dd MMM yyyy", { locale: es }) : 'N/D'}
                                 </TableCell>
                                 <TableCell className="font-black text-white text-base tracking-tighter h-16">
                                     {formatCurrency(invoice.total)}
@@ -496,6 +544,40 @@ export default function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                     </TableBody>
                 </Table>
             </div>
-        </>
+
+            {/* Paginación */}
+            {invoices.length > 25 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-white/5 bg-slate-950/30">
+                    <div className="text-xs font-medium text-slate-400">
+                        Mostrando <span className="font-bold text-white">{(currentPage - 1) * pageSize + 1}</span> a{' '}
+                        <span className="font-bold text-white">{Math.min(currentPage * pageSize, invoices.length)}</span> de{' '}
+                        <span className="font-bold text-white">{invoices.length}</span> facturas
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                        </Button>
+                        <span className="text-xs font-bold text-slate-400 px-2">
+                            Página <span className="text-white font-black">{currentPage}</span> de <span className="text-white font-black">{totalPages}</span>
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                            className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                            Siguiente <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

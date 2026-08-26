@@ -2,7 +2,7 @@
 
 import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy as fbOrderBy } from "firebase/firestore";
-import type { Reservation, ReservationStatus } from "@/types";
+import type { Reservation, ReservationStatus, Room } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import ReservationsTable from "./ReservationsTable";
 import { Button } from "../ui/button";
@@ -40,6 +40,16 @@ export default function ReservationsClientPage() {
 
     const { data: reservations, isLoading } = useCollection<Reservation>(reservationsQuery);
 
+    const roomsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, "rooms"));
+    }, [firestore]);
+    const { data: rooms } = useCollection<Room>(roomsQuery);
+
+    const validRoomIds = useMemo(() => {
+        return new Set((rooms || []).map(r => r.id));
+    }, [rooms]);
+
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 30000);
         return () => clearInterval(timer);
@@ -55,15 +65,16 @@ export default function ReservationsClientPage() {
                 return searchMatch && statusMatch;
             })
             .map(res => {
-                const isStayOverdue = res.status === 'Checked-in' && now > res.checkOutDate.toDate();
-                const isArrivalOverdue = res.status === 'Confirmed' && now > res.checkInDate.toDate();
+                const roomExists = !rooms || validRoomIds.has(res.roomId);
+                const isStayOverdue = roomExists && res.status === 'Checked-in' && res.checkOutDate?.toDate && now > res.checkOutDate.toDate();
+                const isArrivalOverdue = roomExists && res.status === 'Confirmed' && res.checkInDate?.toDate && now > res.checkInDate.toDate();
                 return {
                     ...res,
                     isOverdue: isStayOverdue || isArrivalOverdue,
                     isArrivalOverdue,
                 };
             });
-    }, [reservations, searchTerm, statusFilter, now]);
+    }, [reservations, searchTerm, statusFilter, now, rooms, validRoomIds]);
 
     const sortedForTimeline = useMemo(() => {
         return [...processedReservations].sort((a, b) => a.checkInDate.toDate().getTime() - b.checkInDate.toDate().getTime());

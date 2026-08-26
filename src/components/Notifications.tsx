@@ -49,12 +49,21 @@ export default function Notifications() {
     return () => clearInterval(timer);
   }, []);
 
-  // Query for rooms that need cleaning
-  const cleaningRoomsQuery = useMemoFirebase(() => {
+  // Query for all rooms to validate existing rooms and cleaning status
+  const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'rooms'), where('status', '==', 'Cleaning'));
+    return query(collection(firestore, 'rooms'));
   }, [firestore]);
-  const { data: cleaningRooms, isLoading: isLoadingCleaningRooms } = useCollection<Room>(cleaningRoomsQuery);
+  const { data: allRooms, isLoading: isLoadingRooms } = useCollection<Room>(roomsQuery);
+
+  const cleaningRooms = useMemo(() => {
+    if (!allRooms) return [];
+    return allRooms.filter(room => room.status === 'Cleaning');
+  }, [allRooms]);
+
+  const validRoomIds = useMemo(() => {
+    return new Set((allRooms || []).map(r => r.id));
+  }, [allRooms]);
 
   // Query for reservations that are currently checked-in or confirmed
   const checkedInReservationsQuery = useMemoFirebase(() => {
@@ -65,13 +74,25 @@ export default function Notifications() {
 
   const overdueStays = useMemo(() => {
     if (!checkedInReservations) return [];
-    return checkedInReservations.filter(res => res.status === 'Checked-in' && res.checkOutDate.toDate() < now);
-  }, [checkedInReservations, now]);
+    return checkedInReservations.filter(res => 
+      res.status === 'Checked-in' && 
+      res.checkOutDate && 
+      typeof res.checkOutDate.toDate === 'function' && 
+      res.checkOutDate.toDate() < now &&
+      (!allRooms || validRoomIds.has(res.roomId))
+    );
+  }, [checkedInReservations, now, allRooms, validRoomIds]);
 
   const overdueArrivals = useMemo(() => {
     if (!checkedInReservations) return [];
-    return checkedInReservations.filter(res => res.status === 'Confirmed' && res.checkInDate.toDate() < now);
-  }, [checkedInReservations, now]);
+    return checkedInReservations.filter(res => 
+      res.status === 'Confirmed' && 
+      res.checkInDate && 
+      typeof res.checkInDate.toDate === 'function' && 
+      res.checkInDate.toDate() < now &&
+      (!allRooms || validRoomIds.has(res.roomId))
+    );
+  }, [checkedInReservations, now, allRooms, validRoomIds]);
 
   const overdueReservations = useMemo(() => [...overdueStays, ...overdueArrivals], [overdueStays, overdueArrivals]);
 
@@ -85,6 +106,16 @@ export default function Notifications() {
     );
   }, [firestore]);
   const { data: pendingOrders, isLoading: isLoadingPendingOrders } = useCollection<Order>(pendingOrdersQuery);
+
+  const validPendingOrders = useMemo(() => {
+    if (!pendingOrders) return [];
+    return pendingOrders.filter(order => {
+      if (order.locationType === 'Stay' && allRooms && order.roomId) {
+        return validRoomIds.has(order.roomId);
+      }
+      return true;
+    });
+  }, [pendingOrders, allRooms, validRoomIds]);
 
   // Query for requested bills from rooms
   const requestedBillsQuery = useMemoFirebase(() => {
@@ -104,28 +135,32 @@ export default function Notifications() {
     if (!requestedBills) return [];
     const unique = new Map<string, Order>();
     requestedBills.forEach(o => {
+      if (o.locationType === 'Stay' && allRooms) {
+        const roomId = o.roomId || o.locationId;
+        if (roomId && !validRoomIds.has(roomId)) return;
+      }
       // Use locationId (which is the stayId or tableId) as the key
       if (!unique.has(o.locationId)) {
         unique.set(o.locationId, o);
       }
     });
     return Array.from(unique.values());
-  }, [requestedBills]);
+  }, [requestedBills, allRooms, validRoomIds]);
 
   // Trigger sound/pulse when a NEW room service order arrives
   useEffect(() => {
-    if (pendingOrders && pendingOrders.length > prevOrdersCount.current) {
+    if (validPendingOrders && validPendingOrders.length > prevOrdersCount.current) {
       if (!isAlertDisabled) {
         playNotificationSound('digital');
         setIsVisualPulseActive(true);
         setTimeout(() => setIsVisualPulseActive(false), 1000);
       }
     }
-    prevOrdersCount.current = pendingOrders?.length || 0;
-  }, [pendingOrders?.length, isAlertDisabled]);
+    prevOrdersCount.current = validPendingOrders?.length || 0;
+  }, [validPendingOrders?.length, isAlertDisabled]);
 
-  const totalNotifications = (overdueStays.length || 0) + (overdueArrivals.length || 0) + (cleaningRooms?.length || 0) + (pendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
-  const isLoading = isLoadingCleaningRooms || isLoadingCheckedIn || isLoadingPendingOrders || isLoadingRequestedBills;
+  const totalNotifications = (overdueStays.length || 0) + (overdueArrivals.length || 0) + (cleaningRooms?.length || 0) + (validPendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
+  const isLoading = isLoadingRooms || isLoadingCheckedIn || isLoadingPendingOrders || isLoadingRequestedBills;
 
   // --- START: Alarm Logic ---
   useEffect(() => {
@@ -254,14 +289,14 @@ export default function Notifications() {
                     </div>
                   </div>
                 )}
-                {pendingOrders && pendingOrders.length > 0 && (
+                {validPendingOrders && validPendingOrders.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-blue-400 flex items-center gap-2">
                       <Soup className="h-4 w-4" />
-                      Pedidos de Habitación ({pendingOrders.length})
+                      Pedidos de Habitación ({validPendingOrders.length})
                     </p>
                     <div className="space-y-2">
-                      {pendingOrders.map(order => (
+                      {validPendingOrders.map(order => (
                         <div key={order.id} className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-all group/order">
                           <Link 
                             href={order.locationType === 'Stay' ? `/rooms/${order.roomId || order.locationId}` : `/pos?tableId=${order.locationId}`} 

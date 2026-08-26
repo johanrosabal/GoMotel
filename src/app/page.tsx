@@ -37,6 +37,7 @@ import {
   Loader2
 } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
+import FeedbackSection from '@/components/home/FeedbackSection';
 import { Button } from '@/components/ui/button';
 import { ReservationModal } from '@/components/ReservationModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -944,6 +945,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Quejas o Mejoras de Servicio */}
+        <FeedbackSection />
       </main>
 
       {/* Footer */}
@@ -987,6 +991,7 @@ export default function LandingPage() {
               <li><Link href="/" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-3-link">Inicio</Link></li>
               <li><Link href="#features" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-features-link">Habitaciones</Link></li>
               <li><Link href="#gallery" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-gallery-link">Galería</Link></li>
+              <li><Link href="/feedback" className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors">Quejas o Sugerencias</Link></li>
               <li><Link href={user ? "/dashboard" : "/login"} className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors" data-testid="app-action-link">{user ? "Dashboard" : "Personal"}</Link></li>
             </ul>
           </div>

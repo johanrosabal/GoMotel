@@ -85,6 +85,7 @@ const reservationSchema = z.object({
 export default function CreateReservationDialog({ children, initialRoomId, isWalkIn = false }: CreateReservationDialogProps) {
     const [open, setOpen] = useState(false);
     const [stableNow, setStableNow] = useState(new Date());
+    const [cashError, setCashError] = useState<string | null>(null);
 
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -406,16 +407,20 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     }, [checkInDateValue, selectedPlanName, JSON.stringify(availablePlans), checkInNow, stableNow]);
 
     useEffect(() => {
+        if (selectedPlan && checkInNow && !form.getValues('paymentMethod')) {
+            form.setValue('paymentMethod', 'Efectivo');
+        }
         if (selectedPlan?.unit === 'Months' && form.getValues('paymentMethod') !== 'Efectivo') {
             form.setValue('paymentMethod', 'Efectivo');
             setCashTendered('');
             form.setValue('voucherNumber', null);
             form.setValue('paymentConfirmed', false);
         }
-    }, [selectedPlan, form]);
+    }, [selectedPlan, checkInNow, form]);
 
     const handleCashTenderedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\D/g, '');
+        setCashError(null);
         setCashTendered(rawValue === '' ? '' : new Intl.NumberFormat('en-US').format(Number(rawValue)));
     };
 
@@ -426,6 +431,20 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
         if (!calculatedCheckOut) {
             toast({ title: "Error", description: "Fecha de salida no válida.", variant: "destructive" });
             return;
+        }
+
+        if (values.checkInNow && !values.isOpenAccount && values.paymentMethod === 'Efectivo') {
+            const planPrice = selectedPlan?.perPerson ? selectedPlan.price * guestCount : (selectedPlan?.price || 0);
+            if (!cashTendered || numericCashTendered <= 0) {
+                setCashError("Debe ingresar el monto recibido en efectivo.");
+                toast({ title: "Monto en efectivo requerido", description: "Debe ingresar el monto recibido en efectivo.", variant: "destructive" });
+                return;
+            }
+            if (numericCashTendered < planPrice) {
+                setCashError(`El monto debe ser igual o mayor a ${formatCurrency(planPrice)}.`);
+                toast({ title: "Monto insuficiente", description: `El monto recibido (${formatCurrency(numericCashTendered)}) es menor al total (${formatCurrency(planPrice)}).`, variant: "destructive" });
+                return;
+            }
         }
 
         const finalCheckInDate = values.checkInNow ? new Date() : values.checkInDate;
@@ -765,7 +784,12 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                 render={({ field }) => (
                                                     <FormItem className="mb-4">
                                                         <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Plan de Estancia</FormLabel>
-                                                        <Select onValueChange={(value) => field.onChange(value)} value={field.value} disabled={isLoading || availablePlans.length === 0}>
+                                                        <Select onValueChange={(value) => {
+                                                            field.onChange(value);
+                                                            if (!form.getValues('paymentMethod')) {
+                                                                form.setValue('paymentMethod', 'Efectivo');
+                                                            }
+                                                        }} value={field.value} disabled={isLoading || availablePlans.length === 0}>
                                                             <FormControl>
                                                                 <SelectTrigger className="h-12 text-lg" id="createreservationdialog-selecttrigger-2" data-testid="createreservationdialog-plan-select">
                                                                     <SelectValue placeholder="Seleccione plan de tiempo" />
@@ -831,8 +855,9 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                                                       key={method.value}
                                                                                       type="button"
                                                                                       variant={field.value === method.value ? 'default' : 'outline'} disabled={selectedPlan?.unit === 'Months' && method.value !== 'Efectivo'} onClick={() => {
-                                                                                           field.onChange(method.value);
-                                                                                           if (method.value === "Efectivo") {
+                                                                                            field.onChange(method.value);
+                                                                                            setCashError(null);
+                                                                                            if (method.value === "Efectivo") {
                                                                                                form.setValue("voucherNumber", null);
                                                                                                form.setValue("paymentConfirmed", false);
                                                                                            } else if (method.value === "Tarjeta") {
@@ -901,13 +926,40 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                                                                  />
                                                              )}
                                                              {paymentMethod === 'Efectivo' && (
-                                                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                                                                     <FormItem><FormLabel className="text-xs font-bold">Paga con</FormLabel><FormControl><Input type="text" inputMode="numeric" value={cashTendered} onChange={handleCashTenderedChange} className="text-right h-11" id="createreservationdialog-input-2" data-testid="createreservationdialog-cash-tendered-input" /></FormControl></FormItem>
-                                                                     {numericCashTendered >= (selectedPlan?.perPerson ? selectedPlan.price * guestCount : (selectedPlan?.price || 0)) && (
-                                                                         <div className="text-right"><span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span><p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.perPerson ? selectedPlan.price * guestCount : (selectedPlan?.price || 0)))}</p></div>
-                                                                     )}
-                                                                 </div>
-                                                             )}
+                                                                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+                                                                      <FormItem>
+                                                                          <FormLabel className={cn("text-xs font-bold", cashError && "text-rose-400")}>
+                                                                              Paga con *
+                                                                          </FormLabel>
+                                                                          <FormControl>
+                                                                              <Input 
+                                                                                  type="text" 
+                                                                                  inputMode="numeric" 
+                                                                                  value={cashTendered} 
+                                                                                  onChange={handleCashTenderedChange} 
+                                                                                  placeholder="Monto recibido"
+                                                                                  className={cn(
+                                                                                      "text-right h-11 transition-all",
+                                                                                      cashError && "border-rose-500 focus-visible:ring-rose-500 ring-2 ring-rose-500/50 bg-rose-500/10 text-rose-200"
+                                                                                  )} 
+                                                                                  id="createreservationdialog-input-2" 
+                                                                                  data-testid="createreservationdialog-cash-tendered-input" 
+                                                                              />
+                                                                          </FormControl>
+                                                                          {cashError && (
+                                                                              <p className="text-[11px] font-bold text-rose-400 mt-1 flex items-center gap-1">
+                                                                                  <span>⚠</span> {cashError}
+                                                                              </p>
+                                                                          )}
+                                                                      </FormItem>
+                                                                      {numericCashTendered >= (selectedPlan?.perPerson ? selectedPlan.price * guestCount : (selectedPlan?.price || 0)) && (
+                                                                          <div className="text-right">
+                                                                              <span className="text-[10px] font-black uppercase text-muted-foreground">Vuelto</span>
+                                                                              <p className="text-xl font-black text-primary">{formatCurrency(numericCashTendered - (selectedPlan?.perPerson ? selectedPlan.price * guestCount : (selectedPlan?.price || 0)))}</p>
+                                                                          </div>
+                                                                      )}
+                                                                  </div>
+                                                              )}
                                                          </div>
                                                      )}
                                                  </>

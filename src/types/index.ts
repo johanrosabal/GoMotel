@@ -480,3 +480,18 @@ export interface Tutorial {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
 }
+
+export interface FeedbackTicket {
+  id: string;
+  type: 'Queja' | 'Mejora de Servicio';
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  subject?: string | null;
+  details: string;
+  status: 'Pendiente' | 'Revisado' | 'Resuelto';
+  createdAt: any;
+  reviewedBy?: string | null;
+  reviewedAt?: any;
+}
+
