@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { 
     Wallet, 
     Smartphone, 
@@ -9,6 +9,7 @@ import {
     ArrowRightLeft, 
     TrendingUp, 
     ChevronRight,
+    ChevronLeft,
     Search,
     Filter,
     ArrowUpRight,
@@ -16,7 +17,8 @@ import {
     Calendar,
     Download,
     PieChart,
-    FileText
+    FileText,
+    Loader2
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -46,11 +48,13 @@ export default function PaymentsFinanceClient() {
     const { userProfile } = useUserProfile();
     const isAdmin = userProfile?.role === 'Administrador';
 
+    const [isPending, startTransition] = useTransition();
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [newEfectivo, setNewEfectivo] = useState<string>('');
     const [newSinpe, setNewSinpe] = useState<string>('');
     const [newTarjeta, setNewTarjeta] = useState<string>('');
     const [isSavingReset, setIsSavingReset] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
@@ -58,6 +62,33 @@ export default function PaymentsFinanceClient() {
     const [searchTerm, setSearchTerm] = useState('');
     const [methodFilter, setMethodFilter] = useState<PaymentMethod | 'all'>('all');
     const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 25;
+
+    const handleDaysRangeChange = (d: number | 'month') => {
+        startTransition(() => {
+            setDaysRange(d);
+            setCustomDateRange(undefined);
+        });
+    };
+
+    const handleCustomDateRangeChange = (range: DateRange | undefined) => {
+        startTransition(() => {
+            setCustomDateRange(range);
+        });
+    };
+
+    const handleMethodFilterChange = (m: PaymentMethod | 'all') => {
+        startTransition(() => {
+            setMethodFilter(m);
+        });
+    };
+
+    const handleSearchChange = (val: string) => {
+        startTransition(() => {
+            setSearchTerm(val);
+        });
+    };
 
     useEffect(() => {
         async function loadStats() {
@@ -120,6 +151,16 @@ export default function PaymentsFinanceClient() {
         return result;
     }, [filteredInvoices]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filteredInvoices.length]);
+
+    const totalPages = Math.ceil(filteredInvoices.length / pageSize) || 1;
+    const paginatedInvoices = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredInvoices.slice(start, start + pageSize);
+    }, [filteredInvoices, currentPage, pageSize]);
+
     const handleSaveReset = async () => {
         if (!firestore) return;
         setIsSavingReset(true);
@@ -165,7 +206,9 @@ export default function PaymentsFinanceClient() {
     };
 
     const handleExportPDF = async () => {
-        const doc = new jsPDF();
+        setIsExporting(true);
+        try {
+            const doc = new jsPDF();
         
         // Helper to format currency for PDF
         const formatPDFCurrency = (amount: number) => {
@@ -336,6 +379,11 @@ export default function PaymentsFinanceClient() {
         }
 
         doc.save(`Reporte_Finanzas_HotelDuManolo_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+        } catch (error) {
+            console.error("Error al generar PDF de pagos:", error);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     if (isLoading) {
@@ -345,8 +393,8 @@ export default function PaymentsFinanceClient() {
                     <Skeleton className="h-10 w-64 bg-white/5" />
                     <Skeleton className="h-4 w-96 bg-white/5" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {Array.from({ length: 3 }).map((_, i) => (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {Array.from({ length: 4 }).map((_, i) => (
                         <Skeleton key={i} className="h-32 w-full rounded-3xl bg-white/5" />
                     ))}
                 </div>
@@ -357,6 +405,29 @@ export default function PaymentsFinanceClient() {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Barra de progreso / Estado de consulta */}
+            {(isLoading || isPending || isExporting) && (
+                <div className="w-full bg-slate-900/60 backdrop-blur-xl border border-primary/30 p-4 rounded-2xl shadow-xl shadow-black/40 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 font-bold text-primary">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            {isExporting 
+                                ? "Generando documento PDF de conciliación de pagos..." 
+                                : isLoading 
+                                ? "Consultando flujo de caja y pagos en tiempo real..." 
+                                : "Procesando y filtrando registros..."}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-2.5 py-1 rounded-full border border-primary/30 animate-pulse">
+                            {isExporting ? "Exportando PDF" : "Consultando"}
+                        </span>
+                    </div>
+                    {/* Barra de progreso animada */}
+                    <div className="h-2 w-full bg-slate-950/80 rounded-full overflow-hidden relative border border-white/5">
+                        <div className="h-full bg-gradient-to-r from-primary via-cyan-400 to-primary rounded-full animate-pulse w-full" />
+                    </div>
+                </div>
+            )}
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-4">
@@ -380,10 +451,7 @@ export default function PaymentsFinanceClient() {
                             key={d}
                             variant={daysRange === d && !customDateRange ? 'secondary' : 'ghost'}
                             size="sm"
-                            onClick={() => {
-                                setDaysRange(d);
-                                setCustomDateRange(undefined);
-                            }}
+                            onClick={() => handleDaysRangeChange(d)}
                             className={cn(
                                 "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
                                 daysRange === d && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
@@ -396,10 +464,7 @@ export default function PaymentsFinanceClient() {
                     <Button
                         variant={daysRange === 'month' && !customDateRange ? 'secondary' : 'ghost'}
                         size="sm"
-                        onClick={() => {
-                            setDaysRange('month');
-                            setCustomDateRange(undefined);
-                        }}
+                        onClick={() => handleDaysRangeChange('month')}
                         className={cn(
                             "h-9 px-4 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all",
                             daysRange === 'month' && !customDateRange ? "bg-white/10 text-white shadow-xl" : "text-slate-500 hover:text-white"
@@ -435,7 +500,7 @@ export default function PaymentsFinanceClient() {
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-6">
-                                <SimpleDateRangeSelector date={customDateRange} setDate={setCustomDateRange} />
+                                <SimpleDateRangeSelector date={customDateRange} setDate={handleCustomDateRangeChange} />
                             </div>
                         </DialogContent>
                     </Dialog>
@@ -639,7 +704,7 @@ export default function PaymentsFinanceClient() {
                             <Input 
                                 placeholder="Buscar por cliente o factura..." 
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                                 className="pl-12 h-12 bg-white/5 border-white/10 rounded-2xl text-sm font-bold placeholder:text-slate-600 focus:ring-primary/20 focus:border-primary transition-all"
                             />
                         </div>
@@ -651,7 +716,7 @@ export default function PaymentsFinanceClient() {
                                         key={m}
                                         variant={methodFilter === m ? 'secondary' : 'ghost'}
                                         size="sm"
-                                        onClick={() => setMethodFilter(m as any)}
+                                        onClick={() => handleMethodFilterChange(m as any)}
                                         className={cn(
                                             "h-8 px-3 font-black uppercase tracking-widest text-[9px] rounded-lg transition-all",
                                             methodFilter === m ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"
@@ -664,20 +729,26 @@ export default function PaymentsFinanceClient() {
                             <Button 
                                 variant="outline" 
                                 onClick={handleExportPDF}
-                                className="h-12 px-6 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest"
+                                disabled={isExporting || filteredInvoices.length === 0}
+                                className="h-12 px-6 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all"
                             >
                                 <FileText className="mr-2 h-4 w-4 text-primary" />
-                                Exportar PDF
+                                {isExporting ? "Exportando..." : "Exportar PDF"}
                             </Button>
                         </div>
                     </div>
 
                     {/* History Table */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4">
-                            HISTORIAL DE TRANSACCIONES
-                            <span className="h-px flex-1 bg-white/5"></span>
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-4 flex-1">
+                                HISTORIAL DE TRANSACCIONES
+                                <span className="h-px flex-1 bg-white/5"></span>
+                            </h3>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-4">
+                                {filteredInvoices.length} {filteredInvoices.length === 1 ? 'registro' : 'registros'}
+                            </span>
+                        </div>
 
                         {filteredInvoices.length === 0 ? (
                             <div className="text-center py-20 bg-white/[0.02] rounded-[2rem] border border-dashed border-white/10">
@@ -689,59 +760,95 @@ export default function PaymentsFinanceClient() {
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid gap-4">
-                                {filteredInvoices.map((inv: any) => (
-                                    <div 
-                                        key={inv.id} 
-                                        className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-3xl transition-all duration-300 group relative overflow-hidden"
-                                    >
-                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        
-                                        <div className="flex items-center gap-6 relative z-10">
-                                            <div className={cn(
-                                                "p-3 rounded-2xl border shadow-sm",
-                                                inv.paymentMethod === 'Efectivo' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                                inv.paymentMethod === 'Sinpe Movil' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                                                "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                                            )}>
-                                                {inv.paymentMethod === 'Efectivo' ? <Wallet className="h-5 w-5" /> :
-                                                 inv.paymentMethod === 'Sinpe Movil' ? <Smartphone className="h-5 w-5" /> :
-                                                 <CreditCard className="h-5 w-5" />}
-                                            </div>
+                            <div className="space-y-4">
+                                <div className="grid gap-4">
+                                    {paginatedInvoices.map((inv: any) => (
+                                        <div 
+                                            key={inv.id} 
+                                            className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-3xl transition-all duration-300 group relative overflow-hidden"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-sm font-black uppercase tracking-tight text-white">{inv.clientName}</span>
-                                                    <Badge variant="outline" className="bg-white/5 border-white/10 text-[9px] font-bold text-slate-500 px-2">
-                                                        #{inv.invoiceNumber}
-                                                    </Badge>
+                                            <div className="flex items-center gap-6 relative z-10">
+                                                <div className={cn(
+                                                    "p-3 rounded-2xl border shadow-sm",
+                                                    inv.paymentMethod === 'Efectivo' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                                                    inv.paymentMethod === 'Sinpe Movil' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                                    "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                                                )}>
+                                                    {inv.paymentMethod === 'Efectivo' ? <Wallet className="h-5 w-5" /> :
+                                                     inv.paymentMethod === 'Sinpe Movil' ? <Smartphone className="h-5 w-5" /> :
+                                                     <CreditCard className="h-5 w-5" />}
                                                 </div>
-                                                <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                    <span className="flex items-center gap-1.5">
-                                                        <Calendar className="h-3 w-3" />
-                                                        {format(new Date(inv.createdAt), "d 'de' MMMM, h:mm a", { locale: es })}
-                                                    </span>
-                                                    <span className="flex items-center gap-1.5">
-                                                        <ArrowRightLeft className="h-3 w-3" />
-                                                        {inv.paymentMethod}
-                                                    </span>
+                                                
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-sm font-black uppercase tracking-tight text-white">{inv.clientName}</span>
+                                                        <Badge variant="outline" className="bg-white/5 border-white/10 text-[9px] font-bold text-slate-500 px-2">
+                                                            #{inv.invoiceNumber}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Calendar className="h-3 w-3" />
+                                                            {format(new Date(inv.createdAt), "d 'de' MMMM, h:mm a", { locale: es })}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5">
+                                                            <ArrowRightLeft className="h-3 w-3" />
+                                                            {inv.paymentMethod}
+                                                        </span>
+                                                    </div>
                                                 </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between md:justify-end gap-8 mt-4 md:mt-0 relative z-10">
+                                                <div className="text-right">
+                                                    <div className="text-xl font-black text-white group-hover:text-primary transition-colors font-mono">
+                                                        {formatCurrency(inv.total)}
+                                                    </div>
+                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em]">Total Transado</div>
+                                                </div>
+                                                <Button size="icon" variant="ghost" className="rounded-xl border border-white/5 bg-white/5 opacity-0 group-hover:opacity-100 transition-all">
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
 
-                                        <div className="flex items-center justify-between md:justify-end gap-8 mt-4 md:mt-0 relative z-10">
-                                            <div className="text-right">
-                                                <div className="text-xl font-black text-white group-hover:text-primary transition-colors font-mono">
-                                                    {formatCurrency(inv.total)}
-                                                </div>
-                                                <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em]">Total Transado</div>
-                                            </div>
-                                            <Button size="icon" variant="ghost" className="rounded-xl border border-white/5 bg-white/5 opacity-0 group-hover:opacity-100 transition-all">
-                                                <ChevronRight className="h-4 w-4" />
+                                {/* Controles de Paginación */}
+                                {filteredInvoices.length > 25 && (
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-white/5 bg-black/40 rounded-2xl mt-4">
+                                        <div className="text-xs font-medium text-slate-400">
+                                            Mostrando <span className="font-bold text-white">{(currentPage - 1) * pageSize + 1}</span> a{' '}
+                                            <span className="font-bold text-white">{Math.min(currentPage * pageSize, filteredInvoices.length)}</span> de{' '}
+                                            <span className="font-bold text-white">{filteredInvoices.length}</span> pagos
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                                            >
+                                                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                                            </Button>
+                                            <span className="text-xs font-bold text-slate-400 px-2">
+                                                Página <span className="text-white font-black">{currentPage}</span> de <span className="text-white font-black">{totalPages}</span>
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage >= totalPages}
+                                                className="h-8 px-3 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-xs font-black uppercase tracking-wider text-slate-300"
+                                            >
+                                                Siguiente <ChevronRight className="h-4 w-4 ml-1" />
                                             </Button>
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
                     </div>
