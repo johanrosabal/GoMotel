@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package, ArrowLeftRight, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package, ArrowLeftRight, ChevronRight, ChevronLeft, Tag } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUserProfile } from '@/hooks/use-user-profile'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
@@ -639,12 +639,31 @@ export default function RoomDetailsClient() {
                                                         </CollapsibleTrigger>
                                                     </div>
                                                     <CollapsibleContent>
-                                                        <ul className="mt-4 space-y-4 pl-4 sm:pl-16 pb-2 border-l-2 border-primary/20 ml-2 sm:ml-6">
+                                                        <ul className="mt-4 space-y-3 pl-4 sm:pl-16 pb-2 border-l-2 border-primary/20 ml-2 sm:ml-6">
                                                             {stay.extensionHistory.slice().reverse().map((ext, index) => (
-                                                                <li key={index} className="text-xs relative group">
-                                                                    <div className="font-bold text-slate-200">
-                                                                        {ext.planName} <span className="text-primary/70 text-[10px] ml-2">{formatCurrency(ext.planPrice)}</span>
+                                                                <li key={index} className="text-xs relative group p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
+                                                                    <div className="flex items-center justify-between font-bold text-slate-200">
+                                                                        <span>{ext.planName}</span>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            {ext.hasDiscount && ext.originalPrice && (
+                                                                                <span className="text-slate-500 line-through text-[10px]">
+                                                                                    {formatCurrency(ext.originalPrice)}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className="text-primary font-black text-xs">
+                                                                                {formatCurrency(ext.planPrice)}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
+                                                                    {ext.hasDiscount && ext.discount && ext.discount > 0 && (
+                                                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg w-fit">
+                                                                            <Tag className="w-3 h-3 text-emerald-400" />
+                                                                            <span>Descuento: -{formatCurrency(ext.discount)}</span>
+                                                                            {ext.discountReason && (
+                                                                                <span className="text-emerald-300 font-normal">({ext.discountReason})</span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                     <div className="text-[10px] text-slate-500 font-medium">
                                                                         <span>{format(ext.extendedAt.toDate(), 'dd MMM, HH:mm', { locale: es })}</span>
                                                                         <div className="mt-1 flex items-center gap-2">

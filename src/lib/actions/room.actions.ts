@@ -688,6 +688,11 @@ const extendStaySchema = z.object({
   stayId: z.string(),
   newPlanName: z.string(),
   payNow: z.boolean(),
+  applyDiscount: z.boolean().optional(),
+  customPrice: z.coerce.number().min(0, "El monto no puede ser negativo").optional(),
+  discountAmount: z.coerce.number().optional(),
+  discountReason: z.string().optional(),
+  waiveDigitalFee: z.boolean().optional(),
   paymentMethod: z.enum(['Efectivo', 'Sinpe Movil', 'Tarjeta']).optional(),
   paymentConfirmed: z.boolean().optional(),
   voucherNumber: z.string().optional().nullable(),
@@ -722,7 +727,7 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
       return { error: 'Datos de extensión inválidos.' };
     }
   
-    const { stayId, newPlanName, payNow, paymentMethod, voucherNumber } = validatedFields.data;
+    const { stayId, newPlanName, payNow, applyDiscount, customPrice, discountReason, waiveDigitalFee, paymentMethod, voucherNumber } = validatedFields.data;
   
     try {
       const batch = writeBatch(db);
@@ -764,24 +769,34 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
         case 'Weeks': newExpectedCheckOut = addWeeks(baseDate, newPlan.duration); break;
         case 'Months': newExpectedCheckOut = addMonths(baseDate, newPlan.duration); break;
       }
+
+      const isDiscountApplied = !!applyDiscount && typeof customPrice === 'number' && customPrice >= 0 && customPrice <= newPlan.price;
+      const chargedPlanPrice = isDiscountApplied ? customPrice : newPlan.price;
+      const discountVal = isDiscountApplied ? (newPlan.price - chargedPlanPrice) : 0;
+      const finalDiscountReason = isDiscountApplied && discountVal > 0 ? (discountReason || 'Descuento aplicado') : undefined;
   
       const newExtension: StayExtension = {
           extendedAt: Timestamp.now(),
           oldExpectedCheckOut: stayData.expectedCheckOut,
           newExpectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
           planName: newPlan.name,
-          planPrice: newPlan.price,
+          planPrice: chargedPlanPrice,
+          originalPrice: newPlan.price,
+          discount: discountVal,
+          discountReason: finalDiscountReason,
+          hasDiscount: isDiscountApplied && discountVal > 0,
       };
   
       const updatedStayData: Record<string, any> = {
           expectedCheckOut: Timestamp.fromDate(newExpectedCheckOut),
           renewalCount: increment(1),
           extensionHistory: [...(stayData.extensionHistory || []), newExtension],
+          pricePlanAmount: increment(chargedPlanPrice),
       };
   
       if (payNow) {
-          const extraFee = (paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') ? 2000 : 0;
-          const totalToPay = newPlan.price + extraFee;
+          const extraFee = (paymentMethod === 'Sinpe Movil' || paymentMethod === 'Tarjeta') && !waiveDigitalFee ? 2000 : 0;
+          const totalToPay = chargedPlanPrice + extraFee;
 
           const invoicesRef = collection(db, 'invoices');
           const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
@@ -801,8 +816,12 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
           const invoiceRef = doc(collection(db, 'invoices'));
           invoiceIdForReturn = invoiceRef.id;
 
+          const discountDescription = isDiscountApplied && discountVal > 0
+              ? ` [Descuento aplicado: ₡${discountVal.toLocaleString('es-CR')}${finalDiscountReason ? ` - ${finalDiscountReason}` : ''}]`
+              : '';
+
           const invoiceItems = [{
-              description: `Extensión de Estancia: ${newPlan.name} para Hab. ${roomData.number}`,
+              description: `Extensión de Estancia: ${newPlan.name} para Hab. ${roomData.number}${discountDescription}`,
               quantity: 1,
               unitPrice: totalToPay,
               total: totalToPay

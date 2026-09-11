@@ -88,6 +88,10 @@ export interface StayExtension {
   newExpectedCheckOut: Timestamp;
   planName: string;
   planPrice: number;
+  originalPrice?: number;
+  discount?: number;
+  discountReason?: string;
+  hasDiscount?: boolean;
 }
 
 export interface Stay {
