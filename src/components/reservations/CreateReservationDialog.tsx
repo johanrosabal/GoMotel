@@ -326,6 +326,7 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
     const paymentMethod = form.watch('paymentMethod');
 
     const selectedRoom = useMemo(() => rooms?.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
+    const selectedRoomType = useMemo(() => roomTypes?.find(rt => rt.id === selectedRoom?.roomTypeId), [roomTypes, selectedRoom]);
 
     // FILTRADO DE HABITACIONES: Mostrar solo disponibles
     const availableRooms = useMemo(() => {
@@ -493,9 +494,27 @@ export default function CreateReservationDialog({ children, initialRoomId, isWal
                 <DialogTrigger asChild>{children}</DialogTrigger>
                 <DialogContent className="w-[95vw] max-w-lg sm:max-w-4xl max-h-[92vh] overflow-y-auto scrollbar-hide p-0 border-none bg-background/95 backdrop-blur-xl shadow-2xl">
                     <div className="p-6">
-                        <DialogHeader className="bg-primary/5 p-6 -mx-6 -mt-6 mb-6 rounded-t-xl border-b border-primary/10">
-                            <DialogTitle className="text-2xl font-black text-primary">{isWalkIn ? 'Registro Rápido' : 'Nueva Reservación'}</DialogTitle>
-                            <DialogDescription className="text-muted-foreground">Complete los datos para confirmar la estancia.</DialogDescription>
+                        <DialogHeader className="bg-primary/5 p-6 -mx-6 -mt-6 mb-6 rounded-t-xl border-b border-primary/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <DialogTitle className="text-2xl font-black text-primary">{isWalkIn ? 'Registro Rápido' : 'Nueva Reservación'}</DialogTitle>
+                                <DialogDescription className="text-muted-foreground">Complete los datos para confirmar la estancia.</DialogDescription>
+                            </div>
+                            {selectedRoom && (
+                                <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 px-4 py-2.5 rounded-2xl shadow-inner self-start sm:self-center">
+                                    <div className="p-2 rounded-xl bg-primary/20 text-primary">
+                                        <BedDouble className="h-5 w-5" />
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80 block">Habitación</span>
+                                        <div className="flex items-baseline gap-1.5 justify-end">
+                                            <span className="text-xl font-black text-white">{selectedRoom.number}</span>
+                                            {selectedRoomType && (
+                                                <span className="text-xs font-bold text-slate-300">({selectedRoomType.name})</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </DialogHeader>
 
 

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, query, where } from 'firebase/firestore';
-import type { Room, Reservation, Order } from '@/types';
+import type { Room, Reservation, Order, Stay, UserRole } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { CalendarClock, LogIn, AlertTriangle, Ban, ChevronRight, UserX, XCircle, Loader2, Volume2, Bell, BedDouble, Sparkles, VolumeX, Soup, Receipt } from 'lucide-react';
@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { playNotificationSound } from '@/lib/sound';
 import { ToastAction } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function Notifications() {
   const { firestore } = useFirebase();
@@ -65,34 +67,40 @@ export default function Notifications() {
     return new Set((allRooms || []).map(r => r.id));
   }, [allRooms]);
 
-  // Query for reservations that are currently checked-in or confirmed
-  const checkedInReservationsQuery = useMemoFirebase(() => {
+  // Query for active stays (occupied rooms) to accurately detect overdue stays
+  const activeStaysQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'reservations'), where('status', 'in', ['Checked-in', 'Confirmed']));
+    return query(collection(firestore, 'stays'), where('checkOut', '==', null));
   }, [firestore]);
-  const { data: checkedInReservations, isLoading: isLoadingCheckedIn } = useCollection<Reservation>(checkedInReservationsQuery);
+  const { data: activeStays, isLoading: isLoadingActiveStays } = useCollection<Stay>(activeStaysQuery);
+
+  // Query for confirmed reservations that have not checked in to detect overdue arrivals
+  const confirmedReservationsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'reservations'), where('status', '==', 'Confirmed'));
+  }, [firestore]);
+  const { data: confirmedReservations, isLoading: isLoadingConfirmedReservations } = useCollection<Reservation>(confirmedReservationsQuery);
 
   const overdueStays = useMemo(() => {
-    if (!checkedInReservations) return [];
-    return checkedInReservations.filter(res => 
-      res.status === 'Checked-in' && 
-      res.checkOutDate && 
-      typeof res.checkOutDate.toDate === 'function' && 
-      res.checkOutDate.toDate() < now &&
-      (!allRooms || validRoomIds.has(res.roomId))
+    if (!activeStays) return [];
+    return activeStays.filter(stay => 
+      stay.expectedCheckOut && 
+      typeof stay.expectedCheckOut.toDate === 'function' && 
+      stay.expectedCheckOut.toDate() < now &&
+      (!allRooms || validRoomIds.has(stay.roomId))
     );
-  }, [checkedInReservations, now, allRooms, validRoomIds]);
+  }, [activeStays, now, allRooms, validRoomIds]);
 
   const overdueArrivals = useMemo(() => {
-    if (!checkedInReservations) return [];
-    return checkedInReservations.filter(res => 
+    if (!confirmedReservations) return [];
+    return confirmedReservations.filter(res => 
       res.status === 'Confirmed' && 
       res.checkInDate && 
       typeof res.checkInDate.toDate === 'function' && 
       res.checkInDate.toDate() < now &&
       (!allRooms || validRoomIds.has(res.roomId))
     );
-  }, [checkedInReservations, now, allRooms, validRoomIds]);
+  }, [confirmedReservations, now, allRooms, validRoomIds]);
 
   const overdueReservations = useMemo(() => [...overdueStays, ...overdueArrivals], [overdueStays, overdueArrivals]);
 
@@ -140,7 +148,7 @@ export default function Notifications() {
         if (roomId && !validRoomIds.has(roomId)) return;
       }
       // Use locationId (which is the stayId or tableId) as the key
-      if (!unique.has(o.locationId)) {
+      if (o.locationId && !unique.has(o.locationId)) {
         unique.set(o.locationId, o);
       }
     });
@@ -160,7 +168,7 @@ export default function Notifications() {
   }, [validPendingOrders?.length, isAlertDisabled]);
 
   const totalNotifications = (overdueStays.length || 0) + (overdueArrivals.length || 0) + (cleaningRooms?.length || 0) + (validPendingOrders?.length || 0) + (uniqueRequestedBills.length || 0);
-  const isLoading = isLoadingRooms || isLoadingCheckedIn || isLoadingPendingOrders || isLoadingRequestedBills;
+  const isLoading = isLoadingRooms || isLoadingActiveStays || isLoadingConfirmedReservations || isLoadingPendingOrders || isLoadingRequestedBills;
 
   // --- START: Alarm Logic ---
   useEffect(() => {
@@ -198,11 +206,25 @@ export default function Notifications() {
       if (!alarmToastId.current) {
         const newToastId = `alarm-${Date.now()}`;
         alarmToastId.current = newToastId;
+
+        let title = '¡Alerta de Tiempo!';
+        let description = '';
+        if (overdueStays.length > 0 && overdueArrivals.length > 0) {
+          title = '¡Estancias y Reservaciones Vencidas!';
+          description = `${overdueStays.length} estancia(s) en suite vencida(s) y ${overdueArrivals.length} reservación(es) no ingresada(s).`;
+        } else if (overdueStays.length > 0) {
+          title = '¡Alerta de Estancia Vencida en Suite!';
+          description = `${overdueStays.length} habitación(es) en suite ha(n) superado su tiempo límite.`;
+        } else {
+          title = '¡Cliente con Reservación No Llegó!';
+          description = `${overdueArrivals.length} reservación(es) confirmada(s) debió(eron) haber ingresado.`;
+        }
+
         toast({
           id: newToastId,
           variant: 'destructive',
-          title: '¡Alerta de Estancia Vencida!',
-          description: `${overdueReservations.length} habitación(es) ha(n) vencido.`,
+          title,
+          description,
           duration: Infinity,
           action: (
             <ToastAction altText="Silenciar" onClick={() => setIsAlarmSilenced(true)}>
@@ -222,7 +244,7 @@ export default function Notifications() {
         setIsAlarmSilenced(false);
       }
     }
-  }, [overdueReservations.length, toast, dismiss, isAlarmSilenced, isAlertDisabled]);
+  }, [overdueReservations.length, overdueStays.length, overdueArrivals.length, toast, dismiss, isAlarmSilenced, isAlertDisabled]);
   // --- END: Alarm Logic ---
 
   return (
@@ -339,15 +361,38 @@ export default function Notifications() {
                 )}
                 {overdueStays.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
-                      <BedDouble className="h-4 w-4" />
-                      Estancias Vencidas ({overdueStays.length})
+                    <p className="text-xs font-bold text-rose-500 flex items-center gap-1.5 uppercase tracking-wider">
+                      <BedDouble className="h-4 w-4 text-rose-500 animate-pulse" />
+                      Estancias en Suite Vencidas ({overdueStays.length})
                     </p>
-                    <div className="space-y-1">
-                      {overdueStays.map(res => (
-                        <Link key={res.id} href={`/rooms/${res.roomId}`} passHref id="notifications-link-1" data-testid="notifications-action-room-link">
-                          <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer">
-                            Habitación <span className="font-bold">{res.roomNumber}</span>
+                    <div className="space-y-1.5">
+                      {overdueStays.map(stay => (
+                        <Link 
+                          key={stay.id} 
+                          href={`/rooms/${stay.roomId}`} 
+                          passHref 
+                          id={`notifications-link-stay-${stay.id}`}
+                          data-testid="notifications-action-room-link"
+                          className="block p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all group"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-rose-200 text-sm">Hab. {stay.roomNumber}</span>
+                              <span className="text-[9px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded uppercase">
+                                En Suite
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-black bg-rose-600 text-white px-2 py-0.5 rounded uppercase shadow-sm group-hover:scale-105 transition-transform">
+                              Gestionar
+                            </span>
+                          </div>
+                          <div className="mt-1 flex justify-between items-center text-[10px] text-slate-400">
+                            <span className="truncate max-w-[130px] font-medium">{stay.guestName || 'Huésped actual'}</span>
+                            {stay.expectedCheckOut?.toDate && (
+                              <span className="text-rose-400 font-bold">
+                                Venció: {format(stay.expectedCheckOut.toDate(), 'HH:mm', { locale: es })}
+                              </span>
+                            )}
                           </div>
                         </Link>
                       ))}
@@ -356,16 +401,38 @@ export default function Notifications() {
                 )}
                 {overdueArrivals.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-orange-500 flex items-center gap-2">
-                      <CalendarClock className="h-4 w-4" />
-                      Clientes No Llegaron ({overdueArrivals.length})
+                    <p className="text-xs font-bold text-amber-500 flex items-center gap-1.5 uppercase tracking-wider">
+                      <CalendarClock className="h-4 w-4 text-amber-500" />
+                      Reservas Sin Ingresar ({overdueArrivals.length})
                     </p>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {overdueArrivals.map(res => (
-                        <Link key={res.id} href="/reservations" passHref id="notifications-link-arrivals" data-testid="notifications-action-arrivals-link">
-                          <div className="block text-sm p-2 rounded-md hover:bg-accent cursor-pointer flex justify-between items-center">
-                            <span>Hab. <span className="font-bold">{res.roomNumber}</span> - {res.guestName}</span>
-                            <span className="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase">No llegó</span>
+                        <Link 
+                          key={res.id} 
+                          href="/reservations" 
+                          passHref 
+                          id={`notifications-link-arrival-${res.id}`}
+                          data-testid="notifications-action-arrivals-link"
+                          className="block p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all group"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-amber-200 text-sm">Hab. {res.roomNumber}</span>
+                              <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded uppercase">
+                                Reservación
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-black bg-amber-600 text-white px-2 py-0.5 rounded uppercase shadow-sm group-hover:scale-105 transition-transform">
+                              Ver Reserva
+                            </span>
+                          </div>
+                          <div className="mt-1 flex justify-between items-center text-[10px] text-slate-400">
+                            <span className="truncate max-w-[130px] font-medium">{res.guestName || 'Cliente'}</span>
+                            {res.checkInDate?.toDate && (
+                              <span className="text-amber-400 font-bold">
+                                Previsto: {format(res.checkInDate.toDate(), 'HH:mm', { locale: es })}
+                              </span>
+                            )}
                           </div>
                         </Link>
                       ))}

@@ -239,21 +239,29 @@ export default function ExtendStayDialog({ children, stay, room, isOverdue, onEx
                         
                         <div className="p-5 sm:p-8 relative z-10 max-h-[85vh] overflow-y-auto scrollbar-hide">
                             <DialogHeader className="mb-8">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className={cn(
-                                        "p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner",
-                                        isOverdue ? "text-rose-500" : "text-primary"
-                                    )}>
-                                        <CalendarPlus className="h-6 w-6" />
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner",
+                                            isOverdue ? "text-rose-500" : "text-primary"
+                                        )}>
+                                            <CalendarPlus className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <DialogTitle className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                                {isOverdue ? 'Gestionar Vencida' : 'Extender Estancia'}
+                                            </DialogTitle>
+                                        </div>
                                     </div>
-                                    <DialogTitle className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                                        {isOverdue ? 'Gestionar Vencida' : 'Extender Estancia'}
-                                    </DialogTitle>
+                                    <div className="bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl text-right">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary block">Habitación</span>
+                                        <span className="text-base font-black text-white">{room.number}</span>
+                                    </div>
                                 </div>
                                 <DialogDescription className="text-slate-400 font-medium leading-relaxed">
                                     {isOverdue
-                                        ? `La estancia de ${stay.guestName} ha finalizado. Seleccione un nuevo plan o proceda al cierre.`
-                                        : `Añada tiempo adicional a la estancia actual de ${stay.guestName}.`
+                                        ? `La estancia de ${stay.guestName} en Hab. ${room.number} ha finalizado. Seleccione un nuevo plan o proceda al cierre.`
+                                        : `Añada tiempo adicional a la estancia de ${stay.guestName} (Hab. ${room.number}) y registre el método de pago recibido.`
                                     }
                                 </DialogDescription>
                             </DialogHeader>

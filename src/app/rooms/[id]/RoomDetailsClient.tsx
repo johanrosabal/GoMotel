@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package, ArrowLeftRight } from 'lucide-react'
+import { Check, CheckCircle, LogIn, LogOut, PlusCircle, ConciergeBell, History, User, Users, UserPlus, Bed, Info, Clock, AlertTriangle, Repeat, ArrowLeft, CalendarPlus, ChevronsUpDown, CreditCard, Wallet, Smartphone, ReceiptText, LayoutGrid, Zap, Sparkles, Tv, Package, ArrowLeftRight, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUserProfile } from '@/hooks/use-user-profile'
 import CreateReservationDialog from '@/components/reservations/CreateReservationDialog'
@@ -108,6 +108,32 @@ export default function RoomDetailsClient() {
         return doc(firestore, 'rooms', roomId);
     }, [firestore, roomId]);
     const { data: room, isLoading: isLoadingRoom } = useDoc<Room>(roomRef);
+
+    const allRoomsQuery = useMemoFirebase(() => {
+        if (typeof window === 'undefined') return null;
+        if (!firestore) return null;
+        return query(collection(firestore, 'rooms'), orderBy('number', 'asc'));
+    }, [firestore]);
+    const { data: allRooms } = useCollection<Room>(allRoomsQuery);
+
+    const { nextRoom, prevRoom } = useMemo(() => {
+        if (!allRooms || allRooms.length === 0 || !room) return { nextRoom: null, prevRoom: null };
+        const sorted = [...allRooms].sort((a, b) => {
+            const numA = parseInt(a.number.replace(/\D/g, ''), 10);
+            const numB = parseInt(b.number.replace(/\D/g, ''), 10);
+            if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
+            return a.number.localeCompare(b.number, undefined, { numeric: true });
+        });
+        const currentIndex = sorted.findIndex(r => r.id === room.id);
+        if (currentIndex === -1) return { nextRoom: null, prevRoom: null };
+        
+        const nextIndex = (currentIndex + 1) % sorted.length;
+        const prevIndex = (currentIndex - 1 + sorted.length) % sorted.length;
+        return {
+            nextRoom: sorted[nextIndex],
+            prevRoom: sorted[prevIndex],
+        };
+    }, [allRooms, room]);
 
     const stayRef = useMemoFirebase(() => {
         if (typeof window === 'undefined') return null;
@@ -385,10 +411,28 @@ export default function RoomDetailsClient() {
                             </EditPlanDialog>
                         )}
 
-                        {isOverdue && stay && (
+                        {stay && (
                             <ExtendStayDialog room={room} stay={stay} isOverdue={isOverdue} onExtensionSuccess={handleInvoiceSuccess}>
-                                <Button variant="destructive" className="w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-rose-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]" id="page-button-gestionar-estancia-vencida" data-testid="id-action-checkout-expired-button">
-                                    <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Vencida
+                                <Button 
+                                    variant={isOverdue ? "destructive" : "outline"} 
+                                    className={cn(
+                                        "w-full h-14 text-sm font-black uppercase tracking-[0.2em] rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98]",
+                                        isOverdue 
+                                            ? "shadow-lg shadow-rose-500/20" 
+                                            : "border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+                                    )} 
+                                    id="page-button-extender-estancia" 
+                                    data-testid="id-action-extend-stay-button"
+                                >
+                                    {isOverdue ? (
+                                        <>
+                                            <AlertTriangle className="mr-2 h-5 w-5" /> Gestionar Vencida
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CalendarPlus className="mr-2 h-5 w-5" /> Extender Tiempo
+                                        </>
+                                    )}
                                 </Button>
                             </ExtendStayDialog>
                         )}
@@ -446,11 +490,44 @@ export default function RoomDetailsClient() {
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="container mx-auto px-6 sm:px-6 lg:px-8 relative z-10 py-6 sm:py-8 lg:py-12 space-y-8"
             >
-                <div className="flex justify-center md:justify-start pb-2">
-                    <Button variant="secondary" onClick={() => router.back()} className="rounded-full font-black uppercase tracking-widest text-[9px] h-11 px-6 border border-white/10 shadow-xl transition-all hover:scale-105 active:scale-95 bg-slate-900/50 backdrop-blur-md" id="page-button-volver" data-testid="id-back-button">
-                        <ArrowLeft className="mr-2 h-4 w-4 text-primary" />
-                        Volver
+                <div className="flex items-center justify-between gap-4 pb-2 w-full">
+                    <Button asChild variant="secondary" className="rounded-full font-black uppercase tracking-widest text-[9px] h-11 px-6 border border-white/10 shadow-xl transition-all hover:scale-105 active:scale-95 bg-slate-900/50 backdrop-blur-md" id="page-button-volver" data-testid="id-back-button">
+                        <Link href="/dashboard/rooms">
+                            <ArrowLeft className="mr-2 h-4 w-4 text-primary" />
+                            Volver
+                        </Link>
                     </Button>
+
+                    {nextRoom && (
+                        <div className="flex items-center gap-2">
+                            {prevRoom && prevRoom.id !== nextRoom.id && (
+                                <Button
+                                    asChild
+                                    variant="secondary"
+                                    className="rounded-full font-black uppercase tracking-widest text-[9px] h-11 px-4 border border-white/10 shadow-xl transition-all hover:scale-105 active:scale-95 bg-slate-900/60 backdrop-blur-md text-slate-300 hover:text-white"
+                                    title={`Habitación anterior: ${prevRoom.number}`}
+                                    id="page-button-habitacion-anterior"
+                                >
+                                    <Link href={`/rooms/${prevRoom.id}`}>
+                                        <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                                        <span className="hidden sm:inline">Hab. {prevRoom.number}</span>
+                                    </Link>
+                                </Button>
+                            )}
+                            <Button
+                                asChild
+                                variant="default"
+                                className="rounded-full font-black uppercase tracking-widest text-[10px] h-11 px-6 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 border border-primary/30 group"
+                                id="page-button-siguiente-habitacion"
+                                data-testid="id-next-room-button"
+                            >
+                                <Link href={`/rooms/${nextRoom.id}`} className="flex items-center gap-2">
+                                    <span>Siguiente Habitación ({nextRoom.number})</span>
+                                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid gap-8 md:grid-cols-3 w-full mx-auto">

@@ -65,8 +65,9 @@ export default function ReservationsClientPage() {
                 return searchMatch && statusMatch;
             })
             .map(res => {
+                const room = rooms?.find(r => r.id === res.roomId);
                 const roomExists = !rooms || validRoomIds.has(res.roomId);
-                const isStayOverdue = roomExists && res.status === 'Checked-in' && res.checkOutDate?.toDate && now > res.checkOutDate.toDate();
+                const isStayOverdue = roomExists && res.status === 'Checked-in' && (room ? room.status === 'Occupied' : true) && res.checkOutDate?.toDate && now > res.checkOutDate.toDate();
                 const isArrivalOverdue = roomExists && res.status === 'Confirmed' && res.checkInDate?.toDate && now > res.checkInDate.toDate();
                 return {
                     ...res,

@@ -886,7 +886,21 @@ export async function extendStay(values: z.infer<typeof extendStaySchema>) {
     }
 }
 
-export async function reassignRoom(stayId: string, currentRoomId: string, targetRoomId: string) {
+export interface ReassignRoomOptions {
+  newPlanName?: string;
+  payDifferenceNow?: boolean;
+  paymentMethod?: 'Efectivo' | 'Sinpe Movil' | 'Tarjeta';
+  paymentConfirmed?: boolean;
+  voucherNumber?: string | null;
+  paymentAmount?: number;
+}
+
+export async function reassignRoom(
+  stayId: string, 
+  currentRoomId: string, 
+  targetRoomId: string,
+  options?: ReassignRoomOptions
+) {
   if (!stayId || !currentRoomId || !targetRoomId) {
     return { error: 'IDs de estancia o habitaciones no válidos.' };
   }
@@ -909,13 +923,111 @@ export async function reassignRoom(stayId: string, currentRoomId: string, target
     }
 
     const batch = writeBatch(db);
+    let invoiceIdForReturn: string | undefined;
 
-    // 1. Update stay document
     const stayRef = doc(db, 'stays', stayId);
-    batch.update(stayRef, {
+    const stayUpdates: Record<string, any> = {
       roomId: targetRoomId,
       roomNumber: newRoom.number,
-    });
+    };
+
+    // If a new plan is selected or target room has different type/plans
+    if (options?.newPlanName) {
+      const targetRoomTypeDoc = await getDoc(doc(db, 'roomTypes', newRoom.roomTypeId));
+      if (targetRoomTypeDoc.exists()) {
+        const roomTypeData = targetRoomTypeDoc.data() as RoomType;
+        const newPlan = roomTypeData.pricePlans?.find(p => p.name === options.newPlanName);
+        if (newPlan) {
+          const originalPrice = stay.pricePlanAmount || 0;
+          const newPrice = newPlan.price;
+          const priceDiff = newPrice - originalPrice;
+
+          const checkInDate = stay.checkIn?.toDate ? stay.checkIn.toDate() : (stay.checkIn?.seconds ? new Date((stay.checkIn as any).seconds * 1000) : new Date());
+          let newExpectedCheckOut = new Date(checkInDate);
+          switch (newPlan.unit) {
+            case 'Minutes': newExpectedCheckOut = addMinutes(checkInDate, newPlan.duration); break;
+            case 'Hours': newExpectedCheckOut = addHours(checkInDate, newPlan.duration); break;
+            case 'Days': newExpectedCheckOut = addDays(checkInDate, newPlan.duration); break;
+            case 'Weeks': newExpectedCheckOut = addWeeks(checkInDate, newPlan.duration); break;
+            case 'Months': newExpectedCheckOut = addMonths(checkInDate, newPlan.duration); break;
+          }
+
+          stayUpdates.pricePlanName = newPlan.name;
+          stayUpdates.pricePlanAmount = newPlan.price;
+          stayUpdates.expectedCheckOut = Timestamp.fromDate(newExpectedCheckOut);
+          stayUpdates.total = Math.max(0, ((stay.total || 0) - originalPrice) + newPrice);
+
+          if (priceDiff > 0 && options.payDifferenceNow) {
+            const extraFee = (options.paymentMethod === 'Sinpe Movil' || options.paymentMethod === 'Tarjeta') ? 2000 : 0;
+            const totalDiffToPay = priceDiff + extraFee;
+
+            stayUpdates.paymentAmount = (stay.paymentAmount || 0) + totalDiffToPay;
+            if (options.paymentMethod) stayUpdates.paymentMethod = options.paymentMethod;
+            if (options.voucherNumber) stayUpdates.voucherNumber = options.voucherNumber;
+
+            const invoicesRef = collection(db, 'invoices');
+            const lastInvoiceQuery = query(invoicesRef, orderBy('createdAt', 'desc'), limit(1));
+            const lastInvoiceSnap = await getDocs(lastInvoiceQuery);
+            let nextInvoiceNumberInt = 1;
+            if (!lastInvoiceSnap.empty) {
+              const lastInvoiceData = lastInvoiceSnap.docs[0].data() as Partial<Invoice>;
+              if (lastInvoiceData.invoiceNumber) {
+                const lastNumber = parseInt(lastInvoiceData.invoiceNumber.split('-')[1], 10);
+                if (!isNaN(lastNumber)) nextInvoiceNumberInt = lastNumber + 1;
+              }
+            }
+            const newInvoiceNumber = `FAC-${String(nextInvoiceNumberInt).padStart(5, '0')}`;
+            const invoiceRef = doc(collection(db, 'invoices'));
+            invoiceIdForReturn = invoiceRef.id;
+
+            const newInvoice: Omit<Invoice, 'id'> = {
+              invoiceNumber: newInvoiceNumber,
+              stayId: stayId,
+              clientId: stay.guestId || null,
+              clientName: stay.guestName,
+              createdAt: Timestamp.now(),
+              status: 'Pagada',
+              items: [{
+                description: `Diferencia de Tarifa por Traslado: Hab. ${oldRoom.number} -> Hab. ${newRoom.number} (${newPlan.name})`,
+                quantity: 1,
+                unitPrice: totalDiffToPay,
+                total: totalDiffToPay,
+              }],
+              subtotal: totalDiffToPay,
+              taxes: [],
+              total: totalDiffToPay,
+              paymentMethod: options.paymentMethod || 'Efectivo',
+              voucherNumber: options.voucherNumber || null,
+              roomId: targetRoomId,
+              roomNumber: newRoom.number,
+            };
+            batch.set(invoiceRef, newInvoice);
+
+            if (options.paymentMethod === 'Sinpe Movil') {
+              const sinpeAccountsQuery = query(collection(db, 'sinpeAccounts'), where('isActive', '==', true), orderBy('createdAt', 'asc'));
+              const sinpeAccountsSnapshot = await getDocs(sinpeAccountsQuery);
+              let targetAccountRef: DocumentReference | null = null;
+              let targetAccountData: SinpeAccount | null = null;
+              for (const d of sinpeAccountsSnapshot.docs) {
+                const account = { id: d.id, ...d.data() } as SinpeAccount;
+                const limitAmt = account.limitAmount || Infinity;
+                if ((account.balance + totalDiffToPay) <= limitAmt) {
+                  targetAccountRef = d.ref;
+                  targetAccountData = account;
+                  break;
+                }
+              }
+              if (targetAccountRef && targetAccountData) {
+                batch.update(targetAccountRef, { balance: increment(totalDiffToPay) });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 1. Update stay document
+    batch.update(stayRef, stayUpdates);
 
     // 2. Update old room document (move to Available directly, no cleaning needed)
     const oldRoomRef = doc(db, 'rooms', currentRoomId);
@@ -954,7 +1066,7 @@ export async function reassignRoom(stayId: string, currentRoomId: string, target
     revalidatePath(`/rooms/${targetRoomId}`);
     revalidatePath('/dashboard/rooms');
     
-    return { success: true };
+    return { success: true, invoiceId: invoiceIdForReturn };
   } catch (error: any) {
     console.error('Reassignment failed:', error);
     return { error: error.message || 'Ocurrió un error inesperado al reasignar la habitación.' };
